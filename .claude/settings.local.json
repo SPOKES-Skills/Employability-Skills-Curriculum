@@ -1,17 +1,4 @@
 {
-  "hooks": {
-    "PostToolUse": [
-      {
-        "matcher": "Write|Edit",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "if echo \"$CLAUDE_FILE_PATH\" | grep -qE 'lesson-[^/]+/index\\.html$'; then python scripts/validate-lesson.py \"$CLAUDE_FILE_PATH\" --caption-grace; fi"
-          }
-        ]
-      }
-    ]
-  },
   "permissions": {
     "allow": [
       "Bash(xargs:*)",

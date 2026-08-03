@@ -1,5 +1,9 @@
 # Lesson Migration Status
 
+> **SUPERSEDED (2026-08-03):** Historical snapshot from the 3-lesson era. The
+> repo now contains 6 lessons — see `lesson-registry.json` for current status.
+> The release tag mentioned below was never created.
+
 Date: 2026-03-01
 
 ## Completed

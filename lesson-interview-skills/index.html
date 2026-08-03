@@ -4124,6 +4124,7 @@
     const progressBar = document.getElementById('progressBar');
 
     let currentIndex = 0;
+    let confettiTriggered = false;
     const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     let sidebarCollapsed = false;
     const sidebarEl = document.querySelector('.sidebar');
@@ -4300,7 +4301,12 @@
           brandingLogo.style.display = 'block';
         }
 
-        if (slides[index].classList.contains('slide-closing')) {
+        if (!slides[index].classList.contains('slide-closing')) {
+          confettiTriggered = false;
+        }
+
+        if (slides[index].classList.contains('slide-closing') && !confettiTriggered) {
+          confettiTriggered = true;
           triggerGoldStars();
           playSuccessSound();
         }

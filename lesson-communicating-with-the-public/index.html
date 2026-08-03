@@ -3649,10 +3649,12 @@
       // === Interactive Components ===
 
       function switchTab(event, tabId) {
-        var container = event.target.closest('.slide');
+        // Icon <img> inside the button can be event.target — resolve to the button itself
+        var tabBtn = event.target.closest('.tab-btn');
+        var container = tabBtn.closest('.slide');
         container.querySelectorAll('.tab-btn').forEach(function(btn) { btn.classList.remove('active'); });
         container.querySelectorAll('.tab-panel').forEach(function(panel) { panel.classList.remove('active'); });
-        event.target.classList.add('active');
+        tabBtn.classList.add('active');
         container.querySelector('#' + tabId).classList.add('active');
       }
 
@@ -3688,10 +3690,11 @@
       // ACC-01: Tab ARIA updates in switchTab
       var origSwitchTab = switchTab;
       switchTab = function(event, tabId) {
-        var container = event.target.closest('.slide');
+        var tabBtn = event.target.closest('.tab-btn');
+        var container = tabBtn.closest('.slide');
         container.querySelectorAll('[role="tab"]').forEach(function(btn) { btn.setAttribute('aria-selected', 'false'); });
         origSwitchTab(event, tabId);
-        event.target.setAttribute('aria-selected', 'true');
+        tabBtn.setAttribute('aria-selected', 'true');
       };
 
       // ACC-01: Tab arrow-key navigation (ARIA tablist pattern)

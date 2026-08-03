@@ -3450,6 +3450,7 @@
   const progressBar = document.getElementById('progressBar');
 
   let currentIndex = 0;
+  let confettiTriggered = false;
   let sidebarCollapsed = false;
   const sidebarEl = document.querySelector('.sidebar');
   const sidebarToggleBtn = document.getElementById('sidebarToggle');
@@ -3598,7 +3599,12 @@
                              slides[index].classList.contains('slide-closing');
     brandingLogo.style.display = isTitleOrClosing ? 'none' : 'block';
 
-    if (slides[index].classList.contains('slide-closing')) {
+    if (!slides[index].classList.contains('slide-closing')) {
+      confettiTriggered = false;
+    }
+
+    if (slides[index].classList.contains('slide-closing') && !confettiTriggered) {
+      confettiTriggered = true;
       triggerConfetti();
     }
 

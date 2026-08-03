@@ -391,5 +391,95 @@ class TestCLR07ProximityCheck(unittest.TestCase):
         )
 
 
+class TestBlindSpotRegressions(unittest.TestCase):
+    """Regression tests for auto-pass blind spots fixed 2026-08-03."""
+
+    def _load_mod(self):
+        import importlib.util
+        spec = importlib.util.spec_from_file_location(
+            "validate_lesson", Path(__file__).parent / "validate-lesson.py"
+        )
+        mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)
+        return mod
+
+    def _result(self, results, rule_id):
+        return next(r for r in results if r.rule_id == rule_id)
+
+    def test_thm05_sees_dark_theme_in_theme_override(self):
+        """THM-05 must not auto-pass when .theme-dark CSS lives only in theme-override."""
+        mod = self._load_mod()
+        doc = mod.parse_document(
+            '<html><head><style>body{}</style>'
+            '<style id="theme-override">.theme-dark .slide{color:#ffffff}</style></head>'
+            '<body><main class="main theme-dark"></main></body></html>'
+        )
+        r = self._result(mod.check_theme(doc), "THM-05")
+        self.assertEqual(r.status, "PASS")
+        self.assertNotIn("auto-pass", r.message)
+
+    def test_thm05_fails_when_main_lacks_dark_class(self):
+        mod = self._load_mod()
+        doc = mod.parse_document(
+            '<html><head><style id="theme-override">.theme-dark .slide{color:#ffffff}</style></head>'
+            '<body><main class="main"></main></body></html>'
+        )
+        r = self._result(mod.check_theme(doc), "THM-05")
+        self.assertEqual(r.status, "FAIL")
+
+    def test_cmp01_flags_qa_tab_btn(self):
+        mod = self._load_mod()
+        doc = mod.parse_document('<html><body><button class="qa-tab-btn">x</button></body></html>')
+        r = self._result(mod.check_components(doc), "CMP-01")
+        self.assertEqual(r.status, "WARN")
+
+    def test_cmp02_flags_qa_accordion(self):
+        mod = self._load_mod()
+        doc = mod.parse_document('<html><body><div class="qa-accordion-item">x</div></body></html>')
+        r = self._result(mod.check_components(doc), "CMP-02")
+        self.assertEqual(r.status, "WARN")
+
+    def test_nav08_warns_on_unguarded_confetti(self):
+        mod = self._load_mod()
+        doc = mod.parse_document(
+            '<html><body><script>function triggerConfetti(){}</script></body></html>'
+        )
+        r = self._result(mod.check_navigation(doc), "NAV-08")
+        self.assertEqual(r.status, "WARN")
+
+    def test_nav11_warns_on_tab_markup_without_switchtab(self):
+        mod = self._load_mod()
+        doc = mod.parse_document(
+            '<html><body><button role="tab">t</button><script>const x=1;</script></body></html>'
+        )
+        r = self._result(mod.check_navigation(doc), "NAV-11")
+        self.assertEqual(r.status, "WARN")
+
+    def test_a11y01_detects_tabs_by_role_markup(self):
+        """A11Y-01 must not auto-pass when tabs use variant classes but role markup exists."""
+        mod = self._load_mod()
+        doc = mod.parse_document(
+            '<html><body><div role="tablist">'
+            '<button class="qa-tab-btn" role="tab">t</button></div></body></html>'
+        )
+        r = self._result(mod.check_accessibility(doc), "ACC-01")
+        self.assertEqual(r.status, "FAIL")  # role markup found, ARIA incomplete
+
+    def test_a11y07_fails_on_cueless_vtt(self):
+        import tempfile
+        mod = self._load_mod()
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            (tmp_path / "empty.vtt").write_text("WEBVTT\n", encoding="utf-8")
+            doc = mod.parse_document(
+                '<html><body><video preload="none" aria-label="v">'
+                '<track kind="captions" src="empty.vtt" srclang="en"></video></body></html>'
+            )
+            doc.source_path = tmp_path / "index.html"
+            r = self._result(mod.check_accessibility(doc), "ACC-07")
+            self.assertEqual(r.status, "FAIL")
+            self.assertIn("no cues", r.message)
+
+
 if __name__ == "__main__":
     unittest.main()

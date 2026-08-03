@@ -388,8 +388,12 @@ def check_accessibility(doc: Document) -> list[Result]:
     results: list[Result] = []
     raw = doc.raw_html
 
-    # A11Y-01: Tab ARIA (only if tab-btn exists)
-    has_tabs = any(_has_class(e, "tab-btn") for e in doc.elements)
+    # A11Y-01: Tab ARIA — detect tabs by role markup OR class so prefixed
+    # variants (e.g. qa-tab-btn) cannot skip validation entirely.
+    has_tabs = (
+        any(_has_class(e, "tab-btn") for e in doc.elements)
+        or any(e.attrs.get("role") == "tablist" for e in doc.elements)
+    )
     if has_tabs:
         has_tablist = any(e.attrs.get("role") == "tablist" for e in doc.elements)
         has_tab_role = any(e.attrs.get("role") == "tab" for e in doc.elements)
@@ -486,7 +490,22 @@ def check_accessibility(doc: Document) -> list[Result]:
             r'<video[^>]*>(?:(?!</video>).)*?<track[^>]*\bkind=["\']captions["\'][^>]*/?>',
             doc.raw_html, re.DOTALL | re.IGNORECASE
         ))
-        if videos_with_captions >= video_count:
+        empty_vtts: list[str] = []
+        if doc.source_path is not None:
+            base_dir = doc.source_path.parent
+            for e in doc.elements:
+                if e.tag != "track" or e.attrs.get("kind") != "captions":
+                    continue
+                src = e.attrs.get("src") or ""
+                if not src or src.startswith(("http:", "https:", "//")):
+                    continue
+                vtt_path = base_dir / src
+                if vtt_path.exists() and "-->" not in vtt_path.read_text(encoding="utf-8", errors="replace"):
+                    empty_vtts.append(src)
+
+        if empty_vtts:
+            results.append(Result(_acc(7), "FAIL", _a11y_msg(7, f"Caption file(s) contain no cues: {', '.join(empty_vtts)}"), 0))
+        elif videos_with_captions >= video_count:
             results.append(Result(_acc(7), "PASS", _a11y_msg(7, f"All {video_count} video(s) have caption tracks"), 0))
         else:
             results.append(Result(_acc(7), "FAIL", _a11y_msg(7, f"Only {videos_with_captions} of {video_count} video(s) have caption tracks"), 0))
@@ -536,8 +555,9 @@ def check_accessibility(doc: Document) -> list[Result]:
     else:
         results.append(Result(_acc(11), "PASS", _a11y_msg(11, "No images found (auto-pass)"), 0))
 
-    # A11Y-12: focus-visible count
-    css = _all_css(doc)
+    # A11Y-12: focus-visible count (all CSS including theme-override —
+    # focus styles may legitimately live in the override block)
+    css = _all_css_with_override(doc)
     focus_count = len(re.findall(r':focus-visible', css))
     if focus_count >= 6:
         results.append(Result(_acc(12), "PASS", _a11y_msg(12, f"Found {focus_count} :focus-visible rules (>= 6)"), 0))
@@ -610,11 +630,25 @@ def check_accessibility(doc: Document) -> list[Result]:
 
 
 # ---------------------------------------------------------------------------
-# Check: Components (placeholder — covered by other check groups)
+# Check: Components (CMP-01 .. CMP-02)
 # ---------------------------------------------------------------------------
 def check_components(doc: Document) -> list[Result]:
-    """Component checks are covered by accessibility and engagement checks."""
-    return []
+    results: list[Result] = []
+    raw = doc.raw_html
+
+    # CMP-01: Tab buttons must use the standard tab-btn class (no qa- variants)
+    if re.search(r'\bqa-tab-btn\b', raw):
+        results.append(Result("CMP-01", "WARN", "Non-standard tab class qa-tab-btn found — use tab-btn", 0))
+    else:
+        results.append(Result("CMP-01", "PASS", "No non-standard tab button classes", 0))
+
+    # CMP-02: Accordion items must use accordion-* classes (no qa- variants)
+    if re.search(r'\bqa-accordion[\w-]*\b', raw):
+        results.append(Result("CMP-02", "WARN", "Non-standard accordion class qa-accordion-* found — use accordion-*", 0))
+    else:
+        results.append(Result("CMP-02", "PASS", "No non-standard accordion classes", 0))
+
+    return results
 
 
 # ---------------------------------------------------------------------------
@@ -669,9 +703,12 @@ def check_navigation(doc: Document) -> list[Result]:
     else:
         results.append(Result("NAV-07", "WARN", "No sessionStorage.getItem — slide restore may be missing", 0))
 
-    # NAV-08: confettiTriggered guard
+    # NAV-08: confettiTriggered guard — WARN when confetti exists unguarded
+    has_confetti = 'confetti' in js.lower() or 'triggerGoldStars' in js
     if 'confettiTriggered' in js:
         results.append(Result("NAV-08", "PASS", "Confetti trigger guard present", 0))
+    elif has_confetti:
+        results.append(Result("NAV-08", "WARN", "Confetti present without confettiTriggered guard — will re-fire on revisit", 0))
     else:
         results.append(Result("NAV-08", "PASS", "No confetti feature (auto-pass)", 0))
 
@@ -687,15 +724,24 @@ def check_navigation(doc: Document) -> list[Result]:
     else:
         results.append(Result("NAV-10", "WARN", "Touch event passive option not detected", 0))
 
-    # NAV-11: switchTab function
+    # NAV-11: switchTab function — auto-pass only when no tab markup exists
+    has_tab_markup = any(
+        e.attrs.get("role") == "tab" or _has_class(e, "tab-btn") or _has_class(e, "qa-tab-btn")
+        for e in doc.elements
+    )
     if 'switchTab' in js:
         results.append(Result("NAV-11", "PASS", "switchTab function found", 0))
+    elif has_tab_markup:
+        results.append(Result("NAV-11", "WARN", "Tab markup present but no canonical switchTab(btn, panelId) function", 0))
     else:
         results.append(Result("NAV-11", "PASS", "No tab switching needed (auto-pass)", 0))
 
-    # NAV-12: toggleAccordion function
+    # NAV-12: toggleAccordion function — auto-pass only when no accordion markup
+    has_accordion_markup = any(_class_contains(e, "accordion") for e in doc.elements)
     if 'toggleAccordion' in js:
         results.append(Result("NAV-12", "PASS", "toggleAccordion function found", 0))
+    elif has_accordion_markup:
+        results.append(Result("NAV-12", "WARN", "Accordion markup present but no canonical toggleAccordion(btn) function", 0))
     else:
         results.append(Result("NAV-12", "PASS", "No accordion toggling needed (auto-pass)", 0))
 
@@ -724,12 +770,20 @@ def check_theme(doc: Document) -> list[Result]:
     results.append(Result("THM-03", "PASS", "Chapter scoping check (heuristic pass)", 0))
     results.append(Result("THM-04", "PASS", "Chapter scoping check (heuristic pass)", 0))
 
-    # THM-05: Dark theme on .main
-    if '.theme-dark' in css:
-        if re.search(r'\.main\s+\.theme-dark|\.main\.theme-dark', css):
-            results.append(Result("THM-05", "PASS", "Dark theme properly scoped to .main", 0))
-        else:
-            results.append(Result("THM-05", "WARN", ".theme-dark found but may not be scoped to .main", 0))
+    # THM-05: Dark theme lessons must put class="theme-dark" on the .main
+    # element, with supporting .theme-dark CSS (which lives in theme-override).
+    css_all = _all_css_with_override(doc)
+    has_dark_css = '.theme-dark' in css_all
+    main_has_dark = any(
+        _has_class(e, "theme-dark") and (e.tag == "main" or _has_class(e, "main"))
+        for e in doc.elements
+    )
+    if has_dark_css and main_has_dark:
+        results.append(Result("THM-05", "PASS", "Dark theme class on .main with supporting CSS", 0))
+    elif has_dark_css:
+        results.append(Result("THM-05", "FAIL", ".theme-dark CSS found but .main element lacks theme-dark class", 0))
+    elif main_has_dark:
+        results.append(Result("THM-05", "FAIL", ".main has theme-dark class but no .theme-dark CSS rules found", 0))
     else:
         results.append(Result("THM-05", "PASS", "No dark theme (auto-pass)", 0))
 
@@ -931,9 +985,26 @@ def check_engagement(doc: Document) -> list[Result]:
 # ---------------------------------------------------------------------------
 # Check: Reduced Motion (RDM-01 .. RDM-06)
 # ---------------------------------------------------------------------------
+def _reduced_motion_blocks(css: str) -> str:
+    """Extract the contents of all prefers-reduced-motion @media blocks."""
+    blocks: list[str] = []
+    for m in re.finditer(r'@media[^{]*prefers-reduced-motion[^{]*\{', css):
+        depth = 1
+        i = m.end()
+        start = i
+        while i < len(css) and depth:
+            if css[i] == '{':
+                depth += 1
+            elif css[i] == '}':
+                depth -= 1
+            i += 1
+        blocks.append(css[start:i])
+    return "\n".join(blocks)
+
+
 def check_reduced_motion(doc: Document) -> list[Result]:
     results: list[Result] = []
-    css = _all_css(doc)
+    css = _all_css_with_override(doc)
     js = _all_script(doc)
 
     # RDM-01: prefers-reduced-motion in CSS
@@ -967,10 +1038,10 @@ def check_reduced_motion(doc: Document) -> list[Result]:
     else:
         results.append(Result("RDM-04", "PASS", "No sound functions (auto-pass)", 0))
 
-    # RDM-05: .confetti display none in reduced motion CSS block
+    # RDM-05: .confetti display:none must be INSIDE a reduced-motion block
     if 'confetti' not in js.lower() and '.confetti' not in css:
         results.append(Result("RDM-05", "PASS", "No confetti feature (auto-pass)", 0))
-    elif re.search(r'prefers-reduced-motion.*?\.confetti.*?display\s*:\s*none', css, re.DOTALL):
+    elif re.search(r'\.confetti[^{}]*\{[^}]*display\s*:\s*none', _reduced_motion_blocks(css)):
         results.append(Result("RDM-05", "PASS", "Confetti hidden in reduced motion mode", 0))
     else:
         results.append(Result("RDM-05", "FAIL", "Confetti not hidden in prefers-reduced-motion block", 0))

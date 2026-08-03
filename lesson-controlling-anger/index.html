@@ -2695,6 +2695,12 @@
        never fight. */
     @media (min-width: 1600px) and (min-height: 920px) {
       html { font-size: 19px; }
+      /* Flip cards: base sizes are px-fixed/small — grow card and text
+         together so enlarged copy stays inside the card border */
+      .danger-card { height: 260px; }
+      .danger-card-front h3 { font-size: 1.35rem; }
+      .danger-card-back h3 { font-size: 1.3rem; }
+      .danger-card-back p { font-size: 1.12rem; line-height: 1.45; }
     }
   </style>
     <style id="fit-to-slide-guard">
@@ -2918,7 +2924,7 @@
 
       <!-- Slide 7: Big Statement -->
       <section class="slide big-statement" data-chapter="2">
-        <h2>Anger is not the problem.<br><span class="mauve">How we handle it</span> is.</h2>
+        <h2>Anger is not the problem. <br><span class="mauve">How we handle it</span> is.</h2>
       </section>
 
       <!-- ======================== -->

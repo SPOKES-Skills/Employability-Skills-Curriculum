@@ -1,5 +1,10 @@
 # SPOKES Baseline Validation Report
 
+> **SUPERSEDED (2026-08-03):** This report is a historical snapshot. The failures
+> listed below have since been remediated — all 6 lessons currently pass the
+> validator. Re-run `python3 scripts/validate-lesson.py <lesson>/index.html` for
+> current results.
+
 **Generated:** 2026-04-14
 **Validator:** scripts/validate-lesson.py (SPOKES-STANDARD v1.0)
 **Flag:** --caption-grace (A11Y-07 downgraded to WARN during caption production)

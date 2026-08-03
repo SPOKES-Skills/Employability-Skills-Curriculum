@@ -1,6 +1,6 @@
 {
-  "version": "1.1.0",
-  "lastUpdated": "2026-05-01",
+  "version": "1.2.0",
+  "lastUpdated": "2026-08-03",
   "lessonsPlanned": 18,
   "rules": {
     "allowedVariants": [
@@ -27,7 +27,7 @@
       "icon": "clock",
       "themeKey": "time",
       "path": "lesson-time-management/index.html",
-      "status": "qa",
+      "status": "ready",
       "variant": null,
       "fontPair": {
         "heading": "DM Serif Display",
@@ -64,7 +64,7 @@
       "icon": "briefcase",
       "themeKey": "interview",
       "path": "lesson-interview-skills/index.html",
-      "status": "qa",
+      "status": "ready",
       "variant": "variant-elegant",
       "fontPair": {
         "heading": "Playfair Display",
@@ -101,7 +101,7 @@
       "icon": "checkCircle",
       "themeKey": "accountability",
       "path": "lesson-employee-accountability/index.html",
-      "status": "qa",
+      "status": "ready",
       "variant": null,
       "fontPair": {
         "heading": "Merriweather",

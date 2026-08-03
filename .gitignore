@@ -1,0 +1,16 @@
+# OS junk
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Temp/backup files
+~$*
+*.tmp
+*.bak
+
+# Python bytecode
+__pycache__/
+*.pyc
+
+# Claude Code worktrees (local state)
+.claude/worktrees/

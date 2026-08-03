@@ -1,11 +1,3 @@
-~$*
-*.tmp
-*.bak
-.claude/
-Thumbs.db
-.DS_Store
-desktop.ini
-
 # Source materials at lesson root (not part of built lesson)
 /*.pptx
 /*.docx

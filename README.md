@@ -4,38 +4,45 @@ SPOKES interactive employability curriculum system with standards, templates, an
 
 ## Quick Start (3 minutes)
 
-1. Read `SPOKES-Agent-Execution-Spec.md` (source of truth + locked decisions)
+1. Read `SPOKES-STANDARD.md` (single source of truth for all lesson requirements)
 2. Read `SPOKES-Agent-Runbook.md` (how to execute lesson work)
 3. Read `SPOKES Builder/build-process.md` (build pipeline)
 4. Open `SPOKES Builder/template.html` (baseline lesson shell)
+5. Open `index.html` (redirects to `Dashboard.html`) to launch lessons
 
 ## Repository Structure
 
+- `SPOKES-STANDARD.md` — single source of truth for lesson rules (validated by `scripts/validate-lesson.py`)
 - `SPOKES-Agent-Execution-Spec.md` — authoritative operating spec
 - `SPOKES-Agent-Runbook.md` — operational workflow for lesson execution
 - `SPOKES-Project-Plan.md` — phased project delivery plan
 - `SPOKES-Master-Action-Plan.md` — consolidated issue register + sprint plan
-- `Dashboard.html` — curriculum launcher/dashboard
-- `Project_1_Employee_Accountability.v2.5/` — Employee Accountability lesson
-- `Project_2_Hilary's Project/` — Time Management lesson
-- `Project_3_Interview-Skills/` — Interview Skills lesson
+- `Dashboard.html` — curriculum launcher/dashboard (`index.html` redirects here)
+- `lesson-registry.json` — per-lesson status, theme, and quality-gate registry
+- `lesson-time-management/` — Time Management lesson
+- `lesson-interview-skills/` — Interview Skills lesson
+- `lesson-employee-accountability/` — Employee Accountability lesson
+- `lesson-communicating-with-the-public/` — Communicating with the Public lesson
+- `lesson-controlling-anger/` — Controlling Anger lesson
+- `lesson-problem-solving-and-decision-making/` — Problem Solving & Decision Making lesson
 - `SPOKES Builder/` — design system + template assets
+- `scripts/` — lesson validator, caption generator, print planner
 
 ### SPOKES Builder
 
 - `template.html` — canonical lesson template baseline
-- `brand-palette.md` — canonical 11-color system + usage/contrast guardrails
 - `build-process.md` — end-to-end lesson construction process
 - `components.md` — reusable lesson UI/content components
 - `content-intake-template.md` — structured intake format for source teams
 - `AGENT_THEMING_GUIDELINES.md` — theming and style override guidance
+- (the former `brand-palette.md` was absorbed into `SPOKES-STANDARD.md`; archived copy at `docs/archive/brand-palette.md`)
 
 ## Governance / Precedence
 
 If docs conflict, use this order:
 
-1. `SPOKES-Agent-Execution-Spec.md`
-2. `SPOKES Builder/brand-palette.md`
+1. `SPOKES-STANDARD.md`
+2. `SPOKES-Agent-Execution-Spec.md`
 3. `SPOKES Builder/build-process.md`
 4. `SPOKES-Master-Action-Plan.md`
 
@@ -63,9 +70,9 @@ See `SPOKES-Agent-Execution-Spec.md` for full gate criteria and severity/SLA pol
 
 ## Current Status (high level)
 
-- Existing lessons: 3 (mixed quality state)
+- Existing lessons: 6 (3 release-approved/ready, 3 in QA — see `lesson-registry.json`)
 - Program target: 18 lessons total
-- Ongoing work: template stabilization, lesson remediation, production batching
+- Ongoing work: QA closeout for the 2026-04 lesson batch, production batching for remaining lessons
 
 ## Operational Docs in This Repo
 

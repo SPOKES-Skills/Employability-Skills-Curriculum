@@ -1,6 +1,14 @@
-# Python generation scripts
-generate_*.py
+# OS junk
+.DS_Store
+Thumbs.db
+desktop.ini
 
-# Root-level PDF and DOCX files (only resources/ PDFs are tracked)
-/*.pdf
+# Temp/backup files
+~$*
+*.tmp
+*.bak
+
+# Root-level source materials (only resources/ and Handouts/ PDFs are tracked)
+/*.pptx
 /*.docx
+/*.pdf

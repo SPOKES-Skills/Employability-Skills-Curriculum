@@ -1786,18 +1786,26 @@
       pointer-events: none;
     }
 
+
+    /* Base engine's ::after flex spacer would pool empty space below the
+       content now that ::before is the absolute frame — remove it so the
+       title grid can fill the slide height. */
+    .slide-title.active::after { content: none; }
+
     .tm-title-lab {
       display: grid;
       grid-template-columns: minmax(0, 1fr) minmax(280px, 0.62fr);
-      align-items: center;
+      align-items: stretch;
       gap: 2.6rem;
       width: 100%;
-      max-width: 1280px;
+      max-width: 1360px;
       margin: 0 auto;
+      flex: 1;
       position: relative;
       z-index: 1;
-      transform: translateY(-0.75rem);
     }
+
+    .tm-title-copy { align-self: center; }
 
     .tm-kicker {
       color: var(--tm-amber);
@@ -1854,7 +1862,7 @@
     }
 
     .tm-title-visual {
-      min-height: clamp(320px, 48vh, 440px);
+      min-height: 320px;
       border-radius: 40px 0 40px 0;
       background:
         linear-gradient(180deg, rgba(16,32,51,0.04), rgba(16,32,51,0.68)),
@@ -2154,14 +2162,20 @@
       min-height: 220px;
     }
 
-    [data-chapter="5"] .danger-card-front,
-    [data-chapter="5"] .danger-card-back {
+    [data-chapter="5"] .danger-card-front {
       padding: 1.1rem 1.35rem;
       overflow: visible;
     }
 
     [data-chapter="5"] .danger-card-back {
+      padding: 1.1rem 1.35rem;
+      /* auto (not visible): enlarged tip text must stay inside the card border */
+      overflow: auto;
+    }
+
+    [data-chapter="5"] .danger-card-back {
       justify-content: flex-start;
+      justify-content: safe center;
       gap: 0.65rem;
       background: var(--tm-amber);
       border: 1px solid rgba(16,32,51,0.12);
@@ -2176,9 +2190,9 @@
     }
 
     [data-chapter="5"] .danger-card-back p {
-      color: var(--gray);
-      font-size: 1.02rem;
-      line-height: 1.35;
+      color: var(--tm-ink);
+      font-size: 1.15rem;
+      line-height: 1.4;
       margin: 0;
       max-width: 96%;
     }
@@ -2450,6 +2464,10 @@
       box-shadow: 0 30px 70px rgba(0,0,0,0.38);
     }
 
+    /* Theme's .slide h2 ink color would render invisibly on the dark
+       closing card — re-assert the light heading here. */
+    .closing-box h2 { color: var(--tm-paper); }
+
     @media (max-width: 900px) {
       .tm-title-lab {
         grid-template-columns: 1fr;
@@ -2483,6 +2501,21 @@
       .slide-section h2 {
         font-size: clamp(3rem, 14vw, 4.5rem);
       }
+    }
+    /* Classroom-scale typography: nearly all sizing is rem-based, so scaling
+       the root font grows content proportionally on large presentation
+       displays. Scoped above the fit-to-slide-guard's 900px height regime so
+       the two never fight. */
+    @media (min-width: 1600px) and (min-height: 920px) {
+      html { font-size: 19px; }
+      /* px-sized components don't scale with the root font — grow them here */
+      .visual-circle { width: 340px; height: 340px; }
+      .split-visual { flex-basis: 380px; }
+      .takeaway-num { width: 52px; height: 52px; }
+      .takeaways { gap: 1.3rem; }
+      .takeaway-item { padding: 0.85rem 1.3rem; }
+      [data-chapter="5"] .danger-card-back h3 { font-size: 1.6rem; }
+      [data-chapter="5"] .danger-card-back p { font-size: 1.32rem; }
     }
   </style>
     <style id="fit-to-slide-guard">
@@ -2765,7 +2798,7 @@
           </div>
         </div>
         <div class="flex-visual">
-          <img src="images/priorities-clipboard.webp" alt="Clipboard with the word Priorities written on it, representing the act of listing and ranking important tasks" loading="lazy" class="slide-img" style="max-width:320px;">
+          <img src="images/priorities-clipboard.webp" alt="Clipboard with the word Priorities written on it, representing the act of listing and ranking important tasks" loading="lazy" class="slide-img" style="max-width:430px;">
         </div>
       </div>
     </section>
@@ -2790,7 +2823,7 @@
       <h2>The Big Rocks of Time</h2>
       <div class="flex-row">
         <div class="flex-visual">
-          <img src="images/big-rocks.webp" alt="Diagram showing a jar filled first with big rocks, then pebbles, then sand — illustrating the priority metaphor" loading="lazy" class="slide-img" style="max-width:340px;">
+          <img src="images/big-rocks.webp" alt="Diagram showing a jar filled first with big rocks, then pebbles, then sand — illustrating the priority metaphor" loading="lazy" class="slide-img" style="max-width:440px;">
         </div>
         <div class="flex-text">
           <p class="body-md mb-1">If you fill your jar with <strong>sand</strong> first, there's no room for the big rocks. The sand represents small, low-priority tasks.</p>
@@ -2841,7 +2874,7 @@
           </div>
         </div>
         <div class="flex-visual">
-          <img src="images/flowchart.webp" alt="SPOKES-branded priority flowchart showing a decision-tree process for determining which tasks to tackle first each day" loading="lazy" class="slide-img" style="max-width:330px;">
+          <img src="images/flowchart.webp" alt="SPOKES-branded priority flowchart showing a decision-tree process for determining which tasks to tackle first each day" loading="lazy" class="slide-img" style="max-width:560px;">
         </div>
       </div>
     </section>
@@ -3116,7 +3149,7 @@
       <h2>Procrastination</h2>
       <div class="flex-row">
         <div class="flex-visual">
-          <img src="images/procrastination-cycle.webp" alt="Procrastination Cycle diagram showing the loop of procrastinating, making excuses, feeling guilty, panicking, and repeating" loading="lazy" class="slide-img" style="max-width:320px;">
+          <img src="images/procrastination-cycle.webp" alt="Procrastination Cycle diagram showing the loop of procrastinating, making excuses, feeling guilty, panicking, and repeating" loading="lazy" class="slide-img" style="max-width:430px;">
         </div>
         <div class="flex-text">
           <p class="body-lg mb-1"><span class="highlight">Procrastination</span> is the act of putting off something until a later time.</p>
@@ -3207,7 +3240,7 @@
           </div>
         </div>
         <div class="flex-visual" style="flex-direction:column;gap:0.5rem;">
-          <img src="images/seven-ways-say-no.webp" alt="7 Ways to Say No infographic listing polite and effective phrases for declining requests without guilt" loading="lazy" class="slide-img" style="max-width:300px;">
+          <img src="images/seven-ways-say-no.webp" alt="7 Ways to Say No infographic listing polite and effective phrases for declining requests without guilt" loading="lazy" class="slide-img" style="max-width:520px;">
         </div>
       </div>
     </section>

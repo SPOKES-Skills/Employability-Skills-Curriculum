@@ -2224,6 +2224,8 @@
        Layer 2: per-chapter card, divider, and accent variation
        ================================================================ -->
   <style id="theme-override">
+
+
     /* ── Layer 1: Font Override (Merriweather + Source Sans 3) ── */
     body { font-family: 'Source Sans 3', sans-serif; }
     .slide-title h1, .slide h2, .slide h3, .card h3,
@@ -3025,6 +3027,13 @@
       margin-right: 0.45rem;
       vertical-align: middle;
     }
+    /* Classroom-scale typography: sizing is rem-based, so scaling the root
+       font grows content proportionally on large presentation displays.
+       Scoped above the fit-to-slide-guard's 900px height regime so the two
+       never fight. */
+    @media (min-width: 1600px) and (min-height: 920px) {
+      html { font-size: 19px; }
+    }
   </style>
     <style id="fit-to-slide-guard">
       @media (min-width: 769px) and (max-height: 900px) {
@@ -3310,7 +3319,7 @@
 
       <!-- Big-statement: Habits of Mind break — inserted for rhythm before dense content -->
       <section class="slide big-statement" data-chapter="3">
-        <h2>People who practice these habits<br>don't blame others —<br>they <span class="accent">reflect, correct, and improve.</span></h2>
+        <h2>People who practice these habits <br>don't blame others — <br>they <span class="accent">reflect, correct, and improve.</span></h2>
       </section>
 
       <!-- Key Habits: debrief-grid — keep this unique component -->
@@ -3664,7 +3673,7 @@
 
       <!-- Big-statement: mindset break — "Not how do I avoid it" -->
       <section class="slide big-statement" data-chapter="5">
-        <h2>The question is not<br><span class="highlight">"How do I avoid it?"</span><br>It is <span class="accent">"How fast can I get through it?"</span></h2>
+        <h2>The question is not <br><span class="highlight">"How do I avoid it?"</span> <br>It is <span class="accent">"How fast can I get through it?"</span></h2>
       </section>
 
       <!-- Three Areas: accountability-map — hub-and-spoke layout -->

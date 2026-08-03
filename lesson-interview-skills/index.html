@@ -1401,6 +1401,8 @@
   <!-- Layer 1: colorLead=royal, sidebarColor=royal, backgroundTexture=diagonal, titleSlide=split-hero, fontPairing=playfair-display-inter -->
   <!-- Layer 2: Per-chapter card styles, dividers, and secondary accents from theme-registry.json -->
   <style id="theme-override">
+
+
     /* ================================================================
        FONT PAIRING: playfair-display-inter
        ================================================================ */
@@ -3113,6 +3115,13 @@
       line-height: 1.5;
       margin: 0;
     }
+    /* Classroom-scale typography: sizing is rem-based, so scaling the root
+       font grows content proportionally on large presentation displays.
+       Scoped above the fit-to-slide-guard's 900px height regime so the two
+       never fight. */
+    @media (min-width: 1600px) and (min-height: 920px) {
+      html { font-size: 19px; }
+    }
   </style>
     <style id="fit-to-slide-guard">
       @media (min-width: 769px) and (max-height: 900px) {
@@ -3411,7 +3420,7 @@
 
       <!-- Slide 7 — Big Statement -->
       <section class="slide big-statement" data-chapter="2">
-        <h2>Every interview is a chance to grow.<br><span class="mauve">Practice</span> builds <span class="highlight">confidence</span>,<br>and confidence <span class="gold">gets the job.</span></h2>
+        <h2>Every interview is a chance to grow. <br><span class="mauve">Practice</span> builds <span class="highlight">confidence</span>, <br>and confidence <span class="gold">gets the job.</span></h2>
       </section>
 
       <!-- ============================================================
@@ -3489,7 +3498,7 @@
 
       <!-- Slide 11 — Big Statement -->
       <section class="slide big-statement" data-chapter="3">
-        <h2>Walk in <span class="gold">prepared</span>.<br>Walk out <span class="mauve">confident</span>.</h2>
+        <h2>Walk in <span class="gold">prepared</span>. <br>Walk out <span class="mauve">confident</span>.</h2>
       </section>
 
       <!-- ============================================================

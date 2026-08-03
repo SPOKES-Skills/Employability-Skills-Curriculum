@@ -1403,6 +1403,8 @@
     <!-- Layer 2: Per-chapter card styles, dividers, and secondary accents from theme-registry.json -->
     <style id="theme-override">
 
+
+
       /* =================================================================
          LAYER 1 — LESSON IDENTITY
          ================================================================= */
@@ -2354,6 +2356,16 @@
           grid-template-columns: 1fr;
         }
       }
+    /* Classroom-scale typography: sizing is rem-based, so scaling the root
+       font grows content proportionally on large presentation displays.
+       Scoped above the fit-to-slide-guard's 900px height regime so the two
+       never fight. */
+    @media (min-width: 1600px) and (min-height: 920px) {
+      html { font-size: 19px; }
+      /* px-sized icon chips don't scale with the root font — grow them here */
+      .ppt-card-icon { width: 76px; height: 76px; }
+      .smart-letter { width: 64px; height: 64px; }
+    }
     </style>
     <style id="fit-to-slide-guard">
       @media (min-width: 769px) and (max-height: 900px) {

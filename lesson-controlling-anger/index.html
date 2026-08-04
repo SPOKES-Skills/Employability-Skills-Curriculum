@@ -1805,7 +1805,7 @@
   </style>
 
   <!-- Theme Override: Two-Layer Theme System — lesson-controlling-anger -->
-  <!-- Layer 1: mauve lead, royal sidebar, dark-royal texture (+theme-dark), framed-center title, vollkorn-fira-sans fonts -->
+  <!-- Layer 1: mauve lead, dark sidebar, dark-royal texture (+theme-dark), framed-center title, vollkorn-fira-sans fonts -->
   <!-- Layer 2: Per-chapter card styles, dividers, and secondary accents from theme-registry.json -->
   <style id="theme-override">
 
@@ -1908,21 +1908,203 @@
     .theme-dark .checkpoint p { color: rgba(255,255,255,0.9); }
     .theme-dark .area-card li { color: var(--light); font-weight: 700; }
     .theme-dark .area-card.gold-card li { color: var(--dark); font-weight: 400; }
+    /* h3 inside the white tab panel — the global dark-theme h3 inversion
+       would otherwise paint it white-on-white */
+    .theme-dark .tab-panel h3 { color: var(--mauve); }
+    /* .accent resolves to --dark (CLR-06), which vanishes on the royal
+       background — use gold like the other dark-theme emphasis classes */
+    .theme-dark .slide .accent { color: var(--gold); }
+    .theme-dark .checkpoint textarea:focus {
+      outline-color: var(--gold);
+      border-color: var(--gold);
+    }
+    /* Gold cells: the global light inversion leaves small white text at
+       ~2:1 on gold — royal matches the danger-card-back precedent */
+    .theme-dark .matrix-cell.delegate,
+    .theme-dark .matrix-cell.delegate .matrix-label,
+    .theme-dark .matrix-cell.delegate .matrix-desc,
+    .theme-dark .matrix-cell.schedule,
+    .theme-dark .matrix-cell.schedule .matrix-label,
+    .theme-dark .matrix-cell.schedule .matrix-desc {
+      color: var(--royal);
+    }
 
-    /* --- Sidebar Color: royal --- */
-    .sidebar { background: var(--royal); }
+    /* Slide lede — the one-line setup under a slide h2 */
+    .theme-dark .slide .slide-lede {
+      font-size: 1.35rem;
+      color: rgba(255, 255, 255, 0.7);
+      margin-top: -1.5rem;
+      margin-bottom: 1.5rem;
+    }
+
+    /* Generated photos are square with white backgrounds — crop them
+       circular so they fill the round frames they sit in */
+    .theme-dark .visual-circle { padding: 0; }
+    .theme-dark .visual-circle img {
+      border-radius: 50%;
+      object-fit: cover;
+    }
+    .theme-dark .danger-icon {
+      width: 68px;
+      height: 68px;
+      margin-bottom: 0.85rem;
+      border-radius: 50%;
+      overflow: hidden;
+      border: 2px solid rgba(211, 178, 87, 0.5);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    }
+    .theme-dark .danger-icon img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+    .theme-dark .area-icon {
+      overflow: hidden;
+      border: 2px solid rgba(255, 255, 255, 0.35);
+    }
+    .theme-dark .area-icon img {
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+      object-fit: cover;
+    }
+
+    /* These buttons open an external game in a new tab — the download
+       arrow misleads; point outward instead */
+    .jeopardy-link-slide .download-btn::before { content: "\2197"; }
+
+    /* Flip-card affordance — without a cue, the backs' teaching content
+       goes undiscovered */
+    .flip-hint {
+      position: absolute;
+      bottom: 0.6rem;
+      left: 0;
+      right: 0;
+      font-size: 0.72rem;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: rgba(211, 178, 87, 0.85);
+    }
+
+    /* Sidebar inactive items measured ~3.85:1 — lift above AA */
+    .slide-item { color: rgba(255, 255, 255, 0.65); }
+    .slide-counter { color: rgba(255, 255, 255, 0.65); }
+
+    /* Slides receive programmatic focus after each transition (a landing
+       point for keyboard/SR users) — no ring on the container itself */
+    .slide:focus { outline: none; }
+
+    /* iOS dynamic toolbars: dvh tracks the real visible height (browsers
+       without dvh drop these and keep the base 100vh) */
+    body { height: 100dvh; }
+    .container { height: 100dvh; }
+
+    /* Desktop presenting with the sidebar collapsed loses the only numeric
+       position readout — surface the pill chip whenever it's collapsed */
+    .sidebar.collapsed ~ .main .nav-hint .nav-pos { display: inline; }
+
+    /* WCAG 2.5.8 floor for the remaining interactive controls */
+    .quiz-opt { min-height: 44px; }
+    .tab-btn { min-height: 44px; }
+
+    /* Reflection privacy note — the frame says CHECKPOINT, the copy must
+       say what actually happens to the writing */
+    .theme-dark .checkpoint .privacy-note {
+      margin-top: 0.6rem;
+      font-size: 0.95rem;
+      color: rgba(255, 255, 255, 0.65);
+    }
+
+    /* (wheel legend styles live with the spinner component below —
+       same-specificity rules later in this block win the cascade) */
+
+    /* Checkpoint quiz (Evaluation) — in-deck assessment that works when
+       the external game is blocked or offline */
+    .quiz-list {
+      display: flex;
+      flex-direction: column;
+      gap: 1.1rem;
+      flex: 1;
+      justify-content: center;
+    }
+    .quiz-q {
+      font-size: 1.2rem;
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+    }
+    .quiz-opts {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.6rem;
+    }
+    .quiz-opt {
+      padding: 0.55rem 1rem;
+      background: rgba(255, 255, 255, 0.08);
+      border: 1.5px solid rgba(255, 255, 255, 0.3);
+      border-radius: 8px;
+      color: var(--light);
+      font-family: var(--font-body);
+      font-size: 1.02rem;
+      cursor: pointer;
+      transition: background 0.2s ease, border-color 0.2s ease;
+      text-align: left;
+    }
+    .quiz-opt:hover { background: rgba(255, 255, 255, 0.16); }
+    .quiz-opt.is-correct {
+      border-color: var(--accent);
+      background: rgba(55, 181, 80, 0.18);
+    }
+    .quiz-opt.is-wrong {
+      border-color: var(--mauve);
+      background: rgba(167, 37, 63, 0.18);
+    }
+    .quiz-feedback {
+      min-height: 1.3rem;
+      margin-top: 0.4rem;
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--gold);
+    }
+
+    /* Big-statement quote as a p so the sr-only h2 can carry a short
+       sidebar/announcer title (engine scrapes the first h2) */
+    .big-statement .quote-display {
+      font-family: var(--font-heading);
+      font-size: 4.5rem;
+      font-weight: 400;
+      line-height: 1.3;
+      max-width: 1200px;
+      color: var(--light);
+    }
+    .big-statement .activity-box {
+      max-width: 900px;
+      align-self: center;
+      text-align: left;
+    }
+    @media (max-width: 480px) {
+      .big-statement .quote-display { font-size: 2rem; }
+    }
+
+    /* --- Sidebar Color: dark --- */
+    /* The stage is royal — the sidebar steps up to the brand navy with a
+       gold seam so chrome and content read as separate planes */
+    .sidebar {
+      background: var(--dark);
+      border-right: 1px solid rgba(211, 178, 87, 0.28);
+    }
 
     /* --- Color Lead: mauve --- */
     .slide h2 { color: var(--mauve); }
     .download-btn { background: var(--mauve); }
-    .download-btn:hover { background: var(--mauve); filter: brightness(0.85); }
+    .download-btn:hover { background: var(--mauve); filter: brightness(0.85); box-shadow: 0 5px 20px rgba(0, 0, 0, 0.35); }
     .chapter-item.active > .chapter-header { background: rgba(167,37,63,0.25); }
     .divider { background: linear-gradient(90deg, var(--mauve), var(--gold)); }
     .slide-section { background: linear-gradient(135deg, var(--mauve), var(--royal)); }
 
     /* --- Title Slide: framed-center --- */
     .slide-title { background: var(--royal); }
-    .slide-title h1 { border: 1.5px solid var(--gold); border-radius: 8px; padding: 2rem 3rem; display: inline-block; }
+    .slide-title h1 { border: 1.5px solid var(--gold); border-radius: 8px; padding: 2rem 3rem; display: inline-block; max-width: 100%; }
     .slide-title .divider { background: var(--gold); }
 
     @media (max-width: 768px) {
@@ -2176,7 +2358,7 @@
     [data-chapter="4"] .card.gold-border p,
     [data-chapter="7"] .card.gold-border h3,
     [data-chapter="7"] .card.gold-border p {
-      color: var(--light);
+      color: var(--royal);
     }
     [data-chapter="4"] .takeaway-num,
     [data-chapter="7"] .takeaway-num {
@@ -2206,9 +2388,11 @@
     [data-chapter="7"] .matrix-cell.do-first {
       background: linear-gradient(135deg, var(--primary), var(--dark));
     }
+    /* Light-on-light gradient (accent→gold) so royal text passes AA on
+       both ends — white on the accent end measured ~2-3:1 */
     [data-chapter="4"] .matrix-cell.schedule,
     [data-chapter="7"] .matrix-cell.schedule {
-      background: linear-gradient(135deg, var(--accent), var(--dark));
+      background: linear-gradient(135deg, var(--accent), var(--gold));
     }
     [data-chapter="4"] .matrix-cell.delegate,
     [data-chapter="7"] .matrix-cell.delegate {
@@ -2340,12 +2524,16 @@
     }
     .accordion-item.open .accordion-header .acc-icon { transform: rotate(45deg); }
     .accordion-body {
-      max-height: 0;
-      overflow: hidden;
-      transition: max-height 0.35s ease;
-      padding: 0 1.25rem;
+      display: grid;
+      grid-template-rows: 0fr;
+      transition: grid-template-rows 0.35s ease;
     }
-    .accordion-item.open .accordion-body { max-height: 500px; padding: 0.75rem 1.25rem 1rem; }
+    .accordion-body > .acc-inner {
+      overflow: hidden;
+      min-height: 0;
+    }
+    .acc-inner > ul { margin: 0.75rem 1.25rem 1rem; }
+    .accordion-item.open .accordion-body { grid-template-rows: 1fr; }
     .accordion-body p { font-size: 1.05rem; color: var(--gray); line-height: 1.5; }
     .accordion-body ul { list-style: none; margin-top: 0.25rem; }
     .accordion-body ul li {
@@ -2396,13 +2584,42 @@
     }
 
     /* === Choice Wheel Spinner === */
+    /* Row layout: wheel column beside a visible prompt legend, so an
+       instructor can preview or pick a prompt without spinning blind */
     .spinner-container {
+      display: flex;
+      flex-direction: row;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 3rem;
+      flex: 1;
+      justify-content: center;
+    }
+    .wheel-column {
       display: flex;
       flex-direction: column;
       align-items: center;
       gap: 1.5rem;
-      flex: 1;
-      justify-content: center;
+    }
+    .wheel-legend {
+      max-width: 460px;
+      padding-left: 1.6rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.45rem;
+    }
+    .wheel-legend li {
+      font-size: 1.15rem;
+      color: rgba(255, 255, 255, 0.85);
+      padding-left: 0.35rem;
+    }
+    .wheel-legend li::marker {
+      color: var(--gold);
+      font-weight: 700;
+    }
+    @media (max-width: 900px) {
+      .spinner-container { flex-direction: column; gap: 1.5rem; }
+      .wheel-legend { max-width: 100%; }
     }
     .wheel-wrapper { position: relative; width: 340px; height: 340px; }
     .wheel-canvas {
@@ -2627,9 +2844,10 @@
       }
     }
 
-    /* Modern Progress Bar Gradient: Navy to Red */
+    /* Progress bar: mauve-to-gold — the old royal start camouflaged
+       against the royal stage, making the bar read shorter than it is */
     .progress-bar {
-      background: linear-gradient(90deg, var(--royal) 0%, var(--mauve) 100%) !important;
+      background: linear-gradient(90deg, var(--mauve) 0%, var(--gold) 100%) !important;
     }
 
     /* ================================================================
@@ -2655,7 +2873,7 @@
 
     /* 2. Component: Area Cards - The Push-in Scale */
     .area-card {
-      transition: transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.5s ease;
+      transition: transform 0.5s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.5s ease;
     }
     .area-card:hover {
       transform: scale(1.03) !important;
@@ -2672,15 +2890,7 @@
       filter: drop-shadow(0 8px 20px rgba(211,178,87,0.5)); /* Gold glowing pulse */
     }
 
-    /* 4. Component: Scenario Cards - The Side-Breeze */
-    .scenario-card {
-      transition: transform 0.4s ease, background-color 0.4s ease, box-shadow 0.4s ease;
-    }
-    .scenario-card:hover {
-      transform: translateX(6px) !important;
-      background-color: rgba(211,178,87,0.05) !important; /* Soft warm glow */
-      box-shadow: -4px 8px 20px rgba(0,64,113,0.08) !important;
-    }
+    /* (scenario-card hover block removed — class has no DOM instances) */
 
     /* === ACC-04: Skip Navigation Link === */
     .skip-link { position: absolute; top: -40px; left: 0; background: var(--dark); color: var(--light); padding: 8px 16px; z-index: 10000; font-size: 14px; transition: top 0.2s; text-decoration: none; }
@@ -2689,12 +2899,56 @@
     /* === ACC-05: Screen Reader Only === */
     .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
 
+    /* Flip cards on small screens: flex-basis 0 otherwise collapses their
+       fixed heights to slivers (column) or overflows the row (wrap) */
+    @media (max-width: 768px) {
+      .danger-card { flex: 1 1 40%; }
+    }
+    @media (max-width: 480px) {
+      .dangers-grid { align-items: stretch; }
+      .danger-card { flex: 0 0 auto; }
+    }
+
+    /* WCAG 2.5.8: prev/next are the deck's most-tapped controls */
+    .key-icon {
+      min-width: 44px;
+      min-height: 44px;
+    }
+    /* Slide position inside the nav pill — the only position indicator
+       once the sidebar is collapsed (the mobile default). Base rule must
+       precede the media override: same specificity, cascade decides. */
+    .nav-hint .nav-pos {
+      display: none;
+      color: var(--dark);
+      font-weight: 600;
+    }
+
+    /* Small screens: center-justified overflow clips the top of tall slides
+       unreachably — start from the top and let the slide scroll. Top padding
+       clears the floating sidebar toggle; bottom padding keeps the nav pill
+       off the last element. */
+    @media (max-width: 768px) {
+      .slide.active:not(.slide-title):not(.slide-section):not(.slide-closing) {
+        justify-content: flex-start;
+      }
+      .slide:not(.slide-title):not(.slide-section):not(.slide-closing) {
+        padding-top: 4rem;
+        padding-bottom: 5.5rem;
+      }
+      .nav-hint .nav-label { display: none; }
+      .nav-hint .nav-pos { display: inline; }
+    }
+
     /* Classroom-scale typography: sizing is rem-based, so scaling the root
        font grows content proportionally on large presentation displays.
        Scoped above the fit-to-slide-guard's 900px height regime so the two
        never fight. */
     @media (min-width: 1600px) and (min-height: 920px) {
       html { font-size: 19px; }
+      /* Wheel is px-fixed — scale it with the classroom pass so back-row
+         students can read slices and result */
+      .wheel-wrapper, .wheel-canvas { width: 440px; height: 440px; }
+      .spin-result { font-size: 1.6rem; }
       /* Flip cards: base sizes are px-fixed/small — grow card and text
          together so enlarged copy stays inside the card border */
       .danger-card { height: 260px; }
@@ -2753,20 +3007,6 @@
         .download-resource {
           margin-top: clamp(0.75rem, 1.8vh, 1.5rem);
         }
-        .compact-rules-grid {
-          gap: 0.65rem !important;
-        }
-        .compact-rules-grid .card {
-          padding: 0.65rem 1rem !important;
-        }
-        .compact-rules-grid .card h3 {
-          font-size: 1rem !important;
-          margin-bottom: 0.15rem !important;
-        }
-        .compact-rules-grid .card p {
-          font-size: 0.9rem !important;
-          line-height: 1.2;
-        }
       }
     </style>
   </head>
@@ -2799,7 +3039,7 @@
     </nav>
 
     <!-- Main Content -->
-    <main class="main theme-dark" id="main-content">
+    <main class="main theme-dark" id="main-content" tabindex="-1">
       <button class="sidebar-toggle" id="sidebarToggle" onclick="toggleSidebar()" title="Toggle sidebar" aria-expanded="true" aria-controls="sidebar" aria-label="Toggle navigation">&#171;</button>
 
       <div aria-live="polite" id="slideAnnouncer" class="sr-only" aria-atomic="true"></div>
@@ -2824,7 +3064,7 @@
       <!-- Slide 2: Hook Video -->
       <section class="slide slide-video" data-chapter="1">
         <h2>Watch: Anger Management &mdash; Rage on a Plane</h2>
-        <div class="video-container" style="position:relative; width:100%; max-width:1200px; margin:0 auto;">
+        <div class="video-container">
           <div class="video-wrapper">
             <video controls preload="none" class="local-video" poster="images/anger-visuals/video-rage-plane-poster.svg" aria-label="Anger Management - Rage on a Plane video" style="width:100%;">
               <source src="videos/anger_management_rage_on_plane.mp4" type="video/mp4" />
@@ -2841,7 +3081,7 @@
       <!-- Slide 3: What Makes Us Angry -->
       <section class="slide" data-chapter="1">
         <h2>What Makes Us Angry?</h2>
-        <p style="font-size:1.4rem; color:rgba(255,255,255,0.7); margin-top:-1.5rem; margin-bottom:2rem;">Think about a time you felt really angry. What happened?</p>
+        <p class="slide-lede">Think about a time you felt really angry. What happened?</p>
         <div class="split-layout">
           <div class="split-text">
             <p style="font-size:1.5rem; margin-bottom:1.25rem;">Anger is a <span class="mauve">normal, natural emotion</span> that everyone experiences. It can range from mild irritation to intense rage.</p>
@@ -2885,11 +3125,11 @@
             <h3>Unhealthy Anger</h3>
             <p>Leads to aggression, damaged relationships, poor decisions, and health problems. Often explosive or suppressed.</p>
           </div>
-          <div class="card gold-border">
+          <div class="card">
             <h3>Anger as a Tool</h3>
             <p>When channeled correctly, anger can fuel determination, advocacy for fairness, and the energy to solve problems.</p>
           </div>
-          <div class="card">
+          <div class="card gold-border">
             <h3>Anger as a Weapon</h3>
             <p>When used to intimidate, control, or punish others, anger becomes destructive to relationships and careers.</p>
           </div>
@@ -2943,8 +3183,8 @@
 
       <!-- Slide 9: Anger Iceberg Concept -->
       <section class="slide" data-chapter="3">
-        <h2>The Anger Iceberg</h2>
-        <p style="font-size:1.4rem; color:rgba(255,255,255,0.7); margin-top:-1.5rem; margin-bottom:1.5rem;">What you see on the surface is only part of the story</p>
+        <h2>Below the Surface of Anger</h2>
+        <p class="slide-lede">What you see on the surface is only part of the story</p>
         <div class="split-layout">
           <div class="split-text">
             <p style="font-size:1.4rem; margin-bottom:1rem;">Like an iceberg, <span class="mauve">anger is often just the tip</span>. Hidden beneath the surface are deeper emotions:</p>
@@ -2972,7 +3212,7 @@
       <!-- Slide 10: Iceberg Video -->
       <section class="slide slide-video" data-chapter="3">
         <h2>Watch: The Iceberg Theory of Anger</h2>
-        <div class="video-container" style="position:relative; width:100%; max-width:1200px; margin:0 auto;">
+        <div class="video-container">
           <div class="video-wrapper">
             <video controls preload="none" class="local-video" poster="images/anger-visuals/video-anger-iceberg-poster.svg" aria-label="The Iceberg Theory of Anger video" style="width:100%;">
               <source src="videos/iceberg_theory_of_anger.mp4" type="video/mp4" />
@@ -2989,11 +3229,12 @@
       <!-- Slide 11: Checkpoint Reflection -->
       <section class="slide" data-chapter="3">
         <h2>Reflect: What&rsquo;s Beneath Your Anger?</h2>
-        <p style="font-size:1.4rem; color:rgba(255,255,255,0.7); margin-top:-1.5rem; margin-bottom:1.5rem;">Take a moment to think about a recent time you felt angry.</p>
+        <p class="slide-lede">Take a moment to think about a recent time you felt angry.</p>
         <div class="checkpoint">
           <div class="checkpoint-label">Checkpoint Reflection</div>
           <p style="font-size:1.2rem; color:rgba(255,255,255,0.9);">What emotions might have been hiding beneath the anger you felt? Were you really angry &mdash; or were you hurt, scared, or frustrated?</p>
-          <textarea placeholder="Write your thoughts here (not graded)..."></textarea>
+          <textarea aria-label="Your reflection" placeholder="Write your thoughts here (not graded)..."></textarea>
+          <p class="privacy-note">Your notes stay on this device and are cleared when this browser tab closes.</p>
         </div>
       </section>
 
@@ -3046,8 +3287,9 @@
               <div class="danger-card-front">
                 <div class="danger-icon"><img src="images/generated-context/workplace-conflict.png" alt="" aria-hidden="true" /></div>
                 <h3>Workplace Conflicts</h3>
+                <span class="flip-hint" aria-hidden="true">Tap or click to reveal</span>
               </div>
-              <div class="danger-card-back">
+              <div class="danger-card-back" aria-hidden="true">
                 <h3>Workplace Conflicts</h3>
                 <p>Uncontrolled anger can lead to write-ups, lost promotions, or termination. Take a break before responding.</p>
               </div>
@@ -3058,8 +3300,9 @@
               <div class="danger-card-front">
                 <div class="danger-icon"><img src="images/generated-context/interview-response.png" alt="" aria-hidden="true" /></div>
                 <h3>Interview Questions</h3>
+                <span class="flip-hint" aria-hidden="true">Tap or click to reveal</span>
               </div>
-              <div class="danger-card-back">
+              <div class="danger-card-back" aria-hidden="true">
                 <h3>Interview Questions</h3>
                 <p>&ldquo;Tell me about a conflict you resolved.&rdquo; Use the STAR method to show you handle anger constructively.</p>
               </div>
@@ -3070,8 +3313,9 @@
               <div class="danger-card-front">
                 <div class="danger-icon"><img src="images/generated-context/customer-interaction.png" alt="" aria-hidden="true" /></div>
                 <h3>Customer Interactions</h3>
+                <span class="flip-hint" aria-hidden="true">Tap or click to reveal</span>
               </div>
-              <div class="danger-card-back">
+              <div class="danger-card-back" aria-hidden="true">
                 <h3>Customer Interactions</h3>
                 <p>Angry customers need calm responders. Stay professional, listen actively, and de-escalate with empathy.</p>
               </div>
@@ -3082,8 +3326,9 @@
               <div class="danger-card-front">
                 <div class="danger-icon"><img src="images/generated-context/team-dynamics.png" alt="" aria-hidden="true" /></div>
                 <h3>Team Dynamics</h3>
+                <span class="flip-hint" aria-hidden="true">Tap or click to reveal</span>
               </div>
-              <div class="danger-card-back">
+              <div class="danger-card-back" aria-hidden="true">
                 <h3>Team Dynamics</h3>
                 <p>Frequent anger isolates you from coworkers. Building trust requires consistent emotional control.</p>
               </div>
@@ -3113,7 +3358,7 @@
       <!-- Slide 15: Embrace, Express, Work Through (Tabs) -->
       <section class="slide" data-chapter="4">
         <h2>Embrace, Express &amp; Work Through</h2>
-        <p style="font-size:1.3rem; color:rgba(255,255,255,0.7); margin-top:-1.5rem; margin-bottom:1.5rem;">A three-step framework for handling anger constructively</p>
+        <p class="slide-lede">A three-step framework for handling anger constructively</p>
         <div class="tabs-container">
           <div class="tabs-nav" role="tablist">
             <button class="tab-btn active" role="tab" aria-selected="true" aria-controls="tab-embrace" onclick="switchTab(event, 'tab-embrace')">1. Embrace</button>
@@ -3183,7 +3428,7 @@
       <!-- Slide 17: Anger Thermometer Video -->
       <section class="slide slide-video" data-chapter="4">
         <h2>Watch: Anger Thermometer &mdash; Warning Signs</h2>
-        <div class="video-container" style="position:relative; width:100%; max-width:1200px; margin:0 auto;">
+        <div class="video-container">
           <div class="video-wrapper">
             <video controls preload="none" class="local-video" poster="images/anger-visuals/video-anger-thermometer-poster.svg" aria-label="Anger Thermometer - Warning Signs video" style="width:100%;">
               <source src="videos/anger_thermometer_warning_signs.mp4" type="video/mp4" />
@@ -3197,50 +3442,73 @@
         </div>
       </section>
 
-      <!-- Slide 18: 10 Rules of Fair Fighting -->
+      <!-- Debrief: Anger Thermometer -->
       <section class="slide" data-chapter="4">
-        <h2>10 Rules of Fair Fighting</h2>
-        <p style="font-size:1.2rem; color:rgba(255,255,255,0.7); margin-top:-1.5rem; margin-bottom:1rem;">Conflict is inevitable &mdash; but fighting dirty is a choice. Follow these rules.</p>
-        <div class="cards-grid compact-rules-grid" style="gap:1rem;">
-          <div class="card" style="padding:1rem 1.5rem;">
-            <h3 style="font-size:1.25rem; margin-bottom:0.25rem;">1. No name-calling</h3>
-            <p style="font-size:1.1rem;">Attack the problem, not the person.</p>
+        <h2>Debrief: Your Warning Signs</h2>
+        <p class="slide-lede">Your body signals anger before your words do</p>
+        <ul class="content-list">
+          <li><strong>Early:</strong> tight jaw, warm face, shorter answers</li>
+          <li><strong>Rising:</strong> louder voice, racing heart, pacing</li>
+          <li><strong>Boiling:</strong> clenched fists, can&rsquo;t hear the other person</li>
+        </ul>
+        <div class="activity-box" style="margin-top:1.5rem;">
+          <div class="activity-label">Discussion</div>
+          <p>Where on the thermometer do you usually notice you&rsquo;re angry &mdash; and what is one signal that tells you it&rsquo;s time to step away and cool down?</p>
+        </div>
+      </section>
+
+      <!-- Fair Fighting: Rules 1-5 -->
+      <section class="slide" data-chapter="4">
+        <h2>Fair Fighting: Rules 1&ndash;5</h2>
+        <p class="slide-lede">Conflict is inevitable &mdash; fighting dirty is a choice</p>
+        <div class="takeaways">
+          <div class="takeaway-item">
+            <div class="takeaway-num">1</div>
+            <p><strong>No name-calling.</strong> Attack the problem, not the person.</p>
           </div>
-          <div class="card gold-border" style="padding:1rem 1.5rem;">
-            <h3 style="font-size:1.25rem; margin-bottom:0.25rem;">2. No bringing up the past</h3>
-            <p style="font-size:1.1rem;">Stay focused on the current issue.</p>
+          <div class="takeaway-item">
+            <div class="takeaway-num">2</div>
+            <p><strong>No bringing up the past.</strong> Stay focused on the current issue.</p>
           </div>
-          <div class="card" style="padding:1rem 1.5rem;">
-            <h3 style="font-size:1.25rem; margin-bottom:0.25rem;">3. No yelling or intimidation</h3>
-            <p style="font-size:1.1rem;">Keep your voice calm and level.</p>
+          <div class="takeaway-item">
+            <div class="takeaway-num">3</div>
+            <p><strong>No yelling or intimidation.</strong> Keep your voice calm and level.</p>
           </div>
-          <div class="card gold-border" style="padding:1rem 1.5rem;">
-            <h3 style="font-size:1.25rem; margin-bottom:0.25rem;">4. Take turns speaking</h3>
-            <p style="font-size:1.1rem;">Listen as much as you talk.</p>
+          <div class="takeaway-item">
+            <div class="takeaway-num">4</div>
+            <p><strong>Take turns speaking.</strong> Listen as much as you talk.</p>
           </div>
-          <div class="card" style="padding:1rem 1.5rem;">
-            <h3 style="font-size:1.25rem; margin-bottom:0.25rem;">5. Take a timeout if needed</h3>
-            <p style="font-size:1.1rem;">Walk away, cool down, come back.</p>
+          <div class="takeaway-item">
+            <div class="takeaway-num">5</div>
+            <p><strong>Take a timeout if needed.</strong> Walk away, cool down, come back.</p>
           </div>
-          <div class="card gold-border" style="padding:1rem 1.5rem;">
-            <h3 style="font-size:1.25rem; margin-bottom:0.25rem;">6. Use &ldquo;I&rdquo; statements</h3>
-            <p style="font-size:1.1rem;">&ldquo;I feel...&rdquo; instead of &ldquo;You always...&rdquo;</p>
+        </div>
+      </section>
+
+      <!-- Fair Fighting: Rules 6-10 -->
+      <section class="slide" data-chapter="4">
+        <h2>Fair Fighting: Rules 6&ndash;10</h2>
+        <p class="slide-lede">The goal is resolution, not victory</p>
+        <div class="takeaways">
+          <div class="takeaway-item">
+            <div class="takeaway-num">6</div>
+            <p><strong>Use &ldquo;I&rdquo; statements.</strong> &ldquo;I feel...&rdquo; instead of &ldquo;You always...&rdquo;</p>
           </div>
-          <div class="card" style="padding:1rem 1.5rem;">
-            <h3 style="font-size:1.25rem; margin-bottom:0.25rem;">7. No threats or ultimatums</h3>
-            <p style="font-size:1.1rem;">Seek resolution, not surrender.</p>
+          <div class="takeaway-item">
+            <div class="takeaway-num">7</div>
+            <p><strong>No threats or ultimatums.</strong> Seek resolution, not surrender.</p>
           </div>
-          <div class="card gold-border" style="padding:1rem 1.5rem;">
-            <h3 style="font-size:1.25rem; margin-bottom:0.25rem;">8. Be willing to compromise</h3>
-            <p style="font-size:1.1rem;">Winning is less important than resolving.</p>
+          <div class="takeaway-item">
+            <div class="takeaway-num">8</div>
+            <p><strong>Be willing to compromise.</strong> Winning is less important than resolving.</p>
           </div>
-          <div class="card" style="padding:1rem 1.5rem;">
-            <h3 style="font-size:1.25rem; margin-bottom:0.25rem;">9. Acknowledge feelings</h3>
-            <p style="font-size:1.1rem;">Validate the other person&rsquo;s emotions.</p>
+          <div class="takeaway-item">
+            <div class="takeaway-num">9</div>
+            <p><strong>Acknowledge feelings.</strong> Validate the other person&rsquo;s emotions.</p>
           </div>
-          <div class="card gold-border" style="padding:1rem 1.5rem;">
-            <h3 style="font-size:1.25rem; margin-bottom:0.25rem;">10. End with a plan</h3>
-            <p style="font-size:1.1rem;">Agree on next steps before parting.</p>
+          <div class="takeaway-item">
+            <div class="takeaway-num">10</div>
+            <p><strong>End with a plan.</strong> Agree on next steps before parting.</p>
           </div>
         </div>
       </section>
@@ -3254,7 +3522,7 @@
         <div class="section-circle">
           <img src="images/generated-context/practice-conversation.png" alt="Constructive conversation practice" loading="lazy" />
         </div>
-        <p class="chapter-label">Presentation</p>
+        <p class="chapter-label">Practice</p>
         <h2>Hands-On Activities</h2>
         <div class="divider"></div>
       </section>
@@ -3262,7 +3530,7 @@
       <!-- Slide 20: Pair and Share / Speak-Listen -->
       <section class="slide" data-chapter="5">
         <h2>Pair &amp; Share: Speak and Listen</h2>
-        <p style="font-size:1.3rem; color:rgba(255,255,255,0.7); margin-top:-1.5rem; margin-bottom:1.5rem;">Practice expressing and receiving anger constructively</p>
+        <p class="slide-lede">Practice expressing and receiving anger constructively &mdash; share only what you feel comfortable sharing</p>
         <div class="takeaways">
           <div class="takeaway-item">
             <div class="takeaway-num">1</div>
@@ -3290,21 +3558,33 @@
       <!-- Slide 21: Choice Wheel Spinner -->
       <section class="slide" data-chapter="5">
         <h2>Controlling Anger Choice Wheel</h2>
-        <p style="font-size:1.2rem; color:rgba(255,255,255,0.7); margin-top:-1.5rem; margin-bottom:1rem;">Spin the wheel and respond to the prompt you land on!</p>
+        <p class="slide-lede">Spin the wheel and respond to the prompt you land on! Passing or re-spinning is always okay.</p>
         <div class="spinner-container">
-          <div class="wheel-wrapper">
-            <div class="wheel-pointer"></div>
-            <canvas class="wheel-canvas" id="choiceWheel" width="340" height="340"></canvas>
+          <div class="wheel-column">
+            <div class="wheel-wrapper">
+              <div class="wheel-pointer"></div>
+              <canvas class="wheel-canvas" id="choiceWheel" width="340" height="340" role="img" aria-label="Choice wheel; all eight prompts are listed beside it"></canvas>
+            </div>
+            <button class="spin-btn" id="spinBtn" onclick="spinWheel()">Spin the Wheel</button>
+            <div class="spin-result" id="spinResult" role="status"></div>
           </div>
-          <button class="spin-btn" id="spinBtn" onclick="spinWheel()">Spin the Wheel</button>
-          <div class="spin-result" id="spinResult"></div>
+          <ol class="wheel-legend" aria-label="All wheel prompts">
+            <li>Describe a time you felt angry at work</li>
+            <li>What is your go-to calming strategy?</li>
+            <li>Name one trigger you've identified</li>
+            <li>How does anger affect your body?</li>
+            <li>Share a time you handled anger well</li>
+            <li>What support network do you have?</li>
+            <li>Name one rule of fair fighting</li>
+            <li>How can anger be a positive force?</li>
+          </ol>
         </div>
       </section>
 
       <!-- Slide 22: Ways to Manage Anger (Accordion) -->
       <section class="slide" data-chapter="5">
         <h2>12 Ways to Manage Anger</h2>
-        <p style="font-size:1.2rem; color:rgba(255,255,255,0.7); margin-top:-1.5rem; margin-bottom:1rem;">Click each category to explore techniques</p>
+        <p class="slide-lede">Click each category to explore techniques</p>
         <div class="accordion">
           <div class="accordion-item">
             <button type="button" class="accordion-header" aria-expanded="false" aria-controls="acc-physical" onclick="toggleAccordion(this)">
@@ -3312,11 +3592,13 @@
               <span class="acc-icon" aria-hidden="true">+</span>
             </button>
             <div class="accordion-body" id="acc-physical">
+              <div class="acc-inner">
               <ul>
                 <li><strong>Deep breathing:</strong> Inhale for 4 counts, hold 4, exhale 8. Repeat until calm.</li>
                 <li><strong>Progressive muscle relaxation:</strong> Tense and release each muscle group, head to toe.</li>
                 <li><strong>Physical exercise:</strong> Walk, run, or stretch to burn off adrenaline and cortisol.</li>
               </ul>
+              </div>
             </div>
           </div>
           <div class="accordion-item">
@@ -3325,11 +3607,13 @@
               <span class="acc-icon" aria-hidden="true">+</span>
             </button>
             <div class="accordion-body" id="acc-mental">
+              <div class="acc-inner">
               <ul>
                 <li><strong>Cognitive reframing:</strong> Challenge angry thoughts. Is there another explanation?</li>
                 <li><strong>Counting to ten:</strong> Simple but effective &mdash; gives your rational brain time to catch up.</li>
                 <li><strong>Visualization:</strong> Picture a calm place or a positive outcome to the situation.</li>
               </ul>
+              </div>
             </div>
           </div>
           <div class="accordion-item">
@@ -3338,11 +3622,13 @@
               <span class="acc-icon" aria-hidden="true">+</span>
             </button>
             <div class="accordion-body" id="acc-social">
+              <div class="acc-inner">
               <ul>
                 <li><strong>Talk it out:</strong> Share your feelings with a trusted friend, family member, or counselor.</li>
                 <li><strong>Use humor:</strong> Lighten the mood (without sarcasm) to defuse tension.</li>
                 <li><strong>Set boundaries:</strong> Remove yourself from toxic situations or relationships when needed.</li>
               </ul>
+              </div>
             </div>
           </div>
           <div class="accordion-item">
@@ -3351,11 +3637,13 @@
               <span class="acc-icon" aria-hidden="true">+</span>
             </button>
             <div class="accordion-body" id="acc-mindfulness">
+              <div class="acc-inner">
               <ul>
                 <li><strong>Grounding (5-4-3-2-1):</strong> Name 5 things you see, 4 you touch, 3 you hear, 2 you smell, 1 you taste.</li>
                 <li><strong>Journaling:</strong> Write down your feelings to process and release them.</li>
                 <li><strong>Meditation:</strong> Even 5 minutes of focused breathing can reset your emotional state.</li>
               </ul>
+              </div>
             </div>
           </div>
         </div>
@@ -3365,16 +3653,11 @@
         </div>
       </section>
 
-      <!-- Slide 23: Big Statement + Poison Quote -->
-      <section class="slide big-statement" data-chapter="5">
-        <h2>Holding onto anger is like <span class="mauve">drinking poison</span> and expecting the other person to get sick.</h2>
-        <p style="font-size:1.5rem; margin-top:2rem;">Letting go is not weakness &mdash; it is <span class="quote-gold">strength</span>.</p>
-      </section>
-
-      <!-- Slide 24: Drinking Poison Video -->
+      <!-- Drinking Poison Video (before the quote — the video delivers the
+           metaphor; the big statement now lands as its echo) -->
       <section class="slide slide-video" data-chapter="5">
         <h2>Watch: Holding Onto Anger Is Like Drinking Poison</h2>
-        <div class="video-container" style="position:relative; width:100%; max-width:1200px; margin:0 auto;">
+        <div class="video-container">
           <div class="video-wrapper">
             <video controls preload="none" class="local-video" poster="images/anger-visuals/video-release-anger-poster.svg" aria-label="Holding Onto Anger Is Like Drinking Poison video" style="width:100%;">
               <source src="videos/holding_onto_anger_drinking_poison.mp4" type="video/mp4" />
@@ -3385,6 +3668,17 @@
               <button class="cc-toggle" onclick="toggleCaptions(this)" aria-pressed="false" aria-label="Toggle captions" title="Toggle captions">CC</button>
             </div>
           </div>
+        </div>
+      </section>
+
+      <!-- Big Statement: Poison Quote echo + debrief -->
+      <section class="slide big-statement" data-chapter="5">
+        <h2 class="sr-only">Drinking Poison: The Cost of Holding On</h2>
+        <p class="quote-display">Holding onto anger is like <span class="mauve">drinking poison</span> and expecting the other person to get sick.</p>
+        <p style="font-size:1.5rem; margin-top:2rem;">Letting go is not weakness &mdash; it is <span class="quote-gold">strength</span>.</p>
+        <div class="activity-box" style="margin-top:2rem;">
+          <div class="activity-label">Discussion</div>
+          <p>Who gets hurt most when you hold onto anger? What would &ldquo;putting the cup down&rdquo; look like for you this week?</p>
         </div>
       </section>
 
@@ -3410,11 +3704,56 @@
         </a>
         <div class="activity-box">
           <span class="activity-label">REVIEW GAME</span>
-          <p>Open the Jeopardy review game in a new tab and use it to review the key ideas from the Controlling Anger lesson.</p>
+          <p>Open the Jeopardy review game in a new tab and use it to review the key ideas from the Controlling Anger lesson. If the game site is blocked or offline, use the checkpoint on the next slide instead.</p>
         </div>
         <div class="download-resource">
           <span class="download-prompt">External Game Link</span>
           <a href="https://jeopardylabs.com/play/anger-management1" target="_blank" rel="noopener noreferrer" class="download-btn">Open Jeopardy Game</a>
+          <a href="Handouts/Anger-Management-Toolbox.pdf" target="_blank" rel="noopener noreferrer" class="download-btn">Printable Review: Toolbox</a>
+        </div>
+      </section>
+
+      <!-- Checkpoint Quiz — in-deck assessment that works offline -->
+      <section class="slide" data-chapter="6">
+        <h2>Check Your Understanding</h2>
+        <p class="slide-lede">Four quick questions &mdash; click an answer to check it</p>
+        <div class="quiz-list">
+          <div class="quiz-block">
+            <p class="quiz-q">1. The Anger Iceberg teaches that anger is usually&hellip;</p>
+            <div class="quiz-opts">
+              <button type="button" class="quiz-opt" onclick="checkQuiz(this, false)">The only emotion present</button>
+              <button type="button" class="quiz-opt" onclick="checkQuiz(this, true)">The tip &mdash; fear, hurt, or shame sit beneath</button>
+              <button type="button" class="quiz-opt" onclick="checkQuiz(this, false)">Something to hold in until it passes</button>
+            </div>
+            <p class="quiz-feedback" role="status"></p>
+          </div>
+          <div class="quiz-block">
+            <p class="quiz-q">2. Which of these is a rule of fair fighting?</p>
+            <div class="quiz-opts">
+              <button type="button" class="quiz-opt" onclick="checkQuiz(this, false)">Bring up past mistakes as evidence</button>
+              <button type="button" class="quiz-opt" onclick="checkQuiz(this, false)">Raise your voice so you are heard</button>
+              <button type="button" class="quiz-opt" onclick="checkQuiz(this, true)">Use &ldquo;I&rdquo; statements about the current issue</button>
+            </div>
+            <p class="quiz-feedback" role="status"></p>
+          </div>
+          <div class="quiz-block">
+            <p class="quiz-q">3. Healthy anger is expressed&hellip;</p>
+            <div class="quiz-opts">
+              <button type="button" class="quiz-opt" onclick="checkQuiz(this, true)">Assertively &mdash; respecting your needs and their dignity</button>
+              <button type="button" class="quiz-opt" onclick="checkQuiz(this, false)">By venting at the person right away</button>
+              <button type="button" class="quiz-opt" onclick="checkQuiz(this, false)">By staying silent and keeping the peace</button>
+            </div>
+            <p class="quiz-feedback" role="status"></p>
+          </div>
+          <div class="quiz-block">
+            <p class="quiz-q">4. &ldquo;Tell me about a conflict you resolved&rdquo; is best answered with&hellip;</p>
+            <div class="quiz-opts">
+              <button type="button" class="quiz-opt" onclick="checkQuiz(this, false)">&ldquo;I never have conflicts&rdquo;</button>
+              <button type="button" class="quiz-opt" onclick="checkQuiz(this, true)">The STAR method, showing constructive handling</button>
+              <button type="button" class="quiz-opt" onclick="checkQuiz(this, false)">An honest account of the coworker&rsquo;s faults</button>
+            </div>
+            <p class="quiz-feedback" role="status"></p>
+          </div>
         </div>
       </section>
 
@@ -3435,19 +3774,19 @@
       <!-- Slide 28: Styles of Anger Assessment -->
       <section class="slide" data-chapter="7">
         <h2>Styles of Anger Assessment</h2>
-        <p style="font-size:1.3rem; color:rgba(255,255,255,0.7); margin-top:-1.5rem; margin-bottom:1.5rem;">Discover your default anger style</p>
+        <p class="slide-lede">Discover your default anger style</p>
         <div class="matrix-grid">
           <div class="matrix-cell do-first">
             <span class="matrix-label">Style 1</span>
             <span class="matrix-action">Avoidance</span>
             <span class="matrix-desc">Withdrawing, staying quiet, avoiding conflict to keep the peace</span>
           </div>
-          <div class="matrix-cell schedule">
+          <div class="matrix-cell delegate">
             <span class="matrix-label">Style 2</span>
             <span class="matrix-action">Forceful</span>
             <span class="matrix-desc">Intimidation, overpowering, expressing emotions without filter</span>
           </div>
-          <div class="matrix-cell delegate">
+          <div class="matrix-cell schedule">
             <span class="matrix-label">Style 3</span>
             <span class="matrix-action">Collaborative</span>
             <span class="matrix-desc">Hearing all sides, pursuing resolution constructively, maintaining relationships</span>
@@ -3491,23 +3830,20 @@
       <section class="slide slide-closing" data-chapter="7" id="closingSlide">
         <div class="confetti-container" id="confettiContainer"></div>
         <div class="closing-box">
-          <h2 style="color: var(--gold); font-size: 1.5rem; margin-bottom: 1.5rem;">
+          <h2 style="color: var(--gold); font-size: 2.75rem; margin-bottom: 1.5rem;">
             Congratulations, you have completed this lesson!
           </h2>
           <p>&ldquo;For every minute you remain angry, you give up sixty seconds of peace of mind.&rdquo; &mdash; Ralph Waldo Emerson</p>
           <div class="divider"></div>
-          <h3>Choose Peace. Choose Growth.</h3>
-          <div class="download-resource">
-            <span class="download-prompt">Instructor Resource Available</span>
-            <a href="Handouts/Controlling Anger Rubric.pdf" target="_blank" rel="noopener noreferrer" class="download-btn">Course Rubric</a>
-          </div>
+          <h3 style="font-size: 1.9rem;">Choose Peace. Choose Growth.</h3>
         </div>
       </section>
 
       <!-- Navigation Hint -->
       <div class="nav-hint">
         <button type="button" class="key-icon" id="prevBtn" aria-label="Previous slide">&#8592;</button>
-        <span>to navigate</span>
+        <span class="nav-label">to navigate</span>
+        <span class="nav-pos" id="navPos" aria-hidden="true"></span>
         <button type="button" class="key-icon" id="nextBtn" aria-label="Next slide">&#8594;</button>
       </div>
 
@@ -3629,6 +3965,8 @@
         header.className = "chapter-header";
         header.setAttribute('tabindex', '0');
         header.setAttribute('role', 'button');
+        // NAV-13 PROTOTYPE: headers are disclosure controls — expose state
+        header.setAttribute('aria-expanded', 'false');
         header.addEventListener('keydown', function(e) {
           if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); header.click(); }
         });
@@ -3673,15 +4011,19 @@
 
       chapterListEl.appendChild(fragment);
 
+      // NAV-13 PROTOTYPE: chapter-header activation toggles expansion ONLY.
+      // Navigation happens through the slide items inside the expanded list,
+      // so peeking at a chapter never moves the projected deck.
       document.querySelectorAll(".chapter-header").forEach(function(header) {
         header.addEventListener("click", function() {
           var chapterItem = header.parentElement;
           var wasExpanded = chapterItem.classList.contains("expanded");
           document.querySelectorAll(".chapter-item").forEach(function(item) { item.classList.remove("expanded"); });
-          if (!wasExpanded) chapterItem.classList.add("expanded");
-          var chapter = chapterItem.dataset.chapter;
-          var targetIndex = Array.from(slides).findIndex(function(slide) { return slide.dataset.chapter === chapter; });
-          if (targetIndex !== -1) showSlide(targetIndex);
+          document.querySelectorAll(".chapter-header").forEach(function(h) { h.setAttribute('aria-expanded', 'false'); });
+          if (!wasExpanded) {
+            chapterItem.classList.add("expanded");
+            header.setAttribute('aria-expanded', 'true');
+          }
         });
       });
 
@@ -3759,6 +4101,10 @@
           var isActive = item.dataset.chapter === currentChapter;
           item.classList.toggle("active", isActive);
           if (isActive) item.classList.add("expanded");
+          // NAV-13 PROTOTYPE: keep disclosure state truthful when the
+          // engine auto-expands the active chapter
+          var h = item.querySelector('.chapter-header');
+          if (h) h.setAttribute('aria-expanded', String(item.classList.contains('expanded')));
         });
 
         document.querySelectorAll(".slide-item").forEach(function(item) {
@@ -3953,6 +4299,12 @@
       'rgba(55, 181, 80, 0.7)'
     ];
 
+    // Royal text on the light slices (accent/gold) — white measured ~2:1
+    var wheelTextColors = [
+      '#ffffff', '#ffffff', '#00133f', '#00133f',
+      '#ffffff', '#ffffff', '#ffffff', '#00133f'
+    ];
+
     var wheelAngle = 0;
     var wheelSpinning = false;
 
@@ -3960,6 +4312,17 @@
       var canvas = document.getElementById('choiceWheel');
       if (!canvas) return;
       var ctx = canvas.getContext('2d');
+      // Render at device resolution AND the canvas's CSS size — the
+      // classroom-scale pass grows it to 440px, and a stretched 340px
+      // buffer would be soft on exactly the display that matters
+      var dpr = window.devicePixelRatio || 1;
+      var cssSize = canvas.clientWidth || 340;
+      var buffer = Math.round(cssSize * dpr);
+      if (canvas.width !== buffer) {
+        canvas.width = buffer;
+        canvas.height = buffer;
+      }
+      ctx.setTransform((dpr * cssSize) / 340, 0, 0, (dpr * cssSize) / 340, 0, 0);
       var cx = 170, cy = 170, r = 160;
       var sliceAngle = (2 * Math.PI) / wheelPrompts.length;
 
@@ -3981,10 +4344,15 @@
 
         ctx.save();
         ctx.translate(cx, cy);
+        // Flip labels on the left hemisphere so they never render upside-down
+        var midAngle = (startAngle + sliceAngle / 2) % (2 * Math.PI);
+        if (midAngle < 0) midAngle += 2 * Math.PI;
+        var flipLabel = midAngle > Math.PI / 2 && midAngle < 3 * Math.PI / 2;
         ctx.rotate(startAngle + sliceAngle / 2);
-        ctx.textAlign = 'right';
-        ctx.fillStyle = '#FFFFFF';
-        ctx.font = '600 11px "Fira Sans", sans-serif';
+        if (flipLabel) ctx.rotate(Math.PI);
+        ctx.textAlign = flipLabel ? 'left' : 'right';
+        ctx.fillStyle = wheelTextColors[i];
+        ctx.font = '600 12px "Fira Sans", sans-serif';
         var words = prompt.split(' ');
         var line = '';
         var lines = [];
@@ -4001,7 +4369,7 @@
         var lineHeight = 13;
         var startY = -(lines.length - 1) * lineHeight / 2;
         lines.forEach(function(l, li) {
-          ctx.fillText(l, r - 12, startY + li * lineHeight + 4);
+          ctx.fillText(l, flipLabel ? -(r - 12) : r - 12, startY + li * lineHeight + 4);
         });
         ctx.restore();
       });
@@ -4016,14 +4384,28 @@
       ctx.fill();
     }
 
+    function showWheelResult() {
+      var normalizedAngle = ((2 * Math.PI - (wheelAngle % (2 * Math.PI))) + (3 * Math.PI / 2)) % (2 * Math.PI);
+      var sliceAngle = (2 * Math.PI) / wheelPrompts.length;
+      var idx = Math.floor(normalizedAngle / sliceAngle) % wheelPrompts.length;
+      document.getElementById('spinResult').textContent = wheelPrompts[idx];
+    }
+
     function spinWheel() {
       if (wheelSpinning) return;
+      var totalSpin = Math.PI * 2 * (4 + Math.random() * 4);
+      if (prefersReduced) {
+        // Same random landing, no animation
+        wheelAngle += totalSpin;
+        drawWheel();
+        showWheelResult();
+        return;
+      }
       wheelSpinning = true;
       var btn = document.getElementById('spinBtn');
       btn.disabled = true;
       document.getElementById('spinResult').textContent = '';
 
-      var totalSpin = Math.PI * 2 * (4 + Math.random() * 4);
       var duration = 3000 + Math.random() * 1000;
       var startAngle = wheelAngle;
       var startTime = performance.now();
@@ -4039,44 +4421,59 @@
         } else {
           wheelSpinning = false;
           btn.disabled = false;
-          var normalizedAngle = ((2 * Math.PI - (wheelAngle % (2 * Math.PI))) + (3 * Math.PI / 2)) % (2 * Math.PI);
-          var sliceAngle = (2 * Math.PI) / wheelPrompts.length;
-          var idx = Math.floor(normalizedAngle / sliceAngle) % wheelPrompts.length;
-          document.getElementById('spinResult').textContent = wheelPrompts[idx];
+          showWheelResult();
         }
       }
       requestAnimationFrame(animate);
     }
 
     setTimeout(drawWheel, 100);
+    // Wheel labels use a web font — redraw once fonts arrive
+    if (document.fonts && document.fonts.ready) {
+      document.fonts.ready.then(function() { drawWheel(); });
+    }
+
+    // Arrow keys inside tablists — the slide keyboard handler already
+    // yields arrows to [role="tab"], so complete the WAI-ARIA pattern
+    document.querySelectorAll('[role="tablist"]').forEach(function(list) {
+      list.addEventListener('keydown', function(e) {
+        if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return;
+        var tabs = Array.prototype.slice.call(list.querySelectorAll('[role="tab"]'));
+        var i = tabs.indexOf(document.activeElement);
+        if (i === -1) return;
+        e.preventDefault();
+        var next = tabs[(i + (e.key === 'ArrowRight' ? 1 : tabs.length - 1)) % tabs.length];
+        next.focus();
+        next.click();
+      });
+    });
 
     // === Danger/Flip Card Accessibility ===
+    // Deliberate flip only (no hover auto-flip: a mouse sweep revealed all
+    // four backs, and touch fired mouseenter+click as flip-then-unflip).
+    // aria-hidden keeps the hidden back out of the card's accessible name.
     function setFlipCard(card, isFlipped) {
       card.classList.toggle('flipped', isFlipped);
       card.setAttribute('aria-expanded', String(isFlipped));
-    }
-
-    function revealFlipCard(card) {
-      if (card.dataset.manualToggle === 'true') return;
-      setFlipCard(card, true);
+      // Exactly one face in the accessibility tree at a time — otherwise
+      // the card's name concatenates front + back text
+      var back = card.querySelector('.danger-card-back');
+      var front = card.querySelector('.danger-card-front');
+      if (back) back.setAttribute('aria-hidden', String(!isFlipped));
+      if (front) front.setAttribute('aria-hidden', String(isFlipped));
     }
 
     function toggleFlipCard(card) {
-      card.dataset.manualToggle = 'true';
       setFlipCard(card, !card.classList.contains('flipped'));
     }
 
     function resetFlipCards(scope) {
       (scope || document).querySelectorAll('.danger-card').forEach(function(card) {
-        delete card.dataset.manualToggle;
         setFlipCard(card, false);
       });
     }
 
     document.querySelectorAll('.danger-card').forEach(function(card) {
-      card.addEventListener('mouseenter', function() {
-        revealFlipCard(card);
-      });
       card.addEventListener('click', function() {
         toggleFlipCard(card);
       });
@@ -4086,6 +4483,52 @@
           toggleFlipCard(card);
         }
       });
+    });
+
+    // === Checkpoint Quiz ===
+    function checkQuiz(btn, isCorrect) {
+      var block = btn.closest('.quiz-block');
+      block.querySelectorAll('.quiz-opt').forEach(function(b) {
+        b.classList.remove('is-correct', 'is-wrong');
+      });
+      btn.classList.add(isCorrect ? 'is-correct' : 'is-wrong');
+      block.querySelector('.quiz-feedback').textContent = isCorrect
+        ? '✓ Correct'
+        : '✗ Not quite — try another answer';
+    }
+
+    // === Slide-change side effects ===
+    // The locked engine blurs focus to <body> on every transition; watching
+    // its counter lets us land focus on the new slide and mirror position
+    // into the mobile nav pill without modifying the engine.
+    var navPosEl = document.getElementById('navPos');
+    function updateNavPos() {
+      if (navPosEl) navPosEl.textContent = currentSlideEl.textContent + ' / ' + slides.length;
+    }
+    slides.forEach(function(s) { s.tabIndex = -1; });
+    new MutationObserver(function() {
+      updateNavPos();
+      // Redraw the wheel at its now-measurable CSS size when its slide opens
+      drawWheel();
+      var active = document.querySelector('.slide.active');
+      if (active) active.focus({ preventScroll: true });
+    }).observe(currentSlideEl, { childList: true, characterData: true, subtree: true });
+    updateNavPos();
+
+    // === Persist reflection notes for this tab session ===
+    document.querySelectorAll('.checkpoint textarea').forEach(function(ta, i) {
+      var key = 'spokes_reflect_' + document.title + '_' + i;
+      try {
+        var saved = sessionStorage.getItem(key);
+        if (saved) ta.value = saved;
+      } catch (e) {}
+      ta.addEventListener('input', function() {
+        try { sessionStorage.setItem(key, ta.value); } catch (e) {}
+      });
+      // Swipes that start inside the textarea are text selection, not
+      // navigation — keep them from reaching the engine's .main handler
+      ta.addEventListener('touchstart', function(e) { e.stopPropagation(); }, { passive: true });
+      ta.addEventListener('touchend', function(e) { e.stopPropagation(); }, { passive: true });
     });
     /* CC Toggle Button */
     function toggleCaptions(btn) {

@@ -212,7 +212,7 @@
     },
     "lesson-controlling-anger": {
       "colorLead": "mauve",
-      "sidebarColor": "royal",
+      "sidebarColor": "dark",
       "backgroundTexture": "dark-royal",
       "titleSlide": "framed-center",
       "dividerStyle": "framed-gold",

@@ -1386,6 +1386,8 @@
   <!-- Layer 2: Per-chapter card styles, dividers, and secondary accents -->
   <!-- CRITICAL: This block is AFTER the main CSS so cascade works correctly -->
   <style id="theme-override">
+    /* MOB-03 / WCAG 2.5.8: prev/next controls must meet the 44px floor */
+    .key-icon { min-width: 44px; min-height: 44px; }
 
     /* =================================================================
        LAYER 1 — LESSON IDENTITY
@@ -3527,7 +3529,7 @@
       const info = chapterNames[chNum] || { name: 'Chapter ' + chNum, badge: 'p' };
       const badgeLetter = wippeaLabels[info.badge] || 'P';
       html += '<li class="chapter-item" data-chapter="' + chNum + '">' +
-        '<div class="chapter-header" tabindex="0" role="button">' +
+        '<div class="chapter-header" tabindex="0" role="button" aria-expanded="false">' +
           '<span class="chapter-arrow">&#9654;</span>' +
           '<span class="wippea-badge ' + info.badge + '">' + badgeLetter + '</span>' +
           '<span>' + info.name + '</span>' +
@@ -3541,14 +3543,17 @@
     chapterListEl.innerHTML = html;
 
     document.querySelectorAll('.chapter-header').forEach(header => {
+      // NAV-13: header activation toggles expansion ONLY — navigation
+      // happens through the slide items
       function activateChapter() {
         const item = header.parentElement;
         const wasExpanded = item.classList.contains('expanded');
         document.querySelectorAll('.chapter-item').forEach(i => i.classList.remove('expanded'));
-        if (!wasExpanded) item.classList.add('expanded');
-        const ch = item.dataset.chapter;
-        const idx = Array.from(slides).findIndex(s => s.dataset.chapter === ch);
-        if (idx !== -1) showSlide(idx);
+        document.querySelectorAll('.chapter-header').forEach(h => h.setAttribute('aria-expanded', 'false'));
+        if (!wasExpanded) {
+          item.classList.add('expanded');
+          header.setAttribute('aria-expanded', 'true');
+        }
       }
       header.addEventListener('click', activateChapter);
       header.addEventListener('keydown', e => {
@@ -3608,6 +3613,9 @@
       const isActive = item.dataset.chapter === currentChapter;
       item.classList.toggle('active', isActive);
       if (isActive) item.classList.add('expanded');
+      // NAV-13: keep disclosure state truthful on auto-expand
+      const h = item.querySelector('.chapter-header');
+      if (h) h.setAttribute('aria-expanded', String(item.classList.contains('expanded')));
     });
 
     document.querySelectorAll('.slide-item').forEach(item => {

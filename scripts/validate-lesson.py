@@ -652,7 +652,7 @@ def check_components(doc: Document) -> list[Result]:
 
 
 # ---------------------------------------------------------------------------
-# Check: Navigation (NAV-01 .. NAV-12)
+# Check: Navigation (NAV-01 .. NAV-13)
 # ---------------------------------------------------------------------------
 def check_navigation(doc: Document) -> list[Result]:
     results: list[Result] = []
@@ -745,6 +745,22 @@ def check_navigation(doc: Document) -> list[Result]:
     else:
         results.append(Result("NAV-12", "PASS", "No accordion toggling needed (auto-pass)", 0))
 
+    # NAV-13: Chapter headers are disclosure controls — they must manage
+    # aria-expanded (heuristic: header aria-expanded wiring present in JS
+    # or in the sidebar template string). Approved 2026-08-04.
+    has_chapter_headers = 'chapter-header' in js
+    manages_disclosure = (
+        "header.setAttribute('aria-expanded'" in js
+        or 'header.setAttribute("aria-expanded"' in js
+        or 'class="chapter-header"' in js and 'aria-expanded="false"' in js
+    )
+    if not has_chapter_headers:
+        results.append(Result("NAV-13", "PASS", "No chapter headers (auto-pass)", 0))
+    elif manages_disclosure:
+        results.append(Result("NAV-13", "PASS", "Chapter headers manage aria-expanded disclosure state", 0))
+    else:
+        results.append(Result("NAV-13", "WARN", "Chapter headers lack aria-expanded disclosure wiring (NAV-13)", 0))
+
     return results
 
 
@@ -827,20 +843,25 @@ def check_mobile(doc: Document) -> list[Result]:
     else:
         results.append(Result("MOB-02", "WARN", "No .sidebar-toggle CSS rule found", 0))
 
-    # MOB-03: Nav button sizing
-    nav_match = re.search(r'\.nav-btn\s*\{[^}]*\}', css, re.DOTALL)
-    if nav_match:
-        block = nav_match.group(0)
-        w_match = re.search(r'(?:min-)?width\s*:\s*(\d+)', block)
-        h_match = re.search(r'(?:min-)?height\s*:\s*(\d+)', block)
-        w = int(w_match.group(1)) if w_match else 0
-        h = int(h_match.group(1)) if h_match else 0
+    # MOB-03: Nav button sizing. The prev/next controls use .key-icon in all
+    # six lessons (.nav-btn kept for legacy decks). Sizes may be declared in
+    # a later override block, so take the max across every matching rule.
+    nav_blocks = re.findall(r"[^{}]*(?:\.nav-btn|\.key-icon)[^{}]*\{[^}]*\}", css)
+    if nav_blocks:
+        w, h = 0, 0
+        for block in nav_blocks:
+            w_match = re.search(r"(?:min-)?width\s*:\s*(\d+)", block)
+            h_match = re.search(r"(?:min-)?height\s*:\s*(\d+)", block)
+            if w_match:
+                w = max(w, int(w_match.group(1)))
+            if h_match:
+                h = max(h, int(h_match.group(1)))
         if w >= 44 and h >= 44:
             results.append(Result("MOB-03", "PASS", f"Nav buttons meet 44px touch target ({w}x{h}px)", 0))
         else:
             results.append(Result("MOB-03", "FAIL", f"Nav button size {w}x{h}px — minimum 44x44px", 0))
     else:
-        results.append(Result("MOB-03", "PASS", "No .nav-btn rule found (auto-pass)", 0))
+        results.append(Result("MOB-03", "PASS", "No nav button rule found (auto-pass)", 0))
 
     # MOB-04: Active styles (heuristic)
     results.append(Result("MOB-04", "PASS", "Touch feedback check (heuristic pass)", 0))

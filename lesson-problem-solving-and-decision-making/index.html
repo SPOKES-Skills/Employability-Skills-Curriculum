@@ -1706,6 +1706,8 @@
   <!-- Layer 1: dual-gold-green lead, dark sidebar, plain texture, offset-left title, bitter-raleway fonts -->
   <!-- Layer 2: Per-chapter card styles, dividers, and secondary accents from theme-registry.json -->
   <style id="theme-override">
+    /* MOB-03 / WCAG 2.5.8: prev/next controls must meet the 44px floor */
+    .key-icon { min-width: 44px; min-height: 44px; }
 
 
     /* ================================================================
@@ -3980,6 +3982,8 @@
         header.className = "chapter-header";
         header.setAttribute('tabindex', '0');
         header.setAttribute('role', 'button');
+        // NAV-13: headers are disclosure controls — expose state
+        header.setAttribute('aria-expanded', 'false');
         header.addEventListener('keydown', function(e) {
           if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); this.click(); }
         });
@@ -4022,15 +4026,18 @@
 
       chapterListEl.appendChild(fragment);
 
+      // NAV-13: chapter-header activation toggles expansion ONLY —
+      // navigation happens through the slide items
       document.querySelectorAll(".chapter-header").forEach(function(header) {
         header.addEventListener("click", function() {
           var chapterItem = header.parentElement;
           var wasExpanded = chapterItem.classList.contains("expanded");
           document.querySelectorAll(".chapter-item").forEach(function(item) { item.classList.remove("expanded"); });
-          if (!wasExpanded) chapterItem.classList.add("expanded");
-          var chapter = chapterItem.dataset.chapter;
-          var targetIndex = Array.from(slides).findIndex(function(slide) { return slide.dataset.chapter === chapter; });
-          if (targetIndex !== -1) showSlide(targetIndex);
+          document.querySelectorAll(".chapter-header").forEach(function(h) { h.setAttribute('aria-expanded', 'false'); });
+          if (!wasExpanded) {
+            chapterItem.classList.add("expanded");
+            header.setAttribute('aria-expanded', 'true');
+          }
         });
       });
 
@@ -4109,6 +4116,9 @@
           var isActive = item.dataset.chapter === currentChapter;
           item.classList.toggle("active", isActive);
           if (isActive) item.classList.add("expanded");
+          // NAV-13: keep disclosure state truthful on auto-expand
+          var h = item.querySelector('.chapter-header');
+          if (h) h.setAttribute('aria-expanded', String(item.classList.contains('expanded')));
         });
 
         document.querySelectorAll(".slide-item").forEach(function(item) {

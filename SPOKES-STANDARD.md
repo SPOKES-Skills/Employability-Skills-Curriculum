@@ -326,6 +326,12 @@ Generation D merges the best features from three incompatible navigation engine 
 - **Rule:** Accordion function signature: `toggleAccordion(btn)`.
 - **Rationale:** Same reasoning as NAV-11 — standardizing the accordion toggle function signature eliminates cross-lesson divergence and simplifies the component model.
 
+### NAV-13 — Chapter Header Disclosure
+- **Severity:** WARN
+- **Validation:** heuristic
+- **Rule:** Sidebar chapter-header activation toggles list expansion only and maintains `aria-expanded`; navigation occurs via the slide items inside the expanded list.
+- **Rationale:** Header-click navigation moved the projected deck whenever an instructor peeked at a chapter mid-lecture, and screen-reader users received an unannounced context change from a control with no disclosure state. Expand-only headers with `aria-expanded` make the sidebar a safe wayfinding surface. Approved 2026-08-04 (docs/proposal-chapter-header-navigation.md) and applied to all six lessons the same day.
+
 ---
 
 ## Section 6: Theme System

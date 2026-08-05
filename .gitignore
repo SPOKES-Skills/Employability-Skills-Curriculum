@@ -14,3 +14,6 @@ __pycache__/
 
 # Claude Code worktrees (local state)
 .claude/worktrees/
+
+# Impeccable session state (local server pids/ports, not project history)
+.impeccable/questions/

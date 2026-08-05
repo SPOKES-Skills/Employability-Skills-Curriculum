@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SPOKES Employability Skills Curriculum</title>
+    <link rel="icon" href="SPOKES-Logo.png">
+    <style>
+        /* The face is self-hosted (SIL Open Font License, latin subset, 46 KB).
+           A school content filter or a dead network no longer silently swaps the
+           display voice for the platform sans. Chrome still refuses to load
+           fonts over file:// on its own, so the fallback stack below is the real
+           last line of defence, not decoration. */
+        @font-face {
+            font-family: "Schibsted Grotesk";
+            src: url("fonts/schibsted-grotesk-latin.woff2") format("woff2");
+            font-weight: 400 800;
+            font-style: normal;
+            font-display: swap;
+        }
+
+        :root {
+            /* SPOKES lesson palette — product facts, forecast rather than repainted */
+            --blue: #007baf;
+            --green: #37b550;
+            --royal: #00133f;
+            --gold: #d3b257;
+            --mauve: #a7253f;
+
+            /* hub chrome */
+            --stage: #f5f5f7;
+            --card: #ffffff;
+            --ink: #1d1d1f;
+            --ink-soft: #5c5c61;
+            /* --blue clears AA on white at 4.72:1, but with no headroom at this
+               size; links use the darker SPOKES blue at 10.65:1 instead */
+            --link: #004071;
+            --night: #050b1c;
+            --night-soft: #c7ccd6;
+            --hairline: rgba(0, 19, 63, 0.1);
+
+            --font: "Schibsted Grotesk", system-ui, -apple-system, "Segoe UI", sans-serif;
+        }
+
+        *, *::before, *::after { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            min-height: 100dvh;
+            display: flex;
+            flex-direction: column;
+            font-family: var(--font);
+            color: var(--ink);
+            background: var(--stage);
+            -webkit-font-smoothing: antialiased;
+        }
+
+        a { color: inherit; text-decoration: none; }
+
+        .skip-link {
+            position: absolute; left: 1rem; top: -5rem; z-index: 100;
+            padding: 0.85rem 1.2rem; background: var(--night); color: #fff;
+            font-weight: 600; border-radius: 0 0 10px 10px; transition: top 0.18s ease;
+        }
+        .skip-link:focus { top: 0; }
+
+        .wrap { width: min(1520px, calc(100% - 3rem)); margin-inline: auto; }
+
+        /* ── Stage-setting band ────────────────────────────────────────────────
+           The one dark moment on the page. It buys presence with type scale and
+           contrast rather than height, so the first card row still clears the
+           fold on a 1280×720 projector. */
+        .stagehead {
+            background: var(--night); color: #fff;
+            padding-block: clamp(1.1rem, 2.1vw, 1.9rem);
+        }
+        .stagehead .wrap { display: flex; align-items: flex-end; gap: clamp(1.5rem, 3vw, 3.5rem); }
+
+        /* The mark carries the wordmark already, so it stands alone; a tracked
+           caps line here would only be a label for the heading. Kept small so it
+           is identity, not the brightest object in the first viewport. */
+        .brand { display: flex; align-items: center; margin-bottom: 1.25rem; }
+        .brand img { display: block; width: 62px; height: auto; background: #fff; border-radius: 5px; padding: 0.3rem 0.4rem; }
+
+        .stagehead h1 {
+            margin: 0;
+            font-size: clamp(1.7rem, 4vw, 3.4rem);
+            font-weight: 800;
+            letter-spacing: -0.035em;
+            line-height: 1.02;
+            text-wrap: balance;
+            max-width: 18ch;
+        }
+        .stagehead .lede {
+            margin: 0 0 0.35rem; flex: 1 1 26ch; min-width: 0;
+            font-size: clamp(0.9rem, 1.2vw, 1.08rem);
+            line-height: 1.5; color: var(--night-soft); max-width: 46ch;
+        }
+
+        /* ── Cards ─────────────────────────────────────────────────────────── */
+        main { flex: 1 0 auto; padding-block: clamp(1.2rem, 2.2vw, 2rem) 3rem; }
+
+        .grid {
+            display: grid; grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: clamp(1rem, 1.5vw, 1.5rem);
+            /* every row sizes to its tallest card, so a longer description in
+               one row does not leave a ragged wall further down */
+            grid-auto-rows: 1fr;
+        }
+        /* density chosen for eighteen, rendered with six */
+        @media (min-width: 1480px) { .grid { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+        @media (max-width: 1040px) { .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+        @media (max-width: 620px)  { .grid { grid-template-columns: 1fr; } }
+
+        .card {
+            --lead: var(--blue);
+            --on-lead: #ffffff;
+            --lead-2: transparent;
+            position: relative;
+            display: flex; flex-direction: column;
+            padding: clamp(1.15rem, 1.6vw, 1.6rem);
+            background: var(--card);
+            border-radius: 20px;
+            box-shadow: 0 1px 2px rgba(0, 19, 63, 0.06), 0 8px 22px rgba(0, 19, 63, 0.07);
+            transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        a.card:hover { transform: translateY(-5px); box-shadow: 0 2px 4px rgba(0, 19, 63, 0.07), 0 20px 44px rgba(0, 19, 63, 0.14); }
+        a.card:focus-visible { outline: 3px solid var(--blue); outline-offset: 4px; }
+
+        /* The medallion is the deck's own registered colour and icon, at the
+           scale a product mark deserves. */
+        .medallion {
+            position: relative; flex: none;
+            width: clamp(58px, 5.2vw, 68px); height: clamp(58px, 5.2vw, 68px);
+            margin-bottom: clamp(0.85rem, 1.3vw, 1.15rem);
+        }
+        .medallion-face {
+            position: relative;
+            width: 100%; height: 100%;
+            display: grid; place-items: center;
+            border-radius: 30%;
+            background: var(--lead);
+            color: var(--on-lead);
+            box-shadow: 0 6px 16px color-mix(in srgb, var(--lead) 38%, transparent);
+        }
+        .medallion-face svg { width: 60%; height: 60%; }
+        /* A deck the registry gives two colour leads gets both, as a stacked
+           pair of marks. The second colour sits behind and offset, so it frames
+           the glyph instead of cutting through it and the icon keeps the full
+           contrast of a solid field. Tree order does the layering — the face is
+           a following sibling, so it paints over this. */
+        .dual .medallion::before {
+            content: "";
+            position: absolute; inset: 0;
+            transform: translate(8px, 8px);
+            border-radius: 30%;
+            background: var(--lead-2);
+        }
+
+        .card h2 {
+            margin: 0 0 0.4rem;
+            font-size: clamp(1.1rem, 1.4vw, 1.3rem);
+            font-weight: 700; letter-spacing: -0.024em; line-height: 1.16;
+            text-wrap: balance;
+        }
+        .card p {
+            margin: 0 0 1rem; flex: 1 0 auto;
+            font-size: 0.9rem; line-height: 1.5; color: var(--ink-soft);
+            display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;
+        }
+
+        .facts {
+            display: flex; flex-wrap: wrap; gap: 0.3rem 0.75rem;
+            margin: 0 0 1rem; padding: 0 0 0.9rem; list-style: none;
+            border-bottom: 1px solid var(--hairline);
+            font-size: 0.78rem; font-weight: 500; color: var(--ink-soft);
+            font-variant-numeric: tabular-nums;
+        }
+        .facts li { display: flex; align-items: baseline; gap: 0.3rem; }
+        .facts b { color: var(--ink); font-weight: 700; }
+
+        .go {
+            display: flex; align-items: center; gap: 0.45rem;
+            min-height: 24px;
+            font-size: 0.92rem; font-weight: 600; letter-spacing: -0.01em;
+            color: var(--link);
+        }
+        .go svg { width: 15px; height: 15px; transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1); }
+        a.card:hover .go svg { transform: translateX(4px); }
+        .card.soon .go { color: var(--ink-soft); }
+
+        /* one authored moment: the wall settles in, once, on load */
+        @keyframes settle {
+            from { opacity: 0; transform: translateY(14px); }
+            to { opacity: 1; transform: none; }
+        }
+        .grid.is-ready > * { animation: settle 0.62s cubic-bezier(0.16, 1, 0.3, 1) backwards; }
+
+        .notice {
+            grid-column: 1 / -1; padding: 1.75rem; background: var(--card);
+            border-radius: 20px; box-shadow: 0 1px 2px rgba(0, 19, 63, 0.06), 0 8px 22px rgba(0, 19, 63, 0.07);
+        }
+        .notice h2 { margin: 0 0 0.4rem; font-size: 1.15rem; font-weight: 700; letter-spacing: -0.02em; }
+        .notice p { margin: 0; color: var(--ink-soft); font-size: 0.92rem; }
+
+        .noscript-list {
+            margin-bottom: 1.5rem; padding: 1.35rem 1.6rem; background: var(--card);
+            border-radius: 20px; box-shadow: 0 1px 2px rgba(0, 19, 63, 0.06), 0 8px 22px rgba(0, 19, 63, 0.07);
+        }
+        .noscript-list p { margin: 0 0 0.5rem; font-weight: 700; }
+        .noscript-list ul { margin: 0; padding-left: 1.2rem; line-height: 1.9; }
+        .noscript-list a { color: var(--link); font-weight: 600; text-decoration: underline; }
+
+        footer {
+            border-top: 1px solid var(--hairline);
+            padding-block: 1.15rem; font-size: 0.82rem; color: var(--ink-soft);
+        }
+        footer .wrap { display: flex; flex-wrap: wrap; gap: 0.4rem 1.5rem; align-items: baseline; }
+        footer p { margin: 0; }
+        /* the built-in list is the expected path over file://, so this states a
+           fact rather than flying an alert colour borrowed from a deck */
+        .state-note { font-weight: 600; color: var(--ink); }
+        .state-note[hidden] { display: none; }
+
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after { transition-duration: 0.01ms !important; animation: none !important; }
+        }
+        @media (max-width: 860px) {
+            .stagehead .wrap { flex-direction: column; align-items: flex-start; gap: 0.75rem; }
+            /* without this the lede keeps its flex-grow and stretches the band
+               into a wall of dead black on a phone */
+            .stagehead .lede { flex: 0 0 auto; margin-bottom: 0; }
+        }
+    </style>
+</head>
+<body>
+<!--
+THESIS: The curriculum presented like a product line — six marks on a quiet
+stage, each worth walking up to — refusing the wall of six unrelated images.
+OWN-WORLD: Near-black stage band over a light grey stage; white cards at
+20px radius with soft two-layer depth; a saturated medallion per deck in its
+own registered colour and icon; Schibsted Grotesk alone, tightly tracked.
+STORY: "These are finished, distinct things; I want to open one."
+FIRST VIEWPORT: Stage band with one large statement, then a full card row
+and the next row's medallions, at 1280×720.
+FORM: The category standard (card grid), taken as the standing exit and
+played straight at an Apple-tier marketing craft bar; seed key 21017003.
+FINISH: unreviewed and undocumented is unfinished; this build ends with the
+finish review, the verdict, and DESIGN.md.
+-->
+    <a href="#grid" class="skip-link">Skip to lessons</a>
+
+    <!-- One icon grammar: 2.6px round strokes on a 48 grid, keyed to the
+         registry's own `icon` field. No emoji or unicode stand-ins. -->
+    <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+        <symbol id="i-clock" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="24" cy="26" r="14"/><path d="M24 18v8l5.5 3.5"/><path d="M19 6h10"/><path d="M24 6v6"/>
+        </symbol>
+        <symbol id="i-briefcase" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="7" y="16" width="34" height="24" rx="3"/><path d="M18 16v-4a3 3 0 0 1 3-3h6a3 3 0 0 1 3 3v4"/><path d="M7 27h34"/><path d="M21.5 27h5"/>
+        </symbol>
+        <symbol id="i-checkCircle" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="24" cy="24" r="15"/><path d="M16.5 24.5l5.5 5.5 10-11"/>
+        </symbol>
+        <symbol id="i-messageCircle" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M40 23.5c0 8-7.2 14.5-16 14.5a17.6 17.6 0 0 1-5.4-.8L10 40l2.6-7.2A13.9 13.9 0 0 1 8 23.5C8 15.5 15.2 9 24 9s16 6.5 16 14.5Z"/><path d="M17 20h14"/><path d="M17 27h9"/>
+        </symbol>
+        <symbol id="i-flame" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M24 7s10 8.5 10 17.5A10 10 0 0 1 14 25c0-4 2-6.5 2-6.5s1.6 2.6 3.6 2.6c2.8 0 3.8-3.6 3.8-7.4 0-2.8-.9-5.6.6-6.7Z"/><path d="M24 41v-5"/>
+        </symbol>
+        <symbol id="i-lightbulb" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M24 7a13 13 0 0 0-7.5 23.6V35h15v-4.4A13 13 0 0 0 24 7Z"/><path d="M19.5 41h9"/><path d="M24 24.5V31"/>
+        </symbol>
+        <symbol id="i-book" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M9 10h11a5 5 0 0 1 5 5v23a4 4 0 0 0-4-4H9Z"/><path d="M39 10H28a5 5 0 0 0-5 5v23a4 4 0 0 1 4-4h12Z"/>
+        </symbol>
+    </svg>
+
+    <header class="stagehead">
+        <div class="wrap">
+            <div>
+                <div class="brand">
+                    <img src="SPOKES-Logo.png" alt="SPOKES — Skills for Life, WV Adult Basic Education">
+                </div>
+                <h1>Employability skills, ready to teach.</h1>
+            </div>
+            <p class="lede"><span id="countLine">Interactive lesson decks</span> built for West Virginia adult education classrooms. Pick one and project it.</p>
+        </div>
+    </header>
+
+    <main>
+        <div class="wrap">
+            <noscript>
+                <div class="noscript-list">
+                    <p>Lessons (JavaScript is off, so here are direct links):</p>
+                    <ul>
+                        <li><a href="lesson-time-management/index.html">Time Management</a></li>
+                        <li><a href="lesson-interview-skills/index.html">Interview Skills</a></li>
+                        <li><a href="lesson-employee-accountability/index.html">Employee Accountability</a></li>
+                        <li><a href="lesson-communicating-with-the-public/index.html">Communicating with the Public</a></li>
+                        <li><a href="lesson-controlling-anger/index.html">Controlling Anger</a></li>
+                        <li><a href="lesson-problem-solving-and-decision-making/index.html">Problem Solving &amp; Decision Making</a></li>
+                    </ul>
+                </div>
+            </noscript>
+            <div class="grid" id="grid"></div>
+        </div>
+    </main>
+
+    <footer>
+        <div class="wrap">
+            <p>&copy; 2026 WV Adult Basic Education</p>
+            <p class="state-note" id="stateNote" hidden></p>
+        </div>
+    </footer>
+
+    <script>
+        (function () {
+            'use strict';
+
+            // Keep FALLBACK_LESSONS and FALLBACK_SYNCED in step with
+            // lesson-registry.json — this list is what file:// and offline users see.
+            var FALLBACK_SYNCED = '2026-08-05';
+            var FALLBACK_LESSONS = [
+                { id: "lesson-time-management", title: "Time Management", description: "Master prioritization, scheduling, and daily planning strategies for workplace success.", icon: "clock", themeKey: "time", path: "lesson-time-management/index.html",
+                  status: "ready", slides: 37, videos: 5, interactions: { implemented: 3 },
+                  combinatorics: { colorLead: "blue", texture: "dot-grid" } },
+                { id: "lesson-interview-skills", title: "Interview Skills", description: "Build confidence and master techniques for successful job interviews.", icon: "briefcase", themeKey: "interview", path: "lesson-interview-skills/index.html",
+                  status: "ready", slides: 36, videos: 2, interactions: { implemented: 5 },
+                  combinatorics: { colorLead: "royal", texture: "diagonal" } },
+                { id: "lesson-employee-accountability", title: "Employee Accountability", description: "Develop personal responsibility, goal-setting, and professional growth habits.", icon: "checkCircle", themeKey: "accountability", path: "lesson-employee-accountability/index.html",
+                  status: "ready", slides: 35, videos: 0, interactions: { implemented: 3 },
+                  combinatorics: { colorLead: "green", texture: "soft-gradient" } },
+                { id: "lesson-communicating-with-the-public", title: "Communicating with the Public", description: "Master active listening, communication styles, congruent messaging, and self-advocacy skills for workplace and personal success.", icon: "messageCircle", themeKey: "communication", path: "lesson-communicating-with-the-public/index.html",
+                  status: "qa", slides: 33, videos: 8, interactions: { implemented: 8 },
+                  combinatorics: { colorLead: "dual-blue-green", texture: "crosshatch" } },
+                { id: "lesson-controlling-anger", title: "Controlling Anger", description: "Recognize anger triggers, practice healthy expression through the Embrace-Express-Work Through framework, and build coping strategies for the workplace.", icon: "flame", themeKey: "anger", path: "lesson-controlling-anger/index.html",
+                  status: "qa", slides: 33, videos: 4, interactions: { implemented: 6 },
+                  combinatorics: { colorLead: "mauve", texture: "dark-royal" } },
+                { id: "lesson-problem-solving-and-decision-making", title: "Problem Solving & Decision Making", description: "Apply structured problem-solving frameworks, critical thinking strategies, and group decision-making techniques for workplace success.", icon: "lightbulb", themeKey: "problemSolving", path: "lesson-problem-solving-and-decision-making/index.html",
+                  status: "qa", slides: 28, videos: 4, interactions: { implemented: 6 },
+                  combinatorics: { colorLead: "dual-gold-green", texture: "plain" } }
+            ];
+
+            // The registry names each deck's colour lead; the hub maps those names
+            // onto the SPOKES palette. Every pairing is contrast-verified: white
+            // clears 4.5:1 on blue, royal and mauve; royal ink clears it on green
+            // and gold, and clears the 3:1 graphics floor on both halves of a
+            // dual mark.
+            var LEADS = {
+                'blue':            { lead: '#007baf', on: '#ffffff' },
+                'royal':           { lead: '#00133f', on: '#ffffff' },
+                'dark':            { lead: '#004071', on: '#ffffff' },
+                'mauve':           { lead: '#a7253f', on: '#ffffff' },
+                'green':           { lead: '#37b550', on: '#00133f' },
+                'gold':            { lead: '#d3b257', on: '#00133f' },
+                'dual-blue-green': { lead: '#007baf', on: '#ffffff', lead2: '#37b550' },
+                'dual-gold-green': { lead: '#d3b257', on: '#00133f', lead2: '#37b550' }
+            };
+            // Cycles are the fallback for a lesson whose registry row omits the
+            // field. They repeat every six, so past six lessons the registry has
+            // to declare its own lead and icon.
+            var LEAD_CYCLE = ['blue', 'royal', 'green', 'dual-blue-green', 'mauve', 'dual-gold-green'];
+            var ICONS = ['clock', 'briefcase', 'checkCircle', 'messageCircle', 'flame', 'lightbulb', 'book'];
+
+            function escapeHtml(value) {
+                return String(value == null ? '' : value).replace(/[&<>"']/g, function (c) {
+                    return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+                });
+            }
+
+            function sanitizePath(raw) {
+                var p = String(raw == null ? '' : raw).trim();
+                if (!p) return '';
+                if (!/^[A-Za-z0-9_./' -]+$/.test(p)) return '';
+                if (p.charAt(0) === '/' || p.indexOf('..') !== -1) return '';
+                if (p.slice(-5).toLowerCase() !== '.html') return '';
+                return encodeURI(p);
+            }
+
+            function normalizeStatus(s) { return String(s == null ? 'planned' : s).trim().toLowerCase(); }
+            function isLaunchable(s) {
+                var k = normalizeStatus(s);
+                return k === 'complete' || k === 'ready' || k === 'qa';
+            }
+
+            function has(map, key) { return Object.prototype.hasOwnProperty.call(map, key); }
+
+            // The lede is a sentence, so its count is spelled. Covers the
+            // committed growth to eighteen; anything beyond falls back to digits.
+            var NUMBER_WORDS = ['Zero', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight',
+                'Nine', 'Ten', 'Eleven', 'Twelve', 'Thirteen', 'Fourteen', 'Fifteen', 'Sixteen',
+                'Seventeen', 'Eighteen'];
+            function spellCount(n) { return NUMBER_WORDS[n] || String(n); }
+
+            // Reads the deck's registered identity straight off the registry row.
+            function themeFor(lesson, index) {
+                var combo = lesson.combinatorics || {};
+
+                var leadName = String(combo.colorLead || '');
+                if (!has(LEADS, leadName)) leadName = LEAD_CYCLE[index % LEAD_CYCLE.length];
+                var lead = LEADS[leadName];
+
+                var icon = String(lesson.icon || '');
+                if (ICONS.indexOf(icon) === -1) icon = ICONS[index % ICONS.length];
+
+                return { lead: lead.lead, on: lead.on, lead2: lead.lead2 || '', icon: icon };
+            }
+
+            function factsHtml(lesson) {
+                var out = [];
+                var slides = Number(lesson.slides);
+                var videos = Number(lesson.videos);
+                var acts = Number(lesson.interactions && lesson.interactions.implemented);
+                if (slides > 0) out.push('<li><b>' + slides + '</b> slides</li>');
+                if (videos > 0) out.push('<li><b>' + videos + '</b> videos</li>');
+                if (acts > 0) out.push('<li><b>' + acts + '</b> ' + (acts === 1 ? 'activity' : 'activities') + '</li>');
+                return out.length ? '<ul class="facts">' + out.join('') + '</ul>' : '';
+            }
+
+            var CHEV = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m9 5 7 7-7 7"/></svg>';
+
+            function cardHtml(lesson, index) {
+                var theme = themeFor(lesson, index);
+                var href = isLaunchable(lesson.status) ? sanitizePath(lesson.path) : '';
+                var title = escapeHtml(lesson.title || 'Untitled lesson');
+                var titleId = 'lesson-title-' + index;
+
+                var style = '--lead:' + theme.lead + ';--on-lead:' + theme.on +
+                    (theme.lead2 ? ';--lead-2:' + theme.lead2 : '');
+                var classes = 'card' + (href ? '' : ' soon') + (theme.lead2 ? ' dual' : '');
+                var openTag = href
+                    ? '<a href="' + href + '" aria-labelledby="' + titleId + '"'
+                    : '<div';
+                var closeTag = href ? '</a>' : '</div>';
+
+                return openTag + ' class="' + classes + '" style="' + style +
+                    ';animation-delay:' + (index * 55) + 'ms">' +
+                    '<span class="medallion">' +
+                        '<span class="medallion-face">' +
+                            '<svg aria-hidden="true" focusable="false"><use href="#i-' + theme.icon + '"/></svg>' +
+                        '</span>' +
+                    '</span>' +
+                    '<h2 id="' + titleId + '">' + title + '</h2>' +
+                    '<p>' + escapeHtml(lesson.description || '') + '</p>' +
+                    factsHtml(lesson) +
+                    '<span class="go">' + (href ? 'Launch lesson' + CHEV : 'Coming soon') + '</span>' +
+                    closeTag;
+            }
+
+            function notice(title, message) {
+                return '<div class="notice"><h2>' + escapeHtml(title) + '</h2><p>' + escapeHtml(message) + '</p></div>';
+            }
+
+            function setState(message) {
+                var el = document.getElementById('stateNote');
+                if (!el) return;
+                if (!message) { el.hidden = true; el.textContent = ''; return; }
+                el.hidden = false;
+                el.textContent = message;
+            }
+
+            function render(lessons) {
+                var grid = document.getElementById('grid');
+                if (!grid) return;
+                var visible = (Array.isArray(lessons) ? lessons : []).filter(function (l) {
+                    return l && normalizeStatus(l.status) !== 'blocked';
+                });
+
+                grid.innerHTML = visible.length
+                    ? visible.map(cardHtml).join('')
+                    : notice('No lessons to show', 'The lesson registry loaded but listed no lessons. Check lesson-registry.json.');
+                grid.classList.add('is-ready');
+
+                // the lede states a real count, so it stays true as the
+                // curriculum grows past today's six
+                var ready = visible.filter(function (l) { return isLaunchable(l.status); }).length;
+                var line = document.getElementById('countLine');
+                if (line) {
+                    line.textContent = ready === 1
+                        ? 'One interactive lesson deck'
+                        : spellCount(ready) + ' interactive lesson decks';
+                }
+            }
+
+            function useFallback(reason) {
+                console.warn('Lesson registry unavailable (' + reason + ') — using the built-in copy, synced ' + FALLBACK_SYNCED + '.');
+                setState('Offline — showing the built-in lesson list, copied from the registry ' + FALLBACK_SYNCED + '.');
+                render(FALLBACK_LESSONS);
+            }
+
+            function boot() {
+                // Opening this file directly, an offline machine and a school
+                // content filter all land in the fallback, so nothing here may
+                // throw past its own handler and leave an empty grid behind.
+                try {
+                    if (typeof fetch !== 'function') { useFallback('no fetch support'); return; }
+                    fetch('lesson-registry.json', { cache: 'no-store' })
+                        .then(function (r) {
+                            if (!r.ok) throw new Error('HTTP ' + r.status);
+                            return r.json();
+                        })
+                        .then(function (data) {
+                            if (!data || !Array.isArray(data.lessons)) throw new Error('registry has no lessons array');
+                            setState('');
+                            render(data.lessons);
+                        })
+                        .catch(function (error) {
+                            useFallback(error && error.message ? error.message : 'unreadable');
+                        });
+                } catch (error) {
+                    useFallback(error && error.message ? error.message : 'blocked');
+                }
+            }
+
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', boot);
+            } else {
+                boot();
+            }
+        }());
+    </script>
+</body>
+</html>

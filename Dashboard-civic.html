@@ -1,0 +1,535 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SPOKES Employability Skills Curriculum</title>
+    <link rel="icon" href="SPOKES-Logo.png">
+    <style>
+        /* Faces are self-hosted (both are SIL Open Font License, latin subset,
+           117 KB total). A school content filter or a dead network no longer
+           silently swaps the display voice for the platform sans. Chrome still
+           refuses to load fonts over file:// on its own, so the fallback stack
+           below is the real last line of defence, not decoration. */
+        @font-face {
+            font-family: "Archivo";
+            src: url("fonts/archivo-latin.woff2") format("woff2");
+            font-weight: 400 800;
+            font-stretch: 75% 125%;
+            font-style: normal;
+            font-display: swap;
+        }
+        @font-face {
+            font-family: "Public Sans";
+            src: url("fonts/public-sans-latin.woff2") format("woff2");
+            font-weight: 400 700;
+            font-style: normal;
+            font-display: swap;
+        }
+
+        :root {
+            /* SPOKES lesson palette — product facts, forecast rather than repainted */
+            --blue: #007baf;
+            --green: #37b550;
+            --dark: #004071;
+            --royal: #00133f;
+            --gold: #d3b257;
+            --mauve: #a7253f;
+
+            /* hub chrome — the hub is explicitly not bound by the lesson design system */
+            --ground: #eef1f4;
+            --plate: #ffffff;
+            --ink: #00133f;
+            --ink-soft: #47525f;
+            --chip: #e5eaf0;
+            --rule: #c3ccd6;
+
+            --font-display: "Archivo", "Helvetica Neue", Arial, sans-serif;
+            --font-body: "Public Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+        }
+
+        *, *::before, *::after { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            min-height: 100dvh;
+            display: flex;
+            flex-direction: column;
+            font-family: var(--font-body);
+            color: var(--ink);
+            background: var(--ground);
+            -webkit-font-smoothing: antialiased;
+        }
+
+        a { color: inherit; text-decoration: none; }
+
+        .skip-link {
+            position: absolute; left: 1rem; top: -5rem; z-index: 100;
+            padding: 0.85rem 1.2rem; background: var(--royal); color: #fff;
+            font-weight: 700; border-radius: 0 0 4px 4px; transition: top 0.18s ease;
+        }
+        .skip-link:focus { top: 0; }
+
+        .wrap { width: min(1600px, calc(100% - 2.5rem)); margin-inline: auto; }
+
+        /* ── Masthead ──────────────────────────────────────────────────────────
+           A public-program sign band. Its presence comes from colour and type
+           scale, never from vertical space: the first plate row has to clear the
+           fold on a 1280×720 projector. */
+        .masthead { background: var(--royal); color: #fff; border-bottom: 5px solid var(--gold); }
+        .masthead .wrap {
+            display: flex; align-items: center; gap: clamp(1rem, 2.2vw, 2rem);
+            padding-block: clamp(0.8rem, 1.5vw, 1.1rem);
+        }
+        .logo-plate { flex: none; background: #fff; border-radius: 3px; padding: 0.5rem 0.6rem; line-height: 0; }
+        .logo-plate img { display: block; width: clamp(84px, 7vw, 104px); height: auto; }
+
+        .masthead h1 {
+            margin: 0;
+            font-family: var(--font-display);
+            font-size: clamp(1.3rem, 2.8vw, 2.3rem);
+            font-variation-settings: "wdth" 112, "wght" 700;
+            letter-spacing: -0.018em; line-height: 1.04; text-wrap: balance;
+        }
+        .masthead p {
+            margin: 0.3rem 0 0; font-size: clamp(0.84rem, 1.1vw, 0.98rem);
+            color: #b9cbe0; max-width: 62ch;
+        }
+        .mast-count {
+            margin-left: auto; flex: none; white-space: nowrap;
+            font-family: var(--font-display);
+            font-variation-settings: "wdth" 100, "wght" 700;
+            font-size: clamp(0.72rem, 0.95vw, 0.82rem);
+            letter-spacing: 0.1em; text-transform: uppercase; color: #fff;
+            border-left: 1px solid rgba(255, 255, 255, 0.3); padding-left: 1.4rem;
+        }
+
+        /* ── Lesson plates ─────────────────────────────────────────────────── */
+        main { flex: 1 0 auto; padding-block: clamp(0.9rem, 1.6vw, 1.4rem) 2.5rem; }
+
+        .grid {
+            display: grid; grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: clamp(0.85rem, 1.3vw, 1.25rem);
+            /* every row sizes to its tallest plate, so a longer description in
+               one row does not leave a ragged wall further down */
+            grid-auto-rows: 1fr;
+        }
+        /* density is chosen for eighteen and rendered with six */
+        @media (min-width: 1500px) { .grid { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+        @media (max-width: 1040px) { .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+        @media (max-width: 620px)  { .grid { grid-template-columns: 1fr; } }
+
+        .tile {
+            --lead: var(--blue);
+            --on-lead: #ffffff;
+            --lead-2: transparent;
+            --tex-c: rgba(255, 255, 255, 0.34);
+            display: flex; flex-direction: column;
+            background: var(--plate);
+            border: 1px solid var(--rule); border-radius: 5px; overflow: hidden;
+            transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s ease;
+        }
+        .tile.on-royal { --tex-c: rgba(0, 19, 63, 0.24); }
+        a.tile:hover { transform: translateY(-3px); box-shadow: 0 12px 26px rgba(0, 19, 63, 0.18); }
+        a.tile:focus-visible { outline: 3px solid var(--royal); outline-offset: 3px; }
+
+        /* The face is a flat field of the deck's own registered colour, carrying
+           that deck's registered texture and icon. Nothing here is invented —
+           every value is read from lesson-registry.json. */
+        .face {
+            position: relative; display: flex; align-items: center;
+            height: clamp(94px, 9.2vw, 120px);
+            padding-inline: clamp(1rem, 1.5vw, 1.35rem);
+            background: var(--lead); overflow: hidden;
+        }
+        .face::before { content: ""; position: absolute; inset: 0; }
+        .tex-dot-grid .face::before {
+            background-image: radial-gradient(circle, var(--tex-c) 1.6px, transparent 1.7px);
+            background-size: 14px 14px;
+        }
+        .tex-diagonal .face::before {
+            background-image: repeating-linear-gradient(45deg, var(--tex-c) 0 4px, transparent 4px 14px);
+        }
+        .tex-crosshatch .face::before {
+            background-image:
+                repeating-linear-gradient(45deg, var(--tex-c) 0 1.6px, transparent 1.6px 16px),
+                repeating-linear-gradient(-45deg, var(--tex-c) 0 1.6px, transparent 1.6px 16px);
+        }
+        /* soft-gradient and dark-royal are drawn as flat rules, not washes —
+           a wash would contradict the flat plate this world is made of */
+        .tex-soft-gradient .face::before {
+            background-image: repeating-linear-gradient(90deg, var(--tex-c) 0 2px, transparent 2px 9px);
+        }
+        .tex-dark-royal .face::before {
+            background-image: repeating-linear-gradient(0deg, var(--tex-c) 0 2px, transparent 2px 12px);
+        }
+        /* tex-plain has no rule on purpose: the registry declares that deck plain */
+
+        /* Where the registry declares a dual colour lead, the plate is split
+           between both colours at a hard edge. The mark stays on the primary
+           side, so its contrast is governed by that colour alone. */
+        .dual .face {
+            background:
+                linear-gradient(90deg, transparent calc(62% - 2px), rgba(0, 19, 63, 0.6) calc(62% - 2px) 62%, transparent 62%),
+                linear-gradient(90deg, var(--lead) 0 62%, var(--lead-2) 62%);
+        }
+
+        .markwrap { position: relative; flex: none; line-height: 0; }
+        .mark {
+            display: block;
+            width: clamp(44px, 4.3vw, 54px); height: clamp(44px, 4.3vw, 54px);
+            color: var(--on-lead);
+        }
+
+        .body { padding: clamp(0.8rem, 1.2vw, 1.05rem) clamp(1rem, 1.5vw, 1.35rem) 0.85rem; flex: 1 0 auto; }
+        .body h2 {
+            margin: 0 0 0.3rem;
+            font-family: var(--font-display);
+            font-variation-settings: "wdth" 104, "wght" 700;
+            font-size: clamp(1.02rem, 1.3vw, 1.22rem);
+            line-height: 1.15; letter-spacing: -0.015em; text-wrap: balance;
+        }
+        .body p {
+            margin: 0 0 0.65rem; font-size: 0.86rem; line-height: 1.45; color: var(--ink-soft);
+            display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;
+        }
+        .facts { display: flex; flex-wrap: wrap; gap: 0.32rem; margin: 0; padding: 0; list-style: none; }
+        .facts li {
+            font-size: 0.69rem; font-weight: 700; letter-spacing: 0.055em; text-transform: uppercase;
+            color: var(--ink); background: var(--chip); border-radius: 2px; padding: 0.3rem 0.5rem;
+        }
+
+        .go {
+            display: flex; align-items: center; justify-content: space-between; gap: 0.75rem;
+            min-height: 46px; padding: 0.6rem clamp(1rem, 1.5vw, 1.35rem);
+            background: var(--lead); color: var(--on-lead);
+            font-family: var(--font-display);
+            font-variation-settings: "wdth" 100, "wght" 700;
+            font-size: 0.85rem; letter-spacing: 0.02em;
+        }
+        .go svg { flex: none; width: 18px; height: 18px; transition: transform 0.2s ease; }
+        a.tile:hover .go svg { transform: translateX(4px); }
+        .tile.soon .go { background: var(--chip); color: var(--ink-soft); }
+
+        .notice {
+            grid-column: 1 / -1; padding: 1.5rem; border: 1px solid var(--rule);
+            border-radius: 5px; background: var(--plate);
+        }
+        .notice h2 { margin: 0 0 0.4rem; font-family: var(--font-display); font-size: 1.1rem; }
+        .notice p { margin: 0; color: var(--ink-soft); font-size: 0.9rem; }
+
+        .noscript-list {
+            margin-bottom: 1.2rem; padding: 1.1rem 1.35rem;
+            border: 1px solid var(--rule); border-radius: 5px; background: var(--plate);
+        }
+        .noscript-list p { margin: 0 0 0.5rem; font-weight: 700; }
+        .noscript-list ul { margin: 0; padding-left: 1.2rem; line-height: 1.9; }
+        .noscript-list a { color: var(--dark); font-weight: 600; text-decoration: underline; }
+
+        footer {
+            border-top: 1px solid var(--rule); background: var(--plate);
+            padding-block: 1rem; font-size: 0.82rem; color: var(--ink-soft);
+        }
+        footer .wrap { display: flex; flex-wrap: wrap; gap: 0.4rem 1.5rem; align-items: baseline; }
+        footer p { margin: 0; }
+        /* the built-in list is the expected path over file://, so this states a
+           fact rather than flying an alert colour */
+        .state-note { font-weight: 700; color: var(--ink); }
+        .state-note[hidden] { display: none; }
+
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; }
+        }
+        @media (max-width: 760px) {
+            .masthead .wrap { flex-wrap: wrap; }
+            .mast-count { margin-left: 0; border-left: 0; padding-left: 0; }
+        }
+    </style>
+</head>
+<body>
+<!--
+THESIS: The curriculum as a public-program sign system — every lesson is a
+plate in one civic vocabulary — refusing the wall of six unrelated images.
+OWN-WORLD: Royal sign band over cool light ground; flat plates whose faces
+carry each deck's own registered colour, texture and icon; Archivo display,
+Public Sans body; no photography anywhere.
+STORY: "This is a real public program; I can see all six and take one."
+FIRST VIEWPORT: Sign band, a full plate row with launch bars, and the next
+row's faces, at 1280×720.
+FORM: The category standard (card grid), taken as the standing exit and
+played straight at a public-media craft bar; seed key 21017003.
+FINISH: unreviewed and undocumented is unfinished; this build ends with the
+finish review, the verdict, and DESIGN.md.
+-->
+    <a href="#grid" class="skip-link">Skip to lessons</a>
+
+    <!-- One icon grammar: 2.6px round strokes on a 48 grid, keyed to the
+         registry's own `icon` field. No emoji or unicode stand-ins. -->
+    <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+        <symbol id="i-clock" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="24" cy="26" r="14"/><path d="M24 18v8l5.5 3.5"/><path d="M19 6h10"/><path d="M24 6v6"/>
+        </symbol>
+        <symbol id="i-briefcase" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="7" y="16" width="34" height="24" rx="3"/><path d="M18 16v-4a3 3 0 0 1 3-3h6a3 3 0 0 1 3 3v4"/><path d="M7 27h34"/><path d="M21.5 27h5"/>
+        </symbol>
+        <symbol id="i-checkCircle" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="24" cy="24" r="15"/><path d="M16.5 24.5l5.5 5.5 10-11"/>
+        </symbol>
+        <symbol id="i-messageCircle" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M40 23.5c0 8-7.2 14.5-16 14.5a17.6 17.6 0 0 1-5.4-.8L10 40l2.6-7.2A13.9 13.9 0 0 1 8 23.5C8 15.5 15.2 9 24 9s16 6.5 16 14.5Z"/><path d="M17 20h14"/><path d="M17 27h9"/>
+        </symbol>
+        <symbol id="i-flame" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M24 7s10 8.5 10 17.5A10 10 0 0 1 14 25c0-4 2-6.5 2-6.5s1.6 2.6 3.6 2.6c2.8 0 3.8-3.6 3.8-7.4 0-2.8-.9-5.6.6-6.7Z"/><path d="M24 41v-5"/>
+        </symbol>
+        <symbol id="i-lightbulb" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M24 7a13 13 0 0 0-7.5 23.6V35h15v-4.4A13 13 0 0 0 24 7Z"/><path d="M19.5 41h9"/><path d="M24 24.5V31"/>
+        </symbol>
+        <symbol id="i-book" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M9 10h11a5 5 0 0 1 5 5v23a4 4 0 0 0-4-4H9Z"/><path d="M39 10H28a5 5 0 0 0-5 5v23a4 4 0 0 1 4-4h12Z"/>
+        </symbol>
+    </svg>
+
+    <header class="masthead">
+        <div class="wrap">
+            <div class="logo-plate"><img src="SPOKES-Logo.png" alt="SPOKES — Skills for Life"></div>
+            <div>
+                <h1>Employability Skills Curriculum</h1>
+                <p>Interactive lessons for West Virginia adult education classrooms. Choose one to launch.</p>
+            </div>
+            <p class="mast-count" id="countLine">&nbsp;</p>
+        </div>
+    </header>
+
+    <main>
+        <div class="wrap">
+            <noscript>
+                <div class="noscript-list">
+                    <p>Lessons (JavaScript is off, so here are direct links):</p>
+                    <ul>
+                        <li><a href="lesson-time-management/index.html">Time Management</a></li>
+                        <li><a href="lesson-interview-skills/index.html">Interview Skills</a></li>
+                        <li><a href="lesson-employee-accountability/index.html">Employee Accountability</a></li>
+                        <li><a href="lesson-communicating-with-the-public/index.html">Communicating with the Public</a></li>
+                        <li><a href="lesson-controlling-anger/index.html">Controlling Anger</a></li>
+                        <li><a href="lesson-problem-solving-and-decision-making/index.html">Problem Solving &amp; Decision Making</a></li>
+                    </ul>
+                </div>
+            </noscript>
+            <div class="grid" id="grid"></div>
+        </div>
+    </main>
+
+    <footer>
+        <div class="wrap">
+            <p>&copy; 2026 WV Adult Basic Education</p>
+            <p class="state-note" id="stateNote" hidden></p>
+        </div>
+    </footer>
+
+    <script>
+        (function () {
+            'use strict';
+
+            // Keep FALLBACK_LESSONS and FALLBACK_SYNCED in step with
+            // lesson-registry.json — this list is what file:// and offline users see.
+            var FALLBACK_SYNCED = '2026-08-05';
+            var FALLBACK_LESSONS = [
+                { id: "lesson-time-management", title: "Time Management", description: "Master prioritization, scheduling, and daily planning strategies for workplace success.", icon: "clock", themeKey: "time", path: "lesson-time-management/index.html",
+                  status: "ready", slides: 37, videos: 5, interactions: { implemented: 3 },
+                  combinatorics: { colorLead: "blue", texture: "dot-grid" } },
+                { id: "lesson-interview-skills", title: "Interview Skills", description: "Build confidence and master techniques for successful job interviews.", icon: "briefcase", themeKey: "interview", path: "lesson-interview-skills/index.html",
+                  status: "ready", slides: 36, videos: 2, interactions: { implemented: 5 },
+                  combinatorics: { colorLead: "royal", texture: "diagonal" } },
+                { id: "lesson-employee-accountability", title: "Employee Accountability", description: "Develop personal responsibility, goal-setting, and professional growth habits.", icon: "checkCircle", themeKey: "accountability", path: "lesson-employee-accountability/index.html",
+                  status: "ready", slides: 35, videos: 0, interactions: { implemented: 3 },
+                  combinatorics: { colorLead: "green", texture: "soft-gradient" } },
+                { id: "lesson-communicating-with-the-public", title: "Communicating with the Public", description: "Master active listening, communication styles, congruent messaging, and self-advocacy skills for workplace and personal success.", icon: "messageCircle", themeKey: "communication", path: "lesson-communicating-with-the-public/index.html",
+                  status: "qa", slides: 33, videos: 8, interactions: { implemented: 8 },
+                  combinatorics: { colorLead: "dual-blue-green", texture: "crosshatch" } },
+                { id: "lesson-controlling-anger", title: "Controlling Anger", description: "Recognize anger triggers, practice healthy expression through the Embrace-Express-Work Through framework, and build coping strategies for the workplace.", icon: "flame", themeKey: "anger", path: "lesson-controlling-anger/index.html",
+                  status: "qa", slides: 33, videos: 4, interactions: { implemented: 6 },
+                  combinatorics: { colorLead: "mauve", texture: "dark-royal" } },
+                { id: "lesson-problem-solving-and-decision-making", title: "Problem Solving & Decision Making", description: "Apply structured problem-solving frameworks, critical thinking strategies, and group decision-making techniques for workplace success.", icon: "lightbulb", themeKey: "problemSolving", path: "lesson-problem-solving-and-decision-making/index.html",
+                  status: "qa", slides: 28, videos: 4, interactions: { implemented: 6 },
+                  combinatorics: { colorLead: "dual-gold-green", texture: "plain" } }
+            ];
+
+            // The registry names each deck's colour lead; the hub maps those names
+            // onto the SPOKES palette. Every pairing is contrast-verified: white
+            // clears 4.5:1 on blue, royal and mauve; royal ink clears it on green
+            // and gold. A dual lead splits the plate between both colours.
+            var LEADS = {
+                'blue':            { lead: '#007baf', on: '#ffffff' },
+                'royal':           { lead: '#00133f', on: '#ffffff' },
+                'dark':            { lead: '#004071', on: '#ffffff' },
+                'mauve':           { lead: '#a7253f', on: '#ffffff' },
+                'green':           { lead: '#37b550', on: '#00133f' },
+                'gold':            { lead: '#d3b257', on: '#00133f' },
+                'dual-blue-green': { lead: '#007baf', on: '#ffffff', lead2: '#37b550' },
+                'dual-gold-green': { lead: '#d3b257', on: '#00133f', lead2: '#37b550' }
+            };
+            // Cycles are the fallback for a lesson whose registry row omits the
+            // field. They repeat every six, so past six lessons the registry has
+            // to declare its own lead, texture and icon.
+            var LEAD_CYCLE = ['blue', 'royal', 'green', 'dual-blue-green', 'mauve', 'dual-gold-green'];
+            var TEXTURES = ['dot-grid', 'diagonal', 'crosshatch', 'soft-gradient', 'dark-royal', 'plain'];
+            var ICONS = ['clock', 'briefcase', 'checkCircle', 'messageCircle', 'flame', 'lightbulb', 'book'];
+
+            function escapeHtml(value) {
+                return String(value == null ? '' : value).replace(/[&<>"']/g, function (c) {
+                    return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+                });
+            }
+
+            function sanitizePath(raw) {
+                var p = String(raw == null ? '' : raw).trim();
+                if (!p) return '';
+                if (!/^[A-Za-z0-9_./' -]+$/.test(p)) return '';
+                if (p.charAt(0) === '/' || p.indexOf('..') !== -1) return '';
+                if (p.slice(-5).toLowerCase() !== '.html') return '';
+                return encodeURI(p);
+            }
+
+            function normalizeStatus(s) { return String(s == null ? 'planned' : s).trim().toLowerCase(); }
+            function isLaunchable(s) {
+                var k = normalizeStatus(s);
+                return k === 'complete' || k === 'ready' || k === 'qa';
+            }
+
+            function has(map, key) { return Object.prototype.hasOwnProperty.call(map, key); }
+
+            // Reads the deck's registered identity straight off the registry row.
+            function themeFor(lesson, index) {
+                var combo = lesson.combinatorics || {};
+
+                var leadName = String(combo.colorLead || '');
+                if (!has(LEADS, leadName)) leadName = LEAD_CYCLE[index % LEAD_CYCLE.length];
+                var lead = LEADS[leadName];
+
+                var tex = String(combo.texture || '');
+                if (TEXTURES.indexOf(tex) === -1) tex = TEXTURES[index % TEXTURES.length];
+
+                var icon = String(lesson.icon || '');
+                if (ICONS.indexOf(icon) === -1) icon = ICONS[index % ICONS.length];
+
+                return { lead: lead.lead, on: lead.on, lead2: lead.lead2 || '', tex: tex, icon: icon };
+            }
+
+            function factsFor(lesson) {
+                var out = [];
+                var slides = Number(lesson.slides);
+                var videos = Number(lesson.videos);
+                var acts = Number(lesson.interactions && lesson.interactions.implemented);
+                if (slides > 0) out.push(slides + ' slides');
+                if (videos > 0) out.push(videos + ' videos');
+                if (acts > 0) out.push(acts + (acts === 1 ? ' activity' : ' activities'));
+                return out;
+            }
+
+            var ARROW = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M5 12h13"/><path d="m12 5 7 7-7 7"/></svg>';
+
+            function tileHtml(lesson, index) {
+                var theme = themeFor(lesson, index);
+                var href = isLaunchable(lesson.status) ? sanitizePath(lesson.path) : '';
+                var title = escapeHtml(lesson.title || 'Untitled lesson');
+                var titleId = 'lesson-title-' + index;
+                var facts = factsFor(lesson).map(function (f) {
+                    return '<li>' + escapeHtml(f) + '</li>';
+                }).join('');
+
+                var classes = ['tile', 'tex-' + theme.tex];
+                if (theme.on === '#00133f') classes.push('on-royal');
+                if (theme.lead2) classes.push('dual');
+                if (!href) classes.push('soon');
+
+                var style = '--lead:' + theme.lead + ';--on-lead:' + theme.on +
+                    (theme.lead2 ? ';--lead-2:' + theme.lead2 : '');
+                var openTag = href
+                    ? '<a href="' + href + '" aria-labelledby="' + titleId + '"'
+                    : '<div';
+                var closeTag = href ? '</a>' : '</div>';
+
+                return openTag + ' class="' + classes.join(' ') + '" style="' + style + '">' +
+                    '<div class="face">' +
+                        '<span class="markwrap">' +
+                            '<svg class="mark" aria-hidden="true" focusable="false"><use href="#i-' + theme.icon + '"/></svg>' +
+                        '</span>' +
+                    '</div>' +
+                    '<div class="body">' +
+                        '<h2 id="' + titleId + '">' + title + '</h2>' +
+                        '<p>' + escapeHtml(lesson.description || '') + '</p>' +
+                        (facts ? '<ul class="facts">' + facts + '</ul>' : '') +
+                    '</div>' +
+                    '<div class="go">' + (href ? 'Launch lesson' + ARROW : 'Coming soon') + '</div>' +
+                    closeTag;
+            }
+
+            function notice(title, message) {
+                return '<div class="notice"><h2>' + escapeHtml(title) + '</h2><p>' + escapeHtml(message) + '</p></div>';
+            }
+
+            function setState(message) {
+                var el = document.getElementById('stateNote');
+                if (!el) return;
+                if (!message) { el.hidden = true; el.textContent = ''; return; }
+                el.hidden = false;
+                el.textContent = message;
+            }
+
+            function render(lessons) {
+                var grid = document.getElementById('grid');
+                if (!grid) return;
+                var visible = (Array.isArray(lessons) ? lessons : []).filter(function (l) {
+                    return l && normalizeStatus(l.status) !== 'blocked';
+                });
+
+                if (!visible.length) {
+                    grid.innerHTML = notice('No lessons to show', 'The lesson registry loaded but listed no lessons. Check lesson-registry.json.');
+                } else {
+                    grid.innerHTML = visible.map(tileHtml).join('');
+                }
+
+                var ready = visible.filter(function (l) { return isLaunchable(l.status); }).length;
+                var line = document.getElementById('countLine');
+                if (line) line.textContent = ready + (ready === 1 ? ' lesson ready' : ' lessons ready');
+            }
+
+            function useFallback(reason) {
+                console.warn('Lesson registry unavailable (' + reason + ') — using the built-in copy, synced ' + FALLBACK_SYNCED + '.');
+                setState('Offline — showing the built-in lesson list, copied from the registry ' + FALLBACK_SYNCED + '.');
+                render(FALLBACK_LESSONS);
+            }
+
+            function boot() {
+                // Opening this file directly, an offline machine and a school
+                // content filter all land in the fallback, so nothing here may
+                // throw past its own handler and leave an empty grid behind.
+                try {
+                    if (typeof fetch !== 'function') { useFallback('no fetch support'); return; }
+                    fetch('lesson-registry.json', { cache: 'no-store' })
+                        .then(function (r) {
+                            if (!r.ok) throw new Error('HTTP ' + r.status);
+                            return r.json();
+                        })
+                        .then(function (data) {
+                            if (!data || !Array.isArray(data.lessons)) throw new Error('registry has no lessons array');
+                            setState('');
+                            render(data.lessons);
+                        })
+                        .catch(function (error) {
+                            useFallback(error && error.message ? error.message : 'unreadable');
+                        });
+                } catch (error) {
+                    useFallback(error && error.message ? error.message : 'blocked');
+                }
+            }
+
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', boot);
+            } else {
+                boot();
+            }
+        }());
+    </script>
+</body>
+</html>

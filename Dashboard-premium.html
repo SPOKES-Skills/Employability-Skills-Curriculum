@@ -3,29 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SPOKES Employability Skills Curriculum</title>
+    <title>SPOKES Employability Skills Curriculum — Premium Prototype</title>
     <link rel="icon" href="SPOKES-Logo.png">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
-        /* Faces are self-hosted (both SIL Open Font License, latin subset,
-           49 KB total). A school content filter, a dead network, or a machine
-           opening this file directly no longer silently swaps the headings for
-           Georgia and the body for system sans. Verified loading over both
-           http:// and file:// — same-directory woff2 is not CORS-blocked. */
-        @font-face {
-            font-family: "DM Serif Display";
-            src: url("fonts/dm-serif-display-latin.woff2") format("woff2");
-            font-weight: 400;
-            font-style: normal;
-            font-display: swap;
-        }
-        @font-face {
-            font-family: "Outfit";
-            src: url("fonts/outfit-latin.woff2") format("woff2");
-            font-weight: 300 800;
-            font-style: normal;
-            font-display: swap;
-        }
-
         :root {
             --primary: #007baf;
             --accent: #37b550;
@@ -38,16 +21,6 @@
             --mauve: #a7253f;
             --offwhite: #d1d3d4;
             --muted-gold: #ad8806;
-            /* spacing scale — every gap on this page snaps to one of these */
-            --s1: 0.25rem;
-            --s2: 0.375rem;
-            --s3: 0.5rem;
-            --s4: 0.75rem;
-            --s5: 1rem;
-            --s6: 1.25rem;
-            --s7: 1.5rem;
-            --s8: 2rem;
-
             --font-heading: "DM Serif Display", Georgia, serif;
             --font-body: "Outfit", system-ui, sans-serif;
         }
@@ -83,7 +56,7 @@
             left: 1rem;
             top: -4rem;
             z-index: 100;
-            padding: var(--s4) var(--s5);
+            padding: 0.7rem 1rem;
             border-radius: 0 0 8px 8px;
             background: var(--royal);
             color: var(--light);
@@ -108,19 +81,35 @@
         }
 
         .dashboard-shell {
+            position: relative;
+            z-index: 1;
             min-height: 100vh;
             display: flex;
             flex-direction: column;
         }
 
+        /* One authored mark instead of tiled texture: the SPOKES bridge
+           arch with its spokes, oversized and cropped, in quiet royal */
+        .backdrop-motif {
+            position: fixed;
+            right: -10vw;
+            bottom: -8vh;
+            width: 72vw;
+            height: auto;
+            color: var(--royal);
+            opacity: 0.05;
+            pointer-events: none;
+            z-index: 0;
+        }
+
         .hero {
             position: relative;
             overflow: hidden;
-            padding: var(--s4) clamp(var(--s5), 3vw, var(--s8)) var(--s5);
+            padding: 1rem clamp(1rem, 3vw, 3rem) 1.4rem;
             color: var(--light);
             background:
                 linear-gradient(125deg, rgba(0, 19, 63, 0.98), rgba(0, 64, 113, 0.96) 56%, rgba(0, 123, 175, 0.9));
-            box-shadow: 0 10px 30px rgba(0, 19, 63, 0.14);
+            box-shadow: 0 22px 60px rgba(0, 19, 63, 0.18);
         }
 
         .hero::after {
@@ -130,13 +119,7 @@
             right: 0;
             bottom: 0;
             height: 6px;
-            background: linear-gradient(90deg,
-                var(--primary) 0 16.66%,
-                var(--mauve) 16.66% 33.33%,
-                var(--accent) 33.33% 50%,
-                var(--dark) 50% 66.66%,
-                var(--muted-gold) 66.66% 83.33%,
-                var(--gold) 83.33%);
+            background: linear-gradient(90deg, var(--mauve), var(--gold), var(--accent), var(--primary));
         }
 
         .topbar,
@@ -156,39 +139,23 @@
             display: flex;
             justify-content: flex-start;
             align-items: center;
-            gap: var(--s5);
+            gap: 1rem;
         }
-
-        /* the right half of the band was empty; it now carries the one fact an
-           instructor wants on arrival, in their language rather than the
-           pipeline's */
-        .hero-count {
-            margin: 0 0 0 auto;
-            padding-left: var(--s6);
-            border-left: 1px solid rgba(255, 255, 255, 0.28);
-            color: var(--light);
-            font-size: 0.78rem;
-            font-weight: 700;
-            letter-spacing: 0.1em;
-            text-transform: uppercase;
-            white-space: nowrap;
-        }
-        .hero-count:empty { display: none; }
 
         .brand-lockup {
             display: inline-flex;
             align-items: center;
-            gap: var(--s6);
+            gap: 1.25rem;
             min-width: 0;
         }
 
         .logo-frame {
-            width: 112px;
-            height: 70px;
+            width: 132px;
+            height: 84px;
             display: grid;
             place-items: center;
             flex: 0 0 auto;
-            padding: var(--s3) var(--s4);
+            padding: 0.7rem 0.85rem;
             border-radius: 8px;
             background: var(--light);
             overflow: hidden;
@@ -218,7 +185,7 @@
         }
 
         .hero-note {
-            margin: var(--s2) 0 0;
+            margin: 0.35rem 0 0;
             color: rgba(255, 255, 255, 0.85);
             font-size: clamp(0.95rem, 1.2vw, 1.05rem);
         }
@@ -227,20 +194,20 @@
             position: relative;
             z-index: 2;
             flex: 1;
-            margin-top: var(--s6);
-            padding-bottom: var(--s8);
+            margin-top: 1.4rem;
+            padding-bottom: 3rem;
         }
 
         .noscript-list {
-            margin: 0 0 var(--s5);
-            padding: var(--s5) var(--s6);
+            margin: 0 0 1rem;
+            padding: 1rem 1.25rem;
             border: 1px solid rgba(0, 64, 113, 0.18);
             border-radius: 8px;
             background: rgba(255, 255, 255, 0.94);
         }
 
         .noscript-list p {
-            margin: 0 0 var(--s3);
+            margin: 0 0 0.5rem;
             font-weight: 700;
             color: var(--dark);
         }
@@ -251,7 +218,7 @@
         }
 
         .noscript-list li {
-            margin: var(--s1) 0;
+            margin: 0.25rem 0;
         }
 
         .noscript-list a {
@@ -261,10 +228,8 @@
 
         .dashboard-grid {
             display: grid;
-            /* three-up is the working default: it divides six evenly today and
-               eighteen evenly later, and keeps the card near 400px wide */
-            grid-template-columns: repeat(3, minmax(0, 1fr));
-            gap: var(--s5);
+            grid-template-columns: repeat(6, minmax(0, 1fr));
+            gap: 0.85rem;
         }
 
         .module-card {
@@ -272,7 +237,7 @@
             --card-soft: rgba(0, 123, 175, 0.1);
             position: relative;
             display: flex;
-            min-height: 262px;
+            min-height: 370px;
             flex-direction: column;
             overflow: hidden;
             border: 1px solid rgba(0, 64, 113, 0.14);
@@ -299,7 +264,7 @@
             content: "";
             position: absolute;
             inset: 0 0 auto 0;
-            height: 106px;
+            height: 210px;
             background:
                 linear-gradient(180deg, rgba(0, 19, 63, 0.04) 0%, rgba(0, 19, 63, 0.2) 100%);
             pointer-events: none;
@@ -325,29 +290,65 @@
             transform: none;
         }
 
+        /* Duotone artwork system: every image is neutralized to grayscale,
+           then washed with its own lesson's accent — six mismatched styles
+           read as one commissioned set. Hover lifts the wash to full color. */
         .card-art {
             position: relative;
-            min-height: 106px;
-            flex: 0 0 106px;
+            min-height: 154px;
+            flex: 0 0 154px;
             overflow: hidden;
             background: var(--card-soft);
+            isolation: isolate;
         }
 
         .card-art img {
             width: 100%;
             height: 100%;
-            min-height: 106px;
+            min-height: 154px;
             display: block;
             object-fit: cover;
             object-position: var(--image-position, center);
-            filter: saturate(0.94) contrast(1.02);
+            filter: grayscale(1) contrast(1.06) brightness(0.94);
             transform: scale(1.01);
             transition: transform 0.45s ease, filter 0.45s ease;
         }
 
+        .card-art::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            z-index: 1;
+            background: var(--royal);
+            mix-blend-mode: multiply;
+            opacity: 0.28;
+            transition: opacity 0.45s ease;
+            pointer-events: none;
+        }
+
+        .card-art::after {
+            content: "";
+            position: absolute;
+            inset: 0;
+            z-index: 1;
+            background: var(--card-accent);
+            mix-blend-mode: color;
+            opacity: 0.9;
+            transition: opacity 0.45s ease;
+            pointer-events: none;
+        }
+
         .module-card:hover .card-art img {
-            filter: saturate(1.06) contrast(1.06);
+            filter: grayscale(0) contrast(1.03);
             transform: scale(1.055);
+        }
+
+        .module-card:hover .card-art::before {
+            opacity: 0.08;
+        }
+
+        .module-card:hover .card-art::after {
+            opacity: 0.16;
         }
 
         .card-body {
@@ -356,44 +357,53 @@
             display: flex;
             flex: 1;
             flex-direction: column;
-            padding: var(--s4) var(--s4) var(--s3);
+            padding: 1rem 1rem 0.9rem;
             background:
                 linear-gradient(180deg, rgba(0, 19, 63, 0.98), rgba(0, 19, 63, 1));
+        }
+
+        /* Quiet index numeral — a visual shelf order for the six lessons */
+        .card-num {
+            position: absolute;
+            top: 0.35rem;
+            right: 0.75rem;
+            font-family: var(--font-heading);
+            font-size: 4.2rem;
+            line-height: 1;
+            color: rgba(255, 255, 255, 0.12);
+            pointer-events: none;
+            user-select: none;
         }
 
         .module-name {
             margin: 0;
             color: var(--light);
             font-family: var(--font-heading);
-            font-size: clamp(1.1rem, 1.3vw, 1.34rem);
+            font-size: clamp(1.26rem, 1.45vw, 1.58rem);
             font-weight: 400;
-            line-height: 1.08;
+            line-height: 1.05;
             letter-spacing: 0;
             overflow-wrap: anywhere;
             text-wrap: balance;
         }
 
         .theme-communication .module-name {
-            font-size: clamp(1rem, 1.18vw, 1.2rem);
-            line-height: 1.06;
+            font-size: clamp(1.14rem, 1.3vw, 1.42rem);
+            line-height: 1.02;
         }
 
         .module-desc {
-            margin: var(--s2) 0 0;
+            margin: 0.65rem 0 0;
             color: rgba(255, 255, 255, 0.86);
-            font-size: 0.84rem;
-            line-height: 1.4;
-            display: -webkit-box;
-            -webkit-line-clamp: 2;
-            -webkit-box-orient: vertical;
-            overflow: hidden;
+            font-size: 0.9rem;
+            line-height: 1.44;
         }
 
         .card-chips {
             display: flex;
             flex-wrap: wrap;
-            gap: var(--s2);
-            margin: var(--s4) 0 0;
+            gap: 0.4rem;
+            margin: 0.7rem 0 0;
             padding: 0;
             list-style: none;
         }
@@ -401,10 +411,10 @@
         .card-chips li {
             border: 1px solid rgba(255, 255, 255, 0.22);
             border-radius: 999px;
-            padding: var(--s1) var(--s3);
+            padding: 0.22rem 0.55rem;
             color: rgba(255, 255, 255, 0.92);
             background: rgba(255, 255, 255, 0.08);
-            font-size: 0.68rem;
+            font-size: 0.72rem;
             font-weight: 700;
             letter-spacing: 0.04em;
             text-transform: uppercase;
@@ -414,33 +424,30 @@
             position: relative;
             z-index: 2;
             display: flex;
-            justify-content: flex-start;
+            justify-content: space-between;
             align-items: center;
-            gap: var(--s4);
-            padding: 0 var(--s4) var(--s4);
+            gap: 0.75rem;
+            padding: 0.8rem 1rem 1rem;
+            border-top: 1px solid rgba(255, 255, 255, 0.14);
         }
 
         .launch-cta {
             display: inline-flex;
             align-items: center;
-            gap: var(--s3);
+            gap: 0.55rem;
             min-height: 44px;
             border-radius: 999px;
-            padding: var(--s3) var(--s6);
+            padding: 0.55rem 0.9rem;
             color: var(--button-text, var(--light));
             background: var(--button-accent, var(--card-accent));
-            font-size: 0.86rem;
-            font-weight: 700;
-            letter-spacing: 0.005em;
-            /* one shadow for all six colours, so a gold button carries the same
-               optical weight as a mauve one */
-            box-shadow: 0 2px 6px rgba(0, 19, 63, 0.28);
+            font-size: 0.82rem;
+            font-weight: 800;
             transition: transform 0.24s ease, box-shadow 0.24s ease;
         }
 
         .module-card:hover .launch-cta {
-            transform: translateY(-1px);
-            box-shadow: 0 6px 16px rgba(0, 19, 63, 0.34);
+            transform: translateX(2px);
+            box-shadow: 0 12px 24px rgba(0, 64, 113, 0.18);
         }
 
         .arrow-icon {
@@ -460,7 +467,7 @@
 
         .empty-state {
             grid-column: 1 / -1;
-            padding: var(--s8);
+            padding: 2rem;
             border: 1px dashed rgba(0, 64, 113, 0.24);
             border-radius: 8px;
             color: var(--gray);
@@ -470,7 +477,7 @@
         }
 
         footer {
-            padding: 0 0 var(--s8);
+            padding: 0 0 2rem;
             color: var(--gray);
             font-size: 0.9rem;
         }
@@ -551,46 +558,31 @@
             }
         }
 
-        @media (min-width: 1501px) {
+        @media (max-width: 1500px) {
             .dashboard-grid {
-                grid-template-columns: repeat(4, minmax(0, 1fr));
+                grid-template-columns: repeat(3, minmax(0, 1fr));
             }
         }
 
-        @media (max-width: 900px) {
+        @media (max-width: 1050px) {
             .dashboard-grid {
                 grid-template-columns: repeat(2, minmax(0, 1fr));
             }
         }
 
-        /* below this the nowrap count starves the brand lockup, so it drops to
-           its own line instead of squeezing the title */
-        @media (max-width: 820px) {
-            .topbar {
-                flex-wrap: wrap;
-            }
-
-            .hero-count {
-                width: 100%;
-                margin: var(--s3) 0 0;
-                padding-left: 0;
-                border-left: 0;
-            }
-        }
-
         @media (max-width: 640px) {
             .hero {
-                padding: var(--s4) var(--s5) var(--s5);
+                padding: 0.85rem 1rem 1.1rem;
             }
 
             .brand-lockup {
-                gap: var(--s4);
+                gap: 0.85rem;
             }
 
             .logo-frame {
                 width: 96px;
                 height: 62px;
-                padding: var(--s2) var(--s3);
+                padding: 0.45rem 0.55rem;
             }
 
             h1 {
@@ -614,6 +606,18 @@
 <body>
     <a href="#dashboardGrid" class="skip-link">Skip to lessons</a>
 
+    <svg class="backdrop-motif" viewBox="0 0 1200 620" aria-hidden="true" focusable="false">
+        <path d="M0 600 Q 600 -80 1200 600" fill="none" stroke="currentColor" stroke-width="4"></path>
+        <line x1="240" y1="600" x2="240" y2="382" stroke="currentColor" stroke-width="2.5"></line>
+        <line x1="360" y1="600" x2="360" y2="314" stroke="currentColor" stroke-width="2.5"></line>
+        <line x1="480" y1="600" x2="480" y2="274" stroke="currentColor" stroke-width="2.5"></line>
+        <line x1="600" y1="600" x2="600" y2="260" stroke="currentColor" stroke-width="2.5"></line>
+        <line x1="720" y1="600" x2="720" y2="274" stroke="currentColor" stroke-width="2.5"></line>
+        <line x1="840" y1="600" x2="840" y2="314" stroke="currentColor" stroke-width="2.5"></line>
+        <line x1="960" y1="600" x2="960" y2="382" stroke="currentColor" stroke-width="2.5"></line>
+        <line x1="0" y1="600" x2="1200" y2="600" stroke="currentColor" stroke-width="4"></line>
+    </svg>
+
     <div class="dashboard-shell">
         <header class="hero">
             <div class="topbar">
@@ -626,7 +630,6 @@
                         <p class="hero-note">Interactive lessons for the classroom &mdash; choose one to launch.</p>
                     </div>
                 </div>
-                <p class="hero-count" id="heroCount"></p>
             </div>
         </header>
 
@@ -697,7 +700,7 @@
             {
                 id: 'lesson-communicating-with-the-public',
                 title: 'Communicating with the Public',
-                description: 'Master active listening, communication styles, congruent messaging, and self-advocacy.',
+                description: 'Master active listening, communication styles, congruent messaging, and self-advocacy skills for workplace and personal success.',
                 themeKey: 'communication',
                 path: 'lesson-communicating-with-the-public/index.html',
                 status: 'qa',
@@ -708,7 +711,7 @@
             {
                 id: 'lesson-controlling-anger',
                 title: 'Controlling Anger',
-                description: 'Recognize anger triggers and work through them with the Embrace-Express-Work Through framework.',
+                description: 'Recognize anger triggers, practice healthy expression through the Embrace-Express-Work Through framework, and build coping strategies for the workplace.',
                 themeKey: 'anger',
                 path: 'lesson-controlling-anger/index.html',
                 status: 'qa',
@@ -719,7 +722,7 @@
             {
                 id: 'lesson-problem-solving-and-decision-making',
                 title: 'Problem Solving & Decision Making',
-                description: 'Apply structured frameworks, critical thinking, and group decision-making techniques.',
+                description: 'Apply structured problem-solving frameworks, critical thinking strategies, and group decision-making techniques for workplace success.',
                 themeKey: 'problemSolving',
                 path: 'lesson-problem-solving-and-decision-making/index.html',
                 status: 'qa',
@@ -842,6 +845,7 @@
                     <img src="${imageSrc}" alt="" loading="lazy">
                 </div>
                 <div class="card-body">
+                    <span class="card-num" aria-hidden="true">${index + 1}</span>
                     <h3 class="module-name" id="${titleId}">${safeTitle}</h3>
                     <p class="module-desc">${safeDescription}</p>
                     ${buildChips(lesson)}
@@ -862,16 +866,6 @@
             grid.innerHTML = lessons.length
                 ? lessons.map((lesson, i) => buildCard(lesson, i)).join('')
                 : '<div class="empty-state">No lessons found &mdash; the lesson registry may be empty or unreadable.</div>';
-
-            // states the real number of launchable lessons, so the band stays
-            // true as the curriculum grows
-            const ready = lessons.filter(lesson => isLaunchable(lesson.status)).length;
-            const counter = document.getElementById('heroCount');
-            if (counter) {
-                counter.textContent = ready
-                    ? `${ready} ${ready === 1 ? 'lesson' : 'lessons'} ready to teach`
-                    : '';
-            }
         }
 
         function initDashboard(data) {

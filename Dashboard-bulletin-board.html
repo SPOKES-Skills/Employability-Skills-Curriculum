@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SPOKES Employability Skills Curriculum</title>
+    <link rel="icon" href="SPOKES-Logo.png">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Playfair+Display:wght@700&family=Merriweather:wght@700&family=Crimson+Pro:wght@700&family=Vollkorn:wght@700&family=Bitter:wght@700&family=Outfit:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #007baf;
+            --accent: #37b550;
+            --dark: #004071;
+            --light: #FFFFFF;
+            --muted: #EDF3F7;
+            --gray: #60636b;
+            --gold: #d3b257;
+            --royal: #00133f;
+            --mauve: #a7253f;
+            --offwhite: #d1d3d4;
+            --muted-gold: #ad8806;
+            --cork: #c89b6a;
+            --cork-deep: #b0804f;
+            --frame: #5d3d22;
+            --frame-hi: #7a5230;
+            --paper: #fdfcf7;
+            --paper-warm: #f6f1e6;
+            --ink: #00133f;
+            --font-body: "Outfit", system-ui, sans-serif;
+        }
+
+        *, *::before, *::after { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            min-height: 100dvh;
+            font-family: var(--font-body);
+            color: var(--ink);
+            background: linear-gradient(180deg, #efe8da, #e4d9c4);
+        }
+
+        a { color: inherit; }
+
+        .skip-link {
+            position: absolute; left: 1rem; top: -4rem; z-index: 100;
+            padding: 0.7rem 1rem; border-radius: 0 0 8px 8px;
+            background: var(--royal); color: var(--light); font-weight: 700;
+            transition: top 0.2s ease; text-decoration: none;
+        }
+        .skip-link:focus { top: 0; }
+
+        .shell { max-width: 1460px; margin: 0 auto; padding: 1.1rem clamp(0.75rem, 2.5vw, 2rem) 2rem; }
+
+        /* Board frame: stained wood, the object on the wall */
+        .board-frame {
+            padding: clamp(10px, 1.4vw, 18px);
+            background: linear-gradient(135deg, var(--frame-hi), var(--frame));
+            border-radius: 8px;
+            box-shadow: 0 26px 70px rgba(0, 19, 63, 0.35), inset 0 2px 3px rgba(255,255,255,0.18);
+        }
+
+        .board {
+            position: relative;
+            border-radius: 4px;
+            padding: clamp(14px, 2vw, 26px);
+            background:
+                radial-gradient(circle at 18% 26%, rgba(0,0,0,0.07) 2px, transparent 3px),
+                radial-gradient(circle at 64% 58%, rgba(0,0,0,0.06) 2px, transparent 3px),
+                radial-gradient(circle at 86% 14%, rgba(0,0,0,0.05) 2px, transparent 3px),
+                linear-gradient(180deg, var(--cork), var(--cork-deep));
+            background-size: 90px 74px, 116px 92px, 74px 96px, auto;
+            box-shadow: inset 0 4px 18px rgba(0,0,0,0.28);
+        }
+
+        /* Title placard — a real sign, not a hero */
+        .placard {
+            position: relative;
+            width: max-content;
+            max-width: calc(100% - 1rem);
+            margin: 0 auto 20px;
+            padding: 0.65rem 1.5rem 0.7rem;
+            background: var(--paper-warm);
+            border: 2px solid var(--ink);
+            box-shadow: 0 6px 14px rgba(0,0,0,0.3);
+            transform: rotate(-0.5deg);
+            text-align: center;
+        }
+        .placard::before, .placard::after {
+            content: ""; position: absolute; top: -7px; width: 13px; height: 13px;
+            border-radius: 50%; background: var(--mauve);
+            box-shadow: 0 3px 5px rgba(0,0,0,0.4), inset -2px -3px 4px rgba(0,0,0,0.35);
+        }
+        .placard::before { left: 12%; }
+        .placard::after { right: 12%; background: var(--primary); }
+        .placard h1 {
+            margin: 0; font-family: "DM Serif Display", Georgia, serif;
+            font-weight: 400; font-size: clamp(1.25rem, 2.4vw, 1.7rem); letter-spacing: 0.03em;
+        }
+        .placard p {
+            margin: 0.15rem 0 0; font-size: 0.68rem; font-weight: 700;
+            letter-spacing: 0.22em; text-transform: uppercase; color: var(--gray);
+        }
+
+        .flyers {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: clamp(14px, 1.8vw, 22px);
+        }
+
+        /* Flyer: a real notice — paper, pin, its own lesson's hand */
+        .flyer {
+            --f-accent: var(--primary);
+            --f-take-ink: var(--light);
+            --f-weight: 700;
+            --f-heading: "DM Serif Display", Georgia, serif;
+            transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            background: var(--paper);
+            padding: 1rem 1rem 0;
+            text-decoration: none;
+            box-shadow: 0 10px 22px rgba(0,0,0,0.32);
+        }
+        .flyer:nth-child(6n+1) { transform: rotate(-1.1deg); }
+        .flyer:nth-child(6n+2) { transform: rotate(0.9deg); }
+        .flyer:nth-child(6n+3) { transform: rotate(-0.4deg); }
+        .flyer:nth-child(6n+4) { transform: rotate(1.2deg); }
+        .flyer:nth-child(6n+5) { transform: rotate(-0.8deg); }
+        .flyer:nth-child(6n+6) { transform: rotate(0.5deg); }
+        a.flyer:hover {
+            transform: rotate(0deg) translateY(-4px) scale(1.015);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+            z-index: 3;
+        }
+        a.flyer:focus-visible {
+            outline: 3px solid var(--royal);
+            box-shadow: 0 0 0 7px var(--paper), 0 10px 22px rgba(0,0,0,0.32);
+            outline-offset: 2px;
+            z-index: 3;
+        }
+
+        .pin {
+            position: absolute; top: -8px; left: 50%; transform: translateX(-50%);
+            width: 17px; height: 17px; border-radius: 50%;
+            background: var(--f-accent);
+            box-shadow: 0 3px 6px rgba(0,0,0,0.45), inset -2px -3px 4px rgba(0,0,0,0.35);
+            z-index: 2;
+        }
+
+        .band { height: 9px; margin: -1rem -1rem 0.65rem; background: var(--f-accent); }
+
+        .flyer h3 {
+            margin: 0; font-family: var(--f-heading);
+            font-weight: var(--f-weight, 700); font-size: 1.28rem; line-height: 1.12; color: var(--ink);
+            text-wrap: balance;
+        }
+        .flyer .desc {
+            margin: 0.5rem 0 0.75rem; font-size: 0.875rem; line-height: 1.45; color: var(--gray);
+            flex: 1;
+        }
+
+        .tabs {
+            display: flex; align-items: stretch;
+            margin: 0 -1rem;
+            border-top: 1.5px dashed #c2bba8;
+        }
+        .tab {
+            flex: 1; display: flex; align-items: center; justify-content: center;
+            padding: 0.55rem 0.25rem 0.65rem;
+            border-right: 1.5px dashed #c2bba8;
+            font-size: 0.72rem; font-weight: 700; letter-spacing: 0.05em;
+            text-transform: uppercase; color: var(--ink); text-align: center;
+        }
+        .tab:last-child { border-right: none; }
+        .tab.take {
+            flex: 1.35;
+            background: var(--f-accent); color: var(--f-take-ink);
+            font-size: 0.74rem; letter-spacing: 0.08em;
+            transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+            transform-origin: top center;
+        }
+        a.flyer:hover .tab.take { transform: rotate(-2.5deg) translateY(1px); }
+
+        /* Six hands: each lesson's registered heading face + accent */
+        .theme-time           { --f-accent: var(--primary); --f-weight: 400; --f-heading: "DM Serif Display", Georgia, serif; }
+        .theme-interview      { --f-accent: var(--mauve); --f-heading: "Playfair Display", Georgia, serif; }
+        .theme-accountability { --f-accent: var(--accent); --f-take-ink: var(--royal); --f-heading: "Merriweather", Georgia, serif; }
+        .theme-communication  { --f-accent: var(--dark); --f-heading: "Crimson Pro", Georgia, serif; }
+        .theme-anger          { --f-accent: var(--muted-gold); --f-take-ink: var(--royal); --f-heading: "Vollkorn", Georgia, serif; }
+        .theme-problemSolving { --f-accent: var(--gold); --f-take-ink: var(--royal); --f-heading: "Bitter", Georgia, serif; }
+
+        /* Pinned extras: the board's life */
+        .extra {
+            position: absolute; z-index: 1;
+            background: var(--paper-warm);
+            box-shadow: 0 6px 14px rgba(0,0,0,0.3);
+            font-size: 0.64rem; color: var(--gray); padding: 0.5rem 0.7rem;
+        }
+        .postcard { right: 2.2%; top: 16px; width: 132px; transform: rotate(3deg); }
+        .postcard .pc {
+            height: 54px; margin-bottom: 0.3rem; position: relative; overflow: hidden;
+            background: linear-gradient(180deg, #e8b44c 40%, #37527a 40% 75%, var(--royal) 75%);
+        }
+        .postcard .pc::after {
+            content: ""; position: absolute; left: 14%; right: 14%; top: 32%; height: 28px;
+            border: 3px solid var(--gold); border-bottom: none;
+            border-radius: 50% 50% 0 0 / 100% 100% 0 0;
+        }
+        .index-card {
+            position: static;
+            width: max-content;
+            max-width: 100%;
+            margin: 18px auto 0;
+            transform: rotate(-1.4deg);
+            font-family: "DM Serif Display", Georgia, serif; font-size: 0.74rem; color: var(--ink);
+            line-height: 1.35;
+            text-align: center;
+        }
+
+        .noscript-list {
+            margin: 0 0 1rem; padding: 1rem 1.25rem;
+            border: 2px solid var(--ink); background: var(--paper);
+        }
+        .noscript-list p { margin: 0 0 0.5rem; font-weight: 700; color: var(--dark); }
+        .noscript-list ul { margin: 0; padding-left: 1.2rem; }
+        .noscript-list li { margin: 0.25rem 0; }
+        .noscript-list a { color: var(--primary); font-weight: 700; }
+
+        .empty-state {
+            grid-column: 1 / -1; padding: 2rem; text-align: center;
+            background: var(--paper); font-weight: 700; color: var(--gray);
+            box-shadow: 0 10px 22px rgba(0,0,0,0.25);
+        }
+
+        footer {
+            margin-top: 1.1rem; color: #6e5b3f; font-size: 0.82rem; text-align: center;
+        }
+        footer p { margin: 0; }
+        .offline-note { display: block; margin-top: 0.35rem; font-weight: 700; color: var(--frame); }
+        .offline-note[hidden] { display: none; }
+
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after {
+                animation-duration: 0.01ms !important;
+                transition-duration: 0.01ms !important;
+                scroll-behavior: auto !important;
+            }
+        }
+
+        @media (max-width: 1000px) {
+            .flyers { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+            .postcard { display: none; }
+        }
+
+        @media (max-width: 620px) {
+            .shell { padding-top: 0.6rem; }
+            .flyers { grid-template-columns: 1fr; }
+            .flyer, .flyer:nth-child(n) { transform: rotate(0deg); }
+            .placard { transform: none; }
+            .index-card { transform: none; }
+        }
+    </style>
+</head>
+<body>
+<!--
+THESIS: The hub is the community bulletin board every WV adult-ed student and
+instructor already knows — real pinned class flyers with tear-off tabs — and it
+refuses the ed-tech card-grid with hero metrics that this category always ships.
+OWN-WORLD: Cork ground in a stained-wood frame; white paper flyers, colored
+push-pins, dashed tear-tabs; each flyer titled in its own lesson's registered
+face (DM Serif/Playfair/Merriweather/Crimson/Vollkorn/Bitter) over its deck
+accent; a Gorge postcard pinned in the corner.
+STORY: "These are free classes, posted for me; I take a tab and go."
+FIRST VIEWPORT: Placard sign top-center, board fills the frame, first flyer
+row with TAKE ONE tabs fully visible at 1280×720.
+FORM: Community bulletin board; user-pinned steer from grounded WV list,
+seed keys 80462808 → ceee44a9.
+FINISH: unreviewed and undocumented is unfinished; this build ends with the
+finish review, the verdict, and DESIGN.md.
+-->
+    <a href="#dashboardGrid" class="skip-link">Skip to lessons</a>
+
+    <div class="shell">
+        <div class="board-frame">
+            <div class="board">
+                <div class="placard">
+                    <h1>SPOKES Employability Skills</h1>
+                    <p>Free classes &middot; WV Adult Basic Education &middot; take a tab</p>
+                </div>
+
+                <noscript>
+                    <div class="noscript-list">
+                        <p>Classes on the board (JavaScript is off, so here are direct links):</p>
+                        <ul>
+                            <li><a href="lesson-time-management/index.html">Time Management</a></li>
+                            <li><a href="lesson-interview-skills/index.html">Interview Skills</a></li>
+                            <li><a href="lesson-employee-accountability/index.html">Employee Accountability</a></li>
+                            <li><a href="lesson-communicating-with-the-public/index.html">Communicating with the Public</a></li>
+                            <li><a href="lesson-controlling-anger/index.html">Controlling Anger</a></li>
+                            <li><a href="lesson-problem-solving-and-decision-making/index.html">Problem Solving &amp; Decision Making</a></li>
+                        </ul>
+                    </div>
+                </noscript>
+
+                <div class="flyers" id="dashboardGrid"></div>
+
+                <div class="extra postcard" aria-hidden="true">
+                    <div class="pc"></div>
+                    Greetings from the New River Gorge
+                </div>
+                <div class="extra index-card">Twelve more classes coming &mdash;<br>watch this board.</div>
+            </div>
+        </div>
+
+        <footer>
+            <p>&copy; 2026 WV Adult Basic Education. All rights reserved.
+                <span class="offline-note" id="offlineNote" hidden>Showing the built-in class list (offline copy, last synced 2026-08-04).</span>
+            </p>
+        </footer>
+    </div>
+
+    <script>
+        // Keep FALLBACK_LESSONS (and this sync date) in sync with
+        // lesson-registry.json — this list is what file:// and offline users see.
+        const FALLBACK_SYNCED = '2026-08-04';
+
+        const FALLBACK_LESSONS = [
+            { id: 'lesson-time-management', title: 'Time Management', description: 'Master prioritization, scheduling, and daily planning strategies for workplace success.', themeKey: 'time', path: 'lesson-time-management/index.html', status: 'ready', slides: 37, videos: 5, interactions: { implemented: 3 } },
+            { id: 'lesson-interview-skills', title: 'Interview Skills', description: 'Build confidence and master techniques for successful job interviews.', themeKey: 'interview', path: 'lesson-interview-skills/index.html', status: 'ready', slides: 36, videos: 2, interactions: { implemented: 5 } },
+            { id: 'lesson-employee-accountability', title: 'Employee Accountability', description: 'Develop personal responsibility, goal-setting, and professional growth habits.', themeKey: 'accountability', path: 'lesson-employee-accountability/index.html', status: 'ready', slides: 35, videos: 0, interactions: { implemented: 3 } },
+            { id: 'lesson-communicating-with-the-public', title: 'Communicating with the Public', description: 'Master active listening, communication styles, congruent messaging, and self-advocacy skills for workplace and personal success.', themeKey: 'communication', path: 'lesson-communicating-with-the-public/index.html', status: 'qa', slides: 33, videos: 8, interactions: { implemented: 8 } },
+            { id: 'lesson-controlling-anger', title: 'Controlling Anger', description: 'Recognize anger triggers, practice healthy expression through the Embrace-Express-Work Through framework, and build coping strategies for the workplace.', themeKey: 'anger', path: 'lesson-controlling-anger/index.html', status: 'qa', slides: 33, videos: 4, interactions: { implemented: 6 } },
+            { id: 'lesson-problem-solving-and-decision-making', title: 'Problem Solving & Decision Making', description: 'Apply structured problem-solving frameworks, critical thinking strategies, and group decision-making techniques for workplace success.', themeKey: 'problemSolving', path: 'lesson-problem-solving-and-decision-making/index.html', status: 'qa', slides: 28, videos: 4, interactions: { implemented: 6 } }
+        ];
+
+        let allLessons = [];
+
+        function normalizeStatus(status) {
+            return String(status || 'planned').trim().toLowerCase();
+        }
+
+        function isLaunchable(status) {
+            const statusKey = normalizeStatus(status);
+            return statusKey === 'complete' || statusKey === 'ready' || statusKey === 'qa';
+        }
+
+        function escapeHtml(value) {
+            return String(value ?? '').replace(/[&<>"']/g, function (char) {
+                return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char];
+            });
+        }
+
+        function sanitizeLessonPath(path) {
+            const rawPath = String(path ?? '').trim();
+            if (!rawPath) return '';
+            if (!/^[A-Za-z0-9_./' -]+$/.test(rawPath)) return '';
+            if (rawPath.startsWith('/') || rawPath.includes('..')) return '';
+            if (!rawPath.toLowerCase().endsWith('.html')) return '';
+            return encodeURI(rawPath);
+        }
+
+        function getThemeClass(themeKey, index) {
+            const known = ['time', 'interview', 'accountability', 'communication', 'anger', 'problemSolving'];
+            if (known.includes(themeKey)) return `theme-${themeKey}`;
+            return ['theme-time', 'theme-problemSolving', 'theme-interview', 'theme-anger', 'theme-accountability'][index % 5];
+        }
+
+        function buildTabs(lesson) {
+            const tabs = [];
+            const slides = Number(lesson.slides);
+            const videos = Number(lesson.videos);
+            const activities = Number(lesson.interactions && lesson.interactions.implemented);
+            if (Number.isFinite(slides) && slides > 0) tabs.push(slides + ' slides');
+            if (Number.isFinite(videos) && videos > 0) tabs.push(videos + (videos === 1 ? ' video' : ' videos'));
+            else if (Number.isFinite(activities) && activities > 0) tabs.push(activities + ' activities');
+            return tabs.map(tab => `<span class="tab">${escapeHtml(tab)}</span>`).join('');
+        }
+
+        function buildFlyer(lesson, index) {
+            const launchable = isLaunchable(lesson.status) ? sanitizeLessonPath(lesson.path) : '';
+            const tag = launchable ? 'a' : 'div';
+            const titleId = 'flyer-title-' + index;
+            const hrefAttr = launchable ? ` href="${launchable}" aria-labelledby="${titleId}"` : '';
+            const takeContent = launchable ? 'Take One &rarr;' : 'Coming Soon';
+            return `<${tag}${hrefAttr} class="flyer ${getThemeClass(lesson.themeKey, index)}">
+                <span class="pin" aria-hidden="true"></span>
+                <div class="band" aria-hidden="true"></div>
+                <h3 id="${titleId}">${escapeHtml(lesson.title || 'Untitled Lesson')}</h3>
+                <p class="desc">${escapeHtml(lesson.description || '')}</p>
+                <div class="tabs">${buildTabs(lesson)}<span class="tab take">${takeContent}</span></div>
+            </${tag}>`;
+        }
+
+        function renderBoard() {
+            const lessons = (Array.isArray(allLessons) ? allLessons : []).filter(function (lesson) {
+                return lesson && lesson.status !== 'blocked';
+            });
+            const grid = document.getElementById('dashboardGrid');
+            grid.innerHTML = lessons.length
+                ? lessons.map((lesson, i) => buildFlyer(lesson, i)).join('')
+                : '<div class="empty-state">The board is empty &mdash; the lesson registry may be missing or unreadable.</div>';
+        }
+
+        function initDashboard(data) {
+            allLessons = Array.isArray(data.lessons) ? data.lessons : FALLBACK_LESSONS;
+            renderBoard();
+        }
+
+        document.addEventListener('DOMContentLoaded', function () {
+            fetch('lesson-registry.json', { cache: 'no-store' })
+                .then(function (res) {
+                    if (!res.ok) throw new Error('HTTP ' + res.status);
+                    return res.json();
+                })
+                .then(function (data) { initDashboard(data); })
+                .catch(function (error) {
+                    console.warn('Lesson registry unavailable — showing the built-in offline copy (synced ' + FALLBACK_SYNCED + ').', error);
+                    const offlineNote = document.getElementById('offlineNote');
+                    if (offlineNote) offlineNote.hidden = false;
+                    initDashboard({ lessons: FALLBACK_LESSONS });
+                });
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SPOKES Employability Skills Curriculum</title>
+    <link rel="icon" href="SPOKES-Logo.png">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600&family=Outfit:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #007baf; --accent: #37b550; --dark: #004071; --light: #FFFFFF;
+            --muted: #EDF3F7; --gray: #60636b; --gold: #d3b257; --royal: #00133f;
+            --mauve: #a7253f; --offwhite: #d1d3d4; --muted-gold: #ad8806;
+            --sun: #e8b44c; --sienna: #cf7a3a; --paper: #efe6d0; --ink: #00133f;
+            --font-display: "Oswald", "Arial Narrow", sans-serif;
+            --font-body: "Outfit", system-ui, sans-serif;
+        }
+        *, *::before, *::after { box-sizing: border-box; }
+        body { margin: 0; min-height: 100dvh; font-family: var(--font-body); color: var(--ink); background: var(--paper); }
+        a { color: inherit; }
+        .skip-link { position: absolute; left: 1rem; top: -4rem; z-index: 100; padding: 0.7rem 1rem; border-radius: 0 0 8px 8px; background: var(--royal); color: var(--light); font-weight: 700; transition: top 0.2s ease; text-decoration: none; }
+        .skip-link:focus { top: 0; }
+
+        /* Hero: the gorge as flat screen-print ink bands */
+        .hero { position: relative; height: clamp(190px, 24vh, 240px); overflow: hidden;
+            background: linear-gradient(180deg, var(--sun) 0 36%, var(--sienna) 36% 48%, var(--mauve) 48% 56%, #37527a 56% 100%); }
+        .sun-disc { position: absolute; top: 22px; left: 50%; transform: translateX(-50%); width: 64px; height: 64px; border-radius: 50%; background: #f6e6b0; box-shadow: 0 0 0 7px rgba(246, 230, 176, 0.35); }
+        .gorge-l, .gorge-r { position: absolute; bottom: 0; width: 56%; height: 74%; background: var(--royal); }
+        .gorge-l { left: -12%; clip-path: polygon(0 100%, 100% 100%, 60% 20%, 0 36%); }
+        .gorge-r { right: -12%; clip-path: polygon(100% 100%, 0 100%, 40% 20%, 100% 36%); }
+        .river { position: absolute; bottom: 0; left: 39%; width: 22%; height: 24%; clip-path: polygon(30% 0, 70% 0, 100% 100%, 0 100%); background: linear-gradient(180deg, var(--accent) 0 30%, var(--primary) 30%); }
+        .bridge { position: absolute; left: 16%; right: 16%; bottom: 40%; height: 60px; }
+        .bridge .arc { position: absolute; left: 0; right: 0; bottom: 0; height: 120px; border: 6px solid var(--gold); border-bottom: none; border-radius: 50% 50% 0 0 / 100% 100% 0 0; }
+        .bridge .deck { position: absolute; top: 0; left: -5%; right: -5%; height: 6px; background: var(--royal); }
+        .hero-title { position: absolute; left: 0; right: 0; top: 16px; text-align: center; z-index: 2; }
+        .hero-title h1 { margin: 0; font-family: var(--font-display); font-weight: 600; font-size: clamp(1.7rem, 3.4vw, 2.5rem); letter-spacing: 0.07em; text-transform: uppercase; color: var(--royal); text-shadow: 1px 1px 0 rgba(246, 230, 176, 0.6); }
+        .hero-title p { margin: 0.1rem 0 0; font-weight: 700; font-size: 0.66rem; letter-spacing: 0.32em; text-transform: uppercase; color: var(--royal); opacity: 0.85; }
+
+        .shell { max-width: 1460px; margin: 0 auto; padding: 1.2rem clamp(0.75rem, 2.5vw, 2rem) 2rem; }
+
+        .posters { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: clamp(10px, 1.4vw, 18px); }
+        .poster { --p-accent: var(--primary); display: flex; flex-direction: column; text-decoration: none;
+            border: 3px solid var(--royal); background: var(--paper); box-shadow: 0 10px 26px rgba(0, 19, 63, 0.22);
+            transition: transform 0.25s ease, box-shadow 0.25s ease; }
+        .poster:hover { transform: translateY(-6px); box-shadow: 0 22px 44px rgba(0, 19, 63, 0.32); }
+        .poster:focus-visible { outline: 4px solid var(--muted-gold); outline-offset: 3px; }
+
+        /* Authored flat scene per poster: sun band / ridge / field in deck colors */
+        .art { position: relative; aspect-ratio: 1 / 1.05; overflow: hidden; background: linear-gradient(180deg, var(--sun) 0 38%, var(--p-accent) 38% 100%); }
+        .art::before { content: ""; position: absolute; left: -10%; right: -10%; top: 26%; height: 34%; background: var(--royal); opacity: 0.85;
+            clip-path: polygon(0 100%, 10% 46%, 24% 76%, 38% 30%, 54% 68%, 68% 26%, 82% 62%, 94% 40%, 100% 100%); }
+        .art::after { content: ""; position: absolute; top: 9%; left: 50%; transform: translateX(-50%); width: 26px; height: 26px; border-radius: 50%; background: #f6e6b0; }
+        .cap { border-top: 3px solid var(--royal); padding: 0.5rem 0.55rem 0.55rem; display: flex; flex-direction: column; flex: 1; }
+        .cap h3 { margin: 0; font-family: var(--font-display); font-weight: 600; font-size: 0.95rem; line-height: 1.1; letter-spacing: 0.03em; text-transform: uppercase; color: var(--royal); }
+        .cap small { display: block; margin-top: 0.3rem; font-size: 0.62rem; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--gray); flex: 1; }
+        .see { margin-top: 0.45rem; align-self: flex-start; font-size: 0.66rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--paper); background: var(--mauve); padding: 0.32rem 0.55rem; }
+        .poster:hover .see { background: var(--royal); }
+
+        .theme-time .art { background: linear-gradient(180deg, var(--sun) 0 38%, var(--primary) 38%); }
+        .theme-interview .art { background: linear-gradient(180deg, #f6e6b0 0 32%, var(--mauve) 32% 66%, var(--royal) 66%); }
+        .theme-accountability .art { background: linear-gradient(180deg, var(--sun) 0 36%, var(--accent) 36% 72%, var(--dark) 72%); }
+        .theme-communication .art { background: linear-gradient(180deg, var(--sienna) 0 32%, var(--primary) 32% 62%, var(--royal) 62%); }
+        .theme-anger .art { background: linear-gradient(180deg, #f6e6b0 0 28%, var(--muted-gold) 28% 62%, var(--mauve) 62%); }
+        .theme-problemSolving .art { background: linear-gradient(180deg, var(--sun) 0 32%, var(--gold) 32% 58%, var(--dark) 58%); }
+
+        .series-foot { margin-top: 1.1rem; text-align: center; color: var(--gray); font-size: 0.7rem; font-weight: 700; letter-spacing: 0.2em; text-transform: uppercase; }
+
+        .noscript-list { margin: 0 0 1rem; padding: 1rem 1.25rem; border: 3px solid var(--royal); background: var(--light); }
+        .noscript-list p { margin: 0 0 0.5rem; font-weight: 700; color: var(--dark); }
+        .noscript-list ul { margin: 0; padding-left: 1.2rem; }
+        .noscript-list a { color: var(--primary); font-weight: 700; }
+        .empty-state { grid-column: 1 / -1; padding: 2rem; text-align: center; border: 3px solid var(--royal); background: var(--light); font-weight: 700; color: var(--gray); }
+
+        footer { margin-top: 1rem; color: var(--gray); font-size: 0.82rem; text-align: center; }
+        footer p { margin: 0; }
+        .offline-note { display: block; margin-top: 0.35rem; font-weight: 700; color: var(--sienna); }
+        .offline-note[hidden] { display: none; }
+
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; scroll-behavior: auto !important; }
+        }
+        @media (max-width: 1100px) { .posters { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+        @media (max-width: 620px) {
+            .posters { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+            .hero { height: 170px; }
+            .cap h3 { font-size: 0.85rem; }
+        }
+    </style>
+</head>
+<body>
+<!--
+THESIS: The curriculum as a WPA state poster series — work made heroic in
+flat screen-print ink — refusing the ed-tech card grid.
+OWN-WORLD: Sunrise/sienna/royal ink bands, gorge silhouettes, gold bridge
+arc; posters with condensed Oswald caps, royal frames, mauve SEE IT chips;
+each poster's scene keyed to its lesson accent.
+STORY: "West Virginia made a poster series about my skills; I pick a poster."
+FIRST VIEWPORT: Compact gorge hero, full poster row with captions at 1280×720.
+FORM: WPA poster series; grounded WV list (user-explored), seed lineage
+80462808 → ceee44a9.
+FINISH: unreviewed and undocumented is unfinished; this build ends with the
+finish review, the verdict, and DESIGN.md.
+-->
+    <a href="#dashboardGrid" class="skip-link">Skip to lessons</a>
+
+    <header class="hero">
+        <div class="hero-title">
+            <h1>Employability Skills</h1>
+            <p>A West Virginia Curriculum &middot; SPOKES &middot; WV Adult Basic Education</p>
+        </div>
+        <div class="sun-disc"></div>
+        <div class="gorge-l"></div><div class="gorge-r"></div>
+        <div class="river"></div>
+        <div class="bridge"><div class="arc"></div><div class="deck"></div></div>
+    </header>
+
+    <div class="shell">
+        <noscript>
+            <div class="noscript-list">
+                <p>Lessons in the series (JavaScript is off, so here are direct links):</p>
+                <ul>
+                    <li><a href="lesson-time-management/index.html">Time Management</a></li>
+                    <li><a href="lesson-interview-skills/index.html">Interview Skills</a></li>
+                    <li><a href="lesson-employee-accountability/index.html">Employee Accountability</a></li>
+                    <li><a href="lesson-communicating-with-the-public/index.html">Communicating with the Public</a></li>
+                    <li><a href="lesson-controlling-anger/index.html">Controlling Anger</a></li>
+                    <li><a href="lesson-problem-solving-and-decision-making/index.html">Problem Solving &amp; Decision Making</a></li>
+                </ul>
+            </div>
+        </noscript>
+
+        <div class="posters" id="dashboardGrid"></div>
+        <p class="series-foot">A series of eighteen &middot; six now showing</p>
+
+        <footer>
+            <p>&copy; 2026 WV Adult Basic Education. All rights reserved.
+                <span class="offline-note" id="offlineNote" hidden>Showing the built-in lesson list (offline copy, last synced 2026-08-04).</span>
+            </p>
+        </footer>
+    </div>
+
+    <script>
+        // Keep FALLBACK_LESSONS (and this sync date) in sync with lesson-registry.json.
+        const FALLBACK_SYNCED = '2026-08-04';
+        const FALLBACK_LESSONS = [
+            { id: 'lesson-time-management', title: 'Time Management', description: 'Prioritization, scheduling, and daily planning.', themeKey: 'time', path: 'lesson-time-management/index.html', status: 'ready', slides: 37, videos: 5 },
+            { id: 'lesson-interview-skills', title: 'Interview Skills', description: 'Confidence and technique for job interviews.', themeKey: 'interview', path: 'lesson-interview-skills/index.html', status: 'ready', slides: 36, videos: 2 },
+            { id: 'lesson-employee-accountability', title: 'Employee Accountability', description: 'Responsibility, goals, and growth habits.', themeKey: 'accountability', path: 'lesson-employee-accountability/index.html', status: 'ready', slides: 35, videos: 0 },
+            { id: 'lesson-communicating-with-the-public', title: 'Communicating with the Public', description: 'Listening, styles, and self-advocacy.', themeKey: 'communication', path: 'lesson-communicating-with-the-public/index.html', status: 'qa', slides: 33, videos: 8 },
+            { id: 'lesson-controlling-anger', title: 'Controlling Anger', description: 'Triggers, healthy expression, coping.', themeKey: 'anger', path: 'lesson-controlling-anger/index.html', status: 'qa', slides: 33, videos: 4 },
+            { id: 'lesson-problem-solving-and-decision-making', title: 'Problem Solving & Decision Making', description: 'Frameworks and critical thinking.', themeKey: 'problemSolving', path: 'lesson-problem-solving-and-decision-making/index.html', status: 'qa', slides: 28, videos: 4 }
+        ];
+
+        let allLessons = [];
+        function normalizeStatus(s) { return String(s || 'planned').trim().toLowerCase(); }
+        function isLaunchable(s) { const k = normalizeStatus(s); return k === 'complete' || k === 'ready' || k === 'qa'; }
+        function escapeHtml(v) { return String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
+        function sanitizeLessonPath(p) {
+            const r = String(p ?? '').trim();
+            if (!r || !/^[A-Za-z0-9_./' -]+$/.test(r) || r.startsWith('/') || r.includes('..') || !r.toLowerCase().endsWith('.html')) return '';
+            return encodeURI(r);
+        }
+        function getThemeClass(k, i) {
+            const known = ['time', 'interview', 'accountability', 'communication', 'anger', 'problemSolving'];
+            return known.includes(k) ? `theme-${k}` : ['theme-time', 'theme-problemSolving', 'theme-interview', 'theme-anger', 'theme-accountability'][i % 5];
+        }
+        function buildPoster(lesson, index) {
+            const path = isLaunchable(lesson.status) ? sanitizeLessonPath(lesson.path) : '';
+            const tag = path ? 'a' : 'div';
+            const titleId = 'poster-title-' + index;
+            const href = path ? ` href="${path}" aria-labelledby="${titleId}"` : '';
+            const facts = [];
+            if (Number(lesson.slides) > 0) facts.push(lesson.slides + ' slides');
+            if (Number(lesson.videos) > 0) facts.push(lesson.videos + ' videos');
+            return `<${tag}${href} class="poster ${getThemeClass(lesson.themeKey, index)}">
+                <div class="art" aria-hidden="true"></div>
+                <div class="cap">
+                    <h3 id="${titleId}">${escapeHtml(lesson.title || 'Untitled Lesson')}</h3>
+                    <small>${escapeHtml(facts.join(' · '))}</small>
+                    <span class="see">${path ? 'See It &rarr;' : 'Coming Soon'}</span>
+                </div>
+            </${tag}>`;
+        }
+        function renderSeries() {
+            const lessons = (Array.isArray(allLessons) ? allLessons : []).filter(l => l && l.status !== 'blocked');
+            document.getElementById('dashboardGrid').innerHTML = lessons.length
+                ? lessons.map((l, i) => buildPoster(l, i)).join('')
+                : '<div class="empty-state">No posters up &mdash; the lesson registry may be missing or unreadable.</div>';
+        }
+        function initDashboard(data) { allLessons = Array.isArray(data.lessons) ? data.lessons : FALLBACK_LESSONS; renderSeries(); }
+        document.addEventListener('DOMContentLoaded', function () {
+            fetch('lesson-registry.json', { cache: 'no-store' })
+                .then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+                .then(initDashboard)
+                .catch(function (error) {
+                    console.warn('Lesson registry unavailable — showing the built-in offline copy (synced ' + FALLBACK_SYNCED + ').', error);
+                    const n = document.getElementById('offlineNote');
+                    if (n) n.hidden = false;
+                    initDashboard({ lessons: FALLBACK_LESSONS });
+                });
+        });
+    </script>
+</body>
+</html>

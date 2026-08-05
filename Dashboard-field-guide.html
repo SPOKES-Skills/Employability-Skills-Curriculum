@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SPOKES Employability Skills Curriculum</title>
+    <link rel="icon" href="SPOKES-Logo.png">
+    <style>
+        :root {
+            --primary: #007baf; --accent: #37b550; --dark: #004071; --gold: #d3b257;
+            --royal: #00133f; --mauve: #a7253f; --muted-gold: #ad8806;
+            --paper: #f2eddc; --plate: #faf7ec; --ink: #2c3020; --rule: #5a5c48;
+            --font-serif: Georgia, "Times New Roman", serif;
+        }
+        *, *::before, *::after { box-sizing: border-box; }
+        body { margin: 0; min-height: 100dvh; font-family: var(--font-serif); color: var(--ink); background: var(--paper); }
+        a { color: inherit; }
+        .skip-link { position: absolute; left: 1rem; top: -4rem; z-index: 100; padding: 0.7rem 1rem; background: var(--royal); color: #fff; font-weight: 700; transition: top 0.2s ease; text-decoration: none; }
+        .skip-link:focus { top: 0; }
+
+        .sheet { max-width: 1360px; margin: 1.2rem auto 2rem; padding: clamp(1rem, 2.5vw, 2rem); border: 3px double var(--rule); background: var(--paper); box-shadow: 0 18px 50px rgba(44, 48, 32, 0.25); }
+
+        .masthead { text-align: center; border-bottom: 2px solid var(--ink); padding-bottom: 0.8rem; margin-bottom: 1.2rem; }
+        .masthead h1 { margin: 0; font-weight: 400; font-size: clamp(1.5rem, 2.8vw, 2.1rem); letter-spacing: 0.05em; }
+        .masthead p { margin: 0.25rem 0 0; font-style: italic; font-size: 0.85rem; color: var(--rule); }
+
+        .plates { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: clamp(12px, 1.6vw, 20px); }
+        .plate { display: flex; flex-direction: column; text-align: center; text-decoration: none;
+            transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1); }
+        a.plate:hover { transform: translateY(-4px); }
+        a.plate:focus-visible { outline: 3px solid var(--royal); outline-offset: 4px; }
+
+        .fig { --sp: var(--primary); position: relative; aspect-ratio: 1; border: 1.5px solid var(--ink); background: var(--plate); margin-bottom: 0.5rem; overflow: hidden; }
+        .fig i { position: absolute; top: 5px; left: 8px; font-size: 0.68rem; font-style: italic; color: var(--rule); }
+        /* the specimen: a bold simple mark in the lesson's accent */
+        .fig::before { content: ""; position: absolute; inset: 20% 20% 28% 20%; background: var(--sp); border-radius: 50% 50% 46% 10px; }
+        .fig::after { content: ""; position: absolute; left: 22%; right: 22%; bottom: 18%; height: 3px; background: var(--ink); }
+        .plate h3 { margin: 0; font-size: 0.92rem; font-weight: 700; line-height: 1.2; }
+        .plate .desc { margin: 0.25rem 0 0.45rem; font-size: 0.72rem; font-style: italic; color: var(--rule); line-height: 1.4; flex: 1; }
+        .plate .obs { align-self: center; font-size: 0.7rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--paper); background: var(--royal); padding: 0.4rem 0.8rem; }
+        a.plate:hover .obs { background: var(--mauve); }
+        .plate .obs.soon { background: transparent; color: var(--rule); border: 1px dashed var(--rule); }
+
+        .t-time .fig { --sp: var(--primary); } .t-interview .fig { --sp: var(--mauve); }
+        .t-accountability .fig { --sp: var(--accent); } .t-communication .fig { --sp: var(--dark); }
+        .t-anger .fig { --sp: var(--muted-gold); } .t-problemSolving .fig { --sp: var(--gold); }
+
+        .colophon { margin-top: 1.2rem; padding-top: 0.8rem; border-top: 1px solid var(--rule); text-align: center; font-style: italic; font-size: 0.78rem; color: var(--rule); }
+        .offline-note { display: block; margin-top: 0.3rem; font-weight: 700; font-style: normal; color: var(--ink); }
+        .offline-note[hidden] { display: none; }
+
+        .noscript-list { margin: 0 0 1rem; padding: 1rem 1.25rem; border: 1.5px solid var(--ink); background: var(--plate); }
+        .noscript-list ul { margin: 0.4rem 0 0; padding-left: 1.2rem; }
+        .noscript-list a { color: var(--dark); font-weight: 700; }
+        .empty-state { grid-column: 1 / -1; padding: 2rem; text-align: center; border: 1.5px dashed var(--rule); font-style: italic; color: var(--rule); }
+
+        @media (prefers-reduced-motion: reduce) { *, *::before, *::after { transition-duration: 0.01ms !important; } }
+        @media (max-width: 1100px) { .plates { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+        @media (max-width: 620px) { .plates { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+    </style>
+</head>
+<body>
+<!--
+THESIS: The curriculum as a naturalist's identification chart — skills as
+species you learn to recognize — refusing the ed-tech card grid.
+OWN-WORLD: Cream chart paper, double-rule frame, numbered specimen plates
+with accent-colored marks, italic descriptors, OBSERVE chips in royal.
+STORY: "A field guide to the skills; I pick a plate and observe."
+FIRST VIEWPORT: Masthead + all six plates + colophon at 1280×720.
+FORM: WV field-guide chart; roll-assigned (seed ceee44a9, index 5).
+FINISH: unreviewed and undocumented is unfinished; this build ends with the
+finish review, the verdict, and DESIGN.md.
+-->
+    <a href="#dashboardGrid" class="skip-link">Skip to lessons</a>
+    <div class="sheet">
+        <div class="masthead">
+            <h1>A Field Guide to Employability Skills</h1>
+            <p>Eighteen species planned &middot; six currently observed &middot; SPOKES &middot; WV Adult Basic Education</p>
+        </div>
+        <noscript>
+            <div class="noscript-list"><strong>Lessons (JavaScript is off):</strong>
+                <ul>
+                    <li><a href="lesson-time-management/index.html">Time Management</a></li>
+                    <li><a href="lesson-interview-skills/index.html">Interview Skills</a></li>
+                    <li><a href="lesson-employee-accountability/index.html">Employee Accountability</a></li>
+                    <li><a href="lesson-communicating-with-the-public/index.html">Communicating with the Public</a></li>
+                    <li><a href="lesson-controlling-anger/index.html">Controlling Anger</a></li>
+                    <li><a href="lesson-problem-solving-and-decision-making/index.html">Problem Solving &amp; Decision Making</a></li>
+                </ul>
+            </div>
+        </noscript>
+        <div class="plates" id="dashboardGrid"></div>
+        <p class="colophon">Compiled for the classrooms of West Virginia.
+            <span class="offline-note" id="offlineNote" hidden>Showing the built-in lesson list (offline copy, last synced 2026-08-04).</span>
+        </p>
+    </div>
+    <script>
+        // Keep FALLBACK_LESSONS (and this sync date) in sync with lesson-registry.json.
+        const FALLBACK_SYNCED = '2026-08-04';
+        const FALLBACK_LESSONS = [
+            { id: 'lesson-time-management', title: 'Time Management', description: 'Prioritization, scheduling, and daily planning.', themeKey: 'time', path: 'lesson-time-management/index.html', status: 'ready', slides: 37, videos: 5 },
+            { id: 'lesson-interview-skills', title: 'Interview Skills', description: 'Confidence and technique for job interviews.', themeKey: 'interview', path: 'lesson-interview-skills/index.html', status: 'ready', slides: 36, videos: 2 },
+            { id: 'lesson-employee-accountability', title: 'Employee Accountability', description: 'Responsibility, goals, and growth habits.', themeKey: 'accountability', path: 'lesson-employee-accountability/index.html', status: 'ready', slides: 35, videos: 0 },
+            { id: 'lesson-communicating-with-the-public', title: 'Communicating with the Public', description: 'Listening, styles, and self-advocacy.', themeKey: 'communication', path: 'lesson-communicating-with-the-public/index.html', status: 'qa', slides: 33, videos: 8 },
+            { id: 'lesson-controlling-anger', title: 'Controlling Anger', description: 'Triggers, healthy expression, coping.', themeKey: 'anger', path: 'lesson-controlling-anger/index.html', status: 'qa', slides: 33, videos: 4 },
+            { id: 'lesson-problem-solving-and-decision-making', title: 'Problem Solving & Decision Making', description: 'Frameworks and critical thinking.', themeKey: 'problemSolving', path: 'lesson-problem-solving-and-decision-making/index.html', status: 'qa', slides: 28, videos: 4 }
+        ];
+        let allLessons = [];
+        function normalizeStatus(s) { return String(s || 'planned').trim().toLowerCase(); }
+        function isLaunchable(s) { const k = normalizeStatus(s); return k === 'complete' || k === 'ready' || k === 'qa'; }
+        function escapeHtml(v) { return String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
+        function sanitizeLessonPath(p) {
+            const r = String(p ?? '').trim();
+            if (!r || !/^[A-Za-z0-9_./' -]+$/.test(r) || r.startsWith('/') || r.includes('..') || !r.toLowerCase().endsWith('.html')) return '';
+            return encodeURI(r);
+        }
+        function themeClass(k, i) {
+            const known = ['time', 'interview', 'accountability', 'communication', 'anger', 'problemSolving'];
+            return known.includes(k) ? `t-${k}` : ['t-time', 't-problemSolving', 't-interview', 't-anger', 't-accountability'][i % 5];
+        }
+        function buildPlate(lesson, index) {
+            const path = isLaunchable(lesson.status) ? sanitizeLessonPath(lesson.path) : '';
+            const tag = path ? 'a' : 'div';
+            const titleId = 'plate-title-' + index;
+            const href = path ? ` href="${path}" aria-labelledby="${titleId}"` : '';
+            const facts = [];
+            if (Number(lesson.slides) > 0) facts.push(lesson.slides + ' slides');
+            if (Number(lesson.videos) > 0) facts.push(lesson.videos + ' videos');
+            return `<${tag}${href} class="plate ${themeClass(lesson.themeKey, index)}">
+                <span class="fig" aria-hidden="true"><i>fig. ${index + 1}</i></span>
+                <h3 id="${titleId}">${escapeHtml(lesson.title || 'Untitled Lesson')}</h3>
+                <p class="desc">${escapeHtml(facts.join(' · ') || lesson.description || '')}</p>
+                <span class="obs${path ? '' : ' soon'}">${path ? 'Observe &rarr;' : 'Not yet sighted'}</span>
+            </${tag}>`;
+        }
+        function renderChart() {
+            const lessons = (Array.isArray(allLessons) ? allLessons : []).filter(l => l && l.status !== 'blocked');
+            document.getElementById('dashboardGrid').innerHTML = lessons.length
+                ? lessons.map((l, i) => buildPlate(l, i)).join('')
+                : '<div class="empty-state">No specimens recorded &mdash; the lesson registry may be missing or unreadable.</div>';
+        }
+        function initDashboard(data) { allLessons = Array.isArray(data.lessons) ? data.lessons : FALLBACK_LESSONS; renderChart(); }
+        document.addEventListener('DOMContentLoaded', function () {
+            fetch('lesson-registry.json', { cache: 'no-store' })
+                .then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+                .then(initDashboard)
+                .catch(function (error) {
+                    console.warn('Lesson registry unavailable — showing the built-in offline copy (synced ' + FALLBACK_SYNCED + ').', error);
+                    const n = document.getElementById('offlineNote');
+                    if (n) n.hidden = false;
+                    initDashboard({ lessons: FALLBACK_LESSONS });
+                });
+        });
+    </script>
+</body>
+</html>

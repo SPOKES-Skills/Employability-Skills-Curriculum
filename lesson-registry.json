@@ -28,6 +28,8 @@
       "themeKey": "time",
       "path": "lesson-time-management/index.html",
       "status": "ready",
+      "slides": 37,
+      "videos": 5,
       "variant": null,
       "fontPair": {
         "heading": "DM Serif Display",
@@ -65,6 +67,8 @@
       "themeKey": "interview",
       "path": "lesson-interview-skills/index.html",
       "status": "ready",
+      "slides": 36,
+      "videos": 2,
       "variant": "variant-elegant",
       "fontPair": {
         "heading": "Playfair Display",
@@ -102,6 +106,8 @@
       "themeKey": "accountability",
       "path": "lesson-employee-accountability/index.html",
       "status": "ready",
+      "slides": 35,
+      "videos": 0,
       "variant": null,
       "fontPair": {
         "heading": "Merriweather",
@@ -134,11 +140,13 @@
       "id": "lesson-communicating-with-the-public",
       "themePackage": "lesson-communicating-with-the-public",
       "title": "Communicating with the Public",
-      "description": "Master active listening, communication styles, congruent messaging, and self-advocacy skills for workplace and personal success.",
+      "description": "Master active listening, communication styles, congruent messaging, and self-advocacy.",
       "icon": "messageCircle",
       "themeKey": "communication",
       "path": "lesson-communicating-with-the-public/index.html",
       "status": "qa",
+      "slides": 33,
+      "videos": 8,
       "variant": null,
       "fontPair": {
         "heading": "Crimson Pro",
@@ -171,11 +179,13 @@
       "id": "lesson-controlling-anger",
       "themePackage": "lesson-controlling-anger",
       "title": "Controlling Anger",
-      "description": "Recognize anger triggers, practice healthy expression through the Embrace-Express-Work Through framework, and build coping strategies for the workplace.",
+      "description": "Recognize anger triggers and work through them with the Embrace-Express-Work Through framework.",
       "icon": "flame",
       "themeKey": "anger",
       "path": "lesson-controlling-anger/index.html",
       "status": "qa",
+      "slides": 33,
+      "videos": 4,
       "variant": null,
       "fontPair": {
         "heading": "Vollkorn",
@@ -189,7 +199,9 @@
       "combinatorics": {
         "texture": "dark-royal",
         "colorLead": "mauve",
-        "effects": ["theme-dark"]
+        "effects": [
+          "theme-dark"
+        ]
       },
       "interactions": {
         "minimumRequired": 3,
@@ -208,11 +220,13 @@
       "id": "lesson-problem-solving-and-decision-making",
       "themePackage": "lesson-problem-solving-and-decision-making",
       "title": "Problem Solving & Decision Making",
-      "description": "Apply structured problem-solving frameworks, critical thinking strategies, and group decision-making techniques for workplace success.",
+      "description": "Apply structured frameworks, critical thinking, and group decision-making techniques.",
       "icon": "lightbulb",
       "themeKey": "problemSolving",
       "path": "lesson-problem-solving-and-decision-making/index.html",
       "status": "qa",
+      "slides": 28,
+      "videos": 4,
       "variant": null,
       "fontPair": {
         "heading": "Bitter",

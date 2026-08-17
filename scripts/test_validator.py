@@ -481,5 +481,57 @@ class TestBlindSpotRegressions(unittest.TestCase):
             self.assertIn("no cues", r.message)
 
 
+class TestTYP05SelfHostedFonts(unittest.TestCase):
+    """TYP-05: fonts must be self-hosted via @font-face with font-display: swap."""
+
+    def _load_mod(self):
+        import importlib.util
+        spec = importlib.util.spec_from_file_location(
+            "validate_lesson", Path(__file__).parent / "validate-lesson.py"
+        )
+        mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)
+        return mod
+
+    def _typ05(self, mod, html):
+        doc = mod.parse_document(html)
+        results = [r for r in mod.check_typography(doc) if r.rule_id == "TYP-05"]
+        self.assertEqual(len(results), 1)
+        return results[0]
+
+    def test_warns_on_google_fonts_link(self):
+        mod = self._load_mod()
+        r = self._typ05(mod, """<!DOCTYPE html>
+<html lang="en"><head>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit&display=swap" rel="stylesheet">
+</head><body></body></html>""")
+        self.assertEqual(r.status, "WARN")
+        self.assertIn("self-hosted", r.message)
+
+    def test_passes_on_font_face_with_swap(self):
+        mod = self._load_mod()
+        r = self._typ05(mod, """<!DOCTYPE html>
+<html lang="en"><head><style>
+  @font-face { font-family: "Outfit"; src: url("../fonts/outfit-latin.woff2") format("woff2"); font-weight: 300 800; font-display: swap; }
+</style></head><body></body></html>""")
+        self.assertEqual(r.status, "PASS")
+
+    def test_warns_on_font_face_missing_swap(self):
+        mod = self._load_mod()
+        r = self._typ05(mod, """<!DOCTYPE html>
+<html lang="en"><head><style>
+  @font-face { font-family: "Outfit"; src: url("../fonts/outfit-latin.woff2") format("woff2"); font-weight: 300 800; }
+</style></head><body></body></html>""")
+        self.assertEqual(r.status, "WARN")
+        self.assertIn("font-display", r.message)
+
+    def test_warns_when_no_fonts_declared(self):
+        mod = self._load_mod()
+        r = self._typ05(mod, """<!DOCTYPE html>
+<html lang="en"><head><style>body { color: #000; }</style></head><body></body></html>""")
+        self.assertEqual(r.status, "WARN")
+        self.assertIn("No self-hosted @font-face", r.message)
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -93,11 +93,11 @@ Each rule has:
 - **Rule:** All body selectors must use `var(--font-body)`, not hardcoded font names.
 - **Rationale:** Same reasoning as TYP-03 — body text must respond to theme font pairing changes through the variable system rather than hardcoded values.
 
-### TYP-05 — Google Fonts Display Swap
+### TYP-05 — Self-Hosted Fonts With Display Swap
 - **Severity:** WARN
 - **Validation:** deterministic
-- **Rule:** Google Fonts links must include `display=swap`.
-- **Rationale:** `display=swap` prevents invisible text during font loading (FOIT). Without it, users on slow connections see blank text until the web font loads, degrading the classroom presentation experience.
+- **Rule:** All fonts must be self-hosted from the repo `fonts/` directory via `@font-face` rules with `font-display: swap`. External font CDN links (`fonts.googleapis.com` / `fonts.gstatic.com`) are prohibited.
+- **Rationale:** Self-hosted fonts render identically offline, over `file://`, and behind school content filters — CDN links fail silently in all three cases, degrading each lesson's registered typography to fallback stacks. `font-display: swap` still applies so text is never invisible while local files load. (Updated 2026-08-17; previously this rule required Google Fonts links to carry `display=swap`.)
 
 ---
 
@@ -410,11 +410,11 @@ Generation D merges the best features from three incompatible navigation engine 
 - **Rule:** Active slide video loading via `data-src` to `src` swap in `showSlide()` is recommended.
 - **Rationale:** Even with `preload="none"`, browsers may still download video metadata. Deferring the `src` attribute entirely until the slide is active eliminates all unnecessary network requests for off-screen videos.
 
-### PRF-03 — Google Fonts Preconnect
+### PRF-03 — External Origin Preconnect
 - **Severity:** WARN
 - **Validation:** deterministic
-- **Rule:** Google Fonts must use `preconnect` hints in `<head>`.
-- **Rationale:** `preconnect` establishes the TCP connection and TLS handshake with Google Fonts servers before the font CSS is parsed, reducing font load time by 100-300ms. This is a low-effort performance win.
+- **Rule:** With self-hosted fonts (TYP-05) decks need no `preconnect` hints. If an external origin is ever reintroduced, it must carry a `preconnect` hint in `<head>`.
+- **Rationale:** `preconnect` establishes the TCP connection and TLS handshake before the resource is requested, reducing load time by 100-300ms per origin. Self-hosted assets make this moot — zero external origins is the preferred state. (Updated 2026-08-17; previously required preconnect hints for Google Fonts.)
 
 ---
 

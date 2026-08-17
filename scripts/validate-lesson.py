@@ -357,16 +357,19 @@ def check_typography(doc: Document) -> list[Result]:
     else:
         results.append(Result("TYP-04", "PASS", "No hardcoded body font outside :root", 0))
 
-    # TYP-05: Google Fonts display=swap
-    fonts_links = [e for e in doc.link_elements if 'fonts.googleapis.com' in (e.attrs.get('href') or '') and e.attrs.get('rel') != 'preconnect']
-    if fonts_links:
-        all_have_swap = all('display=swap' in (e.attrs.get('href') or '') for e in fonts_links)
-        if all_have_swap:
-            results.append(Result("TYP-05", "PASS", "Google Fonts links include display=swap", 0))
+    # TYP-05: Self-hosted fonts with font-display: swap (no font CDN links)
+    cdn_links = [e for e in doc.link_elements if 'fonts.googleapis.com' in (e.attrs.get('href') or '') or 'fonts.gstatic.com' in (e.attrs.get('href') or '')]
+    font_faces = re.findall(r'@font-face\s*\{[^}]*\}', css)
+    if cdn_links:
+        results.append(Result("TYP-05", "WARN", "External Google Fonts link found — fonts must be self-hosted via @font-face (offline/file:// support)", 0))
+    elif font_faces:
+        missing_swap = [f for f in font_faces if not re.search(r'font-display\s*:\s*swap', f)]
+        if missing_swap:
+            results.append(Result("TYP-05", "WARN", f"{len(missing_swap)} @font-face rule(s) missing font-display: swap", 0))
         else:
-            results.append(Result("TYP-05", "WARN", "Google Fonts link missing display=swap", 0))
+            results.append(Result("TYP-05", "PASS", f"Self-hosted fonts: {len(font_faces)} @font-face rule(s), all with font-display: swap", 0))
     else:
-        results.append(Result("TYP-05", "PASS", "No Google Fonts links to check (or fonts loaded differently)", 0))
+        results.append(Result("TYP-05", "WARN", "No self-hosted @font-face rules found — deck fonts must be self-hosted from fonts/", 0))
 
     return results
 

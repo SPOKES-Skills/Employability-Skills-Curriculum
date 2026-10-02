@@ -59,7 +59,7 @@ The three stages stay: Start, Slide designs, Review & save. Start becomes a shor
 - Lesson team. A dropdown of the six Round 2 lessons. A private team link selects it and locks it, as today.
 - Continue is disabled until the name has text.
 - The form drops the Team name and email inputs. A saved design that already has them keeps them. A new design saves an empty team name and no email.
-- Anything that prints the team name falls back to the lesson title followed by "team" when the saved name is empty.
+- A proposal that prints the team name falls back to the Team Leader's name when the saved team name is empty, as `scripts/bespoke-write-submission.py` does today.
 - The builder says Team Leader wherever it said Spokesperson.
 
 **Screen 2, How do you want to start?** Two large cards. Start from scratch opens the step path on the default design. Start from a preset opens the preset gallery.
@@ -126,7 +126,7 @@ When the preview editor opens from the path, the toolbar shows a button, "Back t
 ### Sidebar text color
 
 - New optional field `design.roles.sidebarText`. Its value is one of the eleven color ids. An absent field means Automatic, which is today's `inkFor` choice. Choosing Automatic removes the field.
-- The catalog role entry carries `optional: true`. The schema generator leaves it out of `required`. `structuralErrors` accepts a design with or without it.
+- The catalog lists it under a separate `optionalRoles` key, so the eleven required roles and the code that loops over them stay untouched. The schema generator leaves it out of `required`. `structuralErrors` accepts a design with or without it.
 - `cssForDesign` sets `--role-sidebar-ink` from the field when it is present.
 - `contrastIssues` adds one advisory, sidebar text on the sidebar color at 4.5 to 1, when the field is present.
 - Shared theme gains a Sidebar text control. The preview editor gains a Sidebar element with Sidebar color and Sidebar text color fields. Its scope note says the sidebar is shared by every content slide.

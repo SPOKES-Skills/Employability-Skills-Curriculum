@@ -1,6 +1,6 @@
 # BeSpoke start flow, step path and presets
 
-Status: design approved in conversation by Britt, 2026-10-02. This written spec awaits Britt's review. Nothing here is built. Baseline is `origin/main` at `13a808d`, the preview editor merge.
+Status: approved by Britt, 2026-10-02, with the color steps reordered so sidebar color and sidebar text color are steps 5 and 6. Nothing here is built. Baseline is `origin/main` at `13a808d`, the preview editor merge.
 
 ## Problem
 
@@ -16,7 +16,7 @@ Two short Start screens, a twelve-step path for teams who start from scratch, an
 
 1. 'Intake form' - Start opens on two fields, Team Leader name and Lesson team.
 2. 'Scratch or preset' - the second Start screen offers one choice, Start from scratch or Start from a preset.
-3. 'Step by step' - from scratch walks twelve steps, one decision per screen: primary color, secondary color, sidebar color, header text color, body text color, sidebar text color, the layout of each of the five slide types, then fonts.
+3. 'Step by step' - from scratch walks twelve steps, one decision per screen: primary color, secondary color, header text color, body text color, sidebar color, sidebar text color, the layout of each of the five slide types, then fonts.
 4. 'All eleven colors' - every color screen shows all eleven brand colors. No step limits a later step.
 5. 'Jump anywhere' - a step strip opens any step in any order.
 6. 'Preview clicks' - clicking an element on the preview during the path opens the matching step, or the preview editor when no step matches.
@@ -42,7 +42,7 @@ Two short Start screens, a twelve-step path for teams who start from scratch, an
 ### Decisions from Britt, 2026-10-02
 
 1. The group on the intake form is the lesson team, one of the six Round 2 lessons.
-2. The color steps are primary, secondary, sidebar, header text, body text and sidebar text. All eleven colors stay available for every element.
+2. The color steps are primary, secondary, header text, body text, sidebar and sidebar text, in that order, so the two sidebar choices sit together. All eleven colors stay available for every element.
 3. Sidebar text color becomes a real choice, with a service redeploy before the merge.
 4. Layout is asked one slide type at a time.
 5. The preset set grows to nine.
@@ -76,9 +76,9 @@ The path replaces the Guide me question list and reuses the engine in `GUIDE_DIR
 |---|---|---|---|
 | 1 | Primary color | `roles.titleBackground`, `roles.dividerBackground` | Title slide |
 | 2 | Secondary color | `roles.titleBackgroundEnd`, `roles.accent`, `roles.button` | Title slide |
-| 3 | Sidebar color | `roles.sidebar` | Text boxes |
-| 4 | Header text color | `roles.heading` | Text boxes |
-| 5 | Body text color | `roles.body` | Text boxes |
+| 3 | Header text color | `roles.heading` | Text boxes |
+| 4 | Body text color | `roles.body` | Text boxes |
+| 5 | Sidebar color | `roles.sidebar` | Text boxes |
 | 6 | Sidebar text color | `roles.sidebarText` | Text boxes |
 | 7 | Title slide layout | `slides.title.layout` | Title slide |
 | 8 | Chapter divider layout | `slides.divider.layout` | Chapter divider |
@@ -114,9 +114,9 @@ This replaces the 2026-10-01 rule that Guide me owns the preview.
 | Click on | Result |
 |---|---|
 | Title or divider background | Step 1, Primary color |
-| Sidebar background | Step 3, Sidebar color |
-| A content slide heading | Step 4, Header text color |
-| Content slide body text | Step 5, Body text color |
+| A content slide heading | Step 3, Header text color |
+| Content slide body text | Step 4, Body text color |
+| Sidebar background | Step 5, Sidebar color |
 | Sidebar text | Step 6, Sidebar text color |
 | A text box | Step 9, Text boxes layout |
 | Anything else | The preview editor opens on that element |
@@ -223,7 +223,7 @@ These stay as they are: advisory contrast with no disabled swatches, all eleven 
 
 ## Workflow
 
-1. **Approve.** Britt reviews this spec and answers the six points above.
+1. **Approve.** Done, 2026-10-02.
 2. **Plan.** Write the implementation plan with `superpowers:writing-plans`, after reading `BUILDER_APP`, `GUIDE_DIR`, `BUILDER_MODEL`, `CATALOG` and `PREVIEW_EDITOR` directly. The plan lists every file to create or change, tasks small enough to check one at a time, and the proof for each Definition of done item.
 3. **Build PR 1.** Failing tests first, then the format changes, on `BRANCH`.
 4. **Deploy.** Claude stages the service from the PR 1 head. Britt runs the deploy. Claude runs the post-deploy checks. Then PR 1 merges.

@@ -40,6 +40,9 @@ let draftGeneration=0;
 let autosaveTimer=null, autosaveReady=false, saveAnnounceTimer=null, saveAnnounceReady=false, submissionPollTimer=null;
 const AUTOSAVE=Object.freeze({enabled:true,idleMs:30000,stepMs:1500,...(window.__bespokeAutosave||{})});
 let startupTeamLink=(()=>{const v=location.hash.startsWith('#team=')?location.hash.slice(6):'';if(v)history.replaceState(null,'',location.pathname+location.search);return v;})();
+let startupViewLink=(()=>{const v=location.hash.startsWith('#view=')?location.hash.slice(6):'';if(v)history.replaceState(null,'',location.pathname+location.search);return v;})();
+const VIEW_SESSION_KEY='bespoke-view-session';
+ui.viewSession=null;
 const clone = value => structuredClone(value);
 const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const findOption=(family,slug)=>state.library?.families?.[family]?.options.find(o=>o.slug===slug);
@@ -104,6 +107,7 @@ const findOption=(family,slug)=>state.library?.families?.[family]?.options.find(
   function forgetTeamSession() {
     resetPresetConfirmation();
     ui.teamSession = null;
+    ui.viewSession = null;
     ui.cloudConflict = null;
     state.editCode = "";
     try {
@@ -149,6 +153,49 @@ const findOption=(family,slug)=>state.library?.families?.[family]?.options.find(
     if (!findMeta(state.meta.lessons, lessonId)) return null;
     if (editCode.length < EDIT_CODE_MIN || editCode.length > EDIT_CODE_MAX) return null;
     return { lessonId, editCode };
+  }
+
+  // A team view link opens the latest saved design read-only. It never reads or writes the browser draft.
+  function storedViewLink() {
+    try { return sessionStorage.getItem(VIEW_SESSION_KEY) || ""; }
+    catch { return ""; }
+  }
+
+  async function loadTeamView() {
+    const session = ui.viewSession;
+    const result = await handoffRequest("open", { lessonId: session.lessonId, editCode: session.code });
+    if (!result.ok) {
+      ui.restoreNote = result.message || "Could not open the team design. Try again.";
+      return false;
+    }
+    if (!result.selection) {
+      ui.restoreNote = "Your team has not saved a design yet. Check back after the builder's first save.";
+      return true;
+    }
+    try { applySelectionPayload(result.selection); }
+    catch (error) {
+      console.warn("Team view could not be opened", error);
+      ui.restoreNote = "The team design could not be opened. Ask your Team Leader to save it again.";
+      return false;
+    }
+    ui.viewSession = { ...session, savedAt: result.savedAt || null };
+    ui.restoreNote = "";
+    state.step = stepIndex("review");
+    return true;
+  }
+
+  async function openTeamView(value) {
+    ui.mode = "view";
+    const link = parseTeamLink(value);
+    if (!link) {
+      ui.restoreNote = "This team view link is incomplete or out of date. Ask your Team Leader for the current one.";
+      return;
+    }
+    ui.viewSession = { lessonId: link.lessonId, code: link.editCode, savedAt: null };
+    state.lessonId = link.lessonId;
+    try { sessionStorage.setItem(VIEW_SESSION_KEY, value); }
+    catch { /* The link still works for this page load. */ }
+    await loadTeamView();
   }
 
   function hasUnsavedTeamWork() {
@@ -226,7 +273,19 @@ const findOption=(family,slug)=>state.library?.families?.[family]?.options.find(
     document.body.dataset.access = locked ? "view" : "edit";
     const banner = byId("accessBanner");
     if (banner) {
-      if (locked && banner.hidden) {
+      if (locked && ui.viewSession) {
+        const lesson = findMeta(state.meta.lessons, ui.viewSession.lessonId)?.title || "";
+        const saved = ui.viewSession.savedAt ? "Saved " + new Date(ui.viewSession.savedAt).toLocaleString([], { dateStyle: "medium", timeStyle: "short" }) : "Nothing saved yet";
+        banner.textContent = `${lesson} team · View only · ${saved} · Built by ${state.builderName.trim() || state.spokespersonName.trim() || "the Team Leader"} `;
+        const refresh = document.createElement("button");
+        refresh.type = "button";
+        refresh.id = "btnViewRefresh";
+        refresh.className = "text-link";
+        refresh.textContent = "Refresh";
+        refresh.onclick = async () => { await loadTeamView(); render(); };
+        banner.append(refresh);
+        banner.hidden = false;
+      } else if (locked && (banner.hidden || byId("btnViewRefresh"))) {
         banner.textContent = "This snapshot opens for viewing. The team lead can unlock an editing copy.";
         banner.hidden = false;
       } else if (!locked) {
@@ -496,6 +555,15 @@ const findOption=(family,slug)=>state.library?.families?.[family]?.options.find(
   }
 
   async function openShareLink() {
+    const viewValue = startupTeamLink || /^#[vsce]=/.test(location.hash) ? "" : startupViewLink || storedViewLink();
+    if (viewValue) {
+      startupViewLink = "";
+      await openTeamView(viewValue);
+      return { team: false, snapshot: true };
+    }
+    ui.viewSession = null;
+    try { sessionStorage.removeItem(VIEW_SESSION_KEY); }
+    catch { /* Private mode: nothing was stored. */ }
     if (startupTeamLink) {
       loadDraft();
       const teamValue = startupTeamLink;

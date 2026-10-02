@@ -6,7 +6,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { browserType, browserName } from './bespoke-test-browser.mjs';
-import { createDevServer, LOCAL_PREVIEW_CODE } from './bespoke-dev-server.mjs';
+import { createDevServer, LOCAL_PREVIEW_CODE, LOCAL_PREVIEW_VIEW_CODE } from './bespoke-dev-server.mjs';
 import { defaultDesign, effectiveRoleStyle, roleStyleDefaults } from '../bespoke/builder-model.mjs';
 import { pixelDifference } from './bespoke-pixel-check.mjs';
 import catalog from '../bespoke/builder-catalog.json' with { type: 'json' };
@@ -188,6 +188,43 @@ try {
     await page.locator('#stepList button').first().waitFor();
     await stage(page, 'start');
     assert.equal(await page.locator('#builderName').inputValue(), 'Dana Builder', 'the builder name survives a reload');
+  });
+  await scenario('team view link', async ({ makePage, server }) => {
+    const builder = await makePage();
+    await team(builder);
+    await builder.locator('#preset-fun').click();
+    await save(builder);
+    const context = await browser.newContext({ viewport: { width: 1440, height: 1000 }, reducedMotion: 'reduce' });
+    try {
+      const view = await context.newPage();
+      view.on('pageerror', error => errors.push(`team view link: ${error.message}`));
+      await view.goto(`${server.baseUrl}/bespoke/#view=${legacy.lesson.id}.${LOCAL_PREVIEW_VIEW_CODE}`);
+      await view.locator('body[data-access=view]').waitFor();
+      await view.locator('#btnViewRefresh').waitFor();
+      assert.equal(new URL(view.url()).hash, '', 'the code is removed from the address bar');
+      assert.match(await view.locator('#accessBanner').innerText(), /team · View only · Saved .+ · Built by Sample Instructor/);
+      assert.equal((await view.locator('#designStyle').textContent()).includes('--role-title-background: var(--gold)'), true, 'the viewer sees the saved Fun preset');
+      assert.equal(await view.evaluate(() => localStorage.getItem('bespoke-draft-v2')), null, 'viewing never writes a browser draft');
+      await stage(builder, 'start');
+      await builder.locator('#builderName').fill('Dana Builder');
+      await save(builder);
+      await view.locator('#btnViewRefresh').click();
+      await view.locator('#accessBanner').filter({ hasText: 'Built by Dana Builder' }).waitFor();
+      await view.reload();
+      await view.locator('#accessBanner').filter({ hasText: 'Built by Dana Builder' }).waitFor();
+      const wrong = await context.newPage();
+      await wrong.goto(`${server.baseUrl}/bespoke/#view=${legacy.lesson.id}.not-the-right-view-code-0000`);
+      await wrong.locator('#restoreNotice').filter({ hasText: 'not right' }).waitFor();
+      assert.equal(await wrong.locator('body').getAttribute('data-access'), 'view', 'a bad view link never opens an editing session');
+      const viewSession = page => page.evaluate(() => sessionStorage.getItem('bespoke-view-session'));
+      await view.evaluate(hash => { location.hash = hash; }, '#s=' + Buffer.from(JSON.stringify(payload(defaultDesign(catalog)))).toString('base64'));
+      await view.locator('#accessBanner').filter({ hasText: 'This snapshot opens for viewing' }).waitFor();
+      assert.equal(await viewSession(view), null, 'a snapshot link ends the view session');
+      await wrong.goto('about:blank');
+      await wrong.goto(`${server.baseUrl}/bespoke/#team=${legacy.lesson.id}.${LOCAL_PREVIEW_CODE}`);
+      await wrong.locator('body[data-access=edit]').waitFor();
+      assert.equal(await viewSession(wrong), null, 'a builder link ends the view session');
+    } finally { await context.close(); }
   });
   await scenario('custom journey and effective review', async ({ makePage, server }) => {
     const page = await makePage(); await team(page);

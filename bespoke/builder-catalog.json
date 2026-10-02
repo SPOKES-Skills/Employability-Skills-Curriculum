@@ -119,7 +119,7 @@
     {
       "id": "sidebar",
       "label": "Sidebar",
-      "note": "The vertical chapter navigation beside lesson content. Open the Sidebar sample menu in narrow previews. Its text color is chosen for you.",
+      "note": "The vertical chapter navigation beside lesson content. Open the Sidebar sample menu in narrow previews. Its text color is Automatic unless you choose one.",
       "kind": "surface",
       "ink": true
     },
@@ -184,6 +184,14 @@
       "label": "Chapter divider background",
       "note": "Behind each chapter’s opening slide. Heading color uses Title & divider headings; chapter labels and supporting text use Subtitle & divider supporting text.",
       "kind": "surface"
+    }
+  ],
+  "optionalRoles": [
+    {
+      "id": "sidebarText",
+      "label": "Sidebar text",
+      "note": "Chapter names and links in the sidebar. Automatic picks White or Royal, whichever reads better on the sidebar color.",
+      "kind": "text"
     }
   ],
   "fonts": [

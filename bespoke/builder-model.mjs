@@ -24,6 +24,19 @@ export function inkFor(catalog, id) {
   return contrast(findColor(catalog, 'light').hex, surface.hex) >= contrast(findColor(catalog, 'royal').hex, surface.hex) ? 'light' : 'royal';
 }
 
+const optionalRoles = catalog => catalog.optionalRoles || [];
+
+/** Sidebar text is Automatic unless the design names a color. */
+export function sidebarInk(catalog, design) {
+  return design.roles.sidebarText || inkFor(catalog, design.roles.sidebar);
+}
+
+export function setSidebarText(catalog, design, colorId) {
+  if (colorId !== 'auto' && !findColor(catalog, colorId)) throw new Error(`Unknown brand color: ${colorId}`);
+  const { sidebarText, ...roles } = design.roles;
+  return { ...clone(design), roles: colorId === 'auto' ? roles : { ...roles, sidebarText: colorId } };
+}
+
 const blend = (base, ink, alpha) => '#' + rgb(base).map((v, channel) => Math.round(v * (1 - alpha) + rgb(ink)[channel] * alpha).toString(16).padStart(2, '0')).join('');
 
 /** Decorative ink adapts to the surface; saved base/text colors are never modified. */
@@ -160,6 +173,8 @@ export function designSchema(catalog) {
     samples: record({ title: { type: 'string', maxLength: catalog.sampleLimits.title }, subtitle: { type: 'string', maxLength: catalog.sampleLimits.subtitle }, boxes: { type: 'array', minItems: 4, maxItems: 4, items: { type: 'string', maxLength: catalog.sampleLimits.box } } }),
     startingPoint: enumeration(['custom', ...catalog.presets.map(item => item.id)])
   });
+  // Added after record() computed `required`, so these stay optional.
+  for (const role of optionalRoles(catalog)) schema.properties.roles.properties[role.id] = enumeration(catalog.palette.map(color => color.id));
   schema.properties.roleStyles=roleStylesSchema(catalog);
   return schema;
 }
@@ -175,8 +190,10 @@ export function structuralErrors(catalog, design) {
   };
   if (!keys(design, ['version', 'roles', 'fonts', 'slides', 'background', 'samples', 'startingPoint', 'roleStyles'], 'Design',['roleStyles'])) return errors;
   if (design.version !== '2') errors.push('Design version must be 2.');
-  if (keys(design.roles, catalog.roles.map(role => role.id), 'Colors')) {
+  const optional = optionalRoles(catalog).map(role => role.id);
+  if (keys(design.roles, [...catalog.roles.map(role => role.id), ...optional], 'Colors', optional)) {
     for (const role of catalog.roles) if (!findColor(catalog, design.roles[role.id])) errors.push(`${role.label}: choose a brand color.`);
+    for (const role of optionalRoles(catalog)) if (own(design.roles, role.id) && !findColor(catalog, design.roles[role.id])) errors.push(`${role.label}: choose a brand color.`);
   }
   if (keys(design.fonts, ['heading', 'body'], 'Fonts')) for (const role of ['heading', 'body']) if (!catalog.fonts.some(font => font.id === design.fonts[role])) errors.push(`${role} font is not in the existing font library.`);
   if (keys(design.slides, catalog.slideGroups.map(group => group.id), 'Slides')) {
@@ -283,6 +300,10 @@ export function contrastIssues(catalog, design) {
   if(['cards','video','activity'].some(kind=>!design.roleStyles?.[kind])) { textPair('heading', 'contentBackground', 3); textPair('body', 'contentBackground', 4.5); }
   const dividerEnd = design.slides.divider.colors === 'gradient' ? 'titleBackgroundEnd' : undefined;
   if(!design.roleStyles?.divider) { textPair('titleText', 'dividerBackground', 3, dividerEnd, true); textPair('subtitle', 'dividerBackground', 4.5, dividerEnd, true); }
+  if (design.roles.sidebarText) {
+    const fg = color('sidebarText'), bg = color('sidebar'), ratio = contrast(fg.hex, bg.hex);
+    if (ratio + 1e-9 < 4.5) issues.push({ role: 'sidebarText', surface: 'sidebar', ratio, minimum: 4.5, related: ['sidebarText', 'sidebar'], message: `Sidebar text: ${fg.name} on the sidebar (${bg.name}) is ${ratio.toFixed(1)} to 1. Aim for 4.5 to 1.` });
+  }
   for(const kind of Object.keys(design.roleStyles||{})) issues.push(...roleContrastIssues(catalog,design,kind));
   return issues;
 }
@@ -380,7 +401,7 @@ export function cssForDesign(catalog, design, { scope = '.bespoke-slide', fontBa
   for (const role of catalog.roles) {
     const id = design.roles[role.id];
     vars.push(`--role-${kebab(role.id)}: var(--${id});`, `--role-${kebab(role.id)}-rgb: ${rgb(findColor(catalog, id).hex).join(', ')};`);
-    if (role.ink) vars.push(`--role-${kebab(role.id)}-ink: var(--${inkFor(catalog, id)});`);
+    if (role.ink) vars.push(`--role-${kebab(role.id)}-ink: var(--${role.id === 'sidebar' ? sidebarInk(catalog, design) : inkFor(catalog, id)});`);
   }
   fonts.forEach((font, index) => vars.push(`--font-${['heading', 'body'][index]}: "${font.family}", ${font.fallback};`));
   const title = design.slides.title, divider = design.slides.divider, cards = design.slides.cards, video = design.slides.video, activity = design.slides.activity;

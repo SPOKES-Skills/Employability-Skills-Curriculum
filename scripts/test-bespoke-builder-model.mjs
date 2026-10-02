@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { applyPreset, colorAvailability, contrast, contrastIssues, cssForDesign, defaultDesign, designSchema, inkFor, migrateV1, patternFor, renderSlide, roleOptions, structuralErrors, validateDesign } from '../bespoke/builder-model.mjs';
+import { applyPreset, colorAvailability, contrast, contrastIssues, cssForDesign, defaultDesign, designSchema, inkFor, migrateV1, patternFor, renderSlide, roleOptions, setSidebarText, sidebarInk, structuralErrors, validateDesign } from '../bespoke/builder-model.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const catalog = JSON.parse(fs.readFileSync(path.join(root, 'bespoke/builder-catalog.json'), 'utf8'));
@@ -207,6 +207,35 @@ check('v1 migration preserves independent fonts and sample copy and discloses ap
   assert(warnings.some(warning => warning.includes('approximated')));
   assert.equal(JSON.stringify(old), original);
   assert.deepEqual(structuralErrors(catalog, design), []);
+});
+
+check('sidebar text is optional, automatic by default and advisory when hard to read', () => {
+  const design = defaultDesign(catalog);
+  const auto = inkFor(catalog, design.roles.sidebar);
+  assert.equal(Object.hasOwn(design.roles, 'sidebarText'), false);
+  assert.equal(sidebarInk(catalog, design), auto);
+  assert(cssForDesign(catalog, design).includes(`--role-sidebar-ink: var(--${auto});`));
+
+  const gold = setSidebarText(catalog, design, 'gold');
+  assert.equal(Object.hasOwn(design.roles, 'sidebarText'), false, 'the input design is not changed');
+  assert.deepEqual(validateDesign(catalog, gold), []);
+  assert.equal(sidebarInk(catalog, gold), 'gold');
+  assert(cssForDesign(catalog, gold).includes('--role-sidebar-ink: var(--gold);'));
+  assert.deepEqual(contrastIssues(catalog, gold).filter(issue => issue.role === 'sidebarText'), []);
+
+  const invisible = setSidebarText(catalog, design, design.roles.sidebar);
+  assert.deepEqual(validateDesign(catalog, invisible), [], 'a hard-to-read choice stays valid');
+  const issue = contrastIssues(catalog, invisible).find(item => item.role === 'sidebarText');
+  assert.equal(issue.minimum, 4.5);
+  assert(issue.ratio < 4.5);
+  assert.deepEqual(issue.related, ['sidebarText', 'sidebar']);
+
+  assert.deepEqual(setSidebarText(catalog, gold, 'auto'), design, 'Automatic removes the field');
+  assert.throws(() => setSidebarText(catalog, design, 'teal'), /Unknown brand color/);
+  assert.match(structuralErrors(catalog, { ...design, roles: { ...design.roles, sidebarText: 'teal' } }).join(' '), /Sidebar text: choose a brand color/);
+  const roles = designSchema(catalog).properties.roles;
+  assert.equal(roles.required.includes('sidebarText'), false);
+  assert.deepEqual(roles.properties.sidebarText.enum, catalog.palette.map(color => color.id));
 });
 
 console.log(`BeSpoke builder model: ${checked} checks passed.`);

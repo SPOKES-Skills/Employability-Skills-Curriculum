@@ -53,12 +53,20 @@ the review proposal private; never include credentials in selection content.
 ## Provision private team access
 
 Access is assigned by Britt or an administrator before teams begin. Each of the
-six planned lessons gets its own random access code and private link. There is no
-public first-come claim of a lesson and no teacher-chosen four-character code.
-Anyone with a private link can use that team's design, so share it only in the
-intended team's private channel or other approved private location.
+six planned lessons gets two private links, each with its own random code:
 
-The administrator provisioning command is:
+- The builder link opens, changes, saves and sends the team's design. Send it
+  privately to the Team Leader only. The Team Leader passes it to the one person
+  who builds the design.
+- The team view link opens the team's latest saved design read-only. Pin this
+  link in the team's private Teams channel.
+
+There is no public first-come claim of a lesson and no teacher-chosen
+four-character code. Anyone with a builder link can change that team's design, so
+never pin it or share it beyond the builder and the Team Leader.
+
+The first provisioning command creates the builder links. A second command adds
+the view links, as [Add team view links](#add-team-view-links) describes.
 
 ```sh
 node scripts/bespoke-provision.mjs \
@@ -74,16 +82,56 @@ or rotate an existing service's keys. Store the resulting material in approved
 private storage. Do not paste access codes, private links, encryption keys, or tokens into an issue,
 pull request, repository file, public channel, or diagnostic log.
 
-A team link ends with `#team=<lesson-id>.<random-access-code>`. The browser removes
+A builder link ends with `#team=<lesson-id>.<random-access-code>`. The browser removes
 that credential from the address bar when it reads the link and remembers the
 team session locally when browser storage permits. The fragment is not part of
 the initial page request. The credential is still used to authenticate service
 requests; it is a real access secret, not a visual-preview lock. Treat remembered
 access on shared computers with the same care as the original link.
 
-Pin the correct private link in each team's Teams channel. A teacher returning on
-another computer uses that original link. Ask teams to keep one person operating
-BeSpoke during each meeting.
+Pin the team view link, not the builder link, in each team's Teams channel. A
+builder returning on another computer uses the original builder link. Ask teams to
+keep one person, the builder, operating BeSpoke during each meeting.
+
+### Add team view links
+
+Run this once, against the private directory that already holds `team-access.json`:
+
+```sh
+node scripts/bespoke-provision.mjs \
+  --output "<the existing private directory>" \
+  --wizard-url "<the BeSpoke page URL>" \
+  --add-view-links
+```
+
+It writes `view-env.json`, `view-access.json` and `view-links.html` beside the
+existing files, with owner-only file permissions. It does not open or change
+`server-env.json`, `team-access.json`, `team-links.html` or the encryption key. It
+refuses a directory that has no `team-access.json`, and it refuses to run while
+any of the three `view-*` files already exists.
+
+Then:
+
+1. Set `BESPOKE_VIEW_KEYS` from `view-env.json` the same way `BESPOKE_TEAM_KEYS`
+   was set from `server-env.json`. The new value takes effect when the service is
+   next deployed.
+2. Pin each link from `view-links.html` in that team's channel. Each link is for
+   one team only.
+3. Send each builder link privately to that team's Team Leader, who passes it to
+   the builder.
+
+A team view link ends with `#view=<lesson-id>.<random-view-code>`. The browser
+removes it from the address bar and keeps it only for that tab, so a reload stays
+in the view. The banner shows the lesson, "View only", the save time and the
+builder's name, with a Refresh button for a newer save. A view code opens the
+latest saved design and nothing else. The service refuses history, saving and
+sending for it. Its answer leaves out the Team Leader's email, the notes for the
+design review and any older wizard design kept for recovery. A view code typed
+into the Open dialog opens the same read-only view.
+
+The service hashes view codes with a `view:` prefix, so a `view-env.json` made
+before commit `e70b95d` will not work. Delete the three `view-*` files and run the
+command again. None was ever deployed.
 
 ## Configure the service
 
@@ -109,17 +157,22 @@ build step that embeds environment values. Verify the variable names and runtime
 behavior after setting them; the connector can incorrectly report success for a
 setting the plan rejects.
 
-Required variables:
+Service variables. The first three are required.
 
 | Variable | Value and purpose |
 |---|---|
 | `BESPOKE_GITHUB_TOKEN` | The restricted PAT described above |
 | `BESPOKE_DRAFT_KEY` | A stable, independently generated 32-byte encryption key encoded as base64 |
 | `BESPOKE_TEAM_KEYS` | A JSON object mapping each allowed lesson ID to the SHA-256 base64url digest of its provisioned access code |
+| `BESPOKE_VIEW_KEYS` | Optional. A JSON object mapping each lesson ID to the SHA-256 base64url digest of its team view code, hashed with a `view:` prefix. A view code can open the latest saved design and nothing else. A missing or empty value means no view links. A malformed value switches view links off and logs a warning with no values, and edit codes keep working |
 
-The provisioner supplies the encryption key and team-key map in `server-env.json`.
-The teacher links are in `team-links.html`; `team-access.json` is private
-administrator recovery material. Only access-code hashes go into `BESPOKE_TEAM_KEYS`; keep the original private links outside the
+The provisioner supplies the encryption key and team-key map in `server-env.json`,
+and the view-key map in `view-env.json`. After a rotation, the newest
+`team-env-<stamp>.json` holds the current team-key map instead, as
+[Replace the edit codes](#replace-the-edit-codes) explains. The builder links are in
+`team-links.html` and the team view links are in `view-links.html`.
+`team-access.json` and `view-access.json` are private administrator recovery
+material. Only access-code hashes go into `BESPOKE_TEAM_KEYS`; keep the original private links outside the
 service configuration. Keep a secure backup of `BESPOKE_DRAFT_KEY`: losing it
 makes the stored designs unreadable.
 
@@ -158,7 +211,7 @@ visible to the teacher, with a downloadable backup available. Browser storage is
 a convenience copy and may be cleared or unavailable.
 
 **Open team design** loads the latest shared revision after access is verified.
-Opening a private team link can restore the shared design automatically when the
+Opening a builder link can restore the shared design automatically when the
 browser has no unsaved changes. Unsaved browser work must be preserved until the
 teacher chooses which version to keep. History offers older saved looks; saving
 an older look creates a new revision rather than deleting newer history.
@@ -185,18 +238,55 @@ successful save or receipt.
 - **PAT rotation:** replace `BESPOKE_GITHUB_TOKEN` while retaining the draft key and
   team-key map. The stored designs remain decryptable because encryption does not
   depend on the token. Verify Open and Save after the replacement.
-- **Team access reset:** only an administrator issues a new random access code,
-  updates that lesson's hash, and privately replaces its pinned team link. Keep
-  the same lesson ID and draft encryption key so its saved data remains available.
-  Old links and remembered sessions should fail authentication after the reset.
+- **Team access reset:** follow [Replace the edit codes](#replace-the-edit-codes)
+  below. Only an administrator runs it.
+- **Team view code rotation:** delete the three `view-*` files and run
+  `--add-view-links` again. That replaces all six view codes at once. Update
+  `BESPOKE_VIEW_KEYS` from the new `view-env.json` and deploy the service. The old
+  view links stop working after the deploy, so pin the new ones in their place.
 - **Draft-key rotation:** requires a deliberate data migration. Do not simply
   replace the key or rerun setup with a new key over an existing service. Preserve
   the previous key securely until all retained revisions are migrated and tested.
-- **Browser loss:** reopen the original team link to recover the latest confirmed
+- **Browser loss:** reopen the original builder link to recover the latest confirmed
   shared revision. Use a downloaded backup for work that never reached the service.
 - **Submission failure:** check the matching Spoke Signals workflow and proposal
   receipt. Do not tell a team its design was received merely because dispatch
   returned successfully.
+
+### Replace the edit codes
+
+Do this when a builder link was pinned, forwarded or shared beyond the builder and
+the Team Leader. It replaces all six edit codes at once.
+
+```sh
+node scripts/bespoke-provision.mjs \
+  --output "<the existing private directory>" \
+  --wizard-url "<the BeSpoke page URL>" \
+  --rotate-team-codes
+```
+
+The command needs the private directory that holds `server-env.json`. It writes
+three new files there, with owner-only file permissions. Each name carries a stamp
+of the UTC date and time.
+
+- `team-env-<stamp>.json` holds the new `BESPOKE_TEAM_KEYS` value.
+- `team-access-<stamp>.json` holds the new codes and links, for administrator recovery.
+- `team-links-<stamp>.html` lists the six new builder links.
+
+Set `BESPOKE_TEAM_KEYS` from the new `team-env-<stamp>.json`, then deploy the
+service. The old builder links, and browsers that remembered them, stop working
+once the service is redeployed with the new value. Send each new builder link
+privately to that team's Team Leader, and unpin any old builder link from the team
+channels.
+
+The command never opens or changes `server-env.json`, `team-access.json` or the
+encryption key. Every saved design stays readable. Team view links keep working.
+
+A rotation never changes `server-env.json`, so after one it still holds the old
+team table. The newest `team-env-<stamp>.json` is the current source for
+`BESPOKE_TEAM_KEYS`. Never restore `server-env.json` wholesale into Netlify after a
+rotation, because that would bring the replaced edit codes back.
+`BESPOKE_DRAFT_KEY` in `server-env.json` stays current.
 
 ## Deployment acceptance
 
@@ -207,6 +297,7 @@ Netlify versions:
 | Check | Expected result | Failure and recovery |
 |---|---|---|
 | Open a provisioned link, then try an invalid or revoked code | The assigned lesson opens; the other request is rejected before its data is read | Administrator replaces the private team link; no public claiming or teacher-created code |
+| Open a team view link | The latest saved design opens read-only. The banner says View only and shows the save time. No control changes the shared design | Check that `BESPOKE_VIEW_KEYS` came from the current `view-env.json` and that the service was deployed after it was set |
 | Save on one computer, close it, open on another | The same confirmed revision and choices appear | Preserve the browser draft or backup; check endpoint/configuration and retry |
 | Open with unsaved browser work | Explicit choice preserves the local draft until the teacher decides | Download the unsaved draft before loading a different shared version |
 | Save concurrently from two computers | The older revision produces a conflict and cannot overwrite the newer save | Download backup, load the latest design, discuss/reapply agreed differences, save anew |

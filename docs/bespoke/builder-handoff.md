@@ -69,6 +69,8 @@ submission timestamp, plus a complete `design`:
   independent background/gradient, texture strength, heading/body typography and
   visibility, sample words, chapter/activity labels and decorative watermarks.
   Explicit inherit values follow shared defaults. Hidden choices retain their values.
+- `design.roles.sidebarText` is optional. When present it is one of the eleven color ids and the generated CSS sets `--role-sidebar-ink` to it. When absent the model picks White or Royal for the sidebar text, as before. Do not add the field to a design that lacks it.
+- `team.builder.name` is optional. It names the one person who edits the design. When absent, the Team Leader in `team.spokesperson.name` is the builder.
 
 Each present role record is closed and complete. Designs without the extension
 retain their earlier CSS and sample markup exactly; there is no eager migration of

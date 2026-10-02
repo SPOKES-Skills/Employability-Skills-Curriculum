@@ -17,9 +17,10 @@ records the three-stage changes, compatibility and verification.
 
 The builder has three stages, with no mandatory walkthrough:
 
-1. **Start:** check Lesson & team, then choose **Build my own** or one of six
-   editable presets: Professional, Modern, Serious, Light-hearted, Fun and
-   Outspoken. Both paths use the same model and begin with usable defaults.
+1. **Start:** check Lesson & team, then choose **Build my own** or one of nine
+   editable presets: Professional, Modern, Serious, Light-hearted, Fun,
+   Outspoken, Open Air, Gold Standard and Slate. Both paths use the same model
+   and begin with usable defaults.
 2. **Slide designs:** open **Title**, **Chapter divider**, **Text boxes**, **Video**
    or **Activity** directly. All five editors are optional. **Next slide type** is
    a navigation aid, not a completion requirement.
@@ -63,7 +64,8 @@ font defaults as though every slide used them.
 **Colors:** select an element, then a brand swatch to replace its color immediately.
 All eleven swatches stay visible, including White. Colors are assigned directly to
 sidebar, title background and its second color, title text, subtitle, content
-background, headings, body, accent, buttons and divider background. There is no
+background, headings, body, accent, buttons and divider background. The sidebar
+text color is Automatic unless the Team Leader picks one. There is no
 preselected two-primary/three-secondary palette. All eleven colors, including Gold
 and Green, are selectable for every text and background role. Low-contrast combinations show an advisory, never a veto or hidden
 recoloring. Contrast is the difference between text and its background; low contrast
@@ -160,8 +162,9 @@ downloaded backups preserve the selection and its hidden sample strings. A brows
 copy or downloaded backup is not a confirmed shared save.
 
 The connected workflow retains private team access, shared Save/Open, revision
-checks, history, retry protection and receipt-confirmed Send. Choose one spokesperson
-to operate the design during a team call. Shared autosave runs shortly after stage
+checks, history, retry protection and receipt-confirmed Send. One builder operates
+the design during a team call while the team decides together. When the builder is
+not the Team Leader, the saved design names them in `team.builder.name`. Shared autosave runs shortly after stage
 changes and after 30 seconds without a change; immediate Save is available. A failed, stale or
 pending save remains visible. Restored backups and earlier versions require explicit
 Save before shared autosave resumes. A stale revision is rejected rather than
@@ -175,12 +178,15 @@ may have no exact equivalent; chapter-specific styling remains in that original
 backup. Review conversion and readability notes before saving the new design. The
 original wizard remains at `bespoke/legacy.html`; its storage keys are separate.
 
-For the deployed workflow, original private team links grant real access and must
-stay within the intended team. **Leave session** removes
-remembered access and local drafts, not shared work. View links are read-only
-snapshots, not live collaboration or team access. They can contain readable sample
-text and contact details. Review proposals are public repository artifacts; use
-work contact details and non-sensitive sample copy.
+For the deployed workflow, each team has two private links. The builder link grants
+real edit access; the Team Leader passes it only to the one builder. The team view
+link is pinned in the team's channel and always opens the latest saved design
+read-only. It leaves out the Team Leader's email, the review notes and any older
+wizard design kept for recovery. **Leave session** removes
+remembered access and local drafts, not shared work. A snapshot link made by the
+original wizard still opens read-only, does not follow later saves, and can
+contain readable sample text and contact details. Review proposals are public
+repository artifacts; use work contact details and non-sensitive sample copy.
 
 **Send to Britt** uses the confirmed saved selection. Processing is not delivery;
 only the matching proposal receipt establishes that Britt received the review

@@ -2,6 +2,7 @@ import * as Model from './builder-model.mjs';
 import { compareDesign } from './similarity.mjs';
 import { createPreviewEditor } from './preview-editor.mjs';
 import { createGuide } from './guide/guide.mjs';
+import { createTeamView, isShareHash, isSnapshotHash, viewLinkToOpen } from './team-view.mjs';
 import { guideMark, indexForMark, keepsGuide } from './guide/questions.mjs';
 import { buildQuestions, normalizeGuide } from './guide/questions.mjs';
 
@@ -41,8 +42,8 @@ let autosaveTimer=null, autosaveReady=false, saveAnnounceTimer=null, saveAnnounc
 const AUTOSAVE=Object.freeze({enabled:true,idleMs:30000,stepMs:1500,...(window.__bespokeAutosave||{})});
 let startupTeamLink=(()=>{const v=location.hash.startsWith('#team=')?location.hash.slice(6):'';if(v)history.replaceState(null,'',location.pathname+location.search);return v;})();
 let startupViewLink=(()=>{const v=location.hash.startsWith('#view=')?location.hash.slice(6):'';if(v)history.replaceState(null,'',location.pathname+location.search);return v;})();
-const VIEW_SESSION_KEY='bespoke-view-session';
-ui.viewSession=null;
+const teamView=createTeamView({request:(action,fields)=>handoffRequest(action,fields),apply:selection=>applySelectionPayload(selection),parseLink:value=>parseTeamLink(value),generation:()=>draftGeneration,get storage(){return sessionStorage;},render:()=>render(),
+ lessonTitle:id=>findMeta(state.meta.lessons,id)?.title||'',builder:()=>state.builderName.trim()||state.spokespersonName.trim()||'the Team Leader',land:()=>{state.step=stepIndex('review');},note:text=>{ui.restoreNote=text;},enter:lessonId=>{ui.mode='view';if(lessonId)state.lessonId=lessonId;}});
 const clone = value => structuredClone(value);
 const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const findOption=(family,slug)=>state.library?.families?.[family]?.options.find(o=>o.slug===slug);
@@ -107,7 +108,6 @@ const findOption=(family,slug)=>state.library?.families?.[family]?.options.find(
   function forgetTeamSession() {
     resetPresetConfirmation();
     ui.teamSession = null;
-    ui.viewSession = null;
     ui.cloudConflict = null;
     state.editCode = "";
     try {
@@ -129,6 +129,7 @@ const findOption=(family,slug)=>state.library?.families?.[family]?.options.find(
   }
 
   function installTeamSession(lessonId, editCode) {
+    teamView.end();
     const same = ui.teamSession && ui.teamSession.lessonId === lessonId && ui.teamSession.editCode === editCode;
     if (!same) { draftGeneration++; resetPresetConfirmation(); }
     ui.teamSession = same ? ui.teamSession : {
@@ -153,49 +154,6 @@ const findOption=(family,slug)=>state.library?.families?.[family]?.options.find(
     if (!findMeta(state.meta.lessons, lessonId)) return null;
     if (editCode.length < EDIT_CODE_MIN || editCode.length > EDIT_CODE_MAX) return null;
     return { lessonId, editCode };
-  }
-
-  // A team view link opens the latest saved design read-only. It never reads or writes the browser draft.
-  function storedViewLink() {
-    try { return sessionStorage.getItem(VIEW_SESSION_KEY) || ""; }
-    catch { return ""; }
-  }
-
-  async function loadTeamView() {
-    const session = ui.viewSession;
-    const result = await handoffRequest("open", { lessonId: session.lessonId, editCode: session.code });
-    if (!result.ok) {
-      ui.restoreNote = result.message || "Could not open the team design. Try again.";
-      return false;
-    }
-    if (!result.selection) {
-      ui.restoreNote = "Your team has not saved a design yet. Check back after the builder's first save.";
-      return true;
-    }
-    try { applySelectionPayload(result.selection); }
-    catch (error) {
-      console.warn("Team view could not be opened", error);
-      ui.restoreNote = "The team design could not be opened. Ask your Team Leader to save it again.";
-      return false;
-    }
-    ui.viewSession = { ...session, savedAt: result.savedAt || null };
-    ui.restoreNote = "";
-    state.step = stepIndex("review");
-    return true;
-  }
-
-  async function openTeamView(value) {
-    ui.mode = "view";
-    const link = parseTeamLink(value);
-    if (!link) {
-      ui.restoreNote = "This team view link is incomplete or out of date. Ask your Team Leader for the current one.";
-      return;
-    }
-    ui.viewSession = { lessonId: link.lessonId, code: link.editCode, savedAt: null };
-    state.lessonId = link.lessonId;
-    try { sessionStorage.setItem(VIEW_SESSION_KEY, value); }
-    catch { /* The link still works for this page load. */ }
-    await loadTeamView();
   }
 
   function hasUnsavedTeamWork() {
@@ -273,20 +231,10 @@ const findOption=(family,slug)=>state.library?.families?.[family]?.options.find(
     document.body.dataset.access = locked ? "view" : "edit";
     const banner = byId("accessBanner");
     if (banner) {
-      if (locked && ui.viewSession) {
-        const lesson = findMeta(state.meta.lessons, ui.viewSession.lessonId)?.title || "";
-        const saved = ui.viewSession.savedAt ? "Saved " + new Date(ui.viewSession.savedAt).toLocaleString([], { dateStyle: "medium", timeStyle: "short" }) : "Nothing saved yet";
-        banner.textContent = `${lesson} team · View only · ${saved} · Built by ${state.builderName.trim() || state.spokespersonName.trim() || "the Team Leader"} `;
-        const refresh = document.createElement("button");
-        refresh.type = "button";
-        refresh.id = "btnViewRefresh";
-        refresh.className = "text-link";
-        refresh.textContent = "Refresh";
-        refresh.onclick = async () => { await loadTeamView(); render(); };
-        banner.append(refresh);
-        banner.hidden = false;
-      } else if (locked && (banner.hidden || byId("btnViewRefresh"))) {
+      if (locked && teamView.active()) teamView.draw(banner);
+      else if (locked && (banner.hidden || banner.dataset.kind !== "snapshot")) {
         banner.textContent = "This snapshot opens for viewing. The team lead can unlock an editing copy.";
+        banner.dataset.kind = "snapshot";
         banner.hidden = false;
       } else if (!locked) {
         banner.hidden = true;
@@ -524,11 +472,11 @@ const findOption=(family,slug)=>state.library?.families?.[family]?.options.find(
     const kind = body.slice(0, eq);
     const value = body.slice(eq + 1);
     if (!value) return { kind: "none" };
-    if (kind === "v" || kind === "s" || kind === "c") {
+    if (kind === "e") return { kind: "retired" };
+    if (isSnapshotHash(body)) {
       const payload = kind === "s" ? decodeLegacyBase64(value) : await decodeViewPayload(value);
       return { kind: "view", payload };
     }
-    if (kind === "e") return { kind: "retired" };
     return { kind: "none" };
   }
 
@@ -555,15 +503,10 @@ const findOption=(family,slug)=>state.library?.families?.[family]?.options.find(
   }
 
   async function openShareLink() {
-    const viewValue = startupTeamLink || /^#[vsce]=/.test(location.hash) ? "" : startupViewLink || storedViewLink();
-    if (viewValue) {
-      startupViewLink = "";
-      await openTeamView(viewValue);
-      return { team: false, snapshot: true };
-    }
-    ui.viewSession = null;
-    try { sessionStorage.removeItem(VIEW_SESSION_KEY); }
-    catch { /* Private mode: nothing was stored. */ }
+    const viewValue = viewLinkToOpen({ hash: hashBody(), startupTeam: startupTeamLink, startupView: startupViewLink, stored: teamView.stored() });
+    startupViewLink = "";
+    if (viewValue) { await teamView.open(viewValue); return { team: false, snapshot: true }; }
+    teamView.end();
     if (startupTeamLink) {
       loadDraft();
       const teamValue = startupTeamLink;
@@ -1050,6 +993,8 @@ const findOption=(family,slug)=>state.library?.families?.[family]?.options.find(
         byId("openEditCode")?.focus();
         return;
       }
+      // A view code opens a team view; an editing session with it could never save.
+      if (result.access === "view") { if (err) err.textContent = ""; byId("openDialog").close(); await teamView.open(lessonId + "." + encodeURIComponent(editCode), result); render(); return; }
       if (result.selection) {
         try { validateSelectionPayload(result.selection,{draft:true}); }
         catch (error) {
@@ -1924,7 +1869,8 @@ async function init(){
  document.querySelectorAll('#surfaceSwitcher [role=tab]').forEach(tab=>tab.onclick=()=>{surfacePositions[workspace.dataset.activeSurface]=workspace.scrollTop;workspace.dataset.activeSurface=tab.dataset.surface;workspace.scrollTop=surfacePositions[tab.dataset.surface];document.querySelectorAll('#surfaceSwitcher [role=tab]').forEach(t=>t.setAttribute('aria-selected',String(t===tab)));previewEditor.refresh();});bindTablistKeys(byId('surfaceSwitcher'));
  window.addEventListener('storage',event=>{if((event.key===STORAGE_KEY||event.key===null)&&isLeadSession()){storageConflict=true;setSaveStatus('Another tab changed this draft');fileNotice('This tab’s draft is kept. Download a backup before reopening the latest version.');}});
  window.addEventListener('beforeunload',event=>{if(ui.allowUnload||!isLeadSession()||!hasUnsavedTeamWork())return;runAutosave();event.preventDefault();event.returnValue='';});
- window.addEventListener('hashchange',()=>openShareLink().then(()=>render()).catch(e=>fileNotice(e.message)));
+ // Only share links reopen the page; the skip link and other in-page hashes change nothing.
+ window.addEventListener('hashchange',()=>{if(isShareHash(hashBody()))openShareLink().then(()=>render()).catch(e=>fileNotice(e.message));});
  render();saveAnnounceReady=true;
  if(ui.teamSession&&!startup?.snapshot){await fetchSharedDesign({replace:mayReplace});await resumePendingSubmission();}
  autosaveReady=true;scheduleAutosave(AUTOSAVE.idleMs);

@@ -6,6 +6,7 @@ export const DRAFT_BRANCH = 'bespoke-drafts';
 export const WORKFLOW_FILE = 'spoke-signals.yml';
 export const REPO = 'doclegg05/Curriculum-Employability-Skills';
 export const WRONG_CODE = 'That team access code is not right. Check the code from Britt.';
+export const VIEW_ONLY = 'This link can view the design but cannot change it. Ask your Team Leader for the builder link.';
 export const SETUP_MESSAGE = 'Saving is not connected yet. Ask Britt to finish the connection.';
 export const config = { path: '/api/bespoke', rateLimit: { action: 'rate_limit', aggregateBy: ['ip'], windowSize: 60, windowLimit: 120 } };
 const MAX_BODY_BYTES = 80000;
@@ -99,9 +100,9 @@ async function receiptStatus(github, lessonId, receipt, runId) {
   return { ...base, status: 'failed', message: 'The submission run finished without a review package. Ask Britt to check it; your saved design is safe.' };
 }
 
-export async function handleAction(body, { github, token, draftKey, teamKeys }) {
-  let key, keys;
-  try { if (!token || !github) throw new Error('Not configured'); key = keyBytes(draftKey); keys = accessKeys(teamKeys); }
+export async function handleAction(body, { github, token, draftKey, teamKeys, viewKeys }) {
+  let key, keys, views;
+  try { if (!token || !github) throw new Error('Not configured'); key = keyBytes(draftKey); keys = accessKeys(teamKeys); views = viewKeys ? accessKeys(viewKeys) : {}; }
   catch { return fail(503, 'setup', SETUP_MESSAGE); }
   if (!object(body)) return fail(400, 'body', 'The request could not be read.');
   const { action, lessonId } = body;
@@ -109,9 +110,18 @@ export async function handleAction(body, { github, token, draftKey, teamKeys }) 
   if (!LESSON_IDS.includes(lessonId)) return fail(400, 'lesson', 'Choose one of the six lessons.');
   const code = typeof body.editCode === 'string' ? body.editCode.trim() : '';
   if (code.length < 20 || code.length > 128) return fail(403, 'code', WRONG_CODE);
-  const expected = keys[lessonId];
-  const actual = expected?.length === 64 ? createHash('sha256').update(code, 'utf8').digest('hex') : hashEditCode(code);
-  if (!expected || !hashesMatch(actual, expected.length === 64 ? expected.toLowerCase() : expected)) return fail(403, 'code', WRONG_CODE);
+  const holds = table => {
+    const expected = table[lessonId];
+    if (!expected) return false;
+    const actual = expected.length === 64 ? createHash('sha256').update(code, 'utf8').digest('hex') : hashEditCode(code);
+    return hashesMatch(actual, expected.length === 64 ? expected.toLowerCase() : expected);
+  };
+  // Both tables are checked on every request, so either kind of code costs the same work.
+  const mayEdit = holds(keys), mayView = holds(views);
+  if (!mayEdit && !mayView) return fail(403, 'code', WRONG_CODE);
+  // A view code reads the latest design and nothing else: no history, no status, no writes.
+  if (!mayEdit && action !== 'open') return fail(403, 'view', VIEW_ONLY);
+  const access = mayEdit ? 'edit' : 'view';
   // Authorization has succeeded before the first repository read or write.
   try {
     if (action === 'history') {
@@ -129,7 +139,7 @@ export async function handleAction(body, { github, token, draftKey, teamKeys }) 
       return ok(await receiptStatus(github, lessonId, body.submissionId, body.runId));
     }
     const current = openedDraft(await github.readDraft(lessonId), lessonId, key);
-    if (action === 'open') return ok(view(current));
+    if (action === 'open') return ok({ ...view(current), access });
     if (!validRevision(body)) return fail(400, 'revision', 'Open the latest design before saving or sending.');
     const problem = checkSelection(body.selection, lessonId, action === 'send');
     if (problem) return problem;
@@ -272,12 +282,12 @@ export async function handleRequest(req, env = process.env, deps = {}) {
     try { body = JSON.parse(raw); } catch { return jsonResponse({ ok: false, error: 'body', message: 'The request could not be read.' }, 400); }
     const token = env.BESPOKE_GITHUB_TOKEN;
     const github = deps.github || createGitHub(token, env.BESPOKE_GITHUB_REPOSITORY || REPO, deps.fetchImpl);
-    const result = await handleAction(body, { github, token, draftKey: env.BESPOKE_DRAFT_KEY, teamKeys: env.BESPOKE_TEAM_KEYS });
+    const result = await handleAction(body, { github, token, draftKey: env.BESPOKE_DRAFT_KEY, teamKeys: env.BESPOKE_TEAM_KEYS, viewKeys: env.BESPOKE_VIEW_KEYS });
     return jsonResponse(result.body, result.status);
   } catch { return jsonResponse({ ok: false, error: 'store', message: 'The connected store could not complete this request. Keep your working copy and try again.' }, 502); }
 }
 export default async function handler(req) {
-  const names = ['BESPOKE_GITHUB_TOKEN', 'BESPOKE_DRAFT_KEY', 'BESPOKE_TEAM_KEYS', 'BESPOKE_GITHUB_REPOSITORY'];
+  const names = ['BESPOKE_GITHUB_TOKEN', 'BESPOKE_DRAFT_KEY', 'BESPOKE_TEAM_KEYS', 'BESPOKE_VIEW_KEYS', 'BESPOKE_GITHUB_REPOSITORY'];
   const env = Object.fromEntries(names.map(name => [name, globalThis.Netlify?.env?.get(name) ?? process.env[name]]));
   return handleRequest(req, env);
 }

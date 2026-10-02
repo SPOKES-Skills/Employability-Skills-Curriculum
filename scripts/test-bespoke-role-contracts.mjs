@@ -50,7 +50,7 @@ const priorAppearance = {
 
 test('default and six old v2 presets preserve exact CSS and markup without the optional extension', () => {
   // The looks teams could have saved before the presets were redesigned; this proves they still render byte for byte the same.
-  const oldPresets = JSON.parse(fs.readFileSync(path.join(root, 'scripts/test-fixtures/bespoke/presets-2026-09.json'), 'utf8'));
+  const oldPresets = JSON.parse(fs.readFileSync(path.join(root, 'scripts/test-fixtures/bespoke-presets-2026-09.json'), 'utf8'));
   for (const [id, design] of [['default', Model.defaultDesign(catalog)], ...oldPresets.map(preset => [preset.id, structuredClone(preset.design)])]) {
     const before = structuredClone(design);
     assert.deepEqual(selectionErrors({ ...payload(), design }, 'money-management'), [], id);

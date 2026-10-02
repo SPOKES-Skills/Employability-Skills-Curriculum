@@ -7,78 +7,111 @@ import { createHash, randomBytes } from 'node:crypto';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const lessons = JSON.parse(fs.readFileSync(path.join(root, 'bespoke/catalog.json'), 'utf8')).lessons;
+// The same formulas as hashEditCode and hashViewCode in the service. The provisioning tests compare them.
+const editHash = code => createHash('sha256').update(code).digest('base64url');
+const viewHash = code => createHash('sha256').update('view:' + code).digest('base64url');
+const VIEW_FILES = ['view-env.json', 'view-access.json', 'view-links.html'];
+const firstExisting = (target, names) => names.find(name => fs.existsSync(path.join(target, name)));
+const json = value => JSON.stringify(value, null, 2) + '\n';
+const writer = target => (name, value) => fs.writeFileSync(path.join(target, name), value, { mode: 0o600, flag: 'wx' });
 
-export function provision({ output, wizardUrl }) {
+const escapeHtml = value => String(value).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
+const linkList = access => `<ul>${Object.values(access).map(item => `<li><a href="${escapeHtml(item.url)}">${escapeHtml(item.title)}</a></li>`).join('')}</ul>`;
+const teamLinksPage = access => `<!doctype html><html lang="en"><meta charset="utf-8"><meta name="referrer" content="no-referrer"><title>Private BeSpoke team links</title><style>body{font:18px system-ui;max-width:760px;margin:3rem auto;line-height:1.6}li{margin:1rem 0}</style><h1>Private BeSpoke team links</h1><p>For Britt only. Send each link privately to that team's Team Leader, who passes it to the one person building. Each link grants editing access. Pin the team view link in the channel, not this one. Do not publish, forward or commit this page or these files.</p>${linkList(access)}<p>Back up server-env.json in your protected secret store. Its encryption key must remain available when the GitHub token changes. No GitHub token is included here.</p></html>`;
+const viewLinksPage = access => `<!doctype html><html lang="en"><meta charset="utf-8"><meta name="referrer" content="no-referrer"><title>Private BeSpoke team view links</title><style>body{font:18px system-ui;max-width:760px;margin:3rem auto;padding:0 1rem;line-height:1.6}li{margin:1rem 0}</style><h1>Private BeSpoke team view links</h1><p>For Britt only. Do not publish, forward or commit this page.</p><p>Each link is for one team only. It opens that team's latest saved design, read-only. This is the link to pin in that team's channel.</p>${linkList(access)}</html>\n`;
+
+function pageUrl(wizardUrl) {
   const url = new URL(wizardUrl);
   if (url.protocol !== 'https:' || url.username || url.password || url.search || url.hash) {
     throw new Error('Use the HTTPS BeSpoke page URL without a query, access code, or fragment.');
   }
-  const target = path.resolve(output);
-  fs.mkdirSync(path.dirname(target), { recursive: true, mode: 0o700 });
-  const realTarget = path.join(fs.realpathSync(path.dirname(target)), path.basename(target));
-  const realRoot = fs.realpathSync(root);
-  if (realTarget === realRoot || realTarget.startsWith(realRoot + path.sep)) {
-    throw new Error('Choose a private output directory outside this repository.');
-  }
-  if (fs.existsSync(target)) throw new Error('Output already exists. Reuse the existing keys; do not regenerate the encryption key.');
-  fs.mkdirSync(target, { mode: 0o700 });
-  const access = Object.fromEntries(lessons.map(lesson => {
+  return url;
+}
+// The native realpath also returns the on-disk case, so a repository path typed in another case is still recognized.
+function realLocation(target) {
+  const missing = [];
+  let existing = target;
+  while (!fs.existsSync(existing)) { missing.unshift(path.basename(existing)); existing = path.dirname(existing); }
+  return path.join(fs.realpathSync.native(existing), ...missing);
+}
+function refuseRepository(target) {
+  const real = realLocation(target), realRoot = fs.realpathSync.native(root);
+  if (real === realRoot || real.startsWith(realRoot + path.sep)) throw new Error('Choose a private output directory outside this repository.');
+}
+/** One new random code per lesson with its link. The fragment is 'team' for edit links and 'view' for view links. */
+function newAccess(url, fragment) {
+  return Object.fromEntries(lessons.map(lesson => {
     const code = randomBytes(24).toString('base64url');
-    return [lesson.id, { title: lesson.title, code, url: `${url.href}#team=${lesson.id}.${code}` }];
+    return [lesson.id, { title: lesson.title, code, url: `${url.href}#${fragment}=${lesson.id}.${code}` }];
   }));
-  const hashes = Object.fromEntries(Object.entries(access).map(([lesson, value]) => [lesson, createHash('sha256').update(value.code).digest('base64url')]));
-  const env = {
-    BESPOKE_DRAFT_KEY: randomBytes(32).toString('base64'),
-    BESPOKE_TEAM_KEYS: JSON.stringify(hashes)
-  };
-  const write = (name, value) => fs.writeFileSync(path.join(target, name), value, { mode: 0o600, flag: 'wx' });
-  write('server-env.json', JSON.stringify(env, null, 2) + '\n');
-  write('team-access.json', JSON.stringify(access, null, 2) + '\n');
-  write('team-links.html', `<!doctype html><html lang="en"><meta charset="utf-8"><meta name="referrer" content="no-referrer"><title>Private BeSpoke team links</title><style>body{font:18px system-ui;max-width:760px;margin:3rem auto;line-height:1.6}li{margin:1rem 0}</style><h1>Private BeSpoke team links</h1><p>For Britt. Share each link only with its teaching team and pin it in their Teams channel. Each link grants editing access. Do not publish this page or commit these files.</p><ul>${Object.values(access).map(item => `<li><a href="${item.url.replace(/&/g, '&amp;').replace(/"/g, '&quot;')}">${item.title}</a></li>`).join('')}</ul><p>Back up server-env.json in your protected secret store. Its encryption key must remain available when the GitHub token changes. No GitHub token is included here.</p></html>`);
+}
+const hashTable = (access, hash) => JSON.stringify(Object.fromEntries(Object.entries(access).map(([lesson, item]) => [lesson, hash(item.code)])));
+
+export function provision({ output, wizardUrl }) {
+  const url = pageUrl(wizardUrl);
+  const target = path.resolve(output);
+  refuseRepository(target);
+  if (fs.existsSync(target)) throw new Error('Output already exists. Reuse the existing keys; do not regenerate the encryption key.');
+  fs.mkdirSync(path.dirname(target), { recursive: true, mode: 0o700 });
+  fs.mkdirSync(target, { mode: 0o700 });
+  const access = newAccess(url, 'team');
+  const write = writer(target);
+  write('server-env.json', json({ BESPOKE_DRAFT_KEY: randomBytes(32).toString('base64'), BESPOKE_TEAM_KEYS: hashTable(access, editHash) }));
+  write('team-access.json', json(access));
+  write('team-links.html', teamLinksPage(access));
   return target;
 }
 
-/** Adds one read-only link per lesson to an existing private directory. Never touches the team codes or the encryption key. */
+/** Adds one read-only link per lesson to an existing private directory. Never opens the team codes or the encryption key. */
 export function provisionViewLinks({ output, wizardUrl }) {
-  const url = new URL(wizardUrl);
-  if (url.protocol !== 'https:' || url.username || url.password || url.search || url.hash) {
-    throw new Error('Use the HTTPS BeSpoke page URL without a query, access code, or fragment.');
-  }
+  const url = pageUrl(wizardUrl);
   const target = path.resolve(output);
+  refuseRepository(target);
   if (!fs.existsSync(path.join(target, 'team-access.json'))) throw new Error('Point --output at the existing private provisioning directory that holds team-access.json.');
-  const realTarget = fs.realpathSync(target), realRoot = fs.realpathSync(root);
-  if (realTarget === realRoot || realTarget.startsWith(realRoot + path.sep)) throw new Error('The private directory must be outside this repository.');
-  if (fs.existsSync(path.join(target, 'view-access.json'))) throw new Error('View links already exist here. Reuse them; do not regenerate.');
-  const team = JSON.parse(fs.readFileSync(path.join(target, 'team-access.json'), 'utf8'));
-  const freshCode = lessonId => {
-    const code = randomBytes(24).toString('base64url');
-    return code === team[lessonId]?.code ? freshCode(lessonId) : code;
-  };
-  const access = Object.fromEntries(lessons.map(lesson => {
-    const code = freshCode(lesson.id);
-    return [lesson.id, { title: lesson.title, code, url: `${url.href}#view=${lesson.id}.${code}` }];
-  }));
-  const hashes = Object.fromEntries(Object.entries(access).map(([lesson, value]) => [lesson, createHash('sha256').update(value.code).digest('base64url')]));
-  const escapeHtml = value => String(value).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
-  const items = Object.values(access).map(item => `<li><a href="${escapeHtml(item.url)}">${escapeHtml(item.title)}</a></li>`).join('');
-  const write = (name, value) => fs.writeFileSync(path.join(target, name), value, { mode: 0o600, flag: 'wx' });
-  write('view-env.json', JSON.stringify({ BESPOKE_VIEW_KEYS: JSON.stringify(hashes) }, null, 2) + '\n');
-  write('view-access.json', JSON.stringify(access, null, 2) + '\n');
-  write('view-links.html', `<!doctype html><html lang="en"><meta charset="utf-8"><meta name="referrer" content="no-referrer"><title>BeSpoke team view links</title><style>body{font:18px system-ui;max-width:760px;margin:3rem auto;padding:0 1rem}</style><h1>BeSpoke team view links</h1><p>Each link opens that team's latest saved design, read-only. These are the links to pin in each team's channel.</p><ul>${items}</ul></html>\n`);
+  const found = firstExisting(target, VIEW_FILES);
+  if (found) throw new Error(`View links already exist here (${found}). Reuse them; do not regenerate.`);
+  const access = newAccess(url, 'view');
+  const write = writer(target);
+  write('view-env.json', json({ BESPOKE_VIEW_KEYS: hashTable(access, viewHash) }));
+  write('view-access.json', json(access));
+  write('view-links.html', viewLinksPage(access));
   return target;
+}
+
+/** Issues six new edit codes in new dated files beside the old ones. Never opens server-env.json, team-access.json or the encryption key. */
+export function rotateTeamCodes({ output, wizardUrl, now = new Date() }) {
+  const url = pageUrl(wizardUrl);
+  const target = path.resolve(output);
+  refuseRepository(target);
+  if (!fs.existsSync(path.join(target, 'server-env.json'))) throw new Error('Point --output at the existing private provisioning directory that holds server-env.json.');
+  const stamp = now.toISOString().replace(/[-:]/g, '').replace('T', '-').slice(0, 15);
+  const files = [`team-env-${stamp}.json`, `team-access-${stamp}.json`, `team-links-${stamp}.html`];
+  const found = firstExisting(target, files);
+  if (found) throw new Error(`New team codes already exist here (${found}). Reuse them, or wait a second and run again.`);
+  const access = newAccess(url, 'team');
+  const write = writer(target);
+  write(files[0], json({ BESPOKE_TEAM_KEYS: hashTable(access, editHash) }));
+  write(files[1], json(access));
+  write(files[2], teamLinksPage(access));
+  return { directory: target, files };
 }
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   try {
     const args = process.argv.slice(2);
     const value = flag => { const i = args.indexOf(flag); return i >= 0 ? args[i + 1] : ''; };
-    const addViews = args.includes('--add-view-links');
-    if (args.length !== (addViews ? 5 : 4) || !value('--output') || !value('--wizard-url')) throw new Error('Usage: node scripts/bespoke-provision.mjs --output /private/path --wizard-url https://host/bespoke/ [--add-view-links]');
-    if (addViews) {
-      const target = provisionViewLinks({ output: value('--output'), wizardUrl: value('--wizard-url') });
+    const addViews = args.includes('--add-view-links'), rotate = args.includes('--rotate-team-codes');
+    if (addViews && rotate) throw new Error('Use --add-view-links or --rotate-team-codes, not both.');
+    if (args.length !== (addViews || rotate ? 5 : 4) || !value('--output') || !value('--wizard-url')) throw new Error('Usage: node scripts/bespoke-provision.mjs --output /private/path --wizard-url https://host/bespoke/ [--add-view-links | --rotate-team-codes]');
+    const options = { output: value('--output'), wizardUrl: value('--wizard-url') };
+    if (rotate) {
+      const { directory, files } = rotateTeamCodes(options);
+      console.log(`Wrote ${files.join(', ')} in ${directory}.`);
+    } else if (addViews) {
+      const target = provisionViewLinks(options);
       console.log(`Added six team view links in ${target}. No secrets were printed. The team codes and the encryption key were not changed.`);
     } else {
-      const target = provision({ output: value('--output'), wizardUrl: value('--wizard-url') });
+      const target = provision(options);
       console.log(`Created six private team links and server configuration in ${target}. No secrets were printed. Protect this directory and back up the encryption key before deployment.`);
     }
   } catch (error) {

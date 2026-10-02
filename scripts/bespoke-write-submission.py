@@ -48,6 +48,7 @@ def build_intake_markdown(payload: dict, date: str) -> str:
     rows = {
         "Spokesperson": spokesperson["name"],
         "Spokesperson email": spokesperson.get("email", ""),
+        "Design built by": (team.get("builder") or {}).get("name") or spokesperson["name"],
         "Team notes (Unspoken)": payload.get("unspoken", ""),
     }
     is_v2 = payload.get("schema") == "bespoke-selection/v2"

@@ -45,6 +45,24 @@ test('the service accepts a design with or without a sidebar text color and reje
   assert.notDeepEqual(selectionErrors(unknown, unknown.lesson.id), []);
 });
 
+test('a builder name is optional, bounded, and round-trips through save and open', async () => {
+  const plain = payload();
+  assert.equal(Object.hasOwn(plain.team, 'builder'), false);
+  assert.deepEqual(selectionErrors(plain, plain.lesson.id), [], 'no builder means the Team Leader builds');
+  const named = payload();
+  named.team.builder = { name: 'Dana Builder' };
+  assert.deepEqual(selectionErrors(named, named.lesson.id), []);
+  for (const bad of [{}, { name: '' }, { name: 'x'.repeat(201) }, { name: 'Dana', role: 'admin' }, 'Dana']) {
+    const broken = payload();
+    broken.team.builder = bad;
+    assert.notDeepEqual(selectionErrors(broken, broken.lesson.id), [], JSON.stringify(bad));
+  }
+  const service = memoryService();
+  const saved = await service.request('save', { selection: named, expectedRevision: null, mutationId: randomUUID() });
+  assert.equal(saved.status, 200, JSON.stringify(saved));
+  assert.equal((await service.request('open')).body.selection.team.builder.name, 'Dana Builder');
+});
+
 test('closed v2 authority rejects malformed arrays, unknown colors, fonts, styles and injected CSS', () => {
   const changes = [
     p => { p.design.samples.boxes.push('extra'); },

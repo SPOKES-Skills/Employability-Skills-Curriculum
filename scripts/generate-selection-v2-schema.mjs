@@ -30,6 +30,8 @@ lesson.properties.title.maxLength = lesson.properties.displayTitle.maxLength = 2
 lesson.properties.subtitle.maxLength = 500;
 team.properties.name.maxLength = team.properties.spokesperson.properties.name.maxLength = 200;
 team.properties.spokesperson.properties.email.maxLength = 320;
+// Optional: who makes the edits. Absent means the Team Leader builds.
+team.properties.builder = { type: 'object', additionalProperties: false, required: ['name'], properties: { name: { type: 'string', minLength: 1, maxLength: 200 } } };
 const schema = {
   $schema: 'https://json-schema.org/draft/2020-12/schema',
   $id: 'https://spokes.local/schemas/bespoke-selection/v2',

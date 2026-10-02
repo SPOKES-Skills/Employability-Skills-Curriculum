@@ -178,6 +178,17 @@ async function axe(page, label) {
 }
 
 try {
+  await scenario('builder name', async ({ makePage }) => {
+    const page = await makePage();
+    await team(page);
+    assert.equal((await draft(page)).builderName, '');
+    await page.locator('#builderName').fill('Dana Builder');
+    assert.equal((await draft(page)).builderName, 'Dana Builder');
+    await page.reload();
+    await page.locator('#stepList button').first().waitFor();
+    await stage(page, 'start');
+    assert.equal(await page.locator('#builderName').inputValue(), 'Dana Builder', 'the builder name survives a reload');
+  });
   await scenario('custom journey and effective review', async ({ makePage, server }) => {
     const page = await makePage(); await team(page);
     assert.equal(await page.locator('#stepList button').count(), 3);

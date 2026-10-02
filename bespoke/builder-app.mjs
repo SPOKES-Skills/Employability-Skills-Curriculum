@@ -28,7 +28,7 @@ const STEPS = [
  {id:'review',label:'Review & save',view:'title'}
 ];
 const LEGACY_STEPS = ['welcome','team','colors','fonts','title','divider','cards','video','activity','review'];
-const state = {step:0,stepId:'start',meta:null,library:null,lessonId:'money-management',teamName:'',spokespersonName:'',spokespersonEmail:'',lessonTitle:'',lessonSubtitle:'',unspoken:'',editCode:'',previewView:'title',design:null,legacySelection:null,changes:[],redo:[]};
+const state = {step:0,stepId:'start',meta:null,library:null,lessonId:'money-management',teamName:'',spokespersonName:'',spokespersonEmail:'',builderName:'',lessonTitle:'',lessonSubtitle:'',unspoken:'',editCode:'',previewView:'title',design:null,legacySelection:null,changes:[],redo:[]};
 const ui = {mode:'view',renderedStep:null,previewPinned:false,teamSession:null,cloudConflict:null,cloudBusy:false,autosavePaused:false,allowUnload:false,skipNextLocalSave:false,restoreNote:'',restoredFromLink:false,editCodeHash:'',activeRole:'sidebar',paintScope:'slide',themeScope:'slide',localPreview:false,editorRole:'title',sharedThemeOpen:false,startingLooksOpen:false,meaningfulDesign:false};
 ui.guide = null;
 let guide = null;
@@ -293,6 +293,9 @@ const findOption=(family,slug)=>state.library?.families?.[family]?.options.find(
         <label class="field">Spokesperson email
           <input id="spokespersonEmail" type="email" autocomplete="email" placeholder="you@example.org">
         </label>
+        <label class="field">Who is building the design?
+          <input id="builderName" type="text" autocomplete="off" maxlength="200" placeholder="Leave blank if it is you">
+        </label>
       </div>
     `;
     const select = byId("lessonSelect");
@@ -333,6 +336,7 @@ const findOption=(family,slug)=>state.library?.families?.[family]?.options.find(
     bind("teamName", "teamName");
     bind("spokespersonName", "spokespersonName");
     bind("spokespersonEmail", "spokespersonEmail");
+    bind("builderName", "builderName");
   }
 
   function fileNotice(message) {
@@ -1154,7 +1158,7 @@ const findOption=(family,slug)=>state.library?.families?.[family]?.options.find(
       const same = (a,b) => typeof a === 'string' ? a === b : object(a) && object(b) && Object.keys(a).length === Object.keys(b).length && Object.keys(a).every(key=>Object.hasOwn(b,key)&&same(a[key],b[key]));
       for (const [field,value] of Object.entries(theme.catalogIds)) if (!Object.hasOwn(expected,field)||!same(value,expected[field])) throw new Error(`catalogIds.${field}: reference differs from the selected design.`);
     }
-    for (const value of [payload.lesson.title, payload.lesson.displayTitle, payload.lesson.subtitle, payload.team.name, payload.team.spokesperson.name, payload.team.spokesperson.email, payload.unspoken, payload.sampleContent?.bullets, payload.sampleContent?.mythReality]) {
+    for (const value of [payload.lesson.title, payload.lesson.displayTitle, payload.lesson.subtitle, payload.team.name, payload.team.spokesperson.name, payload.team.spokesperson.email, payload.team.builder?.name, payload.unspoken, payload.sampleContent?.bullets, payload.sampleContent?.mythReality]) {
       if (value !== undefined && typeof value !== "string") throw new Error("This file has invalid text fields. Your current draft has not changed.");
     }
     if (payload.sampleContent !== undefined && !object(payload.sampleContent)) throw new Error("The sample text is invalid.");
@@ -1211,7 +1215,7 @@ function validateSelectionPayload(payload,{draft=false}={}){
 }
 function buildSelectionPayload(){
  const lesson=findMeta(state.meta.lessons,state.lessonId);
- return {schema:'bespoke-selection/v2',submittedAt:new Date().toISOString(),date:new Date().toISOString().slice(0,10),lesson:{id:state.lessonId,title:lesson.title,displayTitle:state.design.samples.title||lesson.title,subtitle:state.design.samples.subtitle},team:{name:state.teamName.trim(),spokesperson:{name:state.spokespersonName.trim(),email:state.spokespersonEmail.trim()}},design:clone(state.design),unspoken:state.unspoken,...(state.legacySelection?{legacySelection:clone(state.legacySelection)}:{})};
+ return {schema:'bespoke-selection/v2',submittedAt:new Date().toISOString(),date:new Date().toISOString().slice(0,10),lesson:{id:state.lessonId,title:lesson.title,displayTitle:state.design.samples.title||lesson.title,subtitle:state.design.samples.subtitle},team:{name:state.teamName.trim(),spokesperson:{name:state.spokespersonName.trim(),email:state.spokespersonEmail.trim()},...(state.builderName.trim()?{builder:{name:state.builderName.trim()}}:{})},design:clone(state.design),unspoken:state.unspoken,...(state.legacySelection?{legacySelection:clone(state.legacySelection)}:{})};
 }
 function restoreStep(saved){
  const legacyId=saved.stepId||(Number.isInteger(saved.step)?LEGACY_STEPS[saved.step]:null)||'start';
@@ -1238,7 +1242,7 @@ function loadDraft(){
   if(!saved||typeof saved!=='object'||Array.isArray(saved)||!saved.design)throw new Error('Invalid draft');
   const before={...state};
   try{
-   for(const key of ['design','legacySelection','lessonId','teamName','spokespersonName','spokespersonEmail','unspoken','changes','redo'])if(Object.hasOwn(saved,key))state[key]=saved[key];
+   for(const key of ['design','legacySelection','lessonId','teamName','spokespersonName','spokespersonEmail','builderName','unspoken','changes','redo'])if(Object.hasOwn(saved,key))state[key]=saved[key];
    validateSelectionPayload(buildSelectionPayload(),{draft:true});
    if(!Array.isArray(state.changes)||!Array.isArray(state.redo))throw new Error('Invalid history');
    // Undo snapshots are data boundaries too; reject corrupted history before it can reach preview.
@@ -1263,7 +1267,7 @@ function saveDraft(){
 }
 function resetDesignForLesson(lessonId){
  draftGeneration++;resetPresetConfirmation();ui.meaningfulDesign=false;ui.startingLooksOpen=false;ui.editorRole='title';const nextDesign=Model.defaultDesign(catalog);if(!keepsGuide({fromLesson:state.lessonId,toLesson:lessonId,fromDesign:state.design,toDesign:nextDesign}))ui.guide=null;ui.sharedThemeOpen=false;ui.paintScope='slide';ui.themeScope='slide';
- Object.assign(state,{step:0,lessonId,teamName:'',spokespersonName:'',spokespersonEmail:'',unspoken:'',design:nextDesign,legacySelection:null,changes:[],redo:[]});
+ Object.assign(state,{step:0,lessonId,teamName:'',spokespersonName:'',spokespersonEmail:'',builderName:'',unspoken:'',design:nextDesign,legacySelection:null,changes:[],redo:[]});
 }
 function applySelectionPayload(payload){
  validateSelectionPayload(payload,{draft:true});
@@ -1275,7 +1279,7 @@ function applySelectionPayload(payload){
  ui.meaningfulDesign=true;ui.startingLooksOpen=false;
  if(!keepsGuide({fromLesson:state.lessonId,toLesson:payload.lesson.id,fromDesign:state.design,toDesign:nextDesign}))ui.guide=null;
  draftGeneration++;
- Object.assign(state,{lessonId:payload.lesson.id,teamName:team.name||'',spokespersonName:team.spokesperson?.name||'',spokespersonEmail:team.spokesperson?.email||'',unspoken:payload.unspoken||'',changes:[],redo:[]});
+ Object.assign(state,{lessonId:payload.lesson.id,teamName:team.name||'',spokespersonName:team.spokesperson?.name||'',spokespersonEmail:team.spokesperson?.email||'',builderName:team.builder?.name||'',unspoken:payload.unspoken||'',changes:[],redo:[]});
  if(payload.schema==='bespoke-selection/v1'){
   state.design=migrated.design;state.legacySelection=clone(payload);ui.autosavePaused=true;
   ui.restoreNote='Converted a copy of the older design. '+migrated.warnings.join(' ')+' The original is included in every backup and can be downloaded on Review. Review this conversion before saving.';

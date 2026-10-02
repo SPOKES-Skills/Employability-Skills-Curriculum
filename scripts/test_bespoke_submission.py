@@ -72,6 +72,17 @@ class SubmissionTests(unittest.TestCase):
             with self.subTest(key=key, value=value), self.assertRaises(ValueError):
                 require_valid_selection(bad)
 
+    def test_proposal_names_the_builder_and_falls_back_to_the_team_leader(self):
+        payload = deepcopy(self.payload)
+        leader = payload["team"]["spokesperson"]["name"]
+        fallback = writer.build_intake_markdown(payload, "2026-10-02")
+        row = next(line for line in fallback.splitlines() if "Design built by" in line)
+        self.assertIn(leader, row)
+        payload["team"]["builder"] = {"name": "Dana Builder"}
+        named = writer.build_intake_markdown(payload, "2026-10-02")
+        row = next(line for line in named.splitlines() if "Design built by" in line)
+        self.assertIn("Dana Builder", row)
+
     def test_all_six_presets_produce_accepted_design_contracts(self):
         catalog = json.loads((ROOT / "bespoke/catalog.json").read_text())
         for preset in catalog["presets"]:

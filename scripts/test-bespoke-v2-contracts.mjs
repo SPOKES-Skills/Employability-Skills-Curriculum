@@ -7,7 +7,7 @@ import { createHash, randomUUID } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import catalog from '../bespoke/builder-catalog.json' with { type: 'json' };
-import { defaultDesign, applyPreset } from '../bespoke/builder-model.mjs';
+import { defaultDesign, applyPreset, setSidebarText } from '../bespoke/builder-model.mjs';
 import { selectionErrors, digest, canonicalJson } from '../netlify/functions/_shared/selection.mjs';
 import { handleAction, hashEditCode, LESSON_IDS, seal } from '../netlify/functions/bespoke-handoff.mjs';
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -21,6 +21,18 @@ test('committed v2 schema is current and v1 remains accepted', () => {
     const selection = payload(); selection.design = applyPreset(catalog, preset.id);
     assert.deepEqual(selectionErrors(selection, selection.lesson.id), [], preset.id);
   }
+});
+
+test('the service accepts a design with or without a sidebar text color and rejects an unknown one', () => {
+  const old = payload();
+  assert.equal(Object.hasOwn(old.design.roles, 'sidebarText'), false);
+  assert.deepEqual(selectionErrors(old, old.lesson.id), [], 'a design saved before this field stays valid');
+  const chosen = payload();
+  chosen.design = setSidebarText(catalog, chosen.design, 'gold');
+  assert.deepEqual(selectionErrors(chosen, chosen.lesson.id), []);
+  const unknown = payload();
+  unknown.design.roles.sidebarText = 'teal';
+  assert.notDeepEqual(selectionErrors(unknown, unknown.lesson.id), []);
 });
 
 test('closed v2 authority rejects malformed arrays, unknown colors, fonts, styles and injected CSS', () => {

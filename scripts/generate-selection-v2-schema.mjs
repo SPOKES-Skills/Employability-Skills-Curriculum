@@ -11,6 +11,8 @@ const object = properties => ({ type: 'object', additionalProperties: false, req
 const choice = values => ({ type: 'string', enum: values });
 const boundedText = maxLength => ({ type: 'string', maxLength });
 const roles = object(Object.fromEntries(catalog.roles.map(role => [role.id, choice(catalog.colors.map(color => color.id))])));
+// Added after object() computed `required`, so optional roles stay optional.
+for (const role of catalog.optionalRoles || []) roles.properties[role.id] = choice(catalog.colors.map(color => color.id));
 const slides = object(Object.fromEntries(catalog.slideGroups.map(group => [group.id, object(Object.fromEntries(group.decisions.map(decision => [decision.id, decision.type === 'boolean' ? { type: 'boolean' } : choice(decision.options.map(option => option.id))])))])));
 const design = object({
   version: { type: 'string', const: '2' }, roles,

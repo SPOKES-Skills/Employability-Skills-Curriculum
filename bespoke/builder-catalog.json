@@ -810,20 +810,20 @@
     {
       "id": "professional",
       "label": "Professional",
-      "blurb": "Clear structure with a warm accent.",
+      "blurb": "Navy and serif headings with a quiet gold accent.",
       "design": {
         "version": "2",
         "roles": {
           "sidebar": "dark",
           "titleBackground": "dark",
-          "titleBackgroundEnd": "mauve",
+          "titleBackgroundEnd": "primary",
           "titleText": "light",
           "subtitle": "light",
           "contentBackground": "light",
-          "heading": "mauve",
+          "heading": "dark",
           "body": "royal",
-          "accent": "mauve",
-          "button": "mauve",
+          "accent": "muted-gold",
+          "button": "dark",
           "dividerBackground": "dark"
         },
         "fonts": {
@@ -875,13 +875,13 @@
     {
       "id": "modern",
       "label": "Modern",
-      "blurb": "Crisp type and confident blue.",
+      "blurb": "Bright blue, clean type and a split title.",
       "design": {
         "version": "2",
         "roles": {
           "sidebar": "royal",
-          "titleBackground": "royal",
-          "titleBackgroundEnd": "primary",
+          "titleBackground": "primary",
+          "titleBackgroundEnd": "royal",
           "titleText": "light",
           "subtitle": "light",
           "contentBackground": "light",
@@ -902,25 +902,25 @@
             "colors": "gradient"
           },
           "divider": {
-            "layout": "band",
-            "watermark": "show",
-            "colors": "solid"
+            "layout": "left",
+            "watermark": "hide",
+            "colors": "gradient"
           },
           "cards": {
-            "count": "3",
-            "titleBar": true,
-            "treatment": "paragraph",
+            "count": "2",
+            "titleBar": false,
+            "treatment": "bullets",
             "look": "outline",
             "layout": "columns"
           },
           "video": {
-            "layout": "stacked",
-            "frame": "accent",
-            "titleStyle": "regular"
+            "layout": "side",
+            "frame": "plain",
+            "titleStyle": "large"
           },
           "activity": {
-            "layout": "callout",
-            "labelStyle": "caps"
+            "layout": "banner",
+            "labelStyle": "pill"
           }
         },
         "background": "diagonal",
@@ -940,21 +940,21 @@
     {
       "id": "serious",
       "label": "Serious",
-      "blurb": "Grounded navy with measured detail.",
+      "blurb": "Royal and gray with numbered chapters.",
       "design": {
         "version": "2",
         "roles": {
-          "sidebar": "dark",
-          "titleBackground": "dark",
+          "sidebar": "gray",
+          "titleBackground": "royal",
           "titleBackgroundEnd": "gray",
           "titleText": "light",
           "subtitle": "light",
           "contentBackground": "light",
-          "heading": "gray",
+          "heading": "royal",
           "body": "royal",
           "accent": "gray",
-          "button": "gray",
-          "dividerBackground": "dark"
+          "button": "royal",
+          "dividerBackground": "gray"
         },
         "fonts": {
           "heading": "bitter",
@@ -963,8 +963,8 @@
         "slides": {
           "title": {
             "layout": "center",
-            "logo": "corner",
-            "colors": "gradient"
+            "logo": "above",
+            "colors": "solid"
           },
           "divider": {
             "layout": "number",
@@ -974,18 +974,18 @@
           "cards": {
             "count": "3",
             "titleBar": true,
-            "treatment": "paragraph",
+            "treatment": "numbered",
             "look": "band",
-            "layout": "columns"
+            "layout": "rows"
           },
           "video": {
             "layout": "stacked",
-            "frame": "accent",
-            "titleStyle": "regular"
+            "frame": "plain",
+            "titleStyle": "caps"
           },
           "activity": {
-            "layout": "callout",
-            "labelStyle": "caps"
+            "layout": "box",
+            "labelStyle": "heading"
           }
         },
         "background": "plain",
@@ -1005,21 +1005,21 @@
     {
       "id": "light-hearted",
       "label": "Light-hearted",
-      "blurb": "An open canvas and welcoming type.",
+      "blurb": "Green and friendly, with four boxes in a grid.",
       "design": {
         "version": "2",
         "roles": {
-          "sidebar": "mauve",
-          "titleBackground": "mauve",
+          "sidebar": "accent",
+          "titleBackground": "accent",
           "titleBackgroundEnd": "dark",
-          "titleText": "light",
-          "subtitle": "light",
+          "titleText": "royal",
+          "subtitle": "royal",
           "contentBackground": "light",
           "heading": "dark",
           "body": "royal",
           "accent": "accent",
           "button": "dark",
-          "dividerBackground": "mauve"
+          "dividerBackground": "accent"
         },
         "fonts": {
           "heading": "crimson-pro",
@@ -1027,9 +1027,9 @@
         },
         "slides": {
           "title": {
-            "layout": "bottom",
+            "layout": "center",
             "logo": "corner",
-            "colors": "gradient"
+            "colors": "solid"
           },
           "divider": {
             "layout": "center",
@@ -1037,11 +1037,11 @@
             "colors": "solid"
           },
           "cards": {
-            "count": "3",
-            "titleBar": true,
+            "count": "4",
+            "titleBar": false,
             "treatment": "paragraph",
             "look": "filled",
-            "layout": "columns"
+            "layout": "grid"
           },
           "video": {
             "layout": "stacked",
@@ -1050,7 +1050,7 @@
           },
           "activity": {
             "layout": "callout",
-            "labelStyle": "caps"
+            "labelStyle": "pill"
           }
         },
         "background": "dot-grid",
@@ -1070,21 +1070,21 @@
     {
       "id": "fun",
       "label": "Fun",
-      "blurb": "Bright accents with a calm reading surface.",
+      "blurb": "Gold up front with mauve accents.",
       "design": {
         "version": "2",
         "roles": {
-          "sidebar": "royal",
-          "titleBackground": "royal",
-          "titleBackgroundEnd": "mauve",
-          "titleText": "light",
-          "subtitle": "light",
+          "sidebar": "mauve",
+          "titleBackground": "gold",
+          "titleBackgroundEnd": "muted-gold",
+          "titleText": "royal",
+          "subtitle": "royal",
           "contentBackground": "light",
           "heading": "mauve",
           "body": "royal",
-          "accent": "gold",
+          "accent": "mauve",
           "button": "mauve",
-          "dividerBackground": "royal"
+          "dividerBackground": "gold"
         },
         "fonts": {
           "heading": "raleway",
@@ -1092,7 +1092,7 @@
         },
         "slides": {
           "title": {
-            "layout": "left",
+            "layout": "bottom",
             "logo": "corner",
             "colors": "gradient"
           },
@@ -1102,20 +1102,20 @@
             "colors": "solid"
           },
           "cards": {
-            "count": "3",
+            "count": "2",
             "titleBar": true,
-            "treatment": "paragraph",
+            "treatment": "bullets",
             "look": "band",
-            "layout": "columns"
+            "layout": "rows"
           },
           "video": {
-            "layout": "stacked",
+            "layout": "side",
             "frame": "accent",
-            "titleStyle": "regular"
+            "titleStyle": "large"
           },
           "activity": {
-            "layout": "callout",
-            "labelStyle": "caps"
+            "layout": "side",
+            "labelStyle": "pill"
           }
         },
         "background": "crosshatch",
@@ -1135,20 +1135,20 @@
     {
       "id": "outspoken",
       "label": "Outspoken",
-      "blurb": "A bold title and direct, readable content.",
+      "blurb": "Bold mauve with strong bands.",
       "design": {
         "version": "2",
         "roles": {
-          "sidebar": "mauve",
+          "sidebar": "royal",
           "titleBackground": "mauve",
           "titleBackgroundEnd": "royal",
           "titleText": "light",
           "subtitle": "light",
           "contentBackground": "light",
-          "heading": "royal",
+          "heading": "mauve",
           "body": "royal",
           "accent": "royal",
-          "button": "royal",
+          "button": "mauve",
           "dividerBackground": "mauve"
         },
         "fonts": {
@@ -1158,12 +1158,77 @@
         "slides": {
           "title": {
             "layout": "split",
-            "logo": "corner",
+            "logo": "above",
             "colors": "gradient"
           },
           "divider": {
-            "layout": "left",
+            "layout": "band",
             "watermark": "show",
+            "colors": "solid"
+          },
+          "cards": {
+            "count": "3",
+            "titleBar": false,
+            "treatment": "numbered",
+            "look": "band",
+            "layout": "columns"
+          },
+          "video": {
+            "layout": "banner",
+            "frame": "accent",
+            "titleStyle": "caps"
+          },
+          "activity": {
+            "layout": "banner",
+            "labelStyle": "caps"
+          }
+        },
+        "background": "diagonal",
+        "samples": {
+          "title": "Make room for your next step",
+          "subtitle": "A sample lesson for a confident start",
+          "boxes": [
+            "Notice what matters. Pick one practical goal for the week.",
+            "Break it into steps. Make a plan you can explain to a partner.",
+            "Try one action today. Reflect on what worked and adjust.",
+            "Keep the progress going. Celebrate a useful lesson learned."
+          ]
+        },
+        "startingPoint": "outspoken"
+      }
+    },
+    {
+      "id": "open-air",
+      "label": "Open Air",
+      "blurb": "Light and open, with navy text on white.",
+      "design": {
+        "version": "2",
+        "roles": {
+          "sidebar": "muted",
+          "titleBackground": "light",
+          "titleBackgroundEnd": "muted",
+          "titleText": "dark",
+          "subtitle": "gray",
+          "contentBackground": "light",
+          "heading": "primary",
+          "body": "royal",
+          "accent": "primary",
+          "button": "primary",
+          "dividerBackground": "muted"
+        },
+        "fonts": {
+          "heading": "dm-serif-display",
+          "body": "outfit"
+        },
+        "slides": {
+          "title": {
+            "layout": "center",
+            "logo": "above",
+            "colors": "gradient"
+          },
+          "divider": {
+            "layout": "center",
+            "watermark": "hide",
             "colors": "solid"
           },
           "cards": {
@@ -1171,16 +1236,82 @@
             "titleBar": true,
             "treatment": "paragraph",
             "look": "outline",
+            "layout": "grid"
+          },
+          "video": {
+            "layout": "banner",
+            "frame": "plain",
+            "titleStyle": "regular"
+          },
+          "activity": {
+            "layout": "box",
+            "labelStyle": "caps"
+          }
+        },
+        "background": "soft-gradient",
+        "samples": {
+          "title": "Make room for your next step",
+          "subtitle": "A sample lesson for a confident start",
+          "boxes": [
+            "Notice what matters. Pick one practical goal for the week.",
+            "Break it into steps. Make a plan you can explain to a partner.",
+            "Try one action today. Reflect on what worked and adjust.",
+            "Keep the progress going. Celebrate a useful lesson learned."
+          ]
+        },
+        "startingPoint": "open-air"
+      }
+    },
+    {
+      "id": "gold-standard",
+      "label": "Gold Standard",
+      "blurb": "Royal with gold lettering and a classic serif.",
+      "design": {
+        "version": "2",
+        "roles": {
+          "sidebar": "royal",
+          "titleBackground": "royal",
+          "titleBackgroundEnd": "dark",
+          "titleText": "gold",
+          "subtitle": "light",
+          "contentBackground": "light",
+          "heading": "royal",
+          "body": "royal",
+          "accent": "muted-gold",
+          "button": "royal",
+          "dividerBackground": "royal",
+          "sidebarText": "gold"
+        },
+        "fonts": {
+          "heading": "playfair-display",
+          "body": "inter"
+        },
+        "slides": {
+          "title": {
+            "layout": "center",
+            "logo": "above",
+            "colors": "gradient"
+          },
+          "divider": {
+            "layout": "center",
+            "watermark": "show",
+            "colors": "gradient"
+          },
+          "cards": {
+            "count": "2",
+            "titleBar": true,
+            "treatment": "paragraph",
+            "look": "rail",
             "layout": "columns"
           },
           "video": {
             "layout": "stacked",
             "frame": "accent",
-            "titleStyle": "regular"
+            "titleStyle": "large"
           },
           "activity": {
             "layout": "callout",
-            "labelStyle": "caps"
+            "labelStyle": "heading"
           }
         },
         "background": "plain",
@@ -1194,7 +1325,72 @@
             "Keep the progress going. Celebrate a useful lesson learned."
           ]
         },
-        "startingPoint": "outspoken"
+        "startingPoint": "gold-standard"
+      }
+    },
+    {
+      "id": "slate",
+      "label": "Slate",
+      "blurb": "Cool gray with green accents.",
+      "design": {
+        "version": "2",
+        "roles": {
+          "sidebar": "gray",
+          "titleBackground": "gray",
+          "titleBackgroundEnd": "royal",
+          "titleText": "light",
+          "subtitle": "light",
+          "contentBackground": "muted",
+          "heading": "gray",
+          "body": "royal",
+          "accent": "accent",
+          "button": "gray",
+          "dividerBackground": "gray"
+        },
+        "fonts": {
+          "heading": "vollkorn",
+          "body": "fira-sans"
+        },
+        "slides": {
+          "title": {
+            "layout": "bottom",
+            "logo": "corner",
+            "colors": "solid"
+          },
+          "divider": {
+            "layout": "band",
+            "watermark": "hide",
+            "colors": "solid"
+          },
+          "cards": {
+            "count": "4",
+            "titleBar": false,
+            "treatment": "bullets",
+            "look": "band",
+            "layout": "columns"
+          },
+          "video": {
+            "layout": "side",
+            "frame": "plain",
+            "titleStyle": "caps"
+          },
+          "activity": {
+            "layout": "side",
+            "labelStyle": "heading"
+          }
+        },
+        "background": "dot-grid",
+        "samples": {
+          "title": "Make room for your next step",
+          "subtitle": "A sample lesson for a confident start",
+          "boxes": [
+            "Notice what matters. Pick one practical goal for the week.",
+            "Break it into steps. Make a plan you can explain to a partner.",
+            "Try one action today. Reflect on what worked and adjust.",
+            "Keep the progress going. Celebrate a useful lesson learned."
+          ]
+        },
+        "startingPoint": "slate"
       }
     }
   ],

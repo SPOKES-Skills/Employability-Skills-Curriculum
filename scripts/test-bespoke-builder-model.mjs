@@ -5,9 +5,11 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { applyPreset, colorAvailability, contrast, contrastIssues, cssForDesign, defaultDesign, designSchema, inkFor, migrateV1, patternFor, renderSlide, roleOptions, setSidebarText, sidebarInk, structuralErrors, validateDesign } from '../bespoke/builder-model.mjs';
+import { compareDesign } from '../bespoke/similarity.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const catalog = JSON.parse(fs.readFileSync(path.join(root, 'bespoke/builder-catalog.json'), 'utf8'));
+const fingerprints = JSON.parse(fs.readFileSync(path.join(root, 'bespoke/lesson-fingerprints.json'), 'utf8'));
 const oldCatalog = JSON.parse(fs.readFileSync(path.join(root, 'bespoke/catalog.json'), 'utf8'));
 const clone = value => JSON.parse(JSON.stringify(value));
 let checked = 0;
@@ -21,7 +23,7 @@ check('all 11 original palette colors and 12 existing families have local font a
   for (const color of catalog.palette) assert(contrast(color.hex, catalog.palette.find(c => c.id === inkFor(catalog, color.id)).hex) >= 4.5);
 });
 
-check('default and six editable brand presets are valid and independent copies', () => {
+check('default and nine editable brand presets are valid and independent copies', () => {
   assert.deepEqual(validateDesign(catalog, defaultDesign(catalog)), []);
   assert.deepEqual(contrastIssues(catalog, defaultDesign(catalog)), []);
   for (const item of catalog.presets) {
@@ -31,6 +33,23 @@ check('default and six editable brand presets are valid and independent copies',
     design.roles.sidebar = 'mauve';
     design.slides.cards.count = '1';
     assert.deepEqual(item.design, applyPreset(catalog, item.id));
+  }
+});
+
+check('nine presets differ from each other and from the released lessons', () => {
+  assert.deepEqual(catalog.presets.map(item => item.id), ['professional', 'modern', 'serious', 'light-hearted', 'fun', 'outspoken', 'open-air', 'gold-standard', 'slate']);
+  const fields = d => [d.roles.titleBackground, d.roles.sidebar, d.roles.heading, d.fonts.heading, d.fonts.body, d.background, d.slides.title.layout, d.slides.divider.layout, d.slides.cards.count, d.slides.cards.look, d.slides.cards.layout, d.slides.video.layout, d.slides.activity.layout];
+  const designs = catalog.presets.map(item => item.design);
+  for (const [i, a] of designs.entries()) for (const b of designs.slice(i + 1)) {
+    const different = fields(a).filter((value, k) => value !== fields(b)[k]).length;
+    assert(different >= 7, `${a.startingPoint} and ${b.startingPoint} differ on only ${different} of 13 fields`);
+  }
+  assert.equal(new Set(designs.map(d => `${d.roles.titleBackground}+${d.roles.titleText}`)).size, 9, 'title background and title text pairs are unique');
+  for (const item of catalog.presets) {
+    assert.deepEqual(contrastIssues(catalog, item.design), [], item.id);
+    const near = compareDesign(fingerprints, item.design, catalog)[0];
+    assert(near.shared < near.total, `${item.id} is an exact match for ${near.title}`);
+    console.log(`  ${item.id}: closest lesson ${near.title}, ${near.shared} of ${near.total}`);
   }
 });
 

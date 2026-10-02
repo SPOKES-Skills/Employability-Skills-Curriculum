@@ -1490,6 +1490,15 @@ function addColorControls(panel,roleIds){
   b.onclick=()=>{if(!available.ok){byId('colorHelp').textContent=available.reason;return;}changeDesign(target+': '+color.name,d=>{if(local)Object.assign(d,Model.setRoleStyle(catalog,d,kind,field,color.id));else d.roles[role.id]=color.id;});};palette.append(b);
  }
  panel.append(palette);
+ // After the chips, so Tab from the element picker still reaches the colors first.
+ if(role.id==='sidebar'){
+  const textField=document.createElement('label');textField.className='field';textField.textContent='Sidebar text color';
+  const select=document.createElement('select');select.id='sidebarTextColor';
+  const auto=catalog.palette.find(c=>c.id===Model.inkFor(catalog,state.design.roles.sidebar)).name;
+  for(const [id,name] of [['auto','Automatic · '+auto],...catalog.palette.map(c=>[c.id,c.name])]){const o=document.createElement('option');o.value=id;o.textContent=name;o.selected=id===(state.design.roles.sidebarText||'auto');select.append(o);}
+  select.onchange=()=>changeDesign('Sidebar text: '+select.selectedOptions[0].textContent,d=>Object.assign(d,Model.setSidebarText(catalog,d,select.value)));
+  textField.append(select);panel.append(textField);
+ }
  const help=document.createElement('div');help.id='colorHelp';help.className='helper';
  const issues=Model.contrastIssues(catalog,state.design).filter(issue=>local?issue.kind===kind||!state.design.roleStyles?.[kind]&&issue.related.includes(role.id):issue.related.includes(role.id));
  help.innerHTML=issues.length?contrastAdvisory(issues):'All 11 brand colors are selectable. Contrast guidance appears here when a choice may be harder to read.';panel.append(help);
@@ -1805,7 +1814,7 @@ async function init(){
   context:()=>({design:state.design,kind:state.previewView,editable:isLeadSession(),optionsOpen:ui.moreOptions,mode:ui.guide?.on?'guide':state.step===1?'edit':'browse'}),
   activate:()=>{if(ui.guide)ui.guide={...ui.guide,on:false};ui.editorRole=state.previewView;state.step=1;ui.sharedThemeOpen=false;render(false);},
   change:(label,edit)=>changeDesign(label,edit),
-  more:target=>{ui.moreOptions=!ui.moreOptions;if(ui.moreOptions)showRoleEditor(state.previewView,target==='background'?'background':target.startsWith('box')?'arrangement':'text',target.startsWith('body')?'bodyFont':target==='background'?'primary':'headingFont');else{render(false);byId('btnMoreOptions').focus();}},
+  more:target=>{ui.moreOptions=!ui.moreOptions;if(!ui.moreOptions){render(false);byId('btnMoreOptions').focus();return;}if(target.startsWith('sidebar')){/* render() reads the open state back from the live panel */if(byId('sharedTheme'))byId('sharedTheme').open=true;ui.sharedThemeOpen=true;ui.activeRole='sidebar';ui.paintScope='shared';render(false);byId('colorRole')?.focus({preventScroll:true});return;}showRoleEditor(state.previewView,target==='background'?'background':target.startsWith('box')?'arrangement':'text',target.startsWith('body')?'bodyFont':target==='background'?'primary':'headingFont');},
   thumbnail:kind=>Model.renderSlide(catalog,state.design,kind,{title:state.design.samples.title,subtitle:state.design.samples.subtitle,logoUrl:'../SPOKES-Logo.png'})
  });
  byId('btnCloseOptions').onclick=()=>{ui.moreOptions=false;render(false);byId('btnMoreOptions').focus();};

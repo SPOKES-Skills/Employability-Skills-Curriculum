@@ -2,9 +2,9 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** A Team Leader fills a two-field intake form, picks scratch or preset, and either walks twelve one-decision screens or picks one of nine distinct presets, with the preview clickable throughout.
+**Goal:** A team walks a short intake wizard that names the Team Leader and the one builder, picks scratch or preset, and either walks twelve one-decision screens or picks one of nine distinct presets, with the preview clickable throughout. Everyone else on the team opens a read-only team view link.
 
-**Architecture:** The Guide me engine in `bespoke/guide/` keeps its one-question-per-screen loop and gets a new twelve-step question list. A new `bespoke/start.mjs` owns the Start stage. Sidebar text color is one optional field on the saved design, and the nine presets are generated into the catalog from one compact table. Two pull requests: PR 1 carries everything that changes the saved-design format, PR 2 carries the flow.
+**Architecture:** The Guide me engine in `bespoke/guide/` keeps its one-question-per-screen loop and gets a new twelve-step question list. A new `bespoke/start.mjs` owns the Start stage. Sidebar text color and the builder's name are optional fields on the saved design, and the nine presets are generated into the catalog from one compact table. The service gains a read-only view code per lesson. Two pull requests: PR 1 carries everything that changes the saved-design format or the service, PR 2 carries the flow.
 
 **Tech Stack:** Static ES modules, no build step. Node 22 for tests (`node:test`, Playwright, axe-core). Netlify function for shared Save, Open and Send.
 
@@ -23,14 +23,17 @@
 - Commit subjects use `feat|fix|refactor|docs|test|chore: `. No attribution trailers.
 - Prose docs carry no em dashes.
 - Never mutate a design passed into a function. Return a new one.
+- One person edits. The builder link edits, the team view link only reads the latest saved design. No accounts, no live sync.
+- The expected way to work is a Teams call with the builder sharing their screen.
+- Secrets and codes never enter the repo, a commit, a log or a chat reply. Britt runs every command that reads or writes them.
 
 ## Review Focus
 
-1. A design saved before this work (no `sidebarText`, an old preset id) opens and renders exactly as before. Pinned in Task 1 and Task 2.
-2. A leader picks a sidebar text color equal to the sidebar color. The design stays valid and saveable, and an advisory appears. Pinned in Task 1.
-3. A browser draft holds an old Guide me position. The design opens intact with no path in progress and no error. Pinned in Task 6 and Task 7.
-4. A Team Leader name of only spaces. Continue stays disabled. Pinned in Task 8.
-5. A view-only session opens Start. No intake gate, no Start over, no path controls, and nothing is written. Pinned in Task 8.
+1. A design saved before this work (no `sidebarText`, no `team.builder`, an old preset id) opens and renders exactly as before, and its proposal names the Team Leader as the builder. Pinned in Tasks 1, 2 and 4b.
+2. A team view code tries to save, send, read history, or open another lesson. Every attempt is refused and nothing is written. Pinned in Task 4c.
+3. A browser draft holds an old Guide me position. The design opens intact with no path in progress and no error. Pinned in Tasks 6 and 7.
+4. A Team Leader name of only spaces, or "Someone else" with no builder name. Continue stays disabled. Pinned in Task 8.
+5. A view-only session opens Start. No intake wizard, no Start over, no path controls, and nothing is written to the browser draft. Pinned in Tasks 4d and 8.
 
 ## Facts this plan relies on
 
@@ -41,6 +44,9 @@
 - `scripts/bespoke-write-submission.py` already falls back to the leader's name when the team name is empty.
 - Browser tests run a loopback dev server in local preview mode, which is an editing session. Dialogs are auto-accepted.
 - Guide state is `ui.guide` in the app, saved in the browser draft under `guide`.
+- Each lesson has one access code today, sent as `editCode`, and it grants edit rights. `BESPOKE_TEAM_KEYS` maps lesson id to the code's hash. The existing provisioner refuses to run twice, to protect the encryption key.
+- View mode already exists (`ui.mode === 'view'`, `body[data-access=view]`) and never writes the browser draft. A snapshot link uses it today.
+- The local preview server is the only place tests reach the service. Its codes are synthetic.
 
 ## File structure
 
@@ -58,12 +64,15 @@
 | `bespoke/guide/guide.mjs` | Actions and the host contract | 2 |
 | `bespoke/guide/preview-map.mjs` (new) | Preview element to step id, pure | 2 |
 | `bespoke/thumbs.mjs` (new) | Rendered slide thumbnails, shared by path and gallery | 2 |
-| `bespoke/start.mjs` (new) | Start stage: team, choice, presets, returning | 2 |
-| `bespoke/builder-app.mjs` | Wiring only. Loses `renderWelcome` and `renderTeam` | 1, 2 |
+| `bespoke/start.mjs` (new) | Start stage: four-screen intake wizard, choice, presets, returning | 2 |
+| `bespoke/builder-app.mjs` | Wiring only. Gains the builder name and the team view session (PR 1). Loses `renderWelcome` and `renderTeam` (PR 2) | 1, 2 |
+| `netlify/functions/bespoke-handoff.mjs` | A read-only view code per lesson | 1 |
+| `scripts/bespoke-provision.mjs` | `--add-view-links` beside the existing team links | 1 |
+| `scripts/bespoke-write-submission.py` | A "Design built by" row on the proposal | 1 |
 
 ---
 
-# Part 1: PR 1, format changes
+# Part 1: PR 1, format and service changes
 
 ### Task 1: Optional sidebar text color in the model
 
@@ -542,10 +551,544 @@ git add bespoke/preview-editor.mjs bespoke/builder-app.mjs scripts/test-bespoke-
 git commit -m "feat: edit sidebar color and sidebar text from the BeSpoke preview and Shared theme"
 ```
 
+### Task 4b: Record who is building the design
+
+**Files:**
+- Modify: `scripts/generate-selection-v2-schema.mjs` (after the `team.properties.spokesperson.properties.email.maxLength` line)
+- Regenerate: `bespoke/selection-v2.schema.json`
+- Modify: `bespoke/builder-app.mjs:31` (state), `:279-336` (`renderTeam`), `:1157`, `:1214`, `:1241`, `:1266`, `:1278`
+- Modify: `scripts/bespoke-write-submission.py:49-53` (the `rows` dict)
+- Test: `scripts/test-bespoke-v2-contracts.mjs`, `scripts/test_bespoke_submission.py`, `scripts/test-bespoke-streamlined-workflow.mjs`
+
+**Interfaces:**
+- Produces: optional `team.builder` in the saved design, shaped `{ name: string }` with 1 to 200 characters. Absent means the Team Leader builds. App state `state.builderName` (`''` means the Team Leader). DOM id `#builderName`. A proposal row labelled `Design built by`.
+
+- [ ] **Step 1: Write the failing tests**
+
+In `scripts/test-bespoke-v2-contracts.mjs`:
+
+```js
+test('a builder name is optional, bounded, and round-trips through save and open', async () => {
+  const plain = payload();
+  assert.equal(Object.hasOwn(plain.team, 'builder'), false);
+  assert.deepEqual(selectionErrors(plain, plain.lesson.id), [], 'no builder means the Team Leader builds');
+  const named = payload();
+  named.team.builder = { name: 'Dana Builder' };
+  assert.deepEqual(selectionErrors(named, named.lesson.id), []);
+  for (const bad of [{}, { name: '' }, { name: 'x'.repeat(201) }, { name: 'Dana', role: 'admin' }, 'Dana']) {
+    const broken = payload();
+    broken.team.builder = bad;
+    assert.notDeepEqual(selectionErrors(broken, broken.lesson.id), [], JSON.stringify(bad));
+  }
+  const service = memoryService();
+  const saved = await service.request('save', { selection: named, expectedRevision: null, mutationId: randomUUID() });
+  assert.equal(saved.status, 200, JSON.stringify(saved));
+  assert.equal((await service.request('open')).body.selection.team.builder.name, 'Dana Builder');
+});
+```
+
+In `scripts/test_bespoke_submission.py`, inside the existing test class:
+
+```python
+    def test_proposal_names_the_builder_and_falls_back_to_the_team_leader(self):
+        payload = deepcopy(self.payload)
+        leader = payload["team"]["spokesperson"]["name"]
+        fallback = writer.build_intake_markdown(payload, "2026-10-02")
+        row = next(line for line in fallback.splitlines() if "Design built by" in line)
+        self.assertIn(leader, row)
+        payload["team"]["builder"] = {"name": "Dana Builder"}
+        named = writer.build_intake_markdown(payload, "2026-10-02")
+        row = next(line for line in named.splitlines() if "Design built by" in line)
+        self.assertIn("Dana Builder", row)
+```
+
+In `scripts/test-bespoke-streamlined-workflow.mjs`, before `custom journey and effective review`:
+
+```js
+  await scenario('builder name', async ({ makePage }) => {
+    const page = await makePage();
+    await team(page);
+    assert.equal((await draft(page)).builderName, '');
+    await page.locator('#builderName').fill('Dana Builder');
+    assert.equal((await draft(page)).builderName, 'Dana Builder');
+    await page.reload();
+    await page.locator('#stepList button').first().waitFor();
+    await stage(page, 'start');
+    assert.equal(await page.locator('#builderName').inputValue(), 'Dana Builder', 'the builder name survives a reload');
+  });
+```
+
+- [ ] **Step 2: Run them and watch them fail**
+
+Run: `node --test scripts/test-bespoke-v2-contracts.mjs; python3 -m unittest scripts/test_bespoke_submission.py; BESPOKE_STREAMLINED_SCENARIO='builder name' node scripts/test-bespoke-streamlined-workflow.mjs`
+Expected: the contract test fails on `Dana Builder` (unknown field `builder`), the Python test fails with `StopIteration`, the browser scenario fails because `builderName` is `undefined`.
+
+- [ ] **Step 3: Add the field to the schema**
+
+In `scripts/generate-selection-v2-schema.mjs`, after the `team.properties.spokesperson.properties.email.maxLength = 320;` line:
+
+```js
+// Optional: who makes the edits. Absent means the Team Leader builds.
+team.properties.builder = { type: 'object', additionalProperties: false, required: ['name'], properties: { name: { type: 'string', minLength: 1, maxLength: 200 } } };
+```
+
+Run: `node scripts/generate-selection-v2-schema.mjs && node scripts/generate-selection-v2-schema.mjs --check`
+Expected: exit 0, and the schema diff adds one `builder` property under `team`.
+
+- [ ] **Step 4: Carry the name through the app**
+
+In `bespoke/builder-app.mjs`:
+
+1. Line 31, in `state`: add `builderName:''` after `spokespersonEmail:''`.
+2. In `renderTeam`, after the Spokesperson email `<label>`, add:
+
+```html
+        <label class="field">Who is building the design?
+          <input id="builderName" type="text" autocomplete="off" maxlength="200" placeholder="Leave blank if it is you">
+        </label>
+```
+
+   and after `bind("spokespersonEmail", "spokespersonEmail");` add `bind("builderName", "builderName");`.
+3. Line 1157: add `payload.team.builder?.name ?? ''` to the list of values that loop checks.
+4. In `buildSelectionPayload`, change the `team:` value to:
+
+```js
+team:{name:state.teamName.trim(),spokesperson:{name:state.spokespersonName.trim(),email:state.spokespersonEmail.trim()},...(state.builderName.trim()?{builder:{name:state.builderName.trim()}}:{})}
+```
+
+5. In `loadDraft`, add `'builderName'` to the list of keys copied from the saved draft.
+6. In `resetDesignForLesson`, add `builderName:''` to the `Object.assign(state,{...})` call.
+7. In `applySelectionPayload`, add `builderName:team.builder?.name||''` to the `Object.assign(state,{...})` call.
+
+- [ ] **Step 5: Show the builder on the proposal**
+
+In `scripts/bespoke-write-submission.py`, in the `rows` dict, after the `"Spokesperson email"` entry:
+
+```python
+        "Design built by": (team.get("builder") or {}).get("name") or spokesperson["name"],
+```
+
+- [ ] **Step 6: Run the tests**
+
+Run: `node --test scripts/test-bespoke-v2-contracts.mjs scripts/test-bespoke-handoff.mjs && python3 -m unittest discover -s scripts -p 'test_bespoke*.py' && BESPOKE_STREAMLINED_SCENARIO='builder name' node scripts/test-bespoke-streamlined-workflow.mjs`
+Expected: all pass.
+
+- [ ] **Step 7: Commit**
+
+```bash
+git add scripts/generate-selection-v2-schema.mjs bespoke/selection-v2.schema.json bespoke/builder-app.mjs scripts/bespoke-write-submission.py scripts/test-bespoke-v2-contracts.mjs scripts/test_bespoke_submission.py scripts/test-bespoke-streamlined-workflow.mjs
+git commit -m "feat: record who is building a BeSpoke design"
+```
+
+### Task 4c: Team view links in the service and the provisioner
+
+This task changes the code that decides who may open what. It ends with a security review.
+
+**Files:**
+- Modify: `netlify/functions/bespoke-handoff.mjs:8, 102-114, 133, 273-279`
+- Modify: `scripts/bespoke-provision.mjs`
+- Modify: `scripts/bespoke-dev-server.mjs:13, 134`
+- Test: `scripts/test-bespoke-v2-contracts.mjs`, `scripts/test-bespoke-provision.mjs`, `scripts/test-bespoke-handoff.mjs` (one expected value)
+
+**Interfaces:**
+- Produces: environment variable `BESPOKE_VIEW_KEYS`, a JSON object mapping lesson id to the SHA-256 base64url digest of that lesson's view code. Optional: without it the service behaves as before.
+- Produces: `handleAction(body, { github, token, draftKey, teamKeys, viewKeys })`. A view code sent in `editCode` may only `open`. `open` answers with `access: 'edit' | 'view'`. Any other action with a view code answers 403 with `error: 'view'`.
+- Produces: `provisionViewLinks({ output, wizardUrl })` and the CLI flag `--add-view-links`. Files `view-env.json`, `view-access.json`, `view-links.html`. A view link ends `#view=<lesson-id>.<code>`.
+- Produces: `LOCAL_PREVIEW_VIEW_CODE` exported from `scripts/bespoke-dev-server.mjs`.
+
+- [ ] **Step 1: Write the failing service tests**
+
+In `scripts/test-bespoke-v2-contracts.mjs`, add `hashEditCode` and `VIEW_ONLY` to what the file uses from `../netlify/functions/bespoke-handoff.mjs` (the import already names `hashEditCode`; add `VIEW_ONLY`). In `memoryService`, add `viewKeys: JSON.stringify({ [legacy.lesson.id]: hashEditCode(VIEW_CODE) })` to the `context` object, and add these members to the object it returns:
+
+```js
+    view: (action, fields = {}) => handleAction({ action, lessonId: legacy.lesson.id, editCode: VIEW_CODE, ...fields }, context),
+    context, code,
+```
+
+Above `memoryService`, add `const VIEW_CODE = 'synthetic-team-view-code-000001';`. Then add:
+
+```js
+test('a view code opens the latest design and can do nothing else', async () => {
+  const service = memoryService(), selection = payload();
+  const empty = await service.view('open');
+  assert.equal(empty.status, 200);
+  assert.equal(empty.body.access, 'view');
+  assert.equal(empty.body.selection, null, 'opening before the first save works');
+  const saved = await service.request('save', { selection, expectedRevision: null, mutationId: randomUUID() });
+  const opened = await service.view('open');
+  assert.equal(opened.body.access, 'view');
+  assert.deepEqual(opened.body.selection, selection);
+  assert.equal(opened.body.revision, saved.body.revision);
+  assert.equal((await service.request('open')).body.access, 'edit');
+  const attempts = [
+    ['save', { selection, expectedRevision: saved.body.revision, mutationId: randomUUID() }],
+    ['send', { selection, expectedRevision: saved.body.revision }],
+    ['history', {}],
+    ['openRevision', { revision: saved.body.revision }],
+    ['status', { submissionId: 'anything' }]
+  ];
+  for (const [action, fields] of attempts) {
+    const refused = await service.view(action, fields);
+    assert.equal(refused.status, 403, action);
+    assert.equal(refused.body.error, 'view', action);
+    assert.equal(refused.body.message, VIEW_ONLY, action);
+  }
+  assert.equal(service.writes, 1, 'a view code never writes');
+  assert.equal(service.dispatched, 0, 'a view code never sends');
+  const otherLesson = LESSON_IDS.find(id => id !== legacy.lesson.id);
+  assert.equal((await handleAction({ action: 'open', lessonId: otherLesson, editCode: VIEW_CODE }, service.context)).status, 403, 'a view code opens only its own lesson');
+});
+
+test('view codes are optional, and a malformed table stops the service', async () => {
+  const service = memoryService();
+  const open = (viewKeys, editCode = service.code) => handleAction({ action: 'open', lessonId: legacy.lesson.id, editCode }, { ...service.context, viewKeys });
+  assert.equal((await open(undefined)).status, 200, 'an edit code works with no view table');
+  assert.equal((await open(undefined, VIEW_CODE)).status, 403, 'a view code is unknown when no view table is set');
+  assert.equal((await open('{"not-a-lesson":"x"}')).status, 503);
+  assert.equal((await open('not json')).status, 503);
+});
+```
+
+- [ ] **Step 2: Run them and watch them fail**
+
+Run: `node --test scripts/test-bespoke-v2-contracts.mjs`
+Expected: FAIL with `does not provide an export named 'VIEW_ONLY'`.
+
+- [ ] **Step 3: Implement the view role in the service**
+
+In `netlify/functions/bespoke-handoff.mjs`:
+
+After the `WRONG_CODE` line:
+
+```js
+export const VIEW_ONLY = 'This link can view the design but cannot change it. Ask your Team Leader for the builder link.';
+```
+
+Replace the first two lines of `handleAction` with:
+
+```js
+export async function handleAction(body, { github, token, draftKey, teamKeys, viewKeys }) {
+  let key, keys, views;
+  try { if (!token || !github) throw new Error('Not configured'); key = keyBytes(draftKey); keys = accessKeys(teamKeys); views = viewKeys ? accessKeys(viewKeys) : {}; }
+```
+
+Replace the three lines that compute `expected`, `actual` and the `WRONG_CODE` check (lines 112-114) with:
+
+```js
+  const holds = table => {
+    const expected = table[lessonId];
+    if (!expected) return false;
+    const actual = expected.length === 64 ? createHash('sha256').update(code, 'utf8').digest('hex') : hashEditCode(code);
+    return hashesMatch(actual, expected.length === 64 ? expected.toLowerCase() : expected);
+  };
+  // Both tables are checked on every request, so either kind of code costs the same work.
+  const mayEdit = holds(keys), mayView = holds(views);
+  if (!mayEdit && !mayView) return fail(403, 'code', WRONG_CODE);
+  // A view code reads the latest design and nothing else: no history, no status, no writes.
+  if (!mayEdit && action !== 'open') return fail(403, 'view', VIEW_ONLY);
+  const access = mayEdit ? 'edit' : 'view';
+```
+
+Change `if (action === 'open') return ok(view(current));` to:
+
+```js
+    if (action === 'open') return ok({ ...view(current), access });
+```
+
+In `handleRequest`, pass the new table: `{ github, token, draftKey: env.BESPOKE_DRAFT_KEY, teamKeys: env.BESPOKE_TEAM_KEYS, viewKeys: env.BESPOKE_VIEW_KEYS }`. In `handler`, add `'BESPOKE_VIEW_KEYS'` to `names`.
+
+- [ ] **Step 4: Update the one existing test that compares the whole `open` answer**
+
+In `scripts/test-bespoke-handoff.mjs`, the test `new lesson opens empty; first save returns durable revision and encrypted draft` expects `{ ok: true, revision: null, savedAt: null, selection: null }`. `open` now also reports the access level. Change the expected object to `{ ok: true, revision: null, savedAt: null, selection: null, access: 'edit' }`. This is the test catching an intended change to the answer, not a bug.
+
+Run: `node --test scripts/test-bespoke-v2-contracts.mjs scripts/test-bespoke-handoff.mjs`
+Expected: all pass.
+
+- [ ] **Step 5: Write the failing provisioner test**
+
+In `scripts/test-bespoke-provision.mjs`, change the import to `import { provision, provisionViewLinks } from './bespoke-provision.mjs';` and add:
+
+```js
+test('view links are added beside existing team links without touching them', () => {
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'bespoke-provision-'));
+  const wizardUrl = 'https://example.test/bespoke/';
+  try {
+    const output = provision({ output: path.join(tmp, 'private'), wizardUrl });
+    const names = ['server-env.json', 'team-access.json', 'team-links.html'];
+    const before = Object.fromEntries(names.map(name => [name, fs.readFileSync(path.join(output, name), 'utf8')]));
+    provisionViewLinks({ output, wizardUrl });
+    for (const name of names) assert.equal(fs.readFileSync(path.join(output, name), 'utf8'), before[name], `${name} is unchanged`);
+    const team = JSON.parse(before['team-access.json']);
+    const access = JSON.parse(fs.readFileSync(path.join(output, 'view-access.json')));
+    const env = JSON.parse(fs.readFileSync(path.join(output, 'view-env.json')));
+    const hashes = JSON.parse(env.BESPOKE_VIEW_KEYS);
+    assert.deepEqual(Object.keys(env), ['BESPOKE_VIEW_KEYS']);
+    assert.equal(new Set(Object.values(access).map(item => item.code)).size, 6);
+    for (const [lesson, item] of Object.entries(access)) {
+      assert.equal(item.code.length, 32);
+      assert.notEqual(item.code, team[lesson].code, 'a view code is never the edit code');
+      assert.equal(hashes[lesson], createHash('sha256').update(item.code).digest('base64url'));
+      assert.equal(new URL(item.url).hash, `#view=${lesson}.${item.code}`);
+      assert.equal(JSON.stringify(env).includes(item.code), false);
+    }
+    assert.match(fs.readFileSync(path.join(output, 'view-links.html'), 'utf8'), /#view=/);
+    if (process.platform !== 'win32') assert.equal(fs.statSync(path.join(output, 'view-access.json')).mode & 0o777, 0o600);
+    assert.throws(() => provisionViewLinks({ output, wizardUrl }), /already exist/);
+    assert.throws(() => provisionViewLinks({ output: path.join(tmp, 'empty'), wizardUrl }), /existing private provisioning directory/);
+    assert.throws(() => provisionViewLinks({ output, wizardUrl: 'http://example.test/bespoke/' }), /HTTPS/);
+  } finally { fs.rmSync(tmp, { recursive: true, force: true }); }
+});
+```
+
+Run: `node --test scripts/test-bespoke-provision.mjs`
+Expected: FAIL with `does not provide an export named 'provisionViewLinks'`.
+
+- [ ] **Step 6: Implement `provisionViewLinks`**
+
+In `scripts/bespoke-provision.mjs`, after `provision`:
+
+```js
+/** Adds one read-only link per lesson to an existing private directory. Never touches the team codes or the encryption key. */
+export function provisionViewLinks({ output, wizardUrl }) {
+  const url = new URL(wizardUrl);
+  if (url.protocol !== 'https:' || url.username || url.password || url.search || url.hash) {
+    throw new Error('Use the HTTPS BeSpoke page URL without a query, access code, or fragment.');
+  }
+  const target = path.resolve(output);
+  if (!fs.existsSync(path.join(target, 'team-access.json'))) throw new Error('Point --output at the existing private provisioning directory that holds team-access.json.');
+  const realTarget = fs.realpathSync(target), realRoot = fs.realpathSync(root);
+  if (realTarget === realRoot || realTarget.startsWith(realRoot + path.sep)) throw new Error('The private directory must be outside this repository.');
+  if (fs.existsSync(path.join(target, 'view-access.json'))) throw new Error('View links already exist here. Reuse them; do not regenerate.');
+  const team = JSON.parse(fs.readFileSync(path.join(target, 'team-access.json'), 'utf8'));
+  const freshCode = lessonId => {
+    const code = randomBytes(24).toString('base64url');
+    return code === team[lessonId]?.code ? freshCode(lessonId) : code;
+  };
+  const access = Object.fromEntries(lessons.map(lesson => {
+    const code = freshCode(lesson.id);
+    return [lesson.id, { title: lesson.title, code, url: `${url.href}#view=${lesson.id}.${code}` }];
+  }));
+  const hashes = Object.fromEntries(Object.entries(access).map(([lesson, value]) => [lesson, createHash('sha256').update(value.code).digest('base64url')]));
+  const escapeHtml = value => String(value).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
+  const items = Object.values(access).map(item => `<li><a href="${escapeHtml(item.url)}">${escapeHtml(item.title)}</a></li>`).join('');
+  const write = (name, value) => fs.writeFileSync(path.join(target, name), value, { mode: 0o600, flag: 'wx' });
+  write('view-env.json', JSON.stringify({ BESPOKE_VIEW_KEYS: JSON.stringify(hashes) }, null, 2) + '\n');
+  write('view-access.json', JSON.stringify(access, null, 2) + '\n');
+  write('view-links.html', `<!doctype html><html lang="en"><meta charset="utf-8"><meta name="referrer" content="no-referrer"><title>BeSpoke team view links</title><style>body{font:18px system-ui;max-width:760px;margin:3rem auto;padding:0 1rem}</style><h1>BeSpoke team view links</h1><p>Each link opens that team's latest saved design, read-only. These are the links to pin in each team's channel.</p><ul>${items}</ul></html>\n`);
+  return target;
+}
+```
+
+Replace the body of the CLI `try` block with:
+
+```js
+    const args = process.argv.slice(2);
+    const value = flag => { const i = args.indexOf(flag); return i >= 0 ? args[i + 1] : ''; };
+    const addViews = args.includes('--add-view-links');
+    if (args.length !== (addViews ? 5 : 4) || !value('--output') || !value('--wizard-url')) throw new Error('Usage: node scripts/bespoke-provision.mjs --output /private/path --wizard-url https://host/bespoke/ [--add-view-links]');
+    if (addViews) {
+      const target = provisionViewLinks({ output: value('--output'), wizardUrl: value('--wizard-url') });
+      console.log(`Added six team view links in ${target}. No secrets were printed. The team codes and the encryption key were not changed.`);
+    } else {
+      const target = provision({ output: value('--output'), wizardUrl: value('--wizard-url') });
+      console.log(`Created six private team links and server configuration in ${target}. No secrets were printed. Protect this directory and back up the encryption key before deployment.`);
+    }
+```
+
+- [ ] **Step 7: Give the local preview a view code**
+
+In `scripts/bespoke-dev-server.mjs`, after `LOCAL_PREVIEW_CODE`:
+
+```js
+export const LOCAL_PREVIEW_VIEW_CODE = 'bespoke-local-preview-view-only';
+```
+
+and in the `env` object, after `BESPOKE_TEAM_KEYS`:
+
+```js
+    BESPOKE_VIEW_KEYS: JSON.stringify(Object.fromEntries(LESSON_IDS.map(id => [id, hashEditCode(LOCAL_PREVIEW_VIEW_CODE)]))),
+```
+
+- [ ] **Step 8: Run the tests**
+
+Run: `node --test scripts/test-bespoke-provision.mjs scripts/test-bespoke-v2-contracts.mjs scripts/test-bespoke-handoff.mjs scripts/test-bespoke-dev-server.mjs`
+Expected: all pass.
+
+- [ ] **Step 9: Security review**
+
+Dispatch the `security-specialist` agent with this brief: "Review `git diff origin/main -- netlify/functions scripts/bespoke-provision.mjs scripts/bespoke-dev-server.mjs` in this repository. The change adds a read-only access code per lesson to a service that stores encrypted design drafts. A view code must be able to read the latest draft for its own lesson and nothing else. Look for: any action other than `open` reachable with a view code, a view code for one lesson reading another, timing differences that reveal which table matched, a view code accepted where an edit code is required, error messages that leak which codes exist, and provisioning that could overwrite or print secrets. Report findings with file and line. Do not edit files."
+
+Read the agent's findings against the diff yourself. Fix every finding that is real, add a test for each fix, and rerun Step 8. Quote the findings and their outcomes in the PR description.
+
+- [ ] **Step 10: Commit**
+
+```bash
+git add netlify/functions/bespoke-handoff.mjs scripts/bespoke-provision.mjs scripts/bespoke-dev-server.mjs scripts/test-bespoke-v2-contracts.mjs scripts/test-bespoke-provision.mjs scripts/test-bespoke-handoff.mjs
+git commit -m "feat: add read-only team view codes to the BeSpoke service and provisioner"
+```
+
+### Task 4d: Open a team view link in the builder
+
+**Files:**
+- Modify: `bespoke/builder-app.mjs:42` (startup link), `:104` (`forgetTeamSession`), `:142` (after `parseTeamLink`), `:223-235` (`syncAccessChrome`), `:494` (`openShareLink`)
+- Test: `scripts/test-bespoke-streamlined-workflow.mjs`
+
+**Interfaces:**
+- Consumes: the service's `open` with a view code (Task 4c), `LOCAL_PREVIEW_VIEW_CODE`, `state.builderName` (Task 4b).
+- Produces: a page opened at `#view=<lesson-id>.<code>` runs in the existing view mode with the team's latest saved design. `ui.viewSession` is `{ lessonId, code, savedAt }` or `null`. DOM id `#btnViewRefresh` inside `#accessBanner`. Session storage key `bespoke-view-session`.
+
+- [ ] **Step 1: Write the failing scenario**
+
+In `scripts/test-bespoke-streamlined-workflow.mjs`, change the dev server import to `import { createDevServer, LOCAL_PREVIEW_CODE, LOCAL_PREVIEW_VIEW_CODE } from './bespoke-dev-server.mjs';` and add after the `builder name` scenario:
+
+```js
+  await scenario('team view link', async ({ makePage, server }) => {
+    const builder = await makePage();
+    await team(builder);
+    await builder.locator('#preset-fun').click();
+    await save(builder);
+    const context = await browser.newContext({ viewport: { width: 1440, height: 1000 }, reducedMotion: 'reduce' });
+    try {
+      const view = await context.newPage();
+      view.on('pageerror', error => errors.push(`team view link: ${error.message}`));
+      await view.goto(`${server.baseUrl}/bespoke/#view=${legacy.lesson.id}.${LOCAL_PREVIEW_VIEW_CODE}`);
+      await view.locator('body[data-access=view]').waitFor();
+      await view.locator('#btnViewRefresh').waitFor();
+      assert.equal(new URL(view.url()).hash, '', 'the code is removed from the address bar');
+      assert.match(await view.locator('#accessBanner').innerText(), /team · View only · Saved .+ · Built by Sample Instructor/);
+      assert.equal((await view.locator('#designStyle').textContent()).includes('--role-title-background: var(--gold)'), true, 'the viewer sees the saved Fun preset');
+      assert.equal(await view.evaluate(() => localStorage.getItem('bespoke-draft-v2')), null, 'viewing never writes a browser draft');
+      await stage(builder, 'start');
+      await builder.locator('#builderName').fill('Dana Builder');
+      await save(builder);
+      await view.locator('#btnViewRefresh').click();
+      await view.locator('#accessBanner').filter({ hasText: 'Built by Dana Builder' }).waitFor();
+      await view.reload();
+      await view.locator('#accessBanner').filter({ hasText: 'Built by Dana Builder' }).waitFor();
+      const wrong = await context.newPage();
+      await wrong.goto(`${server.baseUrl}/bespoke/#view=${legacy.lesson.id}.not-the-right-view-code-0000`);
+      await wrong.locator('#restoreNotice').filter({ hasText: 'not right' }).waitFor();
+      assert.equal(await wrong.locator('body').getAttribute('data-access'), 'view', 'a bad view link never opens an editing session');
+    } finally { await context.close(); }
+  });
+```
+
+- [ ] **Step 2: Run it and watch it fail**
+
+Run: `BESPOKE_STREAMLINED_SCENARIO='team view link' node scripts/test-bespoke-streamlined-workflow.mjs`
+Expected: FAIL: the page opens an editing session, so `body[data-access=view]` never appears.
+
+- [ ] **Step 3: Read the link at startup**
+
+In `bespoke/builder-app.mjs`, after the `startupTeamLink` line (line 42):
+
+```js
+let startupViewLink=(()=>{const v=location.hash.startsWith('#view=')?location.hash.slice(6):'';if(v)history.replaceState(null,'',location.pathname+location.search);return v;})();
+const VIEW_SESSION_KEY='bespoke-view-session';
+ui.viewSession=null;
+```
+
+- [ ] **Step 4: Open and refresh the team view**
+
+After `parseTeamLink`:
+
+```js
+  // A team view link opens the latest saved design read-only. It never reads or writes the browser draft.
+  function storedViewLink() {
+    try { return sessionStorage.getItem(VIEW_SESSION_KEY) || ""; }
+    catch { return ""; }
+  }
+
+  async function loadTeamView() {
+    const session = ui.viewSession;
+    const result = await handoffRequest("open", { lessonId: session.lessonId, editCode: session.code });
+    if (!result.ok) {
+      ui.restoreNote = result.message || "Could not open the team design. Try again.";
+      return false;
+    }
+    if (!result.selection) {
+      ui.restoreNote = "Your team has not saved a design yet. Check back after the builder's first save.";
+      return true;
+    }
+    try { applySelectionPayload(result.selection); }
+    catch (error) {
+      console.warn("Team view could not be opened", error);
+      ui.restoreNote = "The team design could not be opened. Ask your Team Leader to save it again.";
+      return false;
+    }
+    ui.viewSession = { ...session, savedAt: result.savedAt || null };
+    ui.restoreNote = "";
+    state.step = stepIndex("review");
+    return true;
+  }
+
+  async function openTeamView(value) {
+    ui.mode = "view";
+    const link = parseTeamLink(value);
+    if (!link) {
+      ui.restoreNote = "This team view link is incomplete or out of date. Ask your Team Leader for the current one.";
+      return;
+    }
+    ui.viewSession = { lessonId: link.lessonId, code: link.editCode, savedAt: null };
+    state.lessonId = link.lessonId;
+    try { sessionStorage.setItem(VIEW_SESSION_KEY, value); }
+    catch { /* The link still works for this page load. */ }
+    await loadTeamView();
+  }
+```
+
+At the top of `openShareLink`, before `if (startupTeamLink) {`:
+
+```js
+    const viewValue = startupTeamLink ? "" : startupViewLink || storedViewLink();
+    if (viewValue) {
+      startupViewLink = "";
+      await openTeamView(viewValue);
+      return { team: false, snapshot: true };
+    }
+    ui.viewSession = null;
+    try { sessionStorage.removeItem(VIEW_SESSION_KEY); }
+    catch { /* Private mode: nothing was stored. */ }
+```
+
+In `forgetTeamSession`, add `ui.viewSession = null;` after `ui.teamSession = null;`.
+
+- [ ] **Step 5: Show the view banner**
+
+In `syncAccessChrome`, replace `if (locked && banner.hidden) {` with a view-session branch in front of it:
+
+```js
+      if (locked && ui.viewSession) {
+        const lesson = findMeta(state.meta.lessons, ui.viewSession.lessonId)?.title || "";
+        const saved = ui.viewSession.savedAt ? "Saved " + new Date(ui.viewSession.savedAt).toLocaleString([], { dateStyle: "medium", timeStyle: "short" }) : "Nothing saved yet";
+        banner.textContent = `${lesson} team · View only · ${saved} · Built by ${state.builderName.trim() || state.spokespersonName.trim() || "the Team Leader"} `;
+        const refresh = document.createElement("button");
+        refresh.type = "button";
+        refresh.id = "btnViewRefresh";
+        refresh.className = "text-link";
+        refresh.textContent = "Refresh";
+        refresh.onclick = async () => { await loadTeamView(); render(); };
+        banner.append(refresh);
+        banner.hidden = false;
+      } else if (locked && banner.hidden) {
+```
+
+- [ ] **Step 6: Run the scenario and the view-mode tests**
+
+Run: `BESPOKE_STREAMLINED_SCENARIO='team view link' node scripts/test-bespoke-streamlined-workflow.mjs && BESPOKE_PREVIEW_WIDTHS='' node scripts/test-bespoke-preview-editor.mjs && node scripts/test-bespoke-browser.mjs`
+Expected: all exit 0. The existing snapshot and team-link tests are unchanged.
+
+- [ ] **Step 7: Commit**
+
+```bash
+git add bespoke/builder-app.mjs scripts/test-bespoke-streamlined-workflow.mjs
+git commit -m "feat: open a read-only team view link on the latest saved BeSpoke design"
+```
+
 ### Task 5: PR 1 docs, gate, service stage and pull request
 
 **Files:**
-- Modify: `docs/bespoke/decisions.md` (new section above "Current direction"), `docs/bespoke/builder-handoff.md`, `bespoke/README.md`
+- Modify: `docs/bespoke/decisions.md` (new section above "Current direction"), `docs/bespoke/builder-handoff.md`, `docs/bespoke/auto-handoff-setup.md`, `bespoke/README.md`
 
 - [ ] **Step 1: Record the decisions**
 
@@ -563,6 +1106,8 @@ Britt approved the design in `docs/superpowers/specs/2026-10-02-bespoke-start-pa
 | Start is one page with Lesson & team, Build my own and six presets (September 24) | Two short screens, then scratch or preset. Ships in the second pull request. |
 | Guide me walks slide by slide with four suggested colors (September 30) | Step by step walks twelve steps: colors, layout, fonts. Every color screen shows all eleven. Ships in the second pull request. |
 | Guide me owns the preview while it runs (October 1) | A preview click opens the matching step or the preview editor. Ships in the second pull request. |
+| One private link per team, and it edits (September 22) | Two links per team. The builder link edits. The team view link opens the latest saved design read-only. |
+| The spokesperson operates the preview (September 22) | The saved design names a Team Leader and, when different, one builder as `team.builder.name`. The team decides together on a Teams call with the builder sharing their screen. |
 
 The saved format stays `bespoke-selection/v2`. The service is redeployed before the first pull request merges, because it bundles the schema and the catalog.
 ```
@@ -573,7 +1118,15 @@ In `docs/bespoke/builder-handoff.md`, in the section that lists the v2 design fi
 
 ```markdown
 - `design.roles.sidebarText` is optional. When present it is one of the eleven color ids and the generated CSS sets `--role-sidebar-ink` to it. When absent the model picks White or Royal for the sidebar text, as before. Do not add the field to a design that lacks it.
+- `team.builder.name` is optional. It names the one person who edits the design. When absent, the Team Leader in `team.spokesperson.name` is the builder.
 ```
+
+In `docs/bespoke/auto-handoff-setup.md`:
+
+- In the variables table under "Configure the service", add the row: `| `BESPOKE_VIEW_KEYS` | Optional. A JSON object mapping each lesson ID to the SHA-256 base64url digest of its team view code. A view code can open the latest saved design and nothing else |`
+- Under "Provision private team access", add a subsection "Add team view links" that says: run `node scripts/bespoke-provision.mjs --output <the existing private directory> --wizard-url <the BeSpoke page URL> --add-view-links`; it writes `view-env.json`, `view-access.json` and `view-links.html` beside the existing files and changes none of them; set `BESPOKE_VIEW_KEYS` from `view-env.json` the same way `BESPOKE_TEAM_KEYS` was set; pin each link from `view-links.html` in that team's channel; send the builder link only to the Team Leader, who passes it to the builder.
+- In the same file, change the guidance that the team link is pinned in the team channel: the team view link is the one to pin, and the builder link goes to the Team Leader only.
+- Under "Rotation and recovery", add: a team view code is rotated by deleting the three `view-*` files for a fresh run of `--add-view-links`, which replaces all six view codes at once, then updating `BESPOKE_VIEW_KEYS`.
 
 In `bespoke/README.md`, replace each mention of six presets with nine, and add one sentence under the color rules: `The sidebar text color is Automatic unless the Team Leader picks one.`
 
@@ -599,10 +1152,18 @@ Open the PR with `gh pr create`. The description leads with the deploy order: se
 
 - [ ] **Step 6: Stage the service and hand the deploy to Britt**
 
-Run: `node scripts/bespoke-stage-service.mjs ~/bespoke-stages/2026-10-02-sidebar-text-$(git rev-parse --short HEAD)`
+Run: `node scripts/bespoke-stage-service.mjs ~/bespoke-stages/2026-10-02-format-$(git rev-parse --short HEAD)`
 Expected: `Service-only deployment staged at ...`.
 
-Give Britt the deploy command from auto-memory `bespoke-netlify-deploy`. After Britt deploys, run that memory's post-deploy checks and add the deploy id and results to the PR description. Britt reviews the nine presets in the local preview and merges.
+Then hand Britt these steps, in this order. Britt runs each one, because each reads or writes secrets.
+
+1. Ask Britt for the absolute path of the private provisioning directory, the one that holds `team-access.json`. It is deliberately not recorded in the repo. Give Britt the complete command with that path and the live BeSpoke page URL filled in: `node scripts/bespoke-provision.mjs --output <that directory> --wizard-url <the BeSpoke page URL> --add-view-links`.
+2. Give Britt the complete command that sets `BESPOKE_VIEW_KEYS` on the Netlify site from `<that directory>/view-env.json`, using the site ID from auto-memory `bespoke-netlify-deploy`. Do not open, print or paste the file's contents.
+3. Give Britt the deploy command from the same auto-memory.
+4. After the deploy, run that memory's post-deploy checks (OPTIONS 204, a made-up code refused with 403).
+5. Britt opens one link from `view-links.html` and confirms the banner reads "View only" and shows a saved time. Britt opens one builder link and confirms it still edits.
+
+Add the deploy id and the results of steps 4 and 5 to the PR description. Britt reviews the nine presets in the local preview and merges. Britt then pins the six view links in the team channels.
 
 ---
 
@@ -1524,53 +2085,83 @@ git add bespoke/guide bespoke/thumbs.mjs bespoke/guide.css bespoke/builder-app.m
 git commit -m "feat: replace Guide me with a twelve-step path through colors, layout and fonts"
 ```
 
-### Task 8: The Start screens and the preset gallery
+### Task 8: The intake wizard, the choice screen and the preset gallery
 
 **Files:**
 - Create: `bespoke/start.mjs`
-- Modify: `bespoke/builder-app.mjs` (delete `renderTeam` lines 279-336 and `renderWelcome` lines 1375-1408; wire `start`; `applyPresetChoice`; `lockViewControls`; `goStage`)
-- Modify: `bespoke/builder.css` (start cards, preset slides; remove `.custom-path` and `.getting-started`)
-- Modify: `scripts/bespoke-test-navigation.mjs` (`startPath`, `teamForm`, `presetGallery`, `builderDestination`)
-- Test: `scripts/test-bespoke-streamlined-workflow.mjs` (new scenario `start screens`)
+- Modify: `bespoke/builder-app.mjs` (delete `renderTeam` and `renderWelcome`; wire `start`; `applyPresetChoice`; `lockViewControls`; `goStage`; draft save and restore of `intakeDone`)
+- Modify: `bespoke/builder.css` (start cards, preset slides, builder choice; remove `.custom-path` and `.getting-started`)
+- Modify: `scripts/bespoke-test-navigation.mjs` (`startPath`, `teamForm`, `builderForm`, `presetGallery`, `builderDestination`)
+- Test: `scripts/test-bespoke-streamlined-workflow.mjs` (new scenario `start screens`; delete the PR 1 scenario `builder name`, which this one replaces), `scripts/test-bespoke-preview-editor.mjs` (the read-only snapshot block)
 
 **Interfaces:**
-- Consumes: `slideThumb`, `fitThumbnails` from `bespoke/thumbs.mjs`; `el` from `bespoke/guide/screens.mjs`; `guide.start()`, `guide.resume()`.
-- Produces: `createStart(host) -> { render(panel), reset() }`. Host contract: `catalog`, `Model`, `lessons`, `lessonId`, `leaderName`, `design`, `isLead()`, `lessonLocked()`, `meaningful()`, `pathWaiting()`, `setLeaderName(value)`, `setLesson(id)`, `startScratch()`, `stepByStep()`, `requestPreset(id)`, `goStage(id)`, `slideOptions(design)`, `closestLesson(design)`, `rerender()`.
-- DOM ids: `#spokespersonName`, `#lessonSelect`, `#btnTeamContinue`, `#btnStartScratch`, `#btnStartPreset`, `#btnStartBack`, `#preset-<id>` with `data-preset`, `#btnContinueEditing`, `#btnStepByStep`, `#btnQuickReview`, `#btnChangeStartingLook`, `#btnEditTeam`. `#stepPanel[data-start-screen]` is `team`, `choice`, `presets` or `returning`.
+- Consumes: `slideThumb`, `fitThumbnails` from `bespoke/thumbs.mjs`; `el` from `bespoke/guide/screens.mjs`; `guide.start()`, `guide.resume()`; `state.builderName` from Task 4b.
+- Produces: `createStart(host) -> { render(panel), reset() }`. Host contract: `catalog`, `Model`, `lessons`, `lessonId`, `leaderName`, `builderName`, `design`, `isLead()`, `lessonLocked()`, `meaningful()`, `intakeDone()`, `finishIntake()`, `pathWaiting()`, `setLeaderName(value)`, `setBuilderName(value)`, `setLesson(id)`, `startScratch()`, `stepByStep()`, `requestPreset(id)`, `goStage(id)`, `slideOptions(design)`, `closestLesson(design)`, `rerender()`.
+- `#stepPanel[data-start-screen]` is one of `lesson`, `leader`, `builder`, `roles`, `choice`, `presets`, `returning`.
+- DOM ids: `#lessonSelect`, `#spokespersonName`, `#builderIsLeader`, `#builderIsOther`, `#builderName`, `#btnTeamContinue`, `#btnStartBack`, `#btnStartScratch`, `#btnStartPreset`, `#preset-<id>` with `data-preset`, `#btnContinueEditing`, `#btnStepByStep`, `#btnQuickReview`, `#btnChangeStartingLook`, `#btnEditTeam`.
 
 - [ ] **Step 1: Write the failing scenario**
 
-In `scripts/test-bespoke-streamlined-workflow.mjs`, add this scenario before `custom journey and effective review`:
+In `scripts/test-bespoke-streamlined-workflow.mjs`, delete the `builder name` scenario and add this one before `custom journey and effective review`:
 
 ```js
   await scenario('start screens', async ({ makePage }) => {
     const page = await makePage();
     const panel = page.locator('#stepPanel');
-    assert.equal(await panel.getAttribute('data-start-screen'), 'team');
+    const screen = () => panel.getAttribute('data-start-screen');
+    const proceed = () => page.locator('#btnTeamContinue').click();
+    assert.equal(await screen(), 'lesson');
+    assert.match(await panel.innerText(), /Getting started · 1 of 4/);
     assert.equal(await page.locator('#teamName').count(), 0, 'the team name field is gone');
     assert.equal(await page.locator('#spokespersonEmail').count(), 0, 'the email field is gone');
+    assert.equal(await panel.locator('input, select, textarea').count(), 1, 'one question per screen');
+    assert.equal(await page.locator('#btnNext').count(), 0, 'Start has no shortcut past the wizard');
+    await proceed();
+    assert.equal(await screen(), 'leader');
     assert.equal(await page.locator('label:has(#spokespersonName)').innerText().then(t => t.trim()), 'Team Leader name');
     assert.equal(await page.locator('#btnTeamContinue').isDisabled(), true);
     await page.locator('#spokespersonName').fill('   ');
     assert.equal(await page.locator('#btnTeamContinue').isDisabled(), true, 'spaces are not a name');
     await page.locator('#spokespersonName').fill('Sample Leader');
-    await page.locator('#btnTeamContinue').click();
-    assert.equal(await panel.getAttribute('data-start-screen'), 'choice');
+    await proceed();
+    assert.equal(await screen(), 'builder');
+    assert.equal(await page.locator('#builderIsLeader').isChecked(), true, 'the Team Leader builds unless they say otherwise');
+    assert.equal(await page.locator('#builderName').isVisible(), false);
+    await page.locator('#builderIsOther').check();
+    assert.equal(await page.locator('#btnTeamContinue').isDisabled(), true, 'someone else needs a name');
+    await page.locator('#builderName').fill('Dana Builder');
+    await proceed();
+    assert.equal(await screen(), 'roles');
+    assert.match(await panel.innerText(), /Dana Builder shares their screen/);
+    assert.match(await panel.innerText(), /team view link/);
+    assert.equal(await panel.locator('input, select, textarea').count(), 0, 'this screen collects nothing');
+    await proceed();
+    assert.equal(await screen(), 'choice');
     assert.equal(await panel.locator('button.start-card').count(), 2);
-    assert.equal(await page.locator('#btnNext').count(), 0, 'Start has no shortcut past the choice');
+    assert.equal((await draft(page)).builderName, 'Dana Builder');
+    await page.reload();
+    await page.locator('#stepList button').first().waitFor();
+    assert.equal(await screen(), 'choice', 'a finished intake is not asked again');
     await page.locator('#btnStartPreset').click();
-    assert.equal(await panel.getAttribute('data-start-screen'), 'presets');
+    assert.equal(await screen(), 'presets');
     assert.equal(await page.locator('[data-preset]').count(), 9);
     assert.equal(await page.locator('[data-preset] .guide-thumb').count(), 18, 'two rendered slides per preset');
-    assert.equal(await page.locator('[data-preset] button, [data-preset] a').count(), 0, 'thumbnails add no tab stops');
     await page.locator('#preset-slate').click();
     assert.equal((await design(page)).startingPoint, 'slate');
     assert.equal(await page.locator('#stage-slides').getAttribute('aria-current'), 'step', 'a preset opens Slide designs');
     assert.match(await page.locator('#fileStatus').innerText(), /Slate applied/);
     await page.locator('#stage-start').click();
-    assert.equal(await panel.getAttribute('data-start-screen'), 'returning');
+    assert.equal(await screen(), 'returning');
     assert.match(await panel.innerText(), /Sample Leader/);
+    assert.match(await panel.innerText(), /Built by Dana Builder/);
     for (const id of ['btnContinueEditing', 'btnStepByStep', 'btnQuickReview', 'btnChangeStartingLook', 'btnEditTeam']) assert.equal(await page.locator('#' + id).isVisible(), true, id);
+    await page.locator('#btnEditTeam').click();
+    assert.equal(await screen(), 'lesson');
+    await proceed(); await proceed();
+    await page.locator('#builderIsLeader').check();
+    await proceed(); await proceed();
+    assert.equal(await screen(), 'returning', 'editing the team returns to the design, not to the choice');
+    assert.equal((await draft(page)).builderName, '', 'the Team Leader builds again');
     await page.locator('#btnChangeStartingLook').click();
     await page.locator('#btnStartScratch').click();
     assert.equal(await page.locator('.guide-count').innerText().then(t => t.startsWith('Step 1 of 12')), true);
@@ -1585,8 +2176,8 @@ A view-only session is reached with a snapshot link, and `scripts/test-bespoke-p
 ```js
  await view.locator('body[data-access=view]').waitFor();
  await view.locator('#stage-start').click();
- assert.equal(await view.locator('#stepPanel').getAttribute('data-start-screen'),'returning','a viewer skips the intake form');
- for(const id of ['btnStepByStep','btnChangeStartingLook','btnEditTeam','spokespersonName','btnStartScratch'])assert.equal(await view.locator('#'+id).count(),0,id+' is not offered to a viewer');
+ assert.equal(await view.locator('#stepPanel').getAttribute('data-start-screen'),'returning','a viewer skips the intake wizard');
+ for(const id of ['btnStepByStep','btnChangeStartingLook','btnEditTeam','spokespersonName','btnStartScratch','btnTeamContinue'])assert.equal(await view.locator('#'+id).count(),0,id+' is not offered to a viewer');
  assert.equal(await view.locator('#btnContinueEditing').isVisible(),true);
  await view.locator('#stage-slides').click();
 ```
@@ -1602,7 +2193,9 @@ Expected: both FAIL: `data-start-screen` is `null`.
 import { el } from './guide/screens.mjs';
 import { fitThumbnails, slideThumb } from './thumbs.mjs';
 
-/** The Start stage: team form, scratch-or-preset choice, preset gallery, and the returning-team view. */
+const INTAKE = ['lesson', 'leader', 'builder', 'roles'];
+
+/** The Start stage: a four-screen intake wizard, the scratch-or-preset choice, the preset gallery, and the returning-team view. */
 export function createStart(host) {
   // null means "work it out"; once a screen is shown it stays until the leader moves on.
   let screen = null;
@@ -1614,23 +2207,70 @@ export function createStart(host) {
     return b;
   };
   const heading = (title, lead) => [el('h1', { tabindex: '-1' }, title), el('p', { class: 'panel-lead' }, lead)];
+  const afterIntake = () => (host.meaningful() ? 'returning' : 'choice');
+  const builder = () => host.builderName.trim() || host.leaderName.trim() || 'The builder';
+  const lessonTitle = () => host.lessons.find((item) => item.id === host.lessonId)?.title || '';
 
-  function teamScreen() {
-    const name = el('input', { id: 'spokespersonName', type: 'text', autocomplete: 'name', required: true, maxlength: '200', placeholder: 'Your name' });
-    name.value = host.leaderName;
+  // One intake screen: a counter, one question, and Back and Continue.
+  function intake(step, title, lead, fields, ready = true) {
+    const index = INTAKE.indexOf(step);
+    const proceed = button('btnTeamContinue', 'btn btn-primary', 'Continue', () => {
+      if (index === INTAKE.length - 1) host.finishIntake();
+      go(INTAKE[index + 1] || afterIntake());
+    }, !ready);
+    const previous = index > 0 ? INTAKE[index - 1] : host.meaningful() ? 'returning' : null;
+    const body = [el('p', { class: 'stage-count' }, `Getting started · ${index + 1} of ${INTAKE.length}`), ...heading(title, lead), ...fields,
+      el('div', { class: 'start-actions' }, previous ? button('btnStartBack', 'btn btn-secondary', 'Back', () => go(previous)) : null, proceed)];
+    return { body, proceed };
+  }
+
+  function lessonScreen() {
     const lesson = el('select', { id: 'lessonSelect' });
     for (const item of host.lessons) lesson.append(el('option', { value: item.id }, item.note ? `${item.title} (${item.note})` : item.title));
     lesson.value = host.lessonId;
-    if (host.lessonLocked()) {
-      lesson.disabled = true;
-      lesson.title = 'This private team link is set to its lesson team.';
-    }
-    const proceed = button('btnTeamContinue', 'btn btn-primary', 'Continue', () => go(host.meaningful() ? 'returning' : 'choice'), !host.leaderName.trim());
-    name.addEventListener('input', () => { host.setLeaderName(name.value); proceed.disabled = !name.value.trim(); });
+    const locked = host.lessonLocked();
+    if (locked) lesson.disabled = true;
     lesson.addEventListener('change', () => host.setLesson(lesson.value));
-    return [...heading('Your team', 'One Team Leader saves the team’s design choices.'),
-      el('div', { class: 'field-grid two' }, el('label', { class: 'field' }, 'Team Leader name', name), el('label', { class: 'field' }, 'Lesson team', lesson)),
-      el('div', { class: 'start-actions' }, proceed)];
+    const lead = locked ? `Your link opens the ${lessonTitle()} team. Continue if that is your team.` : 'Which lesson is your team designing?';
+    return intake('lesson', 'Your lesson team', lead, [el('label', { class: 'field' }, 'Lesson team', lesson)]).body;
+  }
+
+  function leaderScreen() {
+    const name = el('input', { id: 'spokespersonName', type: 'text', autocomplete: 'name', required: true, maxlength: '200', placeholder: 'Your name' });
+    name.value = host.leaderName;
+    const { body, proceed } = intake('leader', 'Team Leader', 'Who leads this team? The Team Leader is the name on the design when it goes for review.',
+      [el('label', { class: 'field' }, 'Team Leader name', name)], Boolean(host.leaderName.trim()));
+    name.addEventListener('input', () => { host.setLeaderName(name.value); proceed.disabled = !name.value.trim(); });
+    return body;
+  }
+
+  function builderScreen() {
+    const other = Boolean(host.builderName.trim());
+    const radio = (id, checked) => el('input', { type: 'radio', name: 'builderChoice', id, checked });
+    const mine = radio('builderIsLeader', !other), theirs = radio('builderIsOther', other);
+    const name = el('input', { id: 'builderName', type: 'text', autocomplete: 'off', maxlength: '200', placeholder: 'Builder’s name' });
+    name.value = host.builderName;
+    const named = el('label', { class: 'field', hidden: !other }, 'Builder’s name', name);
+    const { body, proceed } = intake('builder', 'Who is building the design?', 'One person makes the changes. Everyone else watches and gives feedback.',
+      [el('fieldset', { class: 'builder-choice' }, el('legend', { class: 'sr-only' }, 'Who is building the design?'),
+        el('label', {}, mine, ` ${host.leaderName.trim() || 'The Team Leader'} (Team Leader)`),
+        el('label', {}, theirs, ' Someone else on the team')), named], true);
+    const sync = () => { proceed.disabled = theirs.checked && !name.value.trim(); named.hidden = !theirs.checked; };
+    mine.addEventListener('change', () => { name.value = ''; host.setBuilderName(''); sync(); });
+    theirs.addEventListener('change', () => { sync(); name.focus(); });
+    name.addEventListener('input', () => { host.setBuilderName(name.value); sync(); });
+    return body;
+  }
+
+  function rolesScreen() {
+    const who = builder();
+    return intake('roles', 'How your team works', 'One builder, one shared screen, and a view link for everyone else.', [
+      el('ul', { class: 'how-to-steps' },
+        el('li', {}, el('strong', {}, 'One person builds. '), `${who} makes every change, so the design never has two versions.`),
+        el('li', {}, el('strong', {}, 'Decide together on a call. '), `${who} shares their screen on a Teams call and the team chooses as they go.`),
+        el('li', {}, el('strong', {}, 'Everyone can look any time. '), 'The team view link opens the latest saved design. It cannot change anything.'),
+        el('li', {}, el('strong', {}, 'Keep the builder link close. '), `Only ${who} and the Team Leader need it. Anyone who has it can edit.`))
+    ]).body;
   }
 
   function choiceScreen() {
@@ -1643,7 +2283,7 @@ export function createStart(host) {
       el('div', { class: 'start-cards' },
         card('btnStartScratch', 'Start from scratch', 'Twelve short steps, one choice at a time: colors, then layout, then fonts.', () => host.startScratch()),
         card('btnStartPreset', 'Start from a preset', 'Pick one of nine finished looks, then change anything you like.', () => go('presets'))),
-      button('btnStartBack', 'text-link', host.meaningful() ? 'Back' : 'Back to your team', () => go(host.meaningful() ? 'returning' : 'team'))];
+      button('btnStartBack', 'text-link', 'Back', () => go(host.meaningful() ? 'returning' : 'roles'))];
   }
 
   function presetScreen() {
@@ -1661,9 +2301,9 @@ export function createStart(host) {
   }
 
   function returningScreen() {
-    const lesson = host.lessons.find((item) => item.id === host.lessonId)?.title || '';
     const lead = host.isLead();
-    return [...heading('Continue your design', `${host.leaderName.trim() || 'Team Leader not named yet'} · ${lesson} team`),
+    const leader = host.leaderName.trim() || 'Team Leader not named yet';
+    return [...heading('Continue your design', `${leader} · ${lessonTitle()} team · Built by ${builder()}`),
       el('p', { class: 'helper' }, 'Your choices are kept. Click anything on a slide to change it.'),
       el('div', { class: 'start-actions' },
         button('btnContinueEditing', 'btn btn-secondary', 'Continue editing', () => host.goStage('slides')),
@@ -1671,16 +2311,17 @@ export function createStart(host) {
         button('btnQuickReview', 'btn btn-primary', 'Review & save', () => host.goStage('review'))),
       lead ? el('div', { class: 'start-links' },
         button('btnChangeStartingLook', 'text-link', 'Start over', () => go('choice')),
-        button('btnEditTeam', 'text-link', 'Edit team', () => go('team'))) : null];
+        button('btnEditTeam', 'text-link', 'Edit team', () => go('lesson'))) : null];
   }
+
+  const SCREENS = { lesson: lessonScreen, leader: leaderScreen, builder: builderScreen, roles: rolesScreen, choice: choiceScreen, presets: presetScreen, returning: returningScreen };
 
   return {
     reset() { screen = null; },
     render(panel) {
       if (!host.isLead()) screen = 'returning';
-      else if (!screen) screen = host.meaningful() ? 'returning' : host.leaderName.trim() ? 'choice' : 'team';
-      const body = { team: teamScreen, choice: choiceScreen, presets: presetScreen, returning: returningScreen }[screen]();
-      panel.replaceChildren(...body.filter(Boolean));
+      else if (!screen) screen = host.meaningful() ? 'returning' : host.intakeDone() ? 'choice' : 'lesson';
+      panel.replaceChildren(...SCREENS[screen]().filter(Boolean));
       panel.dataset.startScreen = screen;
       fitThumbnails(panel);
       if (focusHeading) { focusHeading = false; panel.querySelector('h1')?.focus({ preventScroll: true }); }
@@ -1693,20 +2334,23 @@ export function createStart(host) {
 
 In `bespoke/builder-app.mjs`:
 
-1. Add `import { createStart } from './start.mjs';` and `let start = null;` beside `let guide = null;`.
-2. Delete `renderTeam` (lines 279-336) and `renderWelcome` (lines 1375-1408).
+1. Add `import { createStart } from './start.mjs';`, `let start = null;` beside `let guide = null;`, and `ui.intakeDone = false;` beside `ui.guide = null;`.
+2. Delete `renderTeam` and `renderWelcome`.
 3. Add this function where `renderWelcome` was:
 
 ```js
 function startHost(){
  return {
   catalog,Model,
-  get lessons(){return state.meta.lessons;},get lessonId(){return state.lessonId;},get leaderName(){return state.spokespersonName||'';},get design(){return state.design;},
+  get lessons(){return state.meta.lessons;},get lessonId(){return state.lessonId;},get leaderName(){return state.spokespersonName||'';},get builderName(){return state.builderName||'';},get design(){return state.design;},
   isLead:()=>isLeadSession(),
   lessonLocked:()=>Boolean(ui.teamSession)&&!ui.localPreview,
   meaningful:()=>ui.meaningfulDesign,
+  intakeDone:()=>ui.intakeDone,
+  finishIntake:()=>{ui.intakeDone=true;saveDraft();},
   pathWaiting:()=>Boolean(ui.guide&&!ui.guide.done),
   setLeaderName:value=>{state.spokespersonName=value;saveDraft();updatePreview();},
+  setBuilderName:value=>{state.builderName=value;saveDraft();},
   setLesson:id=>{if(ui.teamSession&&!ui.localPreview)return;if(ui.localPreview){installTeamSession(id,'bespoke-local-preview-synthetic');ui.autosavePaused=true;}resetPresetConfirmation();state.lessonId=id;saveDraft();updatePreview();},
   startScratch:()=>{
    if(!isLeadSession())return;
@@ -1727,25 +2371,24 @@ function startHost(){
 ```
 
 4. In `init`, after `guide=createGuide(guideHost());` add `start=createStart(startHost());`.
-5. In `renderPanel`, the first three lines become:
+5. In `renderPanel`, the first lines become:
 
 ```js
  const panel=byId('stepPanel'),id=STEPS[state.step].id;
  if(id!=='start')delete panel.dataset.startScreen;
  if(id==='slides'&&ui.guide?.on){guide.render(panel);return;}
- // Start draws its own screens: no Shared theme and no Back or Continue bar under an intake form.
+ // Start draws its own screens: no Shared theme and no Back or Continue bar under an intake question.
  if(id==='start'){start.render(panel);return;}
  if(id==='review')renderReview(panel);else renderEditors(panel);
 ```
 
 6. Replace `goStage` with: `function goStage(id){if(ui.guide?.on&&id!=='slides')ui.guide={...ui.guide,on:false};start?.reset();state.step=stepIndex(id);render();}`
 7. In `applyPresetChoice`, replace the last line with: `start?.reset();ui.moreOptions=false;state.step=stepIndex('slides');render();fileNotice(preset.label+' applied. Click anything on the slide to change it, or use Step by step on Start.');return true;`
-8. In `finishPresetConfirmation`, the trailing `byId('preset-'+id)?.focus(...)` stays: it is a no-op once the gallery is gone.
-9. In `resetDesignForLesson` and `applySelectionPayload`, add `start?.reset();` as the first statement.
-10. In `lockViewControls`, replace `"btnBuildOwn","btnChangeStartingLook"` with nothing. The exempt list becomes `["btnBack","btnNext","btnNextRole","btnContinueEditing","btnQuickReview"]`.
-11. In the cloud Send guard near line 865, change the message to `Add the Team Leader's name on Start before sending.`
-12. In `builderGuidance`, rewrite step 1 to: `<strong>Start.</strong> Name the Team Leader and confirm the lesson team. Then start from scratch, one choice at a time, or pick one of nine presets.`
-13. In `scripts/test-bespoke-guide.mjs`, add this test, which replaces the old source check for view-only sessions:
+8. In `serializeDraft`, add `intakeDone:ui.intakeDone` to the saved object. In `restoreStep`, add `ui.intakeDone=saved.intakeDone===true||ui.meaningfulDesign;` as the last line. In `resetDesignForLesson`, add `ui.intakeDone=false;start?.reset();` as the first statement. In `applySelectionPayload`, add `start?.reset();` as the first statement.
+9. In `lockViewControls`, the exempt list becomes `["btnBack","btnNext","btnNextRole","btnContinueEditing","btnQuickReview"]`.
+10. In the cloud Send guard near line 865, change the message to `Add the Team Leader's name on Start before sending.`
+11. In `builderGuidance`, rewrite step 1 to: `<strong>Start.</strong> Confirm the lesson team, name the Team Leader and the builder, then start from scratch, one choice at a time, or pick one of nine presets.`
+12. In `scripts/test-bespoke-guide.mjs`, add this test, which replaces the old source check for view-only sessions:
 
 ```js
 test('an editing session is the only thing that saves path state, and Start offers a viewer no way in', () => {
@@ -1753,7 +2396,7 @@ test('an editing session is the only thing that saves path state, and Start offe
   const startSource = fs.readFileSync(new URL('../bespoke/start.mjs', import.meta.url), 'utf8');
   assert.match(app, /setGuide:next=>\{ui\.guide=next;if\(isLeadSession\(\)\)saveDraft\(\);\}/);
   assert.match(startSource, /if \(!host\.isLead\(\)\) screen = 'returning';/);
-  assert.doesNotMatch(app.slice(app.indexOf('function lockViewControls()'), app.indexOf('function fileNotice')), /btnGuide|guide-choice|btnStart/);
+  assert.doesNotMatch(app.slice(app.indexOf('function lockViewControls()'), app.indexOf('function fileNotice')), /btnGuide|guide-choice|btnStart|btnTeamContinue/);
 });
 ```
 
@@ -1769,34 +2412,52 @@ In `bespoke/builder.css`, delete the `.custom-path` rules (line 107) and the `.g
 .start-card:focus-visible{outline:3px solid var(--blue);outline-offset:2px}
 .start-links{display:flex;gap:16px;flex-wrap:wrap;margin-top:8px}
 .preset-slides{display:grid;grid-template-columns:1fr 1fr;gap:6px;width:100%}
+.builder-choice{border:0;padding:0;margin:0 0 16px;display:flex;flex-direction:column;gap:10px}
+.builder-choice label{display:flex;align-items:center;gap:8px;min-height:44px}
 ```
 
-Remove the `.preset-sample` rules if nothing else uses them: `grep -n "preset-sample" bespoke/*.css bespoke/*.mjs`.
+Remove the `.preset-sample` rules if nothing else uses them: `grep -n "preset-sample" bespoke/*.css bespoke/*.mjs`. The `.how-to-steps` rule sits in the deleted `.getting-started` line; keep that one rule, because the roles screen and the help panel use it.
 
-- [ ] **Step 6: Update the test navigation helper**
+- [ ] **Step 6: Update the test navigation helpers**
 
-In `scripts/bespoke-test-navigation.mjs`, replace `startPath` and the `Start` branch of `builderDestination`, and add two helpers:
+In `scripts/bespoke-test-navigation.mjs`, replace `startPath` and the `Start` branch of `builderDestination`, and add the helpers below:
 
 ```js
-// Start has four screens. These helpers reach one of them from any state, by clicking only.
+// Start has seven screens. These helpers reach one of them from any state, by clicking only.
+const INTAKE = ['lesson', 'leader', 'builder', 'roles'];
+const startScreen = (page) => page.locator('#stepPanel').getAttribute('data-start-screen');
+
+// Ends on the Team Leader screen. Pass null to leave the name as it is.
 export async function teamForm(page, name = 'Sample Instructor') {
   await page.locator('#stage-start').click();
-  if (await page.locator('#btnEditTeam').isVisible()) await page.locator('#btnEditTeam').click();
-  else if (await page.locator('#btnStartBack').isVisible() && !await page.locator('#spokespersonName').isVisible()) {
-    while (!await page.locator('#spokespersonName').isVisible()) await page.locator('#btnStartBack').click();
+  for (let i = 0; i < 8 && await startScreen(page) !== 'leader'; i++) {
+    const screen = await startScreen(page);
+    if (screen === 'returning') await page.locator('#btnEditTeam').click();
+    else if (screen === 'lesson') await page.locator('#btnTeamContinue').click();
+    else await page.locator('#btnStartBack').click();
   }
   if (name !== null) await page.locator('#spokespersonName').fill(name);
 }
 
+// Ends on the builder screen. An empty name means the Team Leader builds.
+export async function builderForm(page, name = '') {
+  await teamForm(page, null);
+  if (!(await page.locator('#spokespersonName').inputValue()).trim()) await page.locator('#spokespersonName').fill('Sample Instructor');
+  await page.locator('#btnTeamContinue').click();
+  if (!name) { await page.locator('#builderIsLeader').check(); return; }
+  await page.locator('#builderIsOther').check();
+  await page.locator('#builderName').fill(name);
+}
+
+// Walks the intake forward, answering only what a screen requires, and ends on the choice screen.
 async function choiceScreen(page) {
   await page.locator('#stage-start').click();
-  const screen = await page.locator('#stepPanel').getAttribute('data-start-screen');
-  if (screen === 'team') {
-    if (!(await page.locator('#spokespersonName').inputValue()).trim()) await page.locator('#spokespersonName').fill('Sample Instructor');
+  for (let i = 0; i < 6 && INTAKE.includes(await startScreen(page)); i++) {
+    if (await startScreen(page) === 'leader' && !(await page.locator('#spokespersonName').inputValue()).trim()) await page.locator('#spokespersonName').fill('Sample Instructor');
     await page.locator('#btnTeamContinue').click();
   }
-  if (await page.locator('#btnChangeStartingLook').isVisible()) await page.locator('#btnChangeStartingLook').click();
-  if (await page.locator('#stepPanel').getAttribute('data-start-screen') === 'presets') await page.locator('#btnStartBack').click();
+  if (await startScreen(page) === 'returning') await page.locator('#btnChangeStartingLook').click();
+  if (await startScreen(page) === 'presets') await page.locator('#btnStartBack').click();
 }
 
 export async function presetGallery(page) {
@@ -1824,13 +2485,13 @@ In `builderDestination`, replace the `Start` branch body with:
 - [ ] **Step 7: Run the new scenarios and the path tests**
 
 Run: `BESPOKE_STREAMLINED_SCENARIO='start screens' node scripts/test-bespoke-streamlined-workflow.mjs && BESPOKE_PREVIEW_WIDTHS='' node scripts/test-bespoke-preview-editor.mjs && node scripts/test-bespoke-guided-browser.mjs && node --test scripts/test-bespoke-guide.mjs && wc -l bespoke/builder-app.mjs bespoke/start.mjs`
-Expected: the `start screens` scenario passes, the read-only snapshot check passes, the seven path scenarios pass, 19 unit tests pass, `builder-app.mjs` is under 1,852 lines and `start.mjs` is under 200.
+Expected: the `start screens` scenario passes, the read-only snapshot check passes, the seven path scenarios pass, 19 unit tests pass, `builder-app.mjs` is under 1,852 lines and `start.mjs` is under 250.
 
 - [ ] **Step 8: Commit**
 
 ```bash
 git add bespoke/start.mjs bespoke/builder-app.mjs bespoke/builder.css scripts/bespoke-test-navigation.mjs scripts/test-bespoke-streamlined-workflow.mjs scripts/test-bespoke-preview-editor.mjs scripts/test-bespoke-guide.mjs
-git commit -m "feat: open BeSpoke on a two-field intake form, then scratch or a preset gallery"
+git commit -m "feat: open BeSpoke on a step-by-step intake wizard, then scratch or a preset gallery"
 ```
 
 ### Task 9: Preview clicks during the path
@@ -1964,7 +2625,7 @@ The team form lost two fields and Start gained screens, so tests that typed into
 - [ ] **Step 1: List every site**
 
 Run: `grep -nE "#teamName|#spokespersonEmail|btnBuildOwn|btnGuideMe|btnNext'\)|\[data-preset|#preset-" scripts/test-bespoke-*.mjs | grep -v guided-browser`
-Expected: about 90 lines across the eight files above.
+Expected: about 95 lines across the eight files above.
 
 - [ ] **Step 2: Apply these rules, one file at a time**
 
@@ -1973,6 +2634,8 @@ Expected: about 90 lines across the eight files above.
 | `#teamName` used as the field a test types into to make a change | `#spokespersonName`, reached with `await teamForm(page, null)` first. The Team Leader name is now the marker that round-trips through Save and Open. |
 | A fill of `#teamName` followed by a fill of `#spokespersonName` | One `await teamForm(page, '<the value the test later asserts>')`. Drop the second fill. |
 | A fill of `#spokespersonEmail` | Delete the line. |
+| A fill of `#builderName` on the old one-page form (the PR 1 scenario `team view link`) | `await builderForm(page, '<name>')` |
+| A file's own `team(page)` or `fillTeam(page)` helper | Rewrite its body as `await teamForm(page, 'Sample Instructor');` and keep its callers. |
 | An assertion on `#teamName`'s value | The same assertion on `#spokespersonName`, after `await teamForm(page, null)`. |
 | `#btnBuildOwn` click | `await page.locator('#stage-slides').click()` |
 | `#btnNext` click from Start | `await page.locator('#stage-slides').click()` |
@@ -1999,7 +2662,7 @@ Expected: each exits 0. A failure that is not about reaching the starting state 
 
 - [ ] **Step 4: Confirm nothing references the removed ids**
 
-Run: `grep -rnE "#teamName|spokespersonEmail'\)|btnBuildOwn|btnGuideMe|btnGuideContinue|btnGuideRestart" scripts/test-bespoke-*.mjs bespoke/*.mjs bespoke/guide/*.mjs`
+Run: `grep -rnE "#teamName|spokespersonEmail'\)|btnBuildOwn|btnGuideMe|btnGuideContinue|btnGuideRestart" scripts/test-bespoke-*.mjs scripts/bespoke-test-navigation.mjs bespoke/*.mjs bespoke/guide/*.mjs`
 Expected: no output.
 
 - [ ] **Step 5: Commit**
@@ -2017,9 +2680,9 @@ git commit -m "test: reach the BeSpoke starting state through the new Start scre
 
 - [ ] **Step 1: Update the user-facing docs**
 
-- `bespoke/team-guide.html`: rewrite the steps to match the builder. Step 1, type the Team Leader name and confirm the lesson team. Step 2, choose Start from scratch or Start from a preset. Step 3, for scratch, answer twelve short steps and jump between them from the strip; for a preset, click anything on the slide to change it. Step 4, Review & save. Replace every "spokesperson" with "Team Leader". Keep the sentence that one person operates the preview during a call.
-- `bespoke/README.md`: replace the Start and Guide me sections with the same four steps, name `bespoke/start.mjs`, `bespoke/thumbs.mjs` and `bespoke/guide/preview-map.mjs`, and state that `scripts/build-bespoke-presets.mjs` is the source for presets.
-- `bespoke/DESIGN.md`: under "Preview editor interaction", replace the rule that Guide me owns the preview with the click table from the spec. Add a "Start" section: one decision per screen, two fields on the intake form, two cards on the choice screen.
+- `bespoke/team-guide.html`: rewrite the steps to match the builder. Step 1, the builder opens the builder link and answers four short questions: the lesson team, the Team Leader, who is building, and how the team works. Step 2, choose Start from scratch or Start from a preset. Step 3, for scratch, answer twelve short steps and jump between them from the strip; for a preset, click anything on the slide to change it. Step 4, Review & save. Add a section "Working as a team": one person builds; the team decides together on a Teams call while the builder shares their screen; everyone else opens the team view link pinned in the channel to see the latest saved design; the builder link stays with the builder and the Team Leader. Replace every "spokesperson" with "Team Leader".
+- `bespoke/README.md`: replace the Start and Guide me sections with the same four steps and the two-link rule, name `bespoke/start.mjs`, `bespoke/thumbs.mjs` and `bespoke/guide/preview-map.mjs`, and state that `scripts/build-bespoke-presets.mjs` is the source for presets.
+- `bespoke/DESIGN.md`: under "Preview editor interaction", replace the rule that Guide me owns the preview with the click table from the spec. Add a "Start" section: one decision per screen, four intake screens, two cards on the choice screen. Add a "Roles" section: one builder edits, viewers read, and the view banner names the team, the mode, the saved time and the builder.
 - `docs/bespoke/decisions.md`: in the October 2 section from Task 5, change the three rows that say "Ships in the second pull request" to say they shipped, with the PR number.
 
 - [ ] **Step 2: Run the whole gate**
@@ -2070,7 +2733,11 @@ Open the PR with `gh pr create`. The description states there is no format chang
 
 | Spec section | Task |
 |---|---|
-| Start: team screen, choice screen, returning teams, view-only | 8 |
+| Start: four-screen intake wizard, choice screen, returning teams, view-only | 8 |
+| Builder name saved with the design and shown on the proposal | 4b, 8 |
+| Team view link: service, provisioner, builder page, banner, refresh | 4c, 4d |
+| Security review of the access change | 4c |
+| Screen share as the default; link handling in the guides | 5, 11 |
 | Team name and email leave the form; Team Leader wording | 8, 10, 11 |
 | Step path table, rules for every screen, recap | 6, 7 |
 | Step strip, phone menu, answered check marks | 6, 7 |
@@ -2082,7 +2749,7 @@ Open the PR with `gh pr create`. The description states there is no format chang
 | Sidebar text color: model, schema, service, Shared theme, preview editor, handoff doc | 1, 2, 4, 5 |
 | Nine presets and the four preset rules | 3 |
 | Preset gallery with two rendered slides | 8 |
-| Deploy order and two pull requests | 5, 11 |
+| Deploy order, the new Netlify setting, and two pull requests | 5, 11 |
 | Earlier decisions recorded | 5, 11 |
 | Definition of done checks | 5, 11 |
 

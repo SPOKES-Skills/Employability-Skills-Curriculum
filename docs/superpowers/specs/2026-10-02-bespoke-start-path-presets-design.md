@@ -1,6 +1,6 @@
 # BeSpoke start flow, step path and presets
 
-Status: approved by Britt, 2026-10-02, with the color steps reordered so sidebar color and sidebar text color are steps 5 and 6. Extended the same day with the intake wizard, the builder name and the team view link. Nothing here is built. Baseline is `origin/main` at `13a808d`, the preview editor merge.
+Status: PR 2 (flow) superseded by `2026-10-06-bespoke-quick-pick-design.md`. PR 1 carries forward. Approved by Britt, 2026-10-02, with the color steps reordered so sidebar color and sidebar text color are steps 5 and 6. Extended the same day with the intake wizard, the builder name and the team view link. Nothing here is built. Baseline is `origin/main` at `13a808d`, the preview editor merge.
 
 ## Problem
 

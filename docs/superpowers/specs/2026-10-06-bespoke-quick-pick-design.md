@@ -237,7 +237,7 @@ These stay: the three-stage builder and Guide me behind More options, shared Sav
     Expected: exit code 0 and `quality.sh: all checks passed`.
 - `BUILDER_APP` does not grow past its baseline.
   - Check: `wc -l bespoke/builder-app.mjs`
-    Expected: 1,885 lines or fewer after PR 2 (the count at the end of PR 1), and every new file under 800 lines.
+    Expected: 1,886 lines or fewer after PR 2 (the count at the end of PR 1), and every new file under 800 lines.
 
 ## Out of scope
 

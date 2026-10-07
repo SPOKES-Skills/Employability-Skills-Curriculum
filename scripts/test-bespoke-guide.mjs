@@ -142,6 +142,20 @@ test('applyAnswer never mutates the design it is given', () => {
   assert.equal(JSON.stringify(frozen), before);
 });
 
+test('a color answer on one slide follows every slide that shares it', () => {
+  const background = byId.get('title.background');
+  const next = applyAnswer(catalog, base(), background, 'primary');
+  assert.equal(next.roles.titleBackground, 'primary');
+  assert.equal(next.roles.dividerBackground, 'primary', 'the divider follows the title background');
+  assert.equal(next.roleStyles.title.primary, 'primary', 'the answered slide records the pick so the guide can mark it');
+  const divider = byId.get('divider.background');
+  assert.equal(optionsFor(catalog, next, divider).options[0].detail, 'Blue', 'the divider question already matches the pick');
+  assert.equal(currentValue(catalog, next, background), 'primary', 'the pick is marked current on its own question');
+  assert.equal(applyAnswer(catalog, next, background, 'inherit').roleStyles.title.primary, 'inherit', 'Match shared look still works');
+  const text = applyAnswer(catalog, base(), byId.get('cards.text'), 'gold');
+  for (const kind of ['cards', 'video', 'activity']) assert.equal(Model.effectiveRoleStyle(catalog, text, kind).bodyColor, 'gold', kind);
+});
+
 test('current value is found for every kind on the default design', () => {
   assert.equal(currentValue(catalog, base(), byId.get('shared.fonts')), 'dm-serif-display-outfit');
   assert.equal(currentValue(catalog, base(), byId.get('shared.pattern')), base().background);

@@ -30,7 +30,7 @@ const STEPS = [
 ];
 const LEGACY_STEPS = ['welcome','team','colors','fonts','title','divider','cards','video','activity','review'];
 const state = {step:0,stepId:'start',meta:null,library:null,lessonId:'money-management',teamName:'',spokespersonName:'',spokespersonEmail:'',builderName:'',lessonTitle:'',lessonSubtitle:'',unspoken:'',editCode:'',previewView:'title',design:null,legacySelection:null,changes:[],redo:[]};
-const ui = {mode:'view',renderedStep:null,previewPinned:false,teamSession:null,cloudConflict:null,cloudBusy:false,autosavePaused:false,allowUnload:false,skipNextLocalSave:false,restoreNote:'',restoredFromLink:false,editCodeHash:'',activeRole:'sidebar',paintScope:'slide',themeScope:'slide',localPreview:false,editorRole:'title',sharedThemeOpen:false,startingLooksOpen:false,meaningfulDesign:false};
+const ui = {onlySlide:false,mode:'view',renderedStep:null,previewPinned:false,teamSession:null,cloudConflict:null,cloudBusy:false,autosavePaused:false,allowUnload:false,skipNextLocalSave:false,restoreNote:'',restoredFromLink:false,editCodeHash:'',activeRole:'sidebar',paintScope:'slide',themeScope:'slide',localPreview:false,editorRole:'title',sharedThemeOpen:false,startingLooksOpen:false,meaningfulDesign:false};
 ui.guide = null;
 let guide = null;
 let previewEditor = null;
@@ -1837,6 +1837,7 @@ async function init(){
   context:()=>({design:state.design,kind:state.previewView,editable:isLeadSession(),optionsOpen:ui.moreOptions,mode:ui.guide?.on?'guide':state.step===1?'edit':'browse'}),
   activate:()=>{if(ui.guide)ui.guide={...ui.guide,on:false};ui.editorRole=state.previewView;state.step=1;ui.sharedThemeOpen=false;render(false);},
   change:(label,edit)=>changeDesign(label,edit),
+  onlySlide:()=>ui.onlySlide,setOnlySlide:value=>{ui.onlySlide=value;render(false);},
   more:target=>{ui.moreOptions=!ui.moreOptions;if(!ui.moreOptions){render(false);byId('btnMoreOptions').focus();return;}if(target.startsWith('sidebar')){/* render() reads the open state back from the live panel */if(byId('sharedTheme'))byId('sharedTheme').open=true;ui.sharedThemeOpen=true;ui.activeRole='sidebar';ui.paintScope='shared';render(false);byId('colorRole')?.focus({preventScroll:true});return;}showRoleEditor(state.previewView,target==='background'?'background':target.startsWith('box')?'arrangement':'text',target.startsWith('body')?'bodyFont':target==='background'?'primary':'headingFont');},
   thumbnail:kind=>Model.renderSlide(catalog,state.design,kind,{title:state.design.samples.title,subtitle:state.design.samples.subtitle,logoUrl:'../SPOKES-Logo.png'})
  });

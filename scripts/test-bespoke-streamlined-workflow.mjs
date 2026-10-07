@@ -325,6 +325,30 @@ try {
     assert.notEqual(await viewSession(view), null, 'the refused backup leaves the view session alone');
     assert.equal(await view.evaluate(() => localStorage.getItem('bespoke-draft-v2')), before, 'the refused backup leaves the browser draft alone');
   });
+  await scenario('a color picked on one slide follows every slide unless Only this slide is on', async ({ makePage }) => {
+    const page = await makePage();
+    await team(page);
+    await page.locator('#preset-harvest').click();
+    await stage(page, 'slides');
+    await preview(page, 'title');
+    await page.locator('#context-background').selectOption('primary');
+    let current = await design(page);
+    assert.equal(current.roles.titleBackground, 'primary');
+    assert.equal(current.roles.dividerBackground, 'primary', 'the divider follows the title background');
+    assert.equal(current.roleStyles?.title, undefined, 'a shared pick leaves no per-slide override');
+    await preview(page, 'divider');
+    assert.equal(await page.locator('.bespoke-slide').evaluate(el => getComputedStyle(el).backgroundColor), rgb('primary'), 'the divider preview shows the pick');
+    await preview(page, 'cards');
+    await page.locator('#context-only-slide').check();
+    await page.locator('#context-background').selectOption('dark');
+    current = await design(page);
+    assert.equal(current.roles.contentBackground, 'muted', 'Only this slide leaves the shared look alone');
+    assert.equal(current.roleStyles.cards.primary, 'dark', 'the pick is kept on the Text boxes slide only');
+    await stage(page, 'review');
+    await stage(page, 'slides');
+    await preview(page, 'title');
+    assert.equal(await page.locator('.bespoke-slide').evaluate(el => getComputedStyle(el).backgroundColor), rgb('primary'), 'the title color is still there after visiting Review');
+  });
   await scenario('team view before the first save', async ({ makePage }) => {
     const view = await makePage({ hash: viewHash('goal-setting') });
     await view.locator('#restoreNotice').filter({ hasText: 'has not saved a design yet' }).waitFor();

@@ -1,5 +1,17 @@
 # BeSpoke decisions
 
+## Colors follow every slide: October 7, 2026
+
+Britt found that a color picked on one slide, or in one Guide me question, did not carry
+to the other slides, so choices seemed to disappear as a team moved through the steps.
+Color picks in the slide toolbar and in Guide me now apply to every slide that shares
+that color. A title background also sets the divider background, as Quick pick's
+Background choice will. Content slides share one tint, one heading color and one body
+color. An Only this slide switch keeps a color on a single slide. This reverses the
+September 24 rule that a slide edit stays on that slide, for colors only. Fonts, sizes
+and finish still stay on the slide. The More options panel keeps its explicit
+This slide or Shared default choice, which still starts on This slide.
+
 ## Quick pick is advisory input: October 7, 2026
 
 Britt: BeSpoke gathers opinions from teams who want a say in how the slides look. It is

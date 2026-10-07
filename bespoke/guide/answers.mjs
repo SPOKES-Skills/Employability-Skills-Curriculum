@@ -137,7 +137,7 @@ export function applyAnswer(catalog, design, q, id) {
       return next;
     }
     case 'background':
-    case 'textColor': return Model.setRoleStyle(catalog, design, q.slide, fieldOf(q), id);
+    case 'textColor': return Model.setSharedColor(catalog, design, q.slide, fieldOf(q), id, { keepOnSlide: true });
     case 'watermark': {
       const next = Model.setRoleStyle(catalog, design, 'divider', 'watermarkMode', id);
       // The model shows the legacy watermark only while the divider's own watermark choice is not hide.

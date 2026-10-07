@@ -28,7 +28,10 @@ try{
   await page.locator('#modelStage .slide-title-text').click();
   assert.equal(await page.locator('#workspace').getAttribute('data-editor'),'true');
   assert.equal(await page.locator('#detailControls').isVisible(),false);
-  assert.match(await page.locator('#editScope').textContent(),/Title slide only/);
+  assert.match(await page.locator('#editScope').textContent(),/Color picks apply to every slide that shares that color/);
+  await page.locator('#context-only-slide').check();
+  assert.match(await page.locator('#editScope').textContent(),/Title slide only/, 'Only this slide restores the single-slide wording');
+  await page.locator('#context-only-slide').uncheck();
   for(const control of await page.locator('#contextToolbar select, #contextToolbar button').all())assert((await control.boundingBox()).height>=44,'Contextual controls have a 44px target on every engine');
   await page.addScriptTag({content:axeSource});
   const accessibility=await page.evaluate(()=>axe.run({include:[['#contextToolbar'],['#modelStage']]},{runOnly:{type:'tag',values:['wcag2a','wcag2aa','wcag21aa']},rules:{'color-contrast':{enabled:false}}}));

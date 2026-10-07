@@ -217,3 +217,4 @@
 
 /* Keep the whole composition manageable on the iMac’s wide display. */
 .preview-frame{max-width:1080px;margin-inline:auto}
+.toolbar-check{flex-direction:row;align-items:center;gap:8px;min-height:44px;min-width:44px;padding:0 10px}.toolbar-check input{width:22px;height:22px;margin:0;flex:none}

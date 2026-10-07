@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { applyPreset, colorAvailability, contrast, contrastIssues, cssForDesign, defaultDesign, designSchema, inkFor, migrateV1, patternFor, renderSlide, roleOptions, setSidebarText, sidebarInk, structuralErrors, validateDesign } from '../bespoke/builder-model.mjs';
+import { applyPreset, colorAvailability, contrast, contrastIssues, cssForDesign, defaultDesign, designSchema, effectiveRoleStyle, inkFor, migrateV1, patternFor, renderSlide, roleOptions, setRoleStyle, setSharedColor, setSidebarText, sidebarInk, structuralErrors, validateDesign } from '../bespoke/builder-model.mjs';
 import { compareDesign } from '../bespoke/similarity.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -75,6 +75,33 @@ check('independent edits and preset changes preserve sample text and unrelated c
   reopened.slides.cards.count = '4';
   assert.equal(reopened.samples.boxes[3], 'A recoverable fourth box.');
   assert.deepEqual(applyPreset(catalog, 'fun', reopened).samples, reopened.samples);
+});
+
+check('a shared color pick reaches every slide that uses it and clears matching per-slide overrides', () => {
+  const harvest = applyPreset(catalog, 'harvest');
+  const title = setSharedColor(catalog, harvest, 'title', 'primary', 'primary');
+  assert.equal(title.roles.titleBackground, 'primary');
+  assert.equal(title.roles.dividerBackground, 'primary', 'the divider follows the title background');
+  assert.equal(effectiveRoleStyle(catalog, title, 'divider').primary, 'primary');
+  assert.equal(title.roles.contentBackground, harvest.roles.contentBackground, 'content slides keep their own tint');
+  assert.equal(title.startingPoint, 'custom');
+  // An old per-slide override must not hide the shared pick.
+  const overridden = setRoleStyle(catalog, harvest, 'divider', 'primary', 'mauve');
+  assert.equal(effectiveRoleStyle(catalog, overridden, 'divider').primary, 'mauve');
+  const repicked = setSharedColor(catalog, overridden, 'title', 'primary', 'dark');
+  assert.equal(effectiveRoleStyle(catalog, repicked, 'divider').primary, 'dark', 'the divider override was cleared');
+  // Text colors reach both title and divider; content slides share one heading and one body color.
+  const text = setSharedColor(catalog, harvest, 'title', 'headingColor', 'gold');
+  assert.equal(text.roles.titleText, 'gold');
+  assert.equal(effectiveRoleStyle(catalog, text, 'divider').headingColor, 'gold');
+  const cards = setSharedColor(catalog, harvest, 'cards', 'bodyColor', 'mauve');
+  for (const kind of ['cards', 'video', 'activity']) assert.equal(effectiveRoleStyle(catalog, cards, kind).bodyColor, 'mauve', kind);
+  assert.equal(cards.roles.subtitle, harvest.roles.subtitle, 'title and divider supporting text are untouched');
+  // Content slides have no gradient end color, so that pick stays on the slide.
+  const content = setSharedColor(catalog, harvest, 'cards', 'secondary', 'mauve');
+  assert.equal(content.roleStyles.cards.secondary, 'mauve');
+  assert.deepEqual(content.roles, harvest.roles);
+  assert.deepEqual(harvest, applyPreset(catalog, 'harvest'), 'the input design is never mutated');
 });
 
 check('every role offers the full palette; a surface change warns without mutating other choices', () => {

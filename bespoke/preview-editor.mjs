@@ -26,6 +26,7 @@ export function createPreviewEditor(host) {
   if(kind==='cards'&&id.startsWith('body'))return `${target} selected · Formatting affects ALL box text on Text boxes slides. Sample words remain independent.`;
   if(kind==='divider'&&id.startsWith('body'))return `${target} selected · Formatting affects the chapter label and supporting text on Chapter divider slides.`;
   if(kind==='activity'&&id.startsWith('heading'))return `${target} selected · Formatting affects the heading and activity label on Activity slides.`;
+  if(!host.onlySlide())return `${target} selected · Color picks apply to every slide that shares that color. Fonts, sizes and finish stay on ${names[kind]}. Turn on Only this slide to keep a color here.`;
   return `${target} selected · ${names[kind]} only. Other slide types and shared defaults stay unchanged.`;
  }
  function field(id,title,value,options,onChange){
@@ -35,6 +36,12 @@ export function createPreviewEditor(host) {
   select.value=String(value);select.disabled=!host.context().editable;
   select.onchange=()=>{if(!host.context().editable)return;onChange(select.value);document.getElementById(select.id)?.focus({preventScroll:true});};
   wrapper.append(select);toolbar.append(wrapper);
+ }
+ function check(id,title,value,onChange){
+  const wrapper=document.createElement('label');wrapper.className='toolbar-field toolbar-check';
+  const box=document.createElement('input');box.type='checkbox';box.id='context-'+id;box.checked=value;box.disabled=!host.context().editable;
+  box.onchange=()=>{onChange(box.checked);document.getElementById(box.id)?.focus({preventScroll:true});};
+  wrapper.append(box,document.createTextNode(' '+title));toolbar.append(wrapper);
  }
  function renderToolbar(){
   const activeId=toolbar.contains(document.activeElement)?document.activeElement.id:null;
@@ -54,7 +61,8 @@ export function createPreviewEditor(host) {
   document.getElementById('context-element').id='selectedElement';
   const saved={...host.model.roleStyleDefaults(host.catalog,design,kind),...design.roleStyles?.[kind]};
   const effective=host.model.effectiveRoleStyle(host.catalog,design,kind);
-  const apply=(key,value)=>host.change(`${names[kind]}: ${key.replace(/([A-Z])/g,' $1').toLowerCase()}`,d=>Object.assign(d,host.model.setRoleStyle(host.catalog,d,kind,key,value)));
+  const shared=['primary','secondary','headingColor','bodyColor'];
+  const apply=(key,value)=>host.change(`${names[kind]}: ${key.replace(/([A-Z])/g,' $1').toLowerCase()}`,d=>Object.assign(d,(shared.includes(key)&&!host.onlySlide()?host.model.setSharedColor:host.model.setRoleStyle)(host.catalog,d,kind,key,value)));
   const colors=key=>[{id:'inherit',label:'Use shared theme'},...host.catalog.palette.map(c=>({id:c.id,label:c.name}))];
   if(selected.startsWith('sidebar')){
    const palette=host.catalog.palette.map(c=>({id:c.id,label:c.name}));
@@ -65,6 +73,7 @@ export function createPreviewEditor(host) {
    field('font','Font',saved[type+'Font'],[{id:'inherit',label:'Use shared font'},...host.catalog.fonts.map(f=>({id:f.id,label:f.label}))],v=>apply(type+'Font',v));
    field('size','Size',saved[type+'Size'],[{id:'small',label:'Smaller'},{id:'default',label:'Match arrangement'},{id:'large',label:'Larger'}],v=>apply(type+'Size',v));
    field('color','Text color',saved[type+'Color'],colors(type+'Color'),v=>apply(type+'Color',v));
+   check('only-slide','Only this slide',host.onlySlide(),v=>host.setOnlySlide(v));
   }else if(selected.startsWith('box')){
    const decisions=host.catalog.slideGroups.find(g=>g.id==='cards').decisions;
    for(const key of ['look','layout']){const decision=decisions.find(d=>d.id===key);field(key,key==='look'?'Fill & border style':'Box arrangement',design.slides.cards[key],decision.options,v=>host.change('Text boxes: '+decision.label,d=>{d.slides.cards[key]=v;}));}
@@ -72,6 +81,7 @@ export function createPreviewEditor(host) {
    field('finish','Background finish',saved.backgroundMode,[{id:'inherit',label:'Match arrangement'},{id:'solid',label:'Solid'},{id:'gradient',label:'Two-color gradient'}],v=>apply('backgroundMode',v));
    field('background','Background color',saved.primary,colors('primary'),v=>apply('primary',v));
    if(effective.backgroundMode==='gradient')field('second','Second color',saved.secondary,colors('secondary'),v=>apply('secondary',v));
+   check('only-slide','Only this slide',host.onlySlide(),v=>host.setOnlySlide(v));
   }
   const more=document.createElement('button');more.id='btnMoreOptions';more.type='button';more.className='btn btn-secondary';more.textContent=optionsOpen?'Hide options':'More options';more.setAttribute('aria-expanded',String(optionsOpen));more.setAttribute('aria-controls','detailControls');more.onclick=()=>host.more(selected);toolbar.append(more);
   if(!editable){const note=document.createElement('span');note.className='toolbar-readonly';note.textContent='View only · open your team design to edit.';toolbar.append(note);}

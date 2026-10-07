@@ -146,6 +146,35 @@ export function setRoleStyle(catalog, design, kind, key, value) {
   return next;
 }
 
+// The shared roles a slide's color field reads while it follows the shared look. Title and divider
+// share one background pair so a background pick colors both; content slides share one tint and text colors.
+const SHARED_COLOR_ROLES = {
+  primary: { title: ['titleBackground', 'dividerBackground'], divider: ['titleBackground', 'dividerBackground'], content: ['contentBackground'] },
+  secondary: { title: ['titleBackgroundEnd'], divider: ['titleBackgroundEnd'] },
+  headingColor: { title: ['titleText'], divider: ['titleText'], content: ['heading'] },
+  bodyColor: { title: ['subtitle'], divider: ['subtitle'], content: ['body'] }
+};
+const SLIDE_KINDS = ['title', 'divider', 'cards', 'video', 'activity'];
+const sharedRolesFor = (key, kind) => SHARED_COLOR_ROLES[key]?.[kind === 'title' || kind === 'divider' ? kind : 'content'];
+
+/** Applies a color to every slide that uses it, and clears per-slide overrides that would hide it.
+ *  keepOnSlide also records the pick on the answered slide, so a guide can show which color was chosen. */
+export function setSharedColor(catalog, design, kind, key, value, { keepOnSlide = false } = {}) {
+  const roles = sharedRolesFor(key, kind);
+  if (!roles || value === 'inherit') return setRoleStyle(catalog, design, kind, key, value);
+  const next = clone(design);
+  for (const role of roles) next.roles[role] = value;
+  for (const other of SLIDE_KINDS) {
+    const overrides = next.roleStyles?.[other];
+    if (overrides && overrides[key] !== 'inherit' && sharedRolesFor(key, other)?.some(role => roles.includes(role))) next.roleStyles[other] = { ...overrides, [key]: 'inherit' };
+  }
+  if (keepOnSlide) next.roleStyles = { ...next.roleStyles, [kind]: { ...roleStyleDefaults(catalog, next, kind), ...next.roleStyles?.[kind], [key]: value } };
+  const errors = structuralErrors(catalog, next);
+  if (errors.length) throw new Error(errors.join(' '));
+  next.startingPoint = 'custom';
+  return next;
+}
+
 export function applyPreset(catalog, id, currentDesign) {
   const preset = catalog.presets.find(item => item.id === id);
   if (!preset) throw new Error(`Unknown starting point: ${id}`);

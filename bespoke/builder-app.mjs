@@ -678,6 +678,13 @@ const findOption=(family,slug)=>state.library?.families?.[family]?.options.find(
         fileNotice(result.message || "Could not open the shared design. Your browser draft is unchanged.");
         return false;
       }
+      if (result.access === "view") {
+        const { lessonId, editCode } = session;
+        forgetTeamSession();
+        await teamView.open(lessonId + "." + encodeURIComponent(editCode), result);
+        render();
+        return false;
+      }
       if (result.selection) {
         try { validateSelectionPayload(result.selection,{draft:true}); }
         catch (error) {

@@ -278,6 +278,20 @@ try {
     await save(builder);
     assert.equal((await design(builder)).roles.titleBackground, 'gold', 'the saved Fun design is still the open design');
   });
+  await scenario('a view code in a builder link opens the read-only view', async ({ makePage }) => {
+    const builder = await makePage();
+    await team(builder);
+    await save(builder);
+    const seeded = { step: 0, lessonId: legacy.lesson.id, teamName: 'Seeded draft team', spokespersonName: 'Seeded Person', design: defaultDesign(catalog), changes: [], redo: [] };
+    const view = await makePage({ hash: `#team=${legacy.lesson.id}.${LOCAL_PREVIEW_VIEW_CODE}`, storedDraft: seeded });
+    await view.locator('body[data-access=view]').waitFor();
+    await view.locator('#btnViewRefresh').waitFor();
+    assert.match(await view.locator('#accessBanner').innerText(), /View only/);
+    assert.equal(await view.evaluate(() => localStorage.getItem('bespoke-team-session-v2')), null, 'no editing session is stored');
+    // Loading any builder-style link normalizes the stored draft before the service says the code is view-only, so compare content, not bytes.
+    const kept = await draft(view);
+    assert.deepEqual([kept.teamName, kept.spokespersonName, kept.design], [seeded.teamName, seeded.spokespersonName, seeded.design], 'the browser draft keeps its own content');
+  });
   await scenario('team view before the first save', async ({ makePage }) => {
     const view = await makePage({ hash: viewHash('goal-setting') });
     await view.locator('#restoreNotice').filter({ hasText: 'has not saved a design yet' }).waitFor();

@@ -123,6 +123,16 @@ class V2SubmissionTests(unittest.TestCase):
             self.assertIn("--role-body: var(--gold)", (destination / "design.css").read_text())
             self.assertEqual(self.payload, original)
 
+    def test_sidebar_text_and_builder_reach_the_build_contract(self):
+        preset = next(item for item in self.catalog["presets"] if item["id"] == "gold-standard")
+        self.payload["design"] = deepcopy(preset["design"])
+        self.payload["team"]["builder"] = {"name": "Dana Builder"}
+        self.assertEqual(self.payload["design"]["roles"]["sidebarText"], "gold")
+        require_valid_selection(self.payload)
+        css, contract = build_design(self.payload)
+        self.assertEqual(contract["design"]["roles"]["sidebarText"], "gold")
+        self.assertRegex(css, r"--role-sidebar-ink:\s*var\(--gold\)")
+
     def test_legacy_registry_cannot_silently_flatten_v2_design(self):
         themes, lessons = {"lessons": {}}, {"lessons": []}
         before = deepcopy((themes, lessons))

@@ -47,8 +47,10 @@ check('nine presets differ from each other and from the released lessons', () =>
   assert.equal(new Set(designs.map(d => `${d.roles.titleBackground}+${d.roles.titleText}`)).size, 9, 'title background and title text pairs are unique');
   for (const item of catalog.presets) {
     assert.deepEqual(contrastIssues(catalog, item.design), [], item.id);
-    const near = compareDesign(fingerprints, item.design, catalog)[0];
-    assert(near.shared < near.total, `${item.id} is an exact match for ${near.title}`);
+    const ranked = compareDesign(fingerprints, item.design, catalog);
+    const near = ranked[0];
+    const exact = ranked.find(result => result.shared === result.total);
+    assert.equal(exact, undefined, `${item.id} is an exact match for ${exact?.title}`);
     console.log(`  ${item.id}: closest lesson ${near.title}, ${near.shared} of ${near.total}`);
   }
 });

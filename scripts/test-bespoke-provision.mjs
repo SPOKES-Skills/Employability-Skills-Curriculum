@@ -213,6 +213,17 @@ test('provisioning refuses repository paths and insecure or credential-bearing U
   }
 });
 
+test('every provisioning function refuses an output directory inside the repository, on any file system', () => {
+  const wizardUrl = 'https://example.test/bespoke/';
+  const inside = path.join(root, 'scripts', 'refused-provision-output');
+  for (const run of [
+    () => provision({ output: inside, wizardUrl }),
+    () => provisionViewLinks({ output: inside, wizardUrl }),
+    () => rotateTeamCodes({ output: inside, wizardUrl, now: NOW })
+  ]) assert.throws(run, /outside this repository/);
+  assert.equal(fs.existsSync(inside), false, 'a refused run creates nothing, so no secret lands in the repository');
+});
+
 test('minimal deployment package loads the real function and its validation catalogs', async () => {
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'bespoke-stage-'));
   try {

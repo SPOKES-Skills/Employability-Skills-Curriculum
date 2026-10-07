@@ -7,6 +7,7 @@
 - **Repo**: origin = doclegg05/Curriculum-Employability-Skills (dev); publisher = SPOKES-Skills/Employability-Skills-Curriculum (public Pages); t9 = /Volumes/T9 backup mirror
 
 ## Current Status
+- **BeSpoke PR 1 built, not pushed (2026-10-07)** on branch `claude/bespoke-simplify-choices-02762b`: the October 2 work (sidebar text color, builder name, read-only team view links), the eleven final-review fixes, and three new presets (Harvest, Bold Statement, Fresh Start) for twelve in all. Gate green. Needs a service redeploy (Britt) before the pull request merges. Quick pick (one pick of twelve looks, then a few tweaks) is the next pull request: spec `docs/superpowers/specs/2026-10-06-bespoke-quick-pick-design.md`, plan `docs/superpowers/plans/2026-10-07-bespoke-pr1-fixes-and-presets.md`. **Quick pick is advisory input, never the final design, so it carries no readability gates** (Britt, 2026-10-07; durable rule in auto-memory `bespoke-is-advisory-not-final.md`).
 - **BeSpoke v2 builder + Guide me merged to `main` 2026-10-01** (PR #36, merge `7d482d2`). The 3-stage builder (Start, Slide designs, Review & save) replaces the 10-step wizard; the old wizard stays at `bespoke/legacy.html`. Saved designs are `bespoke-selection/v2`; v1 drafts open converted, with the original kept inside. Netlify service redeployed from `8fa1e5b` before the merge (deploy `6abe7363c429c582590174ac`); OPTIONS 204 and bogus-code 403 checked. Rules: `docs/bespoke/decisions.md`. Live on Pages since 2026-10-01 (`4dfba98`): every Pages build from 2026-09-23 had failed on Liquid in the Plan 1 doc until PR #38 (`_config.yml` excludes `docs/superpowers/`). Checked: `/bespoke/` and `/bespoke/legacy.html` return 200, Guide me opens, no console errors. Hosted v2 save/reopen/Send not yet exercised.
 (as of 2026-10-01, `origin/main` = `7d482d2`)
 - **Six existing lessons: OUT OF QA, READY FOR TEACHING** (Britt, 2026-09-23). This supersedes the 2026-09-22 review's "no blanket teaching release" verdict. Registry, Dashboard fallback, README and Project Plan updated to match the same day.
@@ -19,10 +20,10 @@
 - Quality gate green on PR #36 head `8fa1e5b`, locally and in CI (2026-10-01).
 
 ## Last Session
-- **Date**: 2026-10-01
-- **What we worked on**: Checked how far the last BeSpoke plan got. Guide me (Sept 30 plan) was complete and merged into `codex/bespoke-guided-builder` (PR #35), not `main`. Ran `quality.sh` on that branch head (green), opened PR #36 to `main` with the deploy order first, staged the service at `~/bespoke-stages/2026-10-01-builder-8fa1e5b` (byte-matched the branch, v1 fixture accepted), Britt deployed it, Claude ran the post-deploy checks, CI passed, Britt merged.
-- **What we decided**: see the 2026-10-01 rows in the decision log.
-- **Where we left off**: v2 builder is live on Pages after PR #38 fixed a Pages build that had failed since 2026-09-23. PR #39 (three Guide me bug fixes) merged as `b4eb377` and is live. Next: hosted round trip with a real team link (v2 design, a Guide me design, and an old v1 draft), then the Money Management pilot.
+- **Date**: 2026-10-07
+- **What we worked on**: Found where the "simplify the choices" work stood (nine presets and team view links built October 2 on `claude/bespoke-workflow-presets-fc20df`; Quick pick spec written October 6 on `claude/bespoke-preset-wizard-aa9788`; neither pushed). Brought both into this branch, amended the spec to advisory-only, wrote the PR 1 plan, and built PR 1: fixes A1 to A4 (false conflict on a replaced edit code, view code in a builder link, backup in a view tab, restore notice writes), test gaps B1 to B3, doc corrections C1 to C4, and three new presets. Installed Playwright Chromium (Britt approved).
+- **What we decided**: Quick pick gathers opinions only. No readability or accessibility gate on what teams pick. Keep the nine presets and add three by hand. Sidebar-color cap is three, because three of the nine already share Royal.
+- **Where we left off**: PR 1 committed on this branch, gate green, service staged under `~/bespoke-stages/` (see the staging line in the session report). Not pushed. Next: Britt reviews the three new presets, runs the Netlify deploy and sets `BESPOKE_VIEW_KEYS`; then push, open PR 1; then plan and build Quick pick (PR 2).
 
 ## Open Items
 - [x] Guided mode and the Codex builder merged to `main` 2026-10-01 (PR #36), after the service redeploy.
@@ -66,6 +67,8 @@
 ## Key Decisions Log
 | Date | Decision | Rationale |
 |------|----------|-----------|
+| 2026-10-07 | Quick pick and BeSpoke teams only suggest a design; no readability or accessibility gates on their picks | Britt: the final design comes from her, the administrator and Claude Design. Detail in auto-memory `bespoke-is-advisory-not-final.md` |
+| 2026-10-07 | Keep the nine October 2 presets and add three by hand instead of redesigning all twelve | Subtract before add; variety checks (own heading font, pairwise 7 of 13, sidebar cap 3) still pass. Britt can ask for a fuller redo after seeing all twelve |
 | 2026-10-01 | Merge the Codex v2 builder (with Guide me) to `main`, replacing the wizard | Britt's call after the status review; quality gate green on the exact commit |
 | 2026-10-01 | Redeploy the Netlify service from the PR head before merging | The service bundles the v2 schema and model; the new service still accepts v1, so the old wizard kept working in between |
 | 2026-09-30 | Extend the Codex builder with an optional Guide me walk-through; do not build our own 8-step wizard, role model or palette | The Codex builder already had roles, history and a 3-stage flow chosen by a 2026-09-24 review; a parallel model would collide on file names and data shape |

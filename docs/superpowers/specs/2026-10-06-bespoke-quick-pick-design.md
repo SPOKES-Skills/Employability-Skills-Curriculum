@@ -1,8 +1,12 @@
 # BeSpoke Quick pick
 
-Status: design approved by Britt in chat, 2026-10-06, then revised the same day for preset variety and a Color scheme row. Written spec awaiting Britt's review. Nothing here is built yet. Baseline is `claude/bespoke-workflow-presets-fc20df` at `652f997`, which is `origin/main` (`13a808d`) plus the unmerged PR 1 of the 2026-10-02 spec.
+Status: design approved by Britt in chat, 2026-10-06, revised the same day for preset variety and a Color scheme row, then revised on 2026-10-07 after Britt said Quick pick is advisory only and carries no readability gates. Nothing here is built yet. Baseline is `claude/bespoke-workflow-presets-fc20df` at `652f997`, which is `origin/main` (`13a808d`) plus the unmerged PR 1 of the 2026-10-02 spec.
 
 This spec replaces the flow half (PR 2) of `docs/superpowers/specs/2026-10-02-bespoke-start-path-presets-design.md`. That spec's PR 1 is built and carries forward here.
+
+## Purpose
+
+Quick pick gathers opinions. Teams who want a say in how the slides look pick a look and tweak it, and Britt reads what they send. It is not the final design. The final design comes from Britt and the administrator, with Claude Design, and may borrow from what teams suggest. So a combination a team picks can be ugly or hard to read, and that is fine. Quick pick gates nothing on readability or accessibility and shows no readability warnings. The existing full builder keeps its advisory notes unchanged.
 
 ## Problem
 
@@ -10,7 +14,7 @@ Britt's verdict on 2026-10-06: the builder is too complicated, and a team would 
 
 ## Solution
 
-Teams pick one of twelve finished looks that differ as much as the catalog allows. Then on one screen they can borrow another look's color scheme and change four things: background, font, sidebar and text color. Every option is checked ahead of time, so no combination a team can pick is hard to read. The full builder stays available behind a small More options link.
+Teams pick one of twelve finished looks that differ as much as the catalog allows. Then on one screen they can borrow another look's color scheme and change four things: background, font, sidebar and text color. Nothing is gated on readability, because the result is a suggestion for Britt and not the final design. The full builder stays available behind a small More options link.
 
 1. 'Who's here' - one screen that confirms the lesson and asks for the Team Leader's name.
 2. 'Pick a look' - a gallery of twelve presets, each with two small rendered slides.
@@ -41,11 +45,12 @@ Teams pick one of twelve finished looks that differ as much as the catalog allow
 4. Background is one choice that sets both the title and chapter color and a matching light tint for content slides.
 5. Text color sets headings and body together.
 6. Font is a choice of ready-made pairs, a heading font with a matching body font.
-7. Twelve presets, redesigned together as one set so each differs from the others in colors, fonts, texture and layouts as much as the catalog allows.
+7. Twelve presets that differ in colors, fonts, texture and layouts as much as the catalog allows. The nine from 2026-10-02 stay and three new ones fill the gaps. Britt can ask for a fuller redo after seeing all twelve rendered.
 8. The changes sit on one screen, as rows beside the preview.
 9. The flow does not ask who is building the design.
 10. A Color scheme row lets a team take the colors of any of the twelve presets while keeping their chosen look's fonts, texture and layouts. The other color rows fine-tune from there.
 11. Text color stays one choice for headings and body.
+12. Quick pick is advisory. No readability or accessibility gate, test or warning applies to what a team can pick (2026-10-07).
 
 ### Screen 1, Who's here
 
@@ -87,15 +92,11 @@ Background options, each a bold color, its blend partner and its content tint:
 | Mauve | Mauve | Royal | White |
 | Gold | Gold | Green | Mist |
 
-After a background pick, `titleText` and `subtitle` are set to the readable ink: White or Royal, whichever has the higher lowest contrast across the bold color and its blend partner.
+After a background pick, `titleText` and `subtitle` are set to White or Royal, whichever has the higher contrast on the bold color. This is a convenience so a first pick looks sensible. It is not a gate, and the Text color row can override it.
 
 The five font pairs are DM Serif Display + Outfit, Playfair Display + Inter, Merriweather + Source Sans 3, Vollkorn + Fira Sans and Crimson Pro + Work Sans.
 
-Contrast figures behind these lists, from `BUILDER_MODEL` on 2026-10-06. A sweep of the nine existing presets across every option, 11,340 designs, raised no advisory:
-
-- Silver is left out as a content tint. Gray text on Silver is 4.0 to 1, under the 4.5 minimum for body text.
-- Blue is left out as a text color. Blue on Mist is 4.2 to 1.
-- The four text colors are at least 5.4 to 1 on both White and Mist.
+The lists are short so the rows stay quick to scan, not to prevent poor contrast. Silver is left out as a content tint and Blue as a text color only to keep the rows short, and a team can still reach them in More options.
 
 The option table lives in `QUICK_DIR` as data, not in `CATALOG`, so `SERVICE` and `SCHEMA_V2` do not change for it.
 
@@ -109,39 +110,28 @@ More options opens the existing Slide designs stage on the same design. Guide me
 
 ### Presets
 
-Twelve presets: Professional, Modern, Serious, Light-hearted, Fun, Outspoken, Open Air, Gold Standard, Slate, Harvest, Bold Statement and Fresh Start. All twelve are redesigned together in `PRESET_TABLE`, including the nine from 2026-10-02.
+Twelve presets: Professional, Modern, Serious, Light-hearted, Fun, Outspoken, Open Air, Gold Standard, Slate, Harvest, Bold Statement and Fresh Start. The first nine come from 2026-10-02 and stay as they are. The last three are new, in `PRESET_TABLE`.
 
-The nine from 2026-10-02 lean on a few choices. Four use the centered title slide, five put their text boxes in columns, three use a Royal sidebar, and three use the plain texture. The redesign spreads every choice across the set.
+The nine lean on a few choices. Four use the centered title slide, five put their text boxes in columns, three use a Royal sidebar, and three use the plain texture. The three new presets lean the other way.
 
-The catalog sets the limits: eleven colors, twelve fonts, five textures, four title layouts, four divider layouts, three text box arrangements, three video layouts and four activity layouts. With twelve presets some choices must repeat. The rules below keep each repeat as rare as the catalog allows.
+The catalog sets the limits: eleven colors, twelve fonts, five textures, four title layouts, four divider layouts, three text box arrangements, three video layouts and four activity layouts. With twelve presets some choices must repeat. The goal is as much variety as the catalog allows, so a team sees twelve looks that feel different.
 
-Britt reviews all twelve rendered presets before PR 1 merges, and the values can change in that review.
+Britt reviews all twelve rendered presets before PR 1 merges, and the values can change in that review. Ugly is acceptable. Variety matters more than polish.
 
-Variety rules, each enforced by a test:
+Variety checks, each a test:
 
 - Every preset has its own heading font. Twelve presets, twelve fonts.
-- Title backgrounds use at least eleven different colors, and no two presets share the same title background and title text pair.
 - No color is the sidebar of more than two presets.
-- No color is the heading color of more than three presets.
-- Every preset has its own `accent` and `button` pair.
-- Each texture appears on two or three presets.
-- Each title layout, divider layout and activity layout appears on exactly three presets. Each video layout and each text box arrangement appears on exactly four.
-- No two presets share the same text box count, style and arrangement.
-- Every pair of presets uses different layouts on at least three of the five slide types.
-- Every pair of presets differs on at least 9 of the 13 compared fields already in `scripts/test-bespoke-builder-model.mjs`, up from 7. If the plan finds 9 cannot be reached with the rules above, it reports the highest reachable number and Britt decides.
+- Every preset has its own `accent` and `button` pair, which the Color scheme row relies on to find the selected scheme.
+- Every pair of presets differs on at least 7 of the 13 compared fields already in `scripts/test-bespoke-builder-model.mjs`. The nine presets from 2026-10-02 already meet this bar, and the three new ones must too.
 
-The plan writes a small search script that finds values meeting these rules, so the set is not tuned by hand. The names and one-line descriptions are written to fit the values it finds.
+The three new presets, Harvest, Bold Statement and Fresh Start, are written by hand in `PRESET_TABLE` and aimed at the gaps the nine leave: layouts, textures and colors that few of them use. There is no search script.
 
 Rules every preset keeps, also enforced by a test:
 
-- It is a valid design with no readability advisory.
-- Its colors read well on any look, blended or not. Title text and subtitle pass on both `titleBackground` and `titleBackgroundEnd`, even when the preset itself uses one color. A sweep on 2026-10-06 found Light-hearted's scheme failing here. Its Royal title text on a Green to Navy blend measures 1.69 to 1, so the redesign must fix it.
+- It is a structurally valid design. The existing checks that a preset raises no contrast advisory (`scripts/test-bespoke-builder-model.mjs`, lines 28 to 49) keep covering the nine from 2026-10-02. The three new presets are exempt, because readability is not a gate here.
 - No preset is an exact match for a released lesson.
 - No preset carries per-slide custom styles (`roleStyles`), so the rows always reach the slides.
-
-### No combination is hard to read
-
-Twelve presets, twelve color schemes, seven background choices, six font choices, six sidebar choices and five text color choices make 181,440 designs, counting Keep scheme in each row. Texture matters here, because a scheme from one preset can meet another preset's texture. Fonts do not change contrast, so the test checks each distinct set of colors and texture once: 30,240 designs. It also asserts that `contrastIssues` reads no font field, so the shortcut stays true. A test builds every one and fails if `contrastIssues` returns anything for it. A change to a preset or an option that breaks readability fails the build.
 
 ### Saved-design format and deploy order
 
@@ -153,7 +143,7 @@ The format stays `bespoke-selection/v2`. There is no migration.
 
 ### Two pull requests
 
-**PR 1, presets and format.** The 2026-10-02 PR 1 work already on this branch, plus the twelve redesigned presets, the search script and their tests. Its own Definition of done items from the 2026-10-02 spec still apply, including the security review of the team view codes. Service redeploy first, then merge.
+**PR 1, presets and format.** The 2026-10-02 PR 1 work already on this branch, the A1 to A4 fixes left from the final review of that work, plus the three new presets and their tests. Its own Definition of done items from the 2026-10-02 spec still apply, including the security review of the team view codes. Service redeploy first, then merge.
 
 **PR 2, Quick pick.** `QUICK_DIR`, the hooks in `BUILDER_APP`, the More options link, docs. No format change.
 
@@ -166,6 +156,7 @@ The format stays `bespoke-selection/v2`. There is no migration.
 | 2026-10-02 | Start from scratch or from a preset | Always from a preset |
 | 2026-10-02 | Twelve-step path for colors, layouts and fonts | Four rows on one screen |
 | 2026-10-02 | Nine presets | Twelve presets |
+| 2026-10-06 | Every pick must be readable, checked by a test of every combination | No readability gate. Quick pick is advisory input, not the final design (2026-10-07) |
 | 2026-10-02 | Every color screen shows all eleven colors | Each row shows a short checked list |
 | 2026-09-24 | The three-stage builder is what teams see first | Quick pick comes first; the builder sits behind More options |
 
@@ -184,10 +175,10 @@ These stay: the three-stage builder and Guide me behind More options, shared Sav
 
 - This spec, approved by Britt.
 - The implementation plan in `docs/superpowers/plans/`.
-- PR 1: three new presets in `PRESET_TABLE` and `CATALOG`, the regenerated `SCHEMA_V2`, updated preset tests, and the 2026-10-02 PR 1 work.
-- PR 2: `QUICK_DIR`, the `BUILDER_APP` hooks, the combination test and the browser test.
+- PR 1: three new presets in `PRESET_TABLE` and `CATALOG`, the regenerated `SCHEMA_V2`, updated preset tests, the A1 to A4 fixes and the 2026-10-02 PR 1 work.
+- PR 2: `QUICK_DIR`, the `BUILDER_APP` hooks and the Quick pick tests.
 - A dated section in `DECISIONS` that records the replaced decisions.
-- Updated `bespoke/README.md`, `bespoke/team-guide.html`, the builder's How it works text and `.claude/MEMORY.md`.
+- Updated `bespoke/README.md`, `bespoke/team-guide.html`, the builder's How it works text and `.claude/MEMORY.md`. The Quick pick screens say plainly that this is a suggestion and that Britt and the administrator decide the final design.
 - A dated verification note in `docs/bespoke/`.
 
 ## Definition of done
@@ -203,12 +194,15 @@ These stay: the three-stage builder and Guide me behind More options, shared Sav
 - The schema matches the catalog.
   - Check: `node scripts/generate-selection-v2-schema.mjs --check`
     Expected: exit code 0.
-- Twelve presets keep every variety rule and every preset rule.
+- Twelve presets keep every variety check and preset rule.
   - Check: `node scripts/test-bespoke-builder-model.mjs`
-    Expected: exit code 0, with one named check per variety rule and per preset rule, and a printed table of how many presets use each title background, sidebar, heading color, texture and layout.
-- The preset values come from the search script, not hand edits.
+    Expected: exit code 0, with one named check per variety check and per preset rule.
+- The presets in `CATALOG` match the preset table.
   - Check: `node scripts/build-bespoke-presets.mjs --check`
-    Expected: exit code 0, meaning the presets in `CATALOG` match what the script produces.
+    Expected: exit code 0.
+- The A1 to A4 fixes from the 2026-10-02 final review landed with tests.
+  - Check: `node scripts/test-bespoke-browser.mjs` or the browser test file that holds the new cases, named in the plan.
+    Expected: exit code 0, with a case each for a replaced edit code, a view code in a builder-style link, a backup opened in a view tab after reload, and the tightened tests.
 - The service accepts old designs and the new preset ids.
   - Check: `node --test scripts/test-bespoke-v2-contracts.mjs scripts/test-bespoke-handoff.mjs`
     Expected: exit code 0, with a case for each of the three new preset ids and one for an old v2 fixture.
@@ -221,9 +215,9 @@ These stay: the three-stage builder and Guide me behind More options, shared Sav
 
 ### PR 2, Quick pick
 
-- No combination a team can pick raises a readability advisory.
-  - Check: `node scripts/test-bespoke-quick.mjs`
-    Expected: exit code 0 and a line reporting 30,240 distinct color and texture designs checked, covering all 181,440 choices, with 0 advisories.
+- Quick pick shows no readability warning and blocks nothing on readability.
+  - Check: `node scripts/test-bespoke-quick-browser.mjs`
+    Expected: exit code 0, with a scenario that picks a low-contrast combination, finds no warning in Quick pick, and saves and sends it.
 - Each row sets only its own roles, Color scheme keeps fonts, texture and layouts, and Keep scheme restores the scheme's values.
   - Check: `node scripts/test-bespoke-quick.mjs`
     Expected: exit code 0, with a case per row that compares the design before and after a pick and finds changes only in that row's roles, and a case where a sidebar pick clears `sidebarText`.
@@ -248,6 +242,7 @@ These stay: the three-stage builder and Guide me behind More options, shared Sav
 
 ## Out of scope
 
+- Readability or accessibility gates, tests or warnings in Quick pick.
 - Changes to the full builder, Guide me or the preview editor beyond the More options and Back to Quick pick links.
 - New colors, fonts, textures or layout options in `CATALOG`.
 - Layout choices in Quick pick. A team that wants a different layout picks another preset or uses More options.

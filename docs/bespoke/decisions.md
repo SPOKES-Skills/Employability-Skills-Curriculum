@@ -1,5 +1,16 @@
 # BeSpoke decisions
 
+## Quick pick is advisory input: October 7, 2026
+
+Britt: BeSpoke gathers opinions from teams who want a say in how the slides look. It is
+not the final pass. The final design comes from Britt and the administrator, with
+Claude Design, and may borrow from what teams suggest. Quick pick therefore gates
+nothing on readability or accessibility and shows no readability warnings, and ugly
+color combinations are acceptable. This supersedes the October 6 plan to test every
+combination for readability, and the September 24 line that defaults and presets meet
+the contrast guidance, for the three new presets only. The full builder keeps its
+advisory notes. Spec: `docs/superpowers/specs/2026-10-06-bespoke-quick-pick-design.md`.
+
 ## Start flow, step path and presets: October 2, 2026
 
 Britt approved the design in `docs/superpowers/specs/2026-10-02-bespoke-start-path-presets-design.md`. It replaces these earlier rows. Everything not listed here stands.

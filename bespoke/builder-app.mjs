@@ -130,16 +130,11 @@ const findOption=(family,slug)=>state.library?.families?.[family]?.options.find(
 
   function installTeamSession(lessonId, editCode) {
     teamView.end();
-    const same = ui.teamSession && ui.teamSession.lessonId === lessonId && ui.teamSession.editCode === editCode;
-    if (!same) { draftGeneration++; resetPresetConfirmation(); }
-    ui.teamSession = same ? ui.teamSession : {
-      lessonId,
-      editCode,
-      revision: null,
-      savedAt: null,
-      baseSelectionKey: null,
-      pendingSave: null
-    };
+    const sameLesson = Boolean(ui.teamSession) && ui.teamSession.lessonId === lessonId;
+    if (!sameLesson) { draftGeneration++; resetPresetConfirmation(); }
+    // The same lesson with a new code is the same team's design: keep its revision and baseline, swap only the code.
+    if (!sameLesson) ui.teamSession = { lessonId, editCode, revision: null, savedAt: null, baseSelectionKey: null, pendingSave: null };
+    else if (ui.teamSession.editCode !== editCode) ui.teamSession = { ...ui.teamSession, editCode };
     state.editCode = editCode;
     persistTeamSession();
   }

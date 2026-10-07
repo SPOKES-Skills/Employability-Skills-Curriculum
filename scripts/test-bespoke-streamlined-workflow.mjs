@@ -263,6 +263,21 @@ try {
       assert.equal(await viewSession(wrong), null, 'a builder link ends the view session');
     } finally { await context.close(); }
   });
+  await scenario('a replaced edit code keeps the open design without a false conflict', async ({ makePage, server }) => {
+    const builder = await makePage();
+    await team(builder);
+    await builder.locator('#preset-fun').click();
+    await save(builder);
+    const replacement = 'bespoke-local-preview-replaced-code';
+    server.replaceEditCode(replacement);
+    await builder.goto('about:blank');
+    await builder.goto(`${server.baseUrl}/bespoke/#team=${legacy.lesson.id}.${replacement}`);
+    await builder.locator('body[data-access=edit]').waitFor();
+    await builder.waitForLoadState('networkidle');
+    assert.doesNotMatch(await builder.locator('#fileStatus').innerText(), /newer shared version/, 'the draft equals the shared design, so there is no conflict');
+    await save(builder);
+    assert.equal((await design(builder)).roles.titleBackground, 'gold', 'the saved Fun design is still the open design');
+  });
   await scenario('team view before the first save', async ({ makePage }) => {
     const view = await makePage({ hash: viewHash('goal-setting') });
     await view.locator('#restoreNotice').filter({ hasText: 'has not saved a design yet' }).waitFor();

@@ -128,6 +128,8 @@ const findOption=(family,slug)=>state.library?.families?.[family]?.options.find(
     } catch { return null; }
   }
 
+  const storedSessionLesson = () => { try { return JSON.parse(localStorage.getItem(TEAM_SESSION_KEY) || "null")?.lessonId || ""; } catch { return ""; } };
+
   function installTeamSession(lessonId, editCode) {
     teamView.end();
     const sameLesson = Boolean(ui.teamSession) && ui.teamSession.lessonId === lessonId;
@@ -385,9 +387,9 @@ const findOption=(family,slug)=>state.library?.families?.[family]?.options.find(
       if (file.size > MAX_FILE_BYTES) throw new Error("This file is too large. Select the small Bespoke design file, not a source document.");
       const payload = JSON.parse(await file.text());
       validateSelectionPayload(payload, {draft:true});
-      if (ui.teamSession && payload.lesson.id !== ui.teamSession.lessonId) {
-        throw new Error("This backup belongs to a different lesson than the open team session.");
-      }
+      // A view tab has no session of its own, but a reload would restore the one stored in this browser.
+      const heldLesson = ui.teamSession ? ui.teamSession.lessonId : storedSessionLesson();
+      if (heldLesson && payload.lesson.id !== heldLesson) throw new Error("This backup belongs to a different lesson than the team session in this browser.");
       if (!prepareDraftReplacement()) return;
       applySelectionPayload(payload);
       ui.autosavePaused = Boolean(ui.teamSession);

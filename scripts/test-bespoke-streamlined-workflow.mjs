@@ -307,6 +307,24 @@ try {
     assert.notEqual(await view.locator('body').getAttribute('data-access'), 'view', 'a reload does not flip the tab back to View only');
     assert.equal((await design(view)).roles.titleBackground, 'gold', 'the backup design is still open');
   });
+  await scenario('a view tab refuses a backup for another lesson than the edit session stored in the browser', async ({ makePage, server }) => {
+    const lead = await makePage();
+    await team(lead);
+    await save(lead);
+    const other = await makePage({ hash: `#team=goal-setting.${LOCAL_PREVIEW_CODE}` });
+    await team(other);
+    await other.locator('#preset-fun').click();
+    await save(other);
+    const value = await backup(other);
+    const view = await lead.context().newPage();
+    await view.goto(`${server.baseUrl}/bespoke/${viewHash('goal-setting')}`);
+    await view.locator('#btnViewRefresh').waitFor();
+    const before = await view.evaluate(() => localStorage.getItem('bespoke-draft-v2'));
+    await view.locator('#teamFileInput').setInputFiles({ name: 'other-lesson.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(value)) });
+    await view.locator('#fileStatus').filter({ hasText: /different lesson/ }).waitFor();
+    assert.notEqual(await viewSession(view), null, 'the refused backup leaves the view session alone');
+    assert.equal(await view.evaluate(() => localStorage.getItem('bespoke-draft-v2')), before, 'the refused backup leaves the browser draft alone');
+  });
   await scenario('team view before the first save', async ({ makePage }) => {
     const view = await makePage({ hash: viewHash('goal-setting') });
     await view.locator('#restoreNotice').filter({ hasText: 'has not saved a design yet' }).waitFor();

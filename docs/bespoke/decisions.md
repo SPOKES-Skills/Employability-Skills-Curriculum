@@ -19,7 +19,7 @@ Britt approved the design in `docs/superpowers/specs/2026-10-02-bespoke-start-pa
 |---|---|
 | Six presets (September 18) | Nine presets. Open Air, Gold Standard and Slate are new, and every preset is redesigned. `scripts/build-bespoke-presets.mjs` is the source. |
 | Sidebar text color is chosen for you (September 24) | Optional choice saved as `design.roles.sidebarText`. Absent means Automatic. Advisory at 4.5 to 1. |
-| Start is one page with Lesson & team, Build my own and six presets (September 24) | Two short screens, then scratch or preset. Ships in the second pull request. |
+| Start is one page with Lesson & team, Build my own and six presets (September 24) | A four-screen intake wizard (lesson team, Team Leader, who is building, how the team works), then scratch or preset. Replaced on October 6 by Quick pick; see the October 7 entry above. |
 | Guide me walks slide by slide with four suggested colors (September 30) | Step by step walks twelve steps: colors, layout, fonts. Every color screen shows all eleven. Ships in the second pull request. |
 | Guide me owns the preview while it runs (October 1) | A preview click opens the matching step or the preview editor. Ships in the second pull request. |
 | One private link per team, and it edits (September 22) | Two links per team. The builder link edits. The team view link opens the latest saved design read-only. |

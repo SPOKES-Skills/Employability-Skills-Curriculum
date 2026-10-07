@@ -321,8 +321,8 @@ These stay as they are: advisory contrast with no disabled swatches, all eleven 
   - Check: read the PR 1 description.
     Expected: it lists the Netlify deploy id and the post-deploy check results, dated before the merge commit.
 - The live view link and builder link both work.
-  - Check: Britt opens one team view link and one builder link after the deploy.
-    Expected: the view link shows "View only" with a saved time, and the builder link still edits.
+  - Check: Britt opens one builder link after the deploy, and one team view link after the merge, because the live page is served from main.
+    Expected: the builder link still edits, and the view link shows "View only" with a saved time.
 - The nine presets look good and look different.
   - Check: Britt reviews the nine rendered presets in the local preview.
     Expected: approved.

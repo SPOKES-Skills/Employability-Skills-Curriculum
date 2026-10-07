@@ -65,8 +65,11 @@ There is no public first-come claim of a lesson and no teacher-chosen
 four-character code. Anyone with a builder link can change that team's design, so
 never pin it or share it beyond the builder and the Team Leader.
 
-The first provisioning command creates the builder links. A second command adds
-the view links, as [Add team view links](#add-team-view-links) describes.
+Run the first provisioning command once. It creates the access files and the six
+builder links. A second command adds the view links, as
+[Add team view links](#add-team-view-links) describes. The `--add-view-links` and
+`--rotate-team-codes` modes exist from this release on, so run the provisioner from
+a checkout that has it.
 
 ```sh
 node scripts/bespoke-provision.mjs \
@@ -120,6 +123,10 @@ Then:
 3. Send each builder link privately to that team's Team Leader, who passes it to
    the builder.
 
+Pinning a view link does not switch off a builder link that was already pinned or
+shared. Unpin the builder link. If it reached people who should not edit, see
+[Replace the edit codes](#replace-the-edit-codes).
+
 A team view link ends with `#view=<lesson-id>.<random-view-code>`. The browser
 removes it from the address bar and keeps it only for that tab, so a reload stays
 in the view. The banner shows the lesson, "View only", the save time and the
@@ -129,9 +136,10 @@ sending for it. Its answer leaves out the Team Leader's email, the notes for the
 design review and any older wizard design kept for recovery. A view code typed
 into the Open dialog opens the same read-only view.
 
-The service hashes view codes with a `view:` prefix, so a `view-env.json` made
-before commit `e70b95d` will not work. Delete the three `view-*` files and run the
-command again. None was ever deployed.
+The service hashes view codes with a `view:` prefix. A `view-env.json` made before
+view codes got that prefix will not work and must be regenerated. Move the three
+`view-*` files aside, run the command again, and delete the old files once the new
+run has succeeded.
 
 ## Configure the service
 
@@ -170,7 +178,9 @@ The provisioner supplies the encryption key and team-key map in `server-env.json
 and the view-key map in `view-env.json`. After a rotation, the newest
 `team-env-<stamp>.json` holds the current team-key map instead, as
 [Replace the edit codes](#replace-the-edit-codes) explains. The builder links are in
-`team-links.html` and the team view links are in `view-links.html`.
+`team-links.html` and the team view links are in `view-links.html`. After a
+rotation, the dated `team-links-<stamp>.html` and `team-access-<stamp>.json` are the
+current ones.
 `team-access.json` and `view-access.json` are private administrator recovery
 material. Only access-code hashes go into `BESPOKE_TEAM_KEYS`; keep the original private links outside the
 service configuration. Keep a secure backup of `BESPOKE_DRAFT_KEY`: losing it
@@ -185,8 +195,9 @@ node scripts/bespoke-stage-service.mjs "/absolute/path/to/new-service-stage"
 Choose a new staging directory outside this repository. Run the authorized
 Netlify CLI or connector deployment from that staging directory, not from the
 full curriculum checkout. The stage contains only `netlify.toml`, the function
-and its shared module, the landing note, three schema/catalog authority files,
-and a minimal Node package manifest. It excludes lesson media, private setup
+and its shared module, the landing note, the two selection schemas, the builder
+model and catalog, the older catalog, the library catalog, and a minimal Node
+package manifest. It excludes lesson media, private setup
 files, and credentials. The repository remains the source of truth; create a
 fresh stage after code or catalog changes, and do not edit the staged copy.
 Publish `netlify/site`, use functions in `netlify/functions`, and leave the build
@@ -240,8 +251,8 @@ successful save or receipt.
   depend on the token. Verify Open and Save after the replacement.
 - **Team access reset:** follow [Replace the edit codes](#replace-the-edit-codes)
   below. Only an administrator runs it.
-- **Team view code rotation:** delete the three `view-*` files and run
-  `--add-view-links` again. That replaces all six view codes at once. Update
+- **Team view code rotation:** move the three `view-*` files aside and run
+  `--add-view-links` again. Delete the old files once the new run has succeeded. That replaces all six view codes at once. Update
   `BESPOKE_VIEW_KEYS` from the new `view-env.json` and deploy the service. The old
   view links stop working after the deploy, so pin the new ones in their place.
 - **Draft-key rotation:** requires a deliberate data migration. Do not simply
@@ -257,6 +268,10 @@ successful save or receipt.
 
 Do this when a builder link was pinned, forwarded or shared beyond the builder and
 the Team Leader. It replaces all six edit codes at once.
+
+Do it as its own service deploy, after the page change is live. In the same
+sitting, hand out the new builder links, unpin the old ones and pin the view
+links, because the old builder links stop working at that deploy.
 
 ```sh
 node scripts/bespoke-provision.mjs \

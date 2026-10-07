@@ -292,6 +292,21 @@ try {
     const kept = await draft(view);
     assert.deepEqual([kept.teamName, kept.spokespersonName, kept.design], [seeded.teamName, seeded.spokespersonName, seeded.design], 'the browser draft keeps its own content');
   });
+  await scenario('opening a backup in a view tab survives a reload', async ({ makePage }) => {
+    const builder = await makePage();
+    await team(builder);
+    await builder.locator('#preset-fun').click();
+    await save(builder);
+    const value = await backup(builder);
+    const view = await makePage({ hash: viewHash() });
+    await view.locator('#btnViewRefresh').waitFor();
+    await upload(view, value, 'backup.json');
+    assert.equal(await viewSession(view), null, 'opening a backup ends the view session');
+    await view.reload();
+    await view.locator('#stepList button').first().waitFor();
+    assert.notEqual(await view.locator('body').getAttribute('data-access'), 'view', 'a reload does not flip the tab back to View only');
+    assert.equal((await design(view)).roles.titleBackground, 'gold', 'the backup design is still open');
+  });
   await scenario('team view before the first save', async ({ makePage }) => {
     const view = await makePage({ hash: viewHash('goal-setting') });
     await view.locator('#restoreNotice').filter({ hasText: 'has not saved a design yet' }).waitFor();

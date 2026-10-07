@@ -391,6 +391,7 @@ const findOption=(family,slug)=>state.library?.families?.[family]?.options.find(
       applySelectionPayload(payload);
       ui.autosavePaused = Boolean(ui.teamSession);
       if (!ui.teamSession) {
+        teamView.end();
         ui.mode = "edit";
         state.editCode = "";
       }

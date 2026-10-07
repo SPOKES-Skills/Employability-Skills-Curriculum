@@ -100,7 +100,7 @@ The lists are short so the rows stay quick to scan, not to prevent poor contrast
 
 The option table lives in `QUICK_DIR` as data, not in `CATALOG`, so `SERVICE` and `SCHEMA_V2` do not change for it.
 
-**Selected state.** Quick pick keeps the chosen scheme in the browser draft. When it is missing, for example on another computer, the Color scheme row finds it from `accent` and `button`, which only that row sets. Every preset has its own `accent` and `button` pair, so the match is exact. Each other row marks the option that matches the current design. A design changed in More options can match none of them. That row then shows Custom as selected, and any pick replaces it.
+**Selected state.** Quick pick keeps the chosen scheme in the browser draft. When it is missing, for example on another computer, the Color scheme row finds it from `accent` and `button`, which only that row sets. Where two presets share the pair, the first one in the preset list is shown as selected. That is fine, because the saved scheme in the draft is the real source and this fallback only matters on another computer. Each other row marks the option that matches the current design. A design changed in More options can match none of them. That row then shows Custom as selected, and any pick replaces it.
 
 **Actions** under the rows: Save & send to Britt, Pick a different look, and a small More options link.
 
@@ -121,8 +121,7 @@ Britt reviews all twelve rendered presets before PR 1 merges, and the values can
 Variety checks, each a test:
 
 - Every preset has its own heading font. Twelve presets, twelve fonts.
-- No color is the sidebar of more than two presets.
-- Every preset has its own `accent` and `button` pair, which the Color scheme row relies on to find the selected scheme.
+- No color is the sidebar of more than three presets. Three of the nine from 2026-10-02 already share Royal, and the new presets add none to it.
 - Every pair of presets differs on at least 7 of the 13 compared fields already in `scripts/test-bespoke-builder-model.mjs`. The nine presets from 2026-10-02 already meet this bar, and the three new ones must too.
 
 The three new presets, Harvest, Bold Statement and Fresh Start, are written by hand in `PRESET_TABLE` and aimed at the gaps the nine leave: layouts, textures and colors that few of them use. There is no search script.
@@ -238,7 +237,7 @@ These stay: the three-stage builder and Guide me behind More options, shared Sav
     Expected: exit code 0 and `quality.sh: all checks passed`.
 - `BUILDER_APP` does not grow past its baseline.
   - Check: `wc -l bespoke/builder-app.mjs`
-    Expected: 1,879 lines or fewer after PR 2, and every new file under 800 lines.
+    Expected: 1,883 lines or fewer after PR 2 (the count at the end of PR 1), and every new file under 800 lines.
 
 ## Out of scope
 

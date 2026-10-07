@@ -191,7 +191,7 @@ try {
   await scenario('cumulative colors, independent fonts, editable presets, history and v2 file recovery', async ({ makePage }) => {
     const page = await makePage();
     await go(page, 'Starting look');
-    assert.equal(await page.locator('[data-preset]').count(), 9);
+    assert.equal(await page.locator('[data-preset]').count(), 12);
     await page.locator('[data-preset="professional"]').click();
     await go(page, 'Text boxes');
     if(!await page.locator('#section-cards-text').evaluate(el=>el.open))await page.locator('#section-cards-text > summary').click();

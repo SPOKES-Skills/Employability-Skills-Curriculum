@@ -24,9 +24,9 @@ test('committed v2 schema is current and v1 remains accepted', () => {
   }
 });
 
-test('all nine preset ids are accepted as a starting point', () => {
-  assert.equal(catalog.presets.length, 9);
-  for (const id of ['open-air', 'gold-standard', 'slate']) {
+test('all twelve preset ids are accepted as a starting point', () => {
+  assert.equal(catalog.presets.length, 12);
+  for (const id of ['open-air', 'gold-standard', 'slate', 'harvest', 'bold-statement', 'fresh-start']) {
     const selection = payload();
     selection.design = applyPreset(catalog, id);
     assert.equal(selection.design.startingPoint, id);

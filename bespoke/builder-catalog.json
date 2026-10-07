@@ -1392,6 +1392,201 @@
         },
         "startingPoint": "slate"
       }
+    },
+    {
+      "id": "harvest",
+      "label": "Harvest",
+      "blurb": "Warm deep gold and mauve with one large box.",
+      "design": {
+        "version": "2",
+        "roles": {
+          "sidebar": "mauve",
+          "titleBackground": "muted-gold",
+          "titleBackgroundEnd": "mauve",
+          "titleText": "light",
+          "subtitle": "light",
+          "contentBackground": "muted",
+          "heading": "muted-gold",
+          "body": "royal",
+          "accent": "gold",
+          "button": "mauve",
+          "dividerBackground": "muted-gold"
+        },
+        "fonts": {
+          "heading": "source-sans-3",
+          "body": "vollkorn"
+        },
+        "slides": {
+          "title": {
+            "layout": "left",
+            "logo": "corner",
+            "colors": "gradient"
+          },
+          "divider": {
+            "layout": "number",
+            "watermark": "show",
+            "colors": "solid"
+          },
+          "cards": {
+            "count": "1",
+            "titleBar": true,
+            "treatment": "paragraph",
+            "look": "filled",
+            "layout": "rows"
+          },
+          "video": {
+            "layout": "banner",
+            "frame": "accent",
+            "titleStyle": "large"
+          },
+          "activity": {
+            "layout": "box",
+            "labelStyle": "heading"
+          }
+        },
+        "background": "crosshatch",
+        "samples": {
+          "title": "Make room for your next step",
+          "subtitle": "A sample lesson for a confident start",
+          "boxes": [
+            "Notice what matters. Pick one practical goal for the week.",
+            "Break it into steps. Make a plan you can explain to a partner.",
+            "Try one action today. Reflect on what worked and adjust.",
+            "Keep the progress going. Celebrate a useful lesson learned."
+          ]
+        },
+        "startingPoint": "harvest"
+      }
+    },
+    {
+      "id": "bold-statement",
+      "label": "Bold Statement",
+      "blurb": "Navy and bright blue with gold type and split panels.",
+      "design": {
+        "version": "2",
+        "roles": {
+          "sidebar": "primary",
+          "titleBackground": "dark",
+          "titleBackgroundEnd": "primary",
+          "titleText": "gold",
+          "subtitle": "light",
+          "contentBackground": "light",
+          "heading": "royal",
+          "body": "dark",
+          "accent": "gold",
+          "button": "royal",
+          "dividerBackground": "primary"
+        },
+        "fonts": {
+          "heading": "inter",
+          "body": "crimson-pro"
+        },
+        "slides": {
+          "title": {
+            "layout": "split",
+            "logo": "above",
+            "colors": "solid"
+          },
+          "divider": {
+            "layout": "left",
+            "watermark": "hide",
+            "colors": "gradient"
+          },
+          "cards": {
+            "count": "4",
+            "titleBar": false,
+            "treatment": "numbered",
+            "look": "filled",
+            "layout": "grid"
+          },
+          "video": {
+            "layout": "side",
+            "frame": "plain",
+            "titleStyle": "caps"
+          },
+          "activity": {
+            "layout": "banner",
+            "labelStyle": "pill"
+          }
+        },
+        "background": "diagonal",
+        "samples": {
+          "title": "Make room for your next step",
+          "subtitle": "A sample lesson for a confident start",
+          "boxes": [
+            "Notice what matters. Pick one practical goal for the week.",
+            "Break it into steps. Make a plan you can explain to a partner.",
+            "Try one action today. Reflect on what worked and adjust.",
+            "Keep the progress going. Celebrate a useful lesson learned."
+          ]
+        },
+        "startingPoint": "bold-statement"
+      }
+    },
+    {
+      "id": "fresh-start",
+      "label": "Fresh Start",
+      "blurb": "Airy mist and green with a left-aligned title.",
+      "design": {
+        "version": "2",
+        "roles": {
+          "sidebar": "offwhite",
+          "titleBackground": "muted",
+          "titleBackgroundEnd": "accent",
+          "titleText": "dark",
+          "subtitle": "dark",
+          "contentBackground": "light",
+          "heading": "accent",
+          "body": "gray",
+          "accent": "accent",
+          "button": "accent",
+          "dividerBackground": "accent"
+        },
+        "fonts": {
+          "heading": "fira-sans",
+          "body": "source-sans-3"
+        },
+        "slides": {
+          "title": {
+            "layout": "left",
+            "logo": "above",
+            "colors": "gradient"
+          },
+          "divider": {
+            "layout": "number",
+            "watermark": "hide",
+            "colors": "gradient"
+          },
+          "cards": {
+            "count": "3",
+            "titleBar": false,
+            "treatment": "bullets",
+            "look": "rail",
+            "layout": "rows"
+          },
+          "video": {
+            "layout": "banner",
+            "frame": "plain",
+            "titleStyle": "regular"
+          },
+          "activity": {
+            "layout": "side",
+            "labelStyle": "caps"
+          }
+        },
+        "background": "soft-gradient",
+        "samples": {
+          "title": "Make room for your next step",
+          "subtitle": "A sample lesson for a confident start",
+          "boxes": [
+            "Notice what matters. Pick one practical goal for the week.",
+            "Break it into steps. Make a plan you can explain to a partner.",
+            "Try one action today. Reflect on what worked and adjust.",
+            "Keep the progress going. Celebrate a useful lesson learned."
+          ]
+        },
+        "startingPoint": "fresh-start"
+      }
     }
   ],
   "sampleLimits": {

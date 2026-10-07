@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/** The nine starting looks, as one table. Writes them into the builder catalog; --check only compares. */
+/** The twelve starting looks, as one table. Writes them into the builder catalog; --check only compares. */
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -44,7 +44,16 @@ export const PRESETS = [
     slides: slides(['center', 'above', 'gradient'], ['center', 'show', 'gradient'], ['2', true, 'paragraph', 'rail', 'columns'], ['stacked', 'accent', 'large'], ['callout', 'heading']) },
   { id: 'slate', label: 'Slate', blurb: 'Cool gray with green accents.',
     roles: roles('gray', 'gray', 'royal', 'light', 'light', 'muted', 'gray', 'royal', 'accent', 'gray', 'gray'), fonts: ['vollkorn', 'fira-sans'], background: 'dot-grid',
-    slides: slides(['bottom', 'corner', 'solid'], ['band', 'hide', 'solid'], ['4', false, 'bullets', 'band', 'columns'], ['side', 'plain', 'caps'], ['side', 'heading']) }
+    slides: slides(['bottom', 'corner', 'solid'], ['band', 'hide', 'solid'], ['4', false, 'bullets', 'band', 'columns'], ['side', 'plain', 'caps'], ['side', 'heading']) },
+  { id: 'harvest', label: 'Harvest', blurb: 'Warm deep gold and mauve with one large box.',
+    roles: roles('mauve', 'muted-gold', 'mauve', 'light', 'light', 'muted', 'muted-gold', 'royal', 'gold', 'mauve', 'muted-gold'), fonts: ['source-sans-3', 'vollkorn'], background: 'crosshatch',
+    slides: slides(['left', 'corner', 'gradient'], ['number', 'show', 'solid'], ['1', true, 'paragraph', 'filled', 'rows'], ['banner', 'accent', 'large'], ['box', 'heading']) },
+  { id: 'bold-statement', label: 'Bold Statement', blurb: 'Navy and bright blue with gold type and split panels.',
+    roles: roles('primary', 'dark', 'primary', 'gold', 'light', 'light', 'royal', 'dark', 'gold', 'royal', 'primary'), fonts: ['inter', 'crimson-pro'], background: 'diagonal',
+    slides: slides(['split', 'above', 'solid'], ['left', 'hide', 'gradient'], ['4', false, 'numbered', 'filled', 'grid'], ['side', 'plain', 'caps'], ['banner', 'pill']) },
+  { id: 'fresh-start', label: 'Fresh Start', blurb: 'Airy mist and green with a left-aligned title.',
+    roles: roles('offwhite', 'muted', 'accent', 'dark', 'dark', 'light', 'accent', 'gray', 'accent', 'accent', 'accent'), fonts: ['fira-sans', 'source-sans-3'], background: 'soft-gradient',
+    slides: slides(['left', 'above', 'gradient'], ['number', 'hide', 'gradient'], ['3', false, 'bullets', 'rail', 'rows'], ['banner', 'plain', 'regular'], ['side', 'caps']) }
 ];
 
 export function buildPresets(catalog) {

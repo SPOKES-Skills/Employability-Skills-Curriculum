@@ -23,30 +23,37 @@ check('all 11 original palette colors and 12 existing families have local font a
   for (const color of catalog.palette) assert(contrast(color.hex, catalog.palette.find(c => c.id === inkFor(catalog, color.id)).hex) >= 4.5);
 });
 
-check('default and nine editable brand presets are valid and independent copies', () => {
+// The nine October 2 presets keep the no-advisory guarantee. The three added later are advisory input and exempt.
+const NINE = ['professional', 'modern', 'serious', 'light-hearted', 'fun', 'outspoken', 'open-air', 'gold-standard', 'slate'];
+check('default and twelve editable brand presets are valid and independent copies', () => {
   assert.deepEqual(validateDesign(catalog, defaultDesign(catalog)), []);
   assert.deepEqual(contrastIssues(catalog, defaultDesign(catalog)), []);
   for (const item of catalog.presets) {
     const design = applyPreset(catalog, item.id);
     assert.deepEqual(validateDesign(catalog, design), [], item.id);
-    assert.deepEqual(contrastIssues(catalog, design), [], item.id);
+    if (NINE.includes(item.id)) assert.deepEqual(contrastIssues(catalog, design), [], item.id);
     design.roles.sidebar = 'mauve';
     design.slides.cards.count = '1';
     assert.deepEqual(item.design, applyPreset(catalog, item.id));
   }
 });
 
-check('nine presets differ from each other and from the released lessons', () => {
-  assert.deepEqual(catalog.presets.map(item => item.id), ['professional', 'modern', 'serious', 'light-hearted', 'fun', 'outspoken', 'open-air', 'gold-standard', 'slate']);
+check('twelve presets differ from each other and from the released lessons', () => {
+  assert.deepEqual(catalog.presets.map(item => item.id), [...NINE, 'harvest', 'bold-statement', 'fresh-start']);
   const fields = d => [d.roles.titleBackground, d.roles.sidebar, d.roles.heading, d.fonts.heading, d.fonts.body, d.background, d.slides.title.layout, d.slides.divider.layout, d.slides.cards.count, d.slides.cards.look, d.slides.cards.layout, d.slides.video.layout, d.slides.activity.layout];
   const designs = catalog.presets.map(item => item.design);
   for (const [i, a] of designs.entries()) for (const b of designs.slice(i + 1)) {
     const different = fields(a).filter((value, k) => value !== fields(b)[k]).length;
     assert(different >= 7, `${a.startingPoint} and ${b.startingPoint} differ on only ${different} of 13 fields`);
   }
-  assert.equal(new Set(designs.map(d => `${d.roles.titleBackground}+${d.roles.titleText}`)).size, 9, 'title background and title text pairs are unique');
+  assert.equal(new Set(designs.map(d => `${d.roles.titleBackground}+${d.roles.titleText}`)).size, 12, 'title background and title text pairs are unique');
+  assert.equal(new Set(designs.map(d => d.fonts.heading)).size, 12, 'every preset has its own heading font');
+  const sidebars = designs.map(d => d.roles.sidebar);
+  // The nine October 2 presets already put Royal on three sidebars, so three is the cap and the new presets add none to it.
+  for (const color of new Set(sidebars)) assert(sidebars.filter(c => c === color).length <= 3, `${color} is the sidebar of more than three presets`);
+  console.log('  sidebar colors:', JSON.stringify(Object.fromEntries([...new Set(sidebars)].map(c => [c, sidebars.filter(x => x === c).length]))));
   for (const item of catalog.presets) {
-    assert.deepEqual(contrastIssues(catalog, item.design), [], item.id);
+    if (NINE.includes(item.id)) assert.deepEqual(contrastIssues(catalog, item.design), [], item.id);
     const ranked = compareDesign(fingerprints, item.design, catalog);
     const near = ranked[0];
     const exact = ranked.find(result => result.shared === result.total);

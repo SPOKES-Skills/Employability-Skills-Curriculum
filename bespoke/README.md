@@ -17,9 +17,10 @@ records the three-stage changes, compatibility and verification.
 
 The builder has three stages, with no mandatory walkthrough:
 
-1. **Start:** check Lesson & team, then choose **Build my own** or one of nine
+1. **Start:** check Lesson & team, then choose **Build my own** or one of twelve
    editable presets: Professional, Modern, Serious, Light-hearted, Fun,
-   Outspoken, Open Air, Gold Standard and Slate. Both paths use the same model
+   Outspoken, Open Air, Gold Standard, Slate, Harvest, Bold Statement and Fresh
+   Start. Both paths use the same model
    and begin with usable defaults.
 2. **Slide designs:** open **Title**, **Chapter divider**, **Text boxes**, **Video**
    or **Activity** directly. All five editors are optional. **Next slide type** is

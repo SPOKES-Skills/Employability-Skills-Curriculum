@@ -314,6 +314,17 @@ try {
     assert.match(await view.locator('#accessBanner').innerText(), /^Goal Setting team · View only · Nothing saved yet/);
     assert.doesNotMatch(await view.locator('#accessBanner').innerText(), /Built by/, 'with no saved design the builder is unknown');
   });
+  await scenario('the team view notice is written once', async ({ makePage }) => {
+    const view = await makePage({ hash: viewHash('goal-setting') });
+    await view.locator('#restoreNotice').filter({ hasText: 'has not saved a design yet' }).waitFor();
+    await view.evaluate(() => {
+      window.noticeWrites = 0;
+      new MutationObserver(records => { window.noticeWrites += records.length; }).observe(document.querySelector('#restoreNotice'), { childList: true, characterData: true, attributes: true, subtree: true });
+    });
+    await stage(view, 'start'); await stage(view, 'slides');
+    await view.evaluate(() => new Promise(resolve => setTimeout(resolve, 0)));
+    assert.equal(await view.evaluate(() => window.noticeWrites), 0, 'renders that change nothing leave the live notice alone');
+  });
   await scenario('team view banner is written once', async ({ makePage }) => {
     const builder = await makePage(); await team(builder); await save(builder);
     const view = await makePage({ hash: viewHash() });

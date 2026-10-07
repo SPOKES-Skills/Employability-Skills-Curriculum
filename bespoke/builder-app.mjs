@@ -237,8 +237,9 @@ const findOption=(family,slug)=>state.library?.families?.[family]?.options.find(
     }
     const notice = byId("restoreNotice");
     if (notice) {
-      notice.hidden = !ui.restoreNote;
-      notice.textContent = ui.restoreNote || "";
+      const hidden = !ui.restoreNote, text = ui.restoreNote || "";
+      if (notice.hidden !== hidden) notice.hidden = hidden;
+      if (notice.textContent !== text) notice.textContent = text;
     }
     const unlock = byId("leadUnlock");
     if (unlock) unlock.hidden = true;

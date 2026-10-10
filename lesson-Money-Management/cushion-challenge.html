@@ -82,8 +82,11 @@ h2:focus { outline: none; }
   font: inherit; font-weight: 600; text-align: left; cursor: pointer;
   background: var(--card); color: var(--ink);
   border: 2px solid var(--primary); border-radius: 12px; padding: 14px 16px; min-height: 56px;
-  display: flex; flex-direction: column; gap: 2px;
+  display: flex; flex-direction: row; align-items: center; gap: 12px;
 }
+.choice .ct { display: flex; flex-direction: column; gap: 2px; }
+.choice .letter { flex: 0 0 auto; width: 2em; height: 2em; border-radius: 50%; display: grid; place-items: center; background: var(--primary); color: var(--on-primary); font-weight: 700; }
+.choice.picked .letter { background: var(--on-primary); color: var(--primary); }
 .choice small { font-weight: 400; color: var(--soft); font-size: 0.9rem; }
 .choice, .next, .ghost { transition: transform 0.18s ease, box-shadow 0.18s ease, background 0.18s ease; }
 .choice:hover:not(:disabled) { background: var(--chip); transform: translateY(-2px); box-shadow: 0 6px 16px rgba(0,123,175,0.22); }
@@ -128,6 +131,31 @@ button:focus-visible, input:focus-visible, label:focus-within { outline: 3px sol
 .field input { font: inherit; padding: 10px 12px; border: 2px solid var(--line); border-radius: 10px; background: var(--card); color: var(--ink); max-width: 220px; }
 .fine { font-size: 0.88rem; color: var(--soft); }
 
+.top-btns { display: flex; gap: 8px; flex-wrap: wrap; }
+.reset[aria-pressed="true"] { border-color: var(--primary); color: var(--ink); }
+.first-list li { padding-block: 8px; }
+
+/* Class mode: sized for a projector or large monitor. Text scales with screen width; header and meter share the top row so the question has room. */
+.class-mode { font-size: clamp(16px, 1.35vw, 28px); }
+.class-mode body { padding-inline: 2vw; padding-block: 1.5vh 4vh; }
+.class-mode .wrap { max-width: min(96vw, 1700px); }
+.class-mode .brand, .class-mode .reset, .class-mode .steps li, .class-mode .kicker, .class-mode .why .tag,
+.class-mode .goal-note, .class-mode .src, .class-mode .fine, .class-mode .choice small { font-size: 0.95rem; }
+.class-mode .reset { min-height: 2.2em; }
+.class-mode .stage p { max-width: 70ch; }
+.class-mode .choices { grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr)); }
+.class-mode .feedback h3 { font-size: 1.3rem; }
+.class-mode .track { height: 26px; border-radius: 13px; }
+.class-mode .bar { border-radius: 13px; }
+.class-mode .meter-amt { font-size: 2.6rem; }
+.class-mode .intro-video { width: min(100%, calc(50vh * 16 / 9)); margin-inline: auto; }
+.feedback:focus { outline: none; }
+.stage h3.kicker { margin: 0.4rem 0 0; }
+@media (min-width: 900px) {
+  .class-mode .wrap { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); align-items: end; gap: 1.2rem 1.5rem; }
+  .class-mode .stage { grid-column: 1 / -1; }
+}
+
 .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 @media (prefers-reduced-motion: reduce) { .bar, .choice, .next, .ghost { transition: none; } .choice:hover:not(:disabled), .next:hover, .ghost:hover, .choice:active:not(:disabled), .next:active, .ghost:active { transform: none; } }
 </style>
@@ -135,7 +163,7 @@ button:focus-visible, input:focus-visible, label:focus-within { outline: 3px sol
 <body>
 <div class="wrap">
   <header>
-    <div class="top-row"><div class="brand">SPOKES Money Management · Part 2</div><button type="button" class="reset" id="reset">Start over</button></div>
+    <div class="top-row"><div class="brand">SPOKES Money Management · Part 2</div><div class="top-btns"><button type="button" class="reset" id="mode" aria-pressed="true">Class mode <span id="modeState" aria-hidden="true">On</span></button><button type="button" class="reset" id="reset">Start over</button></div></div>
     <h1>The Cushion Challenge</h1>
     <ol class="steps" id="steps" aria-label="Progress"></ol>
   </header>
@@ -172,7 +200,26 @@ button:focus-visible, input:focus-visible, label:focus-within { outline: 3px sol
   var s;
   function fresh() {
     return { screen: 0, cushion: 0, save1: null, acct: null, auto: null, autoAmt: 0, pics: null,
-             snap: null, refund: null, shortfall: 0, p3done: false, ledger: [], answered: {} };
+             snap: null, refund: null, shortfall: 0, p3done: false, ledger: [], applied: {} };
+  }
+  var KEY = "cushion-challenge-v2";
+  var FIRST = ["Pick an amount to save first each payday", "Open a safe place for savings", "Set up one automatic transfer or split deposit", "Ask my caseworker one question about saving", "Plan part of my tax refund before it arrives"];
+
+  /* Class mode (default): big text for a projector, lettered choices, and the answer waits for the teacher to reveal it. */
+  var classMode = true;
+  try { if (localStorage.getItem("cushion-mode") === "solo") classMode = false; } catch (e) {}
+  var qm = /[?&]mode=(solo|class)\b/.exec(location.search);
+  if (qm) classMode = qm[1] === "class";
+  function applyMode() {
+    document.documentElement.classList.toggle("class-mode", classMode);
+    var b = document.getElementById("mode");
+    b.setAttribute("aria-pressed", classMode ? "true" : "false");
+    document.getElementById("modeState").textContent = classMode ? "On" : "Off";
+  }
+  function open(name) { return !!s.applied[name]; }
+  function revealBtn(name) {
+    return '<p class="fine">Ask the class why they picked it. Then reveal what happens.</p>' +
+      '<div class="actions"><button type="button" class="next" data-reveal="' + name + '">Reveal what happens</button></div>';
   }
 
   var $ = function (id) { return document.getElementById(id); };
@@ -213,7 +260,7 @@ button:focus-visible, input:focus-visible, label:focus-within { outline: 3px sol
       (srcKey ? '<p class="src">Source: <a href="' + SRC[srcKey] + '" target="_blank" rel="noopener">' + srcName + '</a></p>' : '') + '</div>';
   }
   function fb(title, body, warn) {
-    return '<div class="feedback' + (warn ? ' warn' : '') + '"><h3>' + title + '</h3><p>' + body + '</p></div>';
+    return '<div class="feedback' + (warn ? ' warn' : '') + '" tabindex="-1"><h3>' + title + '</h3><p>' + body + '</p></div>';
   }
   function weekLedger(week) {
     var rows = s.ledger.filter(function (r) { return r.week === week; });
@@ -225,10 +272,11 @@ button:focus-visible, input:focus-visible, label:focus-within { outline: 3px sol
   }
 
   function choices(name, opts, picked) {
-    return '<div class="choices" role="group" aria-label="Choices">' + opts.map(function (o) {
-      var on = picked !== null && picked !== undefined;
-      return '<button type="button" class="choice' + (picked === o.v ? ' picked' : '') + '" data-name="' + name + '" data-v="' + o.v + '"' + (on ? ' disabled' : '') + '>' +
-        o.t + (o.d ? '<small>' + o.d + '</small>' : '') + '</button>';
+    var on = picked !== null && picked !== undefined;
+    return '<div class="choices" role="group" aria-label="Choices">' + opts.map(function (o, i) {
+      var L = "ABCD".charAt(i);
+      return '<button type="button" class="choice' + (picked === o.v ? ' picked' : '') + '" data-name="' + name + '" data-v="' + o.v + '" data-key="' + L + '"' + (on ? ' disabled' : '') + '>' +
+        '<span class="letter">' + L + '</span><span class="ct">' + o.t + (o.d ? '<small>' + o.d + '</small>' : '') + '</span></button>';
     }).join("") + '</div>';
   }
   function next(label) { return '<div class="actions"><button type="button" class="next" data-go="next">' + (label || "Next") + '</button></div>'; }
@@ -257,6 +305,7 @@ button:focus-visible, input:focus-visible, label:focus-within { outline: 3px sol
           { v: 0, t: "Save what's left", d: "At the end of the week" }
         ], s.save1);
       if (s.save1 !== null) {
+        if (!open("save1")) return h + revealBtn("save1");
         h += s.save1 > 0
           ? fb("Saved First: +" + money(s.save1), "The money was set aside before the week could spend it. The rest still covered her bills.")
           : fb("Nothing Was Left", "A snack here, a gas top-off there. By Friday the leftovers were gone. Saving last usually means saving nothing.", true);
@@ -273,6 +322,7 @@ button:focus-visible, input:focus-visible, label:focus-within { outline: 3px sol
           { v: "bankon", t: "A Bank On-style account", d: "No overdraft fees, insured" }
         ], s.acct);
       if (s.acct) {
+        if (!open("acct")) return h + revealBtn("acct");
         if (s.acct === "bankon") h += fb("Safe and Low-Cost", "Her savings is insured and won't get eaten by fees.");
         if (s.acct === "fee") h += fb("The Fee Took a Bite: −" + money(FEE), "Some accounts charge just for holding your money. That fee came out of her cushion.", true);
         if (s.acct === "jar") h += fb("Safe for Now", "Cash at home isn't insured, and it's easy to dip into on a long week. Watch what happens later.", true);
@@ -290,6 +340,7 @@ button:focus-visible, input:focus-visible, label:focus-within { outline: 3px sol
           { v: "no", t: "No, she'll move it herself", d: "Decide every payday" }
         ], s.auto);
       if (s.auto) {
+        if (!open("auto")) return h + revealBtn("auto");
         h += s.auto === "yes"
           ? fb("Set It Once", money(amt) + " now goes to savings every payday without a decision.")
           : fb("Up to Jess Each Week", "That works when life is calm. Busy weeks are another story.", true);
@@ -307,6 +358,7 @@ button:focus-visible, input:focus-visible, label:focus-within { outline: 3px sol
           { v: "planned", t: "No, it's a planned cost", d: "Pay it from this week's money" }
         ], s.pics);
       if (s.pics) {
+        if (!open("pics")) return h + revealBtn("pics");
         h += s.pics === "planned"
           ? fb("Right: She Saw It Coming", "Planned costs come from the weekly plan, so the cushion stays ready for real surprises.")
           : fb("The Cushion Took a Hit: −" + money(PICS), "Picture day was on the calendar. Using the cushion for planned costs leaves less for real emergencies.", true);
@@ -340,6 +392,7 @@ button:focus-visible, input:focus-visible, label:focus-within { outline: 3px sol
           { v: "ask", t: "Ask her caseworker how savings affects her benefits" }
         ], s.snap);
       if (s.snap) {
+        if (!open("snap")) return h + revealBtn("snap");
         h += s.snap === "ask"
           ? fb("That's the Move", "Her caseworker knows the rules for her programs. Now she can save with confidence.")
           : fb("Better to Ask", s.snap === "stop" ? "Stopping out of fear can leave her with no cushion at all, often for no reason." : "Programs have rules about reporting changes. Asking first keeps her safe.", true);
@@ -357,6 +410,7 @@ button:focus-visible, input:focus-visible, label:focus-within { outline: 3px sol
           { v: 600, t: "$600", d: "Half of it" }
         ], s.refund);
       if (s.refund !== null) {
+        if (!open("refund")) return h + revealBtn("refund");
         h += weekLedger(4);
         h += s.refund > 0
           ? fb("Decided Before It Was Spent", money(s.refund) + " went to savings. The rest went to catching up and a treat for the kids.")
@@ -386,11 +440,17 @@ button:focus-visible, input:focus-visible, label:focus-within { outline: 3px sol
       return h + '<div class="actions"><button type="button" class="next" data-go="next">Your turn</button><button type="button" class="ghost" data-go="restart">Play again</button></div>';
     },
     function firstStep() {
+      if (classMode) {
+        return '<span class="kicker">Your turn</span><h2 tabindex="-1">Pick One First Step for This Week</h2>' +
+          '<p>Take a paper <b>My First Step</b> card. Circle one of these steps, and add an amount only if you want to.</p>' +
+          '<ul class="ledger first-list">' + FIRST.map(function (t) { return '<li><span>' + t + '</span></li>'; }).join("") + '</ul>' +
+          '<p class="fine">Your card is yours. Nobody collects it or reads it out loud.</p>' +
+          '<div class="actions"><button type="button" class="ghost" data-go="restart">Play again</button></div>';
+      }
       return '<span class="kicker">Your turn</span><h2 tabindex="-1">Pick One First Step for This Week</h2>' +
         '<p>Just for you. Nothing here is saved or shared.</p>' +
         '<form id="stepForm" class="choices" style="grid-template-columns:1fr" novalidate>' +
-        ['Pick an amount to save first each payday', 'Open a safe place for savings', 'Set up one automatic transfer or split deposit', 'Ask my caseworker one question about saving', 'Plan part of my tax refund before it arrives']
-          .map(function (t, i) { return '<label class="choice" style="flex-direction:row;align-items:center;gap:12px"><input type="radio" name="fs" id="fs' + i + '" value="' + t + '"' + (i === 0 ? ' checked' : '') + '> <span>' + t + '</span></label>'; }).join("") +
+        FIRST.map(function (t, i) { return '<label class="choice" style="flex-direction:row;align-items:center;gap:12px"><input type="radio" name="fs" id="fs' + i + '" value="' + t + '"' + (i === 0 ? ' checked' : '') + '> <span>' + t + '</span></label>'; }).join("") +
         '<div class="field"><label for="fsAmt">Amount, if it fits (optional)</label><input id="fsAmt" inputmode="numeric" placeholder="$5"></div>' +
         '<div class="actions"><button class="next" type="submit">Make my card</button><button type="button" class="ghost" data-go="restart">Play again</button></div>' +
         '</form><div id="cardOut"></div>';
@@ -413,13 +473,29 @@ button:focus-visible, input:focus-visible, label:focus-within { outline: 3px sol
     meter();
     $("stage").innerHTML = screens[s.screen]();
     if (focus) { var h = $("stage").querySelector("h2"); if (h) h.focus({ preventScroll: false }); }
-    try { localStorage.setItem("cushion-challenge", JSON.stringify(s)); } catch (e) {}
+    try { localStorage.setItem(KEY, JSON.stringify(s)); } catch (e) {}
+  }
+
+  function showFeedback() {
+    var fbx = $("stage").querySelector(".feedback");
+    if (!fbx) return;
+    fbx.focus({ preventScroll: true });
+    fbx.scrollIntoView({ block: "nearest", behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
   }
 
   function choose(name, raw) {
     if (s[name] !== null && s[name] !== undefined) return;
-    var v = isNaN(Number(raw)) ? raw : Number(raw);
-    s[name] = v;
+    s[name] = isNaN(Number(raw)) ? raw : Number(raw);
+    if (!classMode) applyChoice(name);
+    render(false);
+    if (open(name)) showFeedback();
+    else { var r = $("stage").querySelector("[data-reveal]"); if (r) r.focus(); }
+  }
+
+  function applyChoice(name) {
+    if (s.applied[name]) return;
+    s.applied[name] = true;
+    var v = s[name];
     if (name === "save1" && v > 0) add("Saved first", v, 1);
     if (name === "acct" && v === "fee") add("Monthly account fee", -FEE, 2);
     if (name === "auto") {
@@ -434,17 +510,33 @@ button:focus-visible, input:focus-visible, label:focus-within { outline: 3px sol
       else if (s.save1 > 0) add("Moved to savings by hand", s.save1, 4);
       if (v > 0) add("Refund to savings", v, 4);
     }
-    render(false);
-    var fbx = $("stage").querySelector(".feedback");
-    if (fbx) fbx.scrollIntoView({ block: "nearest", behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
   }
 
   $("stage").addEventListener("click", function (e) {
     var b = e.target.closest("button");
     if (!b) return;
     if (b.dataset.name) choose(b.dataset.name, b.dataset.v);
+    if (b.dataset.reveal) { applyChoice(b.dataset.reveal); render(false); showFeedback(); }
     if (b.dataset.go === "next") { s.screen = Math.min(screens.length - 1, s.screen + 1); render(true); window.scrollTo({ top: 0 }); }
     if (b.dataset.go === "restart") { s = fresh(); render(true); window.scrollTo({ top: 0 }); }
+  });
+
+  $("mode").addEventListener("click", function () {
+    classMode = !classMode;
+    try { localStorage.setItem("cushion-mode", classMode ? "class" : "solo"); } catch (e) {}
+    applyMode();
+    render(false);
+  });
+
+  /* Class mode only: the teacher can press A, B, C or D to enter the class's pick. Turning class mode off turns these keys off. */
+  document.addEventListener("keydown", function (e) {
+    if (!classMode || e.ctrlKey || e.metaKey || e.altKey || !e.key || e.key.length !== 1) return;
+    var t = e.target;
+    if (t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.tagName === "VIDEO" || t.isContentEditable)) return;
+    var k = e.key.toUpperCase();
+    if ("ABCD".indexOf(k) < 0) return;
+    var b = $("stage").querySelector('.choice[data-key="' + k + '"]:not(:disabled)');
+    if (b) { e.preventDefault(); choose(b.dataset.name, b.dataset.v); }
   });
 
   $("reset").addEventListener("click", function () { s = fresh(); render(true); window.scrollTo({ top: 0 }); });
@@ -460,9 +552,10 @@ button:focus-visible, input:focus-visible, label:focus-within { outline: 3px sol
   });
 
   function start(data) {
+    applyMode();
     s = fresh();
     var saved = data && data.s;
-    if (!saved) { try { saved = JSON.parse(localStorage.getItem("cushion-challenge") || "null"); } catch (e) { saved = null; } }
+    if (!saved) { try { saved = JSON.parse(localStorage.getItem(KEY) || "null"); } catch (e) { saved = null; } }
     if (saved && typeof saved.screen === "number" && saved.screen < screens.length) s = Object.assign(fresh(), saved);
     render(false);
   }

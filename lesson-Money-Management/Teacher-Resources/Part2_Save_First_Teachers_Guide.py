@@ -128,7 +128,9 @@ def build_guide():
     pdf.slide_entry(1, "Meet Jess", "Story Intro")
     pdf.speaking_notes(
         "Part 2 runs about 10 minutes and is taught as one idea through one story. "
-        "Before class, open The Cushion Challenge on the classroom screen and press Start over.\n\n"
+        "Before class, open The Cushion Challenge on the classroom screen and press Start over. "
+        "It opens in Class mode: large text for the projector, lettered choices, and answers that wait "
+        "until you reveal them. Check that the Class mode button at the top says On.\n\n"
         "Play the Meet Jess video at the top of the screen (about one minute, captions on). "
         "It introduces Jess, a mom of two who found work through SPOKES, and ends by asking the class to help her.\n\n"
         "Then point to the facts on screen: she still gets SNAP, her take-home pay is $400 a week, and every dollar "
@@ -158,8 +160,10 @@ def build_guide():
         "Jess's choices for four paydays and watch what each choice does."
     )
     pdf.tip(
-        "How the class votes: show of hands, thumbs up or down, or a spokesperson who picks after a "
-        "quick poll. Keep votes fast -- about 30 seconds each -- to stay inside 10 minutes."
+        "How each vote works: read the question, and the class calls out or holds up a letter (A, B, C or D). "
+        "Click the winning choice, or press that letter on the keyboard. The meter does not move yet. "
+        "Ask one or two learners why they picked it, then click Reveal what happens. "
+        "Keep each vote to about 30 seconds to stay inside 10 minutes."
     )
 
     # ══════════════════════════════════════════════════════════════════
@@ -278,20 +282,21 @@ def build_guide():
         "3. Set up one automatic transfer or split deposit\n"
         "4. Ask my caseworker one question about saving\n"
         "5. Plan part of my tax refund before it arrives\n\n"
-        "Learners with devices can open the game and use this screen privately. Everyone else uses the "
-        "paper card. The amount line is optional, and cards are not collected."
+        "In Class mode the screen lists the five steps and tells learners to circle one on their paper card. "
+        "Nothing personal goes on the big screen. The amount line is optional, and cards are not collected.\n\n"
+        "A learner with a device can open the game with Class mode off and make a private card on the last screen."
     )
     pdf.materials("My First Step card -- one per learner.")
     pdf.tip(
-        "One-on-one or virtual: the learner plays the same page alone while you talk through each pop-up. "
-        "Share your screen for virtual groups and take votes in the chat."
+        "One-on-one: turn Class mode off. The game shrinks to laptop size and each answer shows right away. "
+        "Virtual groups: keep Class mode on, share your screen, and have learners type a letter in the chat."
     )
 
     pdf.checklist([
         ("The Cushion Challenge (HTML)", "lesson-Money-Management/cushion-challenge.html"),
-        ("Projector, smart board, or shared screen", "Open the game and press Start over"),
+        ("Projector, smart board, or shared screen", "Open the game, press Start over, check Class mode is On"),
         ("Speakers for the Meet Jess video", "Video and captions play inside the game"),
-        ("My First Step card", "Paper version in progress; use the game's last screen until then"),
+        ("My First Step card", "One per learner; paper version in progress"),
         ("Part 2 Lesson Plan", "Teacher-Resources folder"),
         ("Pens or pencils", "For paper cards"),
     ])

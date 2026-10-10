@@ -286,7 +286,7 @@ def build_guide():
         "Nothing personal goes on the big screen. The amount line is optional, and cards are not collected.\n\n"
         "A learner with a device can open the game with Class mode off and make a private card on the last screen."
     )
-    pdf.materials("My First Step card -- one per learner.")
+    pdf.materials("My First Step card -- one per learner. Print Part2_My_First_Step_Cards.pdf (four cards per page) and cut on the dashed lines.")
     pdf.tip(
         "One-on-one: turn Class mode off. The game shrinks to laptop size and each answer shows right away. "
         "Virtual groups: keep Class mode on, share your screen, and have learners type a letter in the chat."
@@ -296,7 +296,7 @@ def build_guide():
         ("The Cushion Challenge (HTML)", "lesson-Money-Management/cushion-challenge.html"),
         ("Projector, smart board, or shared screen", "Open the game, press Start over, check Class mode is On"),
         ("Speakers for the Meet Jess video", "Video and captions play inside the game"),
-        ("My First Step card", "One per learner; paper version in progress"),
+        ("My First Step cards", "Part2_My_First_Step_Cards.pdf, 4 per page, cut apart"),
         ("Part 2 Lesson Plan", "Teacher-Resources folder"),
         ("Pens or pencils", "For paper cards"),
     ])

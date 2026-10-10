@@ -129,10 +129,12 @@ def build_guide():
     pdf.speaking_notes(
         "Part 2 runs about 10 minutes and is taught as one idea through one story. "
         "Before class, open The Cushion Challenge on the classroom screen and press Start over.\n\n"
-        "Read Jess's story aloud: she is a mom of two who found work through SPOKES and still gets SNAP. "
-        "Her take-home pay is $400 a week, and every dollar already has a job. "
-        "Her goal is a small cushion so one bad week does not turn into a crisis."
+        "Play the Meet Jess video at the top of the screen (about one minute, captions on). "
+        "It introduces Jess, a mom of two who found work through SPOKES, and ends by asking the class to help her.\n\n"
+        "Then point to the facts on screen: she still gets SNAP, her take-home pay is $400 a week, and every dollar "
+        "already has a job. Her goal is a small cushion so one bad week does not turn into a crisis."
     )
+    pdf.video("Meet Jess (about one minute, captioned)")
     pdf.discussion(
         "Ask: 'What is one surprise cost families run into?' "
         "Take two or three quick answers. Ask for the kind of cost, never the amount."
@@ -288,6 +290,7 @@ def build_guide():
     pdf.checklist([
         ("The Cushion Challenge (HTML)", "lesson-Money-Management/cushion-challenge.html"),
         ("Projector, smart board, or shared screen", "Open the game and press Start over"),
+        ("Speakers for the Meet Jess video", "Video and captions play inside the game"),
         ("My First Step card", "Paper version in progress; use the game's last screen until then"),
         ("Part 2 Lesson Plan", "Teacher-Resources folder"),
         ("Pens or pencils", "For paper cards"),

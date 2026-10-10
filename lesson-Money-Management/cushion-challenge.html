@@ -85,7 +85,10 @@ h2:focus { outline: none; }
   display: flex; flex-direction: column; gap: 2px;
 }
 .choice small { font-weight: 400; color: var(--soft); font-size: 0.9rem; }
-.choice:hover:not(:disabled) { background: var(--chip); }
+.choice, .next, .ghost { transition: transform 0.18s ease, box-shadow 0.18s ease, background 0.18s ease; }
+.choice:hover:not(:disabled) { background: var(--chip); transform: translateY(-2px); box-shadow: 0 6px 16px rgba(0,123,175,0.22); }
+.next:hover, .ghost:hover { transform: translateY(-2px); box-shadow: 0 6px 18px rgba(0,123,175,0.35); }
+.choice:active:not(:disabled), .next:active, .ghost:active { transform: scale(0.97); box-shadow: 0 2px 6px rgba(0,64,113,0.2); }
 .choice:disabled { cursor: default; opacity: 0.55; }
 .choice.picked { opacity: 1; background: var(--primary); color: var(--on-primary); }
 .choice.picked small { color: var(--on-primary); }
@@ -126,7 +129,7 @@ button:focus-visible, input:focus-visible, label:focus-within { outline: 3px sol
 .fine { font-size: 0.88rem; color: var(--soft); }
 
 .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
-@media (prefers-reduced-motion: reduce) { .bar { transition: none; } }
+@media (prefers-reduced-motion: reduce) { .bar, .choice, .next, .ghost { transition: none; } .choice:hover:not(:disabled), .next:hover, .ghost:hover, .choice:active:not(:disabled), .next:active, .ghost:active { transform: none; } }
 </style>
 </head>
 <body>
@@ -239,14 +242,14 @@ button:focus-visible, input:focus-visible, label:focus-within { outline: 3px sol
         '<track kind="captions" src="Meet_Jess.vtt" srclang="en" label="English" default>' +
         '</video>' +
         '<div class="fig"><div>' +
-        '<h2 tabindex="-1">Jess just started a new job</h2>' +
+        '<h2 tabindex="-1">Jess Just Started a New Job</h2>' +
         '<p>Jess is a mom of two. She found work through SPOKES and still gets SNAP. Her take-home pay is <b>' + money(PAY) + '</b> a week. Every dollar has a job: rent, lights, gas, food, the kids.</p>' +
         '<p>Her goal is a small cushion, so one bad week doesn\'t turn into a crisis. You\'ll make her choices for four paydays.</p>' +
         '<p class="fine">Jess and her numbers are made up. Nobody shares their own money in this activity.</p>' +
         '</div></div>' + next("Start Payday 1");
     },
     function payday1() {
-      var h = '<span class="kicker">Payday 1</span><h2 tabindex="-1">' + money(PAY) + ' just landed. When does Jess save?</h2>' +
+      var h = '<span class="kicker">Payday 1</span><h2 tabindex="-1">' + money(PAY) + ' Just Landed. When Does Jess Save?</h2>' +
         choices("save1", [
           { v: 10, t: "Save $10 first", d: "Right when pay arrives" },
           { v: 25, t: "Save $25 first", d: "Right when pay arrives" },
@@ -255,24 +258,24 @@ button:focus-visible, input:focus-visible, label:focus-within { outline: 3px sol
         ], s.save1);
       if (s.save1 !== null) {
         h += s.save1 > 0
-          ? fb("Saved first: +" + money(s.save1), "The money was set aside before the week could spend it. The rest still covered her bills.")
-          : fb("Nothing was left", "A snack here, a gas top-off there. By Friday the leftovers were gone. Saving last usually means saving nothing.", true);
+          ? fb("Saved First: +" + money(s.save1), "The money was set aside before the week could spend it. The rest still covered her bills.")
+          : fb("Nothing Was Left", "A snack here, a gas top-off there. By Friday the leftovers were gone. Saving last usually means saving nothing.", true);
         h += why("Pay yourself first", "Treat savings like a bill you pay first, the day money arrives. Any amount counts; the habit matters more than the size.", "cfpb", "CFPB, Your Money, Your Goals");
         h += next("Go to Payday 2");
       }
       return h;
     },
     function account() {
-      var h = '<span class="kicker">Payday 2</span><h2 tabindex="-1">Where should Jess keep her savings?</h2>' +
+      var h = '<span class="kicker">Payday 2</span><h2 tabindex="-1">Where Should Jess Keep Her Savings?</h2>' +
         choices("acct", [
           { v: "jar", t: "A jar at home", d: "Easy to reach" },
           { v: "fee", t: "An account with fees", d: money(FEE) + " monthly fee and overdraft charges" },
           { v: "bankon", t: "A Bank On-style account", d: "No overdraft fees, insured" }
         ], s.acct);
       if (s.acct) {
-        if (s.acct === "bankon") h += fb("Safe and low-cost", "Her savings is insured and won't get eaten by fees.");
-        if (s.acct === "fee") h += fb("The fee took a bite: −" + money(FEE), "Some accounts charge just for holding your money. That fee came out of her cushion.", true);
-        if (s.acct === "jar") h += fb("Safe for now", "Cash at home isn't insured, and it's easy to dip into on a long week. Watch what happens later.", true);
+        if (s.acct === "bankon") h += fb("Safe and Low-Cost", "Her savings is insured and won't get eaten by fees.");
+        if (s.acct === "fee") h += fb("The Fee Took a Bite: −" + money(FEE), "Some accounts charge just for holding your money. That fee came out of her cushion.", true);
+        if (s.acct === "jar") h += fb("Safe for Now", "Cash at home isn't insured, and it's easy to dip into on a long week. Watch what happens later.", true);
         h += why("Keep it somewhere safe", "Bank On certified accounts have no overdraft fees, need $25 or less to open, and are federally insured.", "bankon", "Bank On National Account Standards 2025–2026");
         h += next();
       }
@@ -280,7 +283,7 @@ button:focus-visible, input:focus-visible, label:focus-within { outline: 3px sol
     },
     function automate() {
       var amt = s.save1 > 0 ? s.save1 : 25;
-      var h = '<span class="kicker">Payday 2</span><h2 tabindex="-1">Should Jess make saving automatic?</h2>' +
+      var h = '<span class="kicker">Payday 2</span><h2 tabindex="-1">Should Jess Make Saving Automatic?</h2>' +
         '<p>Her employer can split her direct deposit, sending <b>' + money(amt) + '</b> to savings every payday before she sees it.</p>' +
         choices("auto", [
           { v: "yes", t: "Yes, split the deposit", d: "Set it once" },
@@ -288,8 +291,8 @@ button:focus-visible, input:focus-visible, label:focus-within { outline: 3px sol
         ], s.auto);
       if (s.auto) {
         h += s.auto === "yes"
-          ? fb("Set it once", money(amt) + " now goes to savings every payday without a decision.")
-          : fb("Up to Jess each week", "That works when life is calm. Busy weeks are another story.", true);
+          ? fb("Set It Once", money(amt) + " now goes to savings every payday without a decision.")
+          : fb("Up to Jess Each Week", "That works when life is calm. Busy weeks are another story.", true);
         h += weekLedger(2);
         h += why("Make it automatic", "Automatic transfers mean saving doesn't depend on remembering or willpower.", "cfpb", "CFPB, Your Money, Your Goals");
         h += next();
@@ -297,7 +300,7 @@ button:focus-visible, input:focus-visible, label:focus-within { outline: 3px sol
       return h;
     },
     function pictures() {
-      var h = '<span class="kicker">Payday 2</span><h2 tabindex="-1">School picture day costs ' + money(PICS) + '. Is that an emergency?</h2>' +
+      var h = '<span class="kicker">Payday 2</span><h2 tabindex="-1">School Picture Day Costs ' + money(PICS) + '. Is That an Emergency?</h2>' +
         '<p>The form came home two weeks ago.</p>' +
         choices("pics", [
           { v: "emergency", t: "Yes, use the cushion", d: "Take it from savings" },
@@ -305,8 +308,8 @@ button:focus-visible, input:focus-visible, label:focus-within { outline: 3px sol
         ], s.pics);
       if (s.pics) {
         h += s.pics === "planned"
-          ? fb("Right: she saw it coming", "Planned costs come from the weekly plan, so the cushion stays ready for real surprises.")
-          : fb("The cushion took a hit: −" + money(PICS), "Picture day was on the calendar. Using the cushion for planned costs leaves less for real emergencies.", true);
+          ? fb("Right: She Saw It Coming", "Planned costs come from the weekly plan, so the cushion stays ready for real surprises.")
+          : fb("The Cushion Took a Hit: −" + money(PICS), "Picture day was on the calendar. Using the cushion for planned costs leaves less for real emergencies.", true);
         h += why("Emergency or expected?", "An emergency is something you didn't see coming. School pictures, birthdays, and car registration come every year, so plan for them separately.", null);
         h += next("Go to Payday 3");
       }
@@ -322,15 +325,15 @@ button:focus-visible, input:focus-visible, label:focus-within { outline: 3px sol
         s.shortfall = TIRE - paid;
         add("Flat tire repair", -paid, 3);
       }
-      var h = '<span class="kicker">Payday 3</span><h2 tabindex="-1">Flat tire on the way to work: ' + money(TIRE) + '</h2>' + weekLedger(3);
+      var h = '<span class="kicker">Payday 3</span><h2 tabindex="-1">Flat Tire on the Way to Work: ' + money(TIRE) + '</h2>' + weekLedger(3);
       h += s.shortfall === 0
-        ? fb("The cushion covered it", "No late rent, no borrowing, no missed shift. This is what the cushion is for.")
-        : fb("Jess was " + money(s.shortfall) + " short", "She had to borrow the rest and pay a bill late. A slightly bigger cushion would have covered it.", true);
+        ? fb("The Cushion Covered It", "No late rent, no borrowing, no missed shift. This is what the cushion is for.")
+        : fb("Jess Was " + money(s.shortfall) + " Short", "She had to borrow the rest and pay a bill late. A slightly bigger cushion would have covered it.", true);
       h += why("Small cushions matter", "Families with $250 to $749 saved were less likely to be evicted or miss a housing or utility payment after a money shock.", "urban", "Urban Institute, April 2016");
       return h + next();
     },
     function snap() {
-      var h = '<span class="kicker">Payday 3</span><h2 tabindex="-1">A friend says saving will cost Jess her SNAP. What should she do?</h2>' +
+      var h = '<span class="kicker">Payday 3</span><h2 tabindex="-1">A Friend Says Saving Will Cost Jess Her SNAP. What Should She Do?</h2>' +
         choices("snap", [
           { v: "stop", t: "Stop saving to be safe" },
           { v: "hide", t: "Keep it quiet" },
@@ -338,15 +341,15 @@ button:focus-visible, input:focus-visible, label:focus-within { outline: 3px sol
         ], s.snap);
       if (s.snap) {
         h += s.snap === "ask"
-          ? fb("That's the move", "Her caseworker knows the rules for her programs. Now she can save with confidence.")
-          : fb("Better to ask", s.snap === "stop" ? "Stopping out of fear can leave her with no cushion at all, often for no reason." : "Programs have rules about reporting changes. Asking first keeps her safe.", true);
+          ? fb("That's the Move", "Her caseworker knows the rules for her programs. Now she can save with confidence.")
+          : fb("Better to Ask", s.snap === "stop" ? "Stopping out of fear can leave her with no cushion at all, often for no reason." : "Programs have rules about reporting changes. Asking first keeps her safe.", true);
         h += why("Know the rule", "In West Virginia, SNAP lists no limit on savings for most households. WV WORKS is different: it counts savings, so check with a caseworker.", "fns", "USDA FNS, SNAP eligibility chart, June 2026");
         h += next("Go to Payday 4");
       }
       return h;
     },
     function refund() {
-      var h = '<span class="kicker">Payday 4</span><h2 tabindex="-1">Jess\'s tax refund arrived: $1,200. How much goes to savings first?</h2>' +
+      var h = '<span class="kicker">Payday 4</span><h2 tabindex="-1">Jess\'s Tax Refund Arrived: $1,200. How Much Goes to Savings First?</h2>' +
         choices("refund", [
           { v: 0, t: "$0", d: "Spend it all" },
           { v: 100, t: "$100" },
@@ -356,8 +359,8 @@ button:focus-visible, input:focus-visible, label:focus-within { outline: 3px sol
       if (s.refund !== null) {
         h += weekLedger(4);
         h += s.refund > 0
-          ? fb("Decided before it was spent", money(s.refund) + " went to savings. The rest went to catching up and a treat for the kids.")
-          : fb("Gone in a week", "Refunds disappear fast when there's no plan. Deciding ahead of time is the trick.", true);
+          ? fb("Decided Before It Was Spent", money(s.refund) + " went to savings. The rest went to catching up and a treat for the kids.")
+          : fb("Gone in a Week", "Refunds disappear fast when there's no plan. Deciding ahead of time is the trick.", true);
         h += why("A savings moment", "You can split a federal tax refund into up to three accounts, including savings, when you e-file or with Form 8888.", "irs", "IRS, splitting federal refunds");
         h += next("See how it went");
       }
@@ -373,7 +376,7 @@ button:focus-visible, input:focus-visible, label:focus-within { outline: 3px sol
       (s.snap === "ask" ? helped : hurt).push(s.snap === "ask" ? "Asked her caseworker instead of guessing" : "Acted on a rumor about benefits");
       (s.refund > 0 ? helped : hurt).push(s.refund > 0 ? "Planned her refund before spending it" : "Spent the whole refund");
       function list(a) { return '<ul class="ledger">' + a.map(function (t) { return '<li><span>' + t + '</span></li>'; }).join("") + '</ul>'; }
-      var h = '<span class="kicker">How it went</span><h2 tabindex="-1">' + (reached ? "Jess built a real cushion: " : "Jess's cushion: ") + money(s.cushion) + '</h2>' +
+      var h = '<span class="kicker">How it went</span><h2 tabindex="-1">' + (reached ? "Jess Built a Real Cushion: " : "Jess's Cushion: ") + money(s.cushion) + '</h2>' +
         '<p>' + (reached
           ? "She's past the $250 line, the amount researchers tied to fewer evictions and missed bills."
           : "That's a start, and every dollar counts. Play again and see which choices move her past the $250 line.") + '</p>';
@@ -383,7 +386,7 @@ button:focus-visible, input:focus-visible, label:focus-within { outline: 3px sol
       return h + '<div class="actions"><button type="button" class="next" data-go="next">Your turn</button><button type="button" class="ghost" data-go="restart">Play again</button></div>';
     },
     function firstStep() {
-      return '<span class="kicker">Your turn</span><h2 tabindex="-1">Pick one first step for this week</h2>' +
+      return '<span class="kicker">Your turn</span><h2 tabindex="-1">Pick One First Step for This Week</h2>' +
         '<p>Just for you. Nothing here is saved or shared.</p>' +
         '<form id="stepForm" class="choices" style="grid-template-columns:1fr" novalidate>' +
         ['Pick an amount to save first each payday', 'Open a safe place for savings', 'Set up one automatic transfer or split deposit', 'Ask my caseworker one question about saving', 'Plan part of my tax refund before it arrives']

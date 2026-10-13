@@ -22,12 +22,15 @@
 - Quality gate green on PR #36 head `8fa1e5b`, locally and in CI (2026-10-01).
 
 ## Last Session
-- **Date**: 2026-10-09
-- **What we worked on**: A minimalist, Claude Design-like BeSpoke slide-design UI (PR #47). Surveyed the parallel BeSpoke branches first (`claude/bespoke-simplify-choices-02762b` is 29 commits ahead and unmerged; `codex/bespoke-direct-editor` is mostly superseded), then built on `main`. Britt picked the layout from three mock-ups in the brainstorming companion. Built the slim top bar, docked toolbar and options drawer as a skin over the existing engine, added a Hide options button on Britt's request, applied the Apple HIG skill as a test, and made Lesson & team its own first stage on Britt's choice. Fixed real defects found by the existing suites: a toolbar covering slide content, phone top-bar overflow, 44px targets, scrollbar jitter, lost focus after closing help, and a first click swallowed when typing in the team form.
-- **What we decided**: see the 2026-10-09 BeSpoke rows in the decision log.
-- **Where we left off**: PR #47 merged by Britt on GitHub (Claude's `gh pr merge` was blocked as a merge without review; detail in auto-memory `britt-merges-pull-requests`). Pages is live with the new UI. First thing next session: click through the live `/bespoke/` in a fresh browser (Lesson & team, then Customize) and decide on the open BeSpoke items below.
+- **Date**: 2026-10-13
+- **What we worked on**: Print slides, a teacher request to print a whole lesson as a stapled or binder workbook. Spec `docs/superpowers/specs/2026-10-09-print-slides-workbook-design.md`, plan `docs/superpowers/plans/2026-10-09-print-slides-workbook.md`, built on `claude/module-slides-pdf-booklet-2076fb`. A Print slides button under Print All in all six released lessons prints a Student workbook (no answers) or a Teacher copy (answers marked) as slide with note lines, two per page, or one full landscape slide per page. The pictures come from `scripts/capture-print-slides.mjs` (Playwright, 1600x901, 215 pictures, 34 MB across six lessons); `scripts/print-slides.js` lays them out and calls print. Round 2: template, `SPOKES Builder/CLAUDE.md`, `build-process.md`, `components.md` and SPOKES-STANDARD Section 11 (PRT-01) carry the step. A 32-agent review workflow confirmed 23 findings; 9 important ones fixed test-first. 2026-10-13: a PR-text review workflow corrected 11 claims in the PR body and found that the print rule changed Ctrl+P on the lessons; fixed test-first in `0ac22d7`.
+- **What we decided**: see the 2026-10-09 print rows in the decision log.
+- **Where we left off**: PR #50 open (Britt asked to open it 2026-10-13), auto-merge off. Squash merge keeps 34 MB of pictures on `main` instead of 66 MB. Still open before merge: CI, Britt and the teacher approving the sample PDFs, the teacher's paper check, and the accordion decision below. Britt merges.
 
 ## Open Items
+- [ ] **Print slides**: PR #50 open. Britt and the teacher approve the sample PDFs and do the paper check, then Britt squash-merges. After any lesson edit run `node scripts/capture-print-slides.mjs <lesson-folder>`; `quality.sh` fails until you do.
+- [ ] **Print slides, Britt's call**: Interview Skills slide 31 and Time Management slide 30 accordions hold model answers that print in the Student workbook. The spec treats accordions as content; mark them answers only if Britt wants them out of student copies.
+- [ ] Print slides deferred minors (from the 2026-10-09 review): duplex hole-punch side, Chrome headers and footers in the margin, damaged vs not-made message, capture deletes pictures before a failed run, 20 MB limit checked late, --check crash on a manifest without pictures, settings JSON errors without file name, manifest size fields, --check only covers registered lessons, `slide-video` placeholder row in components.md, CRLF fingerprint risk, When printed section sits under Slide Types, small write-in line spacing.
 - [ ] **BeSpoke canvas shell, manual checks** (PR #47 test plan): open the live page in a fresh browser and confirm it opens on Lesson & team with the dotted pill; look at 1101-1439px, tablet and phone widths; run the browser suites with `BESPOKE_BROWSER=webkit`.
 - [ ] Tablet and phone bodies keep their old stacked layout; only the top bar changed there. Britt's call whether to redesign them.
 - [ ] Cleanup, Britt's call: remote branch `claude/bespoke-minimalist-slide-ui-33bd9c`, local `preserve/bespoke-canvas-shell`, and the worktree `.claude/worktrees/bespoke-minimalist-slide-ui-33bd9c`.
@@ -79,6 +82,9 @@
 ## Key Decisions Log
 | Date | Decision | Rationale |
 |------|----------|-----------|
+| 2026-10-09 | Print slides prints saved slide pictures, not the live slides | Live slides size from the screen with vw/vh and clamp(); pictures match the screen in every browser |
+| 2026-10-09 | Print capture runs at 1600x901 | 900 trips the lessons' max-height: 900px short-screen layout, which clips card text |
+| 2026-10-09 | Print dialog always opens on the Student workbook | A remembered Teacher choice could send answers to a class set |
 | 2026-10-09 | Lesson & team becomes its own first stage (four stages) | Britt chose it over a top-bar chip or a highlighted card so teams see it and identify themselves first; supersedes the 2026-09-24 decision that Start combines it with the starting looks. Nothing blocks navigation or Save; Send still needs the spokesperson |
 | 2026-10-09 | Customize goes slide-first with a slim top bar, docked toolbar and Slide options drawer, built as a skin over the existing engine | Britt asked for a minimalist, Claude Design-like UI; keeping every element ID and the model, schema and service unchanged avoided a redeploy and kept 20+ browser suites meaningful |
 | 2026-10-09 | The toolbar docks above the slide instead of following the selected element | An anchored toolbar covered the elements the next click needed |

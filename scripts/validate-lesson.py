@@ -1121,6 +1121,28 @@ def report(results: list[Result], caption_grace: bool = False) -> int:
 
 
 # ---------------------------------------------------------------------------
+# Check: Print (PRT-01)
+# ---------------------------------------------------------------------------
+def check_print(doc: Document) -> list[Result]:
+    """PRT-01: the lesson loads its print pictures list, then the shared print script."""
+    lines = {"print/manifest.js": None, "../scripts/print-slides.js": None}
+    for element in doc.elements:
+        if element.tag != "script":
+            continue
+        src = (element.attrs.get("src") or "").split("?")[0]
+        for name in lines:
+            if src.endswith(name) and lines[name] is None:
+                lines[name] = element.line
+    missing = [name for name, line in lines.items() if line is None]
+    if missing:
+        return [Result("PRT-01", "WARN", f"Print slides not loaded: missing {', '.join(missing)}", 0)]
+    if lines["../scripts/print-slides.js"] < lines["print/manifest.js"]:
+        return [Result("PRT-01", "WARN", "Load print/manifest.js before ../scripts/print-slides.js, not after",
+                       lines["../scripts/print-slides.js"])]
+    return [Result("PRT-01", "PASS", "Print slides manifest and script loaded in order", 0)]
+
+
+# ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
 def main() -> None:
@@ -1143,7 +1165,7 @@ def main() -> None:
     for check_fn in [check_colors, check_typography, check_accessibility,
                      check_components, check_navigation, check_theme,
                      check_mobile, check_performance, check_references, check_engagement,
-                     check_reduced_motion]:
+                     check_reduced_motion, check_print]:
         results.extend(check_fn(doc))
 
     exit_code = report(results, caption_grace=args.caption_grace)

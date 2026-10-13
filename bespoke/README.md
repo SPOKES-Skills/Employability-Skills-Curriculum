@@ -9,13 +9,17 @@ build a complete deck, or publish lessons.
 review in an isolated worktree. Synthetic local saving is separate from hosted
 acceptance; this revision has not been merged or deployed.
 
-## Choose, customize, review
+## Name the team, choose, customize, review
+
+BeSpoke opens on **Lesson & team**. Choose the lesson, name the team and enter the
+spokesperson's name and email. The stage pill stays marked until the team is
+identified. Nothing blocks you from moving on, but Send to Britt needs the
+spokesperson's name.
 
 1. **Choose a layout:** choose one of exactly twelve slide thumbnails: Editorial,
    Split stage, Centered, Grounded, Framed, Headline, Side rule, Horizon, Corner,
    Masthead, Two columns and Inset. These use twelve different title compositions,
-   rendered with the same model as the live slide. Open **Lesson & team** when
-   needed. **Other ways to start** retains the detailed guide and current-design path.
+   rendered with the same model as the live slide. **Other ways to start** retains the detailed guide and current-design path.
 2. **Customize:** select visible text in the large preview, or use Selected element.
    Edit the words in the nearby Sample text field. Choose a text color, one of three
    sizes, Left/Center/Right alignment, and Top/Middle/Bottom placement within the
@@ -31,7 +35,7 @@ Select Background for **Solid** (one brand-color picker) or **Gradient**
 The preset supplies the direction; no direction choice is shown. Solid retains
 its second color for later use. The eleven established brand colors remain available.
 
-Undo and Redo remain beside the three stages. **More options** retains the detailed
+Undo and Redo remain beside the four stages. **More options** retains the detailed
 slide choices and shared theme, without requiring a team to work through them.
 The original v1 wizard remains separate at `legacy.html`.
 
@@ -262,6 +266,6 @@ current implementation's evidence belongs in its dated verification report.
 Read [decisions](../docs/bespoke/decisions.md) for the September 24 overrides. The
 September 23 slide-builder specification and color mockup remain historical design
 records; their restricted palette, fixed pairing and no-preset constraints are
-superseded. The [team meeting guide](team-guide.html) describes the three-stage
+superseded. The [team meeting guide](team-guide.html) describes the four-stage
 builder, optional editors, shared defaults and recovery. The original wizard is
 preserved separately; its historical sequence is not the current builder's flow.

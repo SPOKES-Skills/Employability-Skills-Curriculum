@@ -28,10 +28,15 @@ export async function builderDestination(page, destination) {
     await page.locator('#editor-'+roles[destination]).click();
     return;
   }
-  if (destination === 'Start' || destination === 'Starting look') {
+  // Lesson & team is its own first stage; the starting looks are the second.
+  if (destination === 'Start') {
+    await page.locator('#stage-team').click();
+    await page.locator('#teamName').waitFor({state: 'visible'});
+    return;
+  }
+  if (destination === 'Starting look') {
     await page.locator('#stage-start').click();
-    if(destination==='Start'&&!await page.locator('.start-team').evaluate(n=>n.open))await page.locator('.start-team > summary').click();
-    if (destination === 'Starting look' && !await page.locator('[data-preset]').first().isVisible()) {
+    if (!await page.locator('[data-preset]').first().isVisible()) {
       await page.locator('#btnChangeStartingLook').click();
     }
     return;
@@ -56,4 +61,17 @@ export async function switchSurface(page, surface) {
 export async function otherStartingPaths(page) {
  const section=page.locator('#otherStartingPaths');
  if(!await section.evaluate(n=>n.open))await section.locator('summary').click();
+}
+
+// Header actions other than Save, Undo and Redo live in the top bar's ⋯ menu.
+export async function openMoreMenu(page) {
+  const menu = page.locator('.more-menu');
+  if (!await menu.evaluate(el => el.open)) await menu.locator(':scope > summary').click();
+}
+
+// Click a control that is either visible in the bar or inside the ⋯ menu.
+export async function clickMenuItem(page, selector) {
+  const target = page.locator(selector);
+  if (!await target.isVisible()) await openMoreMenu(page);
+  await target.click();
 }

@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import {otherStartingPaths} from './bespoke-test-navigation.mjs';
+import {clickMenuItem, otherStartingPaths} from './bespoke-test-navigation.mjs';
 // Independent acceptance of the three-stage workflow. All services are ephemeral,
 // all browser contexts are new, and all names/content are synthetic. Never attaches
 // to Safari, an existing browser, the persistent preview, or a hosted service.
@@ -126,11 +126,12 @@ async function setField(page, kind, key, value) {
   else await control.fill(value);
 }
 async function team(page) {
-  await stage(page, 'start');
-  if(!await page.locator('.start-team').evaluate(n=>n.open))await page.locator('.start-team > summary').click();
+  await stage(page, 'team');
   await page.locator('#teamName').fill('Synthetic workflow team');
   await page.locator('#spokespersonName').fill('Sample Instructor');
   await page.locator('#spokespersonEmail').fill('sample@example.org');
+  // Callers carry on with the starting looks, which is the stage after Lesson & team.
+  await stage(page, 'start');
 }
 async function startingLooks(page) {
   await stage(page, 'start');
@@ -183,7 +184,7 @@ async function axe(page, label) {
 try {
   await scenario('custom journey and effective review', async ({ makePage, server }) => {
     const page = await makePage(); await team(page);
-    assert.equal(await page.locator('#stepList button').count(), 3);
+    assert.equal(await page.locator('#stepList button').count(), 4);
     await otherStartingPaths(page);await page.locator('#btnBuildOwn').click();
     assert.equal(await page.locator('#stage-slides').getAttribute('aria-current'), 'step');
     assert.equal(await page.locator('#roleEditorTabs [role=tab]').count(), 5);
@@ -375,9 +376,9 @@ try {
     await trigger.click(); await second.locator('#stage-review').click();
     assert.equal(await menu.evaluate(el => el.open), false, 'Clicking another control outside dismisses the menu');
     assert.equal(await second.locator('#stage-review').getAttribute('aria-current'), 'step', 'Outside control still performs its action');
-    await second.locator('#btnHistory').click(); await second.locator('#historyPanel button').first().waitFor();
+    await clickMenuItem(second, '#btnHistory'); await second.locator('#historyPanel button').first().waitFor();
     assert.equal(await second.locator('#btnHistory').getAttribute('aria-expanded'), 'true', 'Previous versions is not intercepted by recovery overlay');
-    await second.locator('#btnHistory').click();
+    await clickMenuItem(second, '#btnHistory');
     await second.locator('#btnLoadLatest').click();
     await second.locator('#fileStatus').filter({ hasText: 'Opened the latest shared design.' }).waitFor();
     assert.deepEqual(await design(second), (await remote(server)).selection.design);
@@ -385,7 +386,7 @@ try {
     assert.equal((await draft(second)).autosavePaused, true, 'Recovered backup needs deliberate Save');
     await save(second);
     assert.deepEqual((await remote(server)).selection.design, local, 'Explicit recovery Save confirms the chosen local design');
-    await backup(second); await second.locator('#btnHistory').click();
+    await backup(second); await clickMenuItem(second, '#btnHistory');
     await second.locator('#historyPanel button').first().waitFor();
     await shot(second, 'recovery-history-accessible');
     const history = (await remote(server, 'history')).history;
@@ -400,7 +401,8 @@ try {
     for (const [index, oldId] of oldIds.entries()) {
       const saved = { step: index, stepId: oldId, previewView: 'activity', activeRole: 'sidebar', lessonId: 'money-management', teamName: 'Synthetic previous workflow', spokespersonName: 'Sample Instructor', spokespersonEmail: 'sample@example.org', unspoken: '', design: storedDesign, changes: [], redo: [] };
       const page = await makePage({ storedDraft: saved });
-      const mapped = [...kinds,'colors','fonts'].includes(oldId) ? 'slides' : oldId === 'review' ? 'review' : 'start';
+      // The old team step is the new Lesson & team stage; the old welcome step is the starting looks.
+      const mapped = [...kinds,'colors','fonts'].includes(oldId) ? 'slides' : oldId === 'review' ? 'review' : oldId === 'team' ? 'team' : 'start';
       assert.equal(await page.locator('#stage-' + mapped).getAttribute('aria-current'), 'step', oldId + ' maps to the right stage');
       if (kinds.includes(oldId)) assert.equal(await page.locator('#editor-' + oldId).getAttribute('aria-selected'), 'true');
       if (['colors', 'fonts'].includes(oldId)) assert(await page.locator('#sharedTheme').evaluate(el => el.open));

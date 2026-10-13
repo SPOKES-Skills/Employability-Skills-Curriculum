@@ -211,7 +211,7 @@
  .editor-stages .stepper{display:block;padding:10px 12px}.editor-stages #stepList{overflow:auto}.editor-stages #stepList button{min-width:110px}.editor-stages .history-local{margin-top:8px;justify-content:space-between;flex-wrap:wrap}.editor-stages .history-local details{display:none}
  .workspace,.workspace[data-options=false]{display:flex;flex-direction:column;max-height:none;overflow:visible}.slide-rail{width:100%;padding:12px}.slide-rail h2,.slide-rail>p{display:none}#previewTabs{flex-direction:row;overflow:auto;gap:8px;padding:3px}#previewTabs button{min-width:110px;width:110px;flex:none}.slide-thumbnail{width:98px;height:56px}.slide-thumbnail>.bespoke-slide{transform:scale(.153)}
  .preview-pane{width:100%;padding:12px;order:2}.chrome-rail{width:100%;border-left:0;order:3}.context-toolbar{gap:8px}.toolbar-field{flex-basis:120px;max-width:none}.context-toolbar .btn{width:100%;margin:0}.workspace[data-editor=true] .preview-pane,.workspace[data-editor=true] .chrome-rail,.workspace[data-editor=true][data-options=false] .chrome-rail{display:block}.workspace[data-editor=true][data-options=false] .chrome-rail{display:none}
- .workspace[data-editor=true] .slide-rail{display:block}.surface-navigation:has(+ .editor-stages + .workspace[data-editor=true]){display:none}
+ .workspace[data-editor=true] .slide-rail{display:block}.surface-navigation:has(+ .workspace[data-editor=true]){display:none}
 }
 
 
@@ -244,7 +244,7 @@
 @media(max-width:700px){.preset-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:20px 12px}.workspace[data-stage=start] .controls{padding:20px 16px}.workspace[data-stage=start] .preset-choice>strong{font-size:1rem}.workspace[data-stage=start] .preset-choice>span:not(.preset-slide){font-size:.8rem}.context-toolbar .toolbar-field{max-width:none}}
 @media(max-width:380px){.preset-grid{grid-template-columns:1fr}}
 
-.surface-navigation:has(+ .editor-stages + .workspace[data-stage=start]){display:none}
+.surface-navigation:has(+ .workspace[data-stage=start]){display:none}
 
 /* Let the palette lead each starting look; layout stays visible as a separate choice. */
 .preset-choice>span.preset-colors{display:flex;gap:5px;margin-top:14px}

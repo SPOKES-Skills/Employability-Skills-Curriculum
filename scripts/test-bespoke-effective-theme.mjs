@@ -2,6 +2,7 @@
 // Regression for changing the visible effective fonts and texture with a local
 // override. Isolated browsers + in-memory loopback services only; no user state.
 import assert from 'node:assert/strict';
+import {clickMenuItem} from './bespoke-test-navigation.mjs';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { browserName, browserType, tabKey } from './bespoke-test-browser.mjs';
@@ -60,7 +61,7 @@ async function shared(page) {
   const d = page.locator('#sharedTheme'); if (!await d.evaluate(el => el.open)) await d.locator(':scope > summary').click();
 }
 async function start(page) { await surface(page, 'design'); await page.locator('#stage-start').click(); await shared(page); }
-async function view(page, kind) {if(await page.locator('#workspace').getAttribute('data-stage')==='start'){await page.locator('#stage-slides').click();if(!await page.locator('#detailControls').isVisible())await page.locator('#btnMoreOptions').click();} await surface(page, 'preview'); await page.locator(`#previewTabs [data-view="${kind}"]`).click(); await page.evaluate(() => document.fonts.ready); }
+async function view(page, kind) {if(['team','start'].includes(await page.locator('#workspace').getAttribute('data-stage'))){await page.locator('#stage-slides').click();if(!await page.locator('#detailControls').isVisible())await page.locator('#btnMoreOptions').click();} await surface(page, 'preview'); await page.locator(`#previewTabs [data-view="${kind}"]`).click(); await page.evaluate(() => document.fonts.ready); }
 async function importDesign(page, d) {
   await page.locator('#teamFileInput').setInputFiles({ name: 'synthetic-effective-theme.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(payload(d))) });
   await page.locator('#fileStatus').filter({ hasText: 'Opened synthetic-effective-theme.json.' }).waitFor();
@@ -141,7 +142,7 @@ try {
     await page.locator('#btnRedo').click(); assert.deepEqual(await design(page), expected);
     await page.reload(); await ready(page); assert.deepEqual(await design(page), expected); await selectedTheme(page, 'divider');
     await save(page); const saved = (await openRemote(server)).selection; assert.deepEqual(saved.design, expected); noUiFields(saved);
-    const fresh = await makePage(); assert.deepEqual(await design(fresh), expected); await fresh.locator('#btnOpen').click();
+    const fresh = await makePage(); assert.deepEqual(await design(fresh), expected); await clickMenuItem(fresh, '#btnOpen');
     await fresh.locator('#fileStatus').filter({ hasText: /Opened|latest|up to date/i }).waitFor(); assert.deepEqual(await design(fresh), expected);
     const copied = await backup(fresh); assert.deepEqual(copied.design, expected); noUiFields(copied);
     await importDesign(fresh, before); await fresh.locator('#teamFileInput').setInputFiles({ name: 'synthetic-theme-backup.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(copied)) });

@@ -34,7 +34,7 @@ async function pageFor(width,height=900,scale=1) {
 }
 async function surface(page,name) {if(await page.locator('#surface-'+name).isVisible())await page.locator('#surface-'+name).click();}
 const go = builderDestination;
-async function preview(page,kind) {if(await page.locator('#workspace').getAttribute('data-stage')==='start'){await page.locator('#stage-slides').click();if(!await page.locator('#detailControls').isVisible())await page.locator('#btnMoreOptions').click();}await surface(page,'preview');await page.locator(`#previewTabs [data-view="${kind}"]`).click();await page.evaluate(()=>document.fonts.ready);}
+async function preview(page,kind) {if(['team','start'].includes(await page.locator('#workspace').getAttribute('data-stage'))){await page.locator('#stage-slides').click();if(!await page.locator('#detailControls').isVisible())await page.locator('#btnMoreOptions').click();}await surface(page,'preview');await page.locator(`#previewTabs [data-view="${kind}"]`).click();await page.evaluate(()=>document.fonts.ready);}
 const design=page=>page.evaluate(()=>JSON.parse(localStorage.getItem('bespoke-draft-v2')).design);
 async function openDrawer(page) {
   const summary=page.locator('#modelStage .slide-sidebar-disclosure > summary');

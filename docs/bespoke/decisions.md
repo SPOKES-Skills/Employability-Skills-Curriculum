@@ -1,5 +1,21 @@
 # BeSpoke decisions
 
+## Lesson & team stage, October 9, 2026
+
+Britt chose a separate first stage for Lesson & team, over a top-bar chip or a
+highlighted card on the starting-looks page. The flow is now Lesson & team, Color
+& layout, Customize, then Review & save. This supersedes the September 24 decision
+that Start combines Lesson & team with the starting looks. The other three stages
+are unchanged.
+
+Lesson & team is its own page with the lesson, team name, spokesperson name and
+spokesperson email, and a Continue to starting looks button. A new visit opens on
+it. Its stage pill carries an outline and a dot until a team name and spokesperson
+name are entered, then names the lesson and team in its tooltip. The stage never
+blocks navigation or Save. Send to Britt still needs the spokesperson name and
+returns people to this page when it is missing. A saved draft reopens on the stage
+it was left on. Earlier drafts that were saved on the starting looks still open there.
+
 ## Current simplification — October 7, 2026
 
 Britt authorized implementation in an isolated worktree: twelve distinct layout

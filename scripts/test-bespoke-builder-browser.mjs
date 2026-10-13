@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // End-to-end checks use a fresh loopback-only server, synthetic people and memory drafts.
 // Nothing here uses provisioned team codes, a hosted API, Send, or released lessons.
-import { builderDestination, EDITOR_DESTINATIONS, recoveryMenu, switchSurface } from './bespoke-test-navigation.mjs';
+import {EDITOR_DESTINATIONS, builderDestination, clickMenuItem, recoveryMenu, switchSurface} from './bespoke-test-navigation.mjs';
 import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
 import path from 'node:path';
@@ -100,7 +100,7 @@ async function save(page) {
 }
 async function download(page, original = false) {
   const control = page.locator(original ? '#stepPanel button' : '#btnDownloadBackup').filter(original ? { hasText: 'Download original v1 design' } : {});
-  if (!original && !await control.isVisible()) await page.locator('.more-menu summary').click();
+  if (!original && !await control.isVisible()) await page.locator('.more-menu > summary').click();
   const event = page.waitForEvent('download');
   await control.click();
   const file = await event;
@@ -137,20 +137,20 @@ try {
     const label = (await draft(page)).changes.at(-1).label;
     assert.equal(await page.locator('#btnUndo').getAttribute('aria-description'), 'Undo: '+label);
     // Focus a non-editor control: shortcuts act on the design, not typed words.
-    await page.locator('#btnHelp').focus();
+    await page.locator('#btnSave').focus();
     await page.keyboard.press('Control+z'); assert.deepEqual(await design(page), original);
     assert.equal(await page.locator('#btnRedo').getAttribute('aria-description'), 'Redo: '+label);
-    await page.locator('#btnHelp').focus(); await page.keyboard.press('Control+Shift+z');
+    await page.locator('#btnSave').focus(); await page.keyboard.press('Control+Shift+z');
     assert.deepEqual(await design(page), painted);
-    await page.locator('#btnHelp').focus(); await page.keyboard.press('Meta+z');
+    await page.locator('#btnSave').focus(); await page.keyboard.press('Meta+z');
     assert.deepEqual(await design(page), original);
-    await page.locator('#btnHelp').focus(); await page.keyboard.press('Meta+Shift+z');
+    await page.locator('#btnSave').focus(); await page.keyboard.press('Meta+Shift+z');
     assert.deepEqual(await design(page), painted);
-    await page.locator('#btnHelp').focus(); await page.keyboard.press('Control+z');
-    await page.locator('#btnHelp').focus(); await page.keyboard.press('Control+y');
+    await page.locator('#btnSave').focus(); await page.keyboard.press('Control+z');
+    await page.locator('#btnSave').focus(); await page.keyboard.press('Control+y');
     assert.deepEqual(await design(page), painted);
     const beforeRepeat = await draft(page);
-    await page.locator('#btnHelp').evaluate(el => el.dispatchEvent(new KeyboardEvent('keydown', {key:'z',ctrlKey:true,repeat:true,bubbles:true,cancelable:true})));
+    await page.locator('#btnSave').evaluate(el => el.dispatchEvent(new KeyboardEvent('keydown', {key:'z',ctrlKey:true,repeat:true,bubbles:true,cancelable:true})));
     assert.deepEqual(await draft(page), beforeRepeat);
     await go(page, 'Starting look');await go(page, 'Starting look');await page.locator('[data-preset="modern"]').click();
     await page.locator('#presetDialog').waitFor({state:'visible'});
@@ -179,11 +179,11 @@ try {
     await page.reload(); await ready(page);
     assert.deepEqual(await design(page), edited);
     assert.deepEqual((await draft(page)).changes, saved.changes);
-    await page.locator('#btnHelp').focus(); await page.keyboard.press('Control+z');
+    await page.locator('#btnSave').focus(); await page.keyboard.press('Control+z');
     assert.deepEqual(await design(page), painted);
-    await page.locator('#btnHelp').focus(); await page.keyboard.press('Control+Shift+z');
+    await page.locator('#btnSave').focus(); await page.keyboard.press('Control+Shift+z');
     assert.deepEqual(await design(page), edited);
-    await page.locator('#btnOpen').click();
+    await clickMenuItem(page, '#btnOpen');
     await page.locator('#fileStatus').filter({hasText:/opened|loaded/i}).waitFor();
     assert.deepEqual(await design(page), edited);
   });
@@ -348,7 +348,7 @@ try {
     assert.equal(await preference(page), null, 'Changing teams/lessons starts a new confirmation session.');
     await go(page, 'Starting look');await go(page, 'Starting look');await page.locator('[data-preset="serious"]').click();
     await page.locator('#presetSkipConfirmation').check(); await page.locator('#presetApply').click();
-    await page.locator('#btnLeaveSession').click(); await ready(page);
+    await clickMenuItem(page, '#btnLeaveSession'); await ready(page);
     assert(native.some(message => message.startsWith('Leave this session on this browser?')));
     assert.equal(await preference(page), null);
     await go(page, 'Starting look');await go(page, 'Starting look');await page.locator('[data-preset="professional"]').click();
@@ -547,7 +547,7 @@ try {
     await page.reload(); await ready(page);
     assert.deepEqual(await design(page), backup.design);
     // An explicit open follows the same recovery boundary as startup.
-    await page.locator('#btnOpen').click();
+    await clickMenuItem(page, '#btnOpen');
     await page.locator('#fileStatus').filter({ hasText: /Opened the latest shared design/ }).waitFor();
     assert.deepEqual(await design(page), backup.design);
   });
@@ -747,7 +747,8 @@ try {
     await desktop.keyboard.press('Enter');
     assert.equal(await desktop.locator('#selectedElement').evaluate(el => el === document.activeElement), true, 'Applying a preset moves focus into Customize.');
     await desktop.keyboard.press(tabKey);
-    assert.equal(await desktop.locator('#context-finish').evaluate(el => el === document.activeElement), true, 'Tab continues into the contextual controls.');
+    // Background mode is a segmented control on wide screens; its checked segment holds the tab stop.
+    assert.equal(await desktop.evaluate(() => document.activeElement.closest('[role=radiogroup]')?.getAttribute('aria-label')), 'Background', 'Tab continues into the contextual controls.');
     await go(desktop, 'Title slide');
     await desktop.getByRole('group', { name: /Arrangement/ }).locator('[data-choice="bottom"]').focus();
     await desktop.keyboard.press('Enter');

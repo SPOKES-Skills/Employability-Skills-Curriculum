@@ -1,0 +1,161 @@
+/* Canvas shell. Loaded after builder.css: a slim top bar at every width, and a
+   slide-first editing canvas on wide screens (>= 1101px). Phone and tablet bodies
+   keep their stacked layout. Chrome only; lesson colors stay inside the preview. */
+:root{--bar-h:52px;--toolbar-gutter:104px}
+
+/* ---- Top bar ---------------------------------------------------------- */
+.app-bar{display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px;min-height:var(--bar-h);padding:4px 16px;background:#fff;border-bottom:1px solid var(--line)}
+.app-bar .brand{gap:8px}
+.app-bar .brand img{width:28px;height:28px}
+.app-bar .brand strong{font-size:1.1rem}
+.app-bar .brand small{display:none}
+.local-pill{margin:0;padding:2px 9px;border:1px solid var(--line);border-radius:999px;background:var(--mist);color:#44536a;font-size:.8125rem;white-space:nowrap}
+.app-bar .stepper{min-width:0;margin-left:8px;padding:0;border:0;background:transparent}
+.app-bar #stepList{display:flex;gap:2px;margin:0;padding:0;list-style:none}
+.app-bar #stepList li{margin:0}
+.app-bar #stepList button{position:relative;display:flex;align-items:center;gap:6px;width:auto;min-width:0;min-height:36px;padding:6px 12px;border:0;border-radius:999px;background:transparent;color:var(--muted);font-size:.875rem;line-height:1.2;white-space:nowrap}
+.app-bar #stepList button:after{content:"";position:absolute;inset:-4px 0}
+.app-bar #stepList button:hover{background:var(--mist)}
+.app-bar #stepList button[aria-current]{background:var(--mist);color:var(--blue);font-weight:600}
+.bar-end{display:flex;align-items:center;gap:8px;min-width:0;margin-left:auto}
+.undo-actions{display:flex;gap:2px}
+.btn-ghost{border-color:transparent;background:transparent}
+.btn-ghost:hover{background:var(--mist)}
+.btn-ghost:disabled{opacity:.4;background:transparent}
+.bar-end #btnUndo,.bar-end #btnRedo{min-width:44px;padding:0;font-size:0}
+.bar-end #btnUndo:before,.bar-end #btnRedo:before{font-size:1.2rem;line-height:1}
+.bar-end #btnUndo:before{content:"\21B6"}
+.bar-end #btnRedo:before{content:"\21B7"}
+.more-menu>summary.btn{min-width:44px;padding:0 8px}
+.more-menu>summary:after{content:none}
+.more-menu>summary span{font-size:1.4rem;line-height:1}
+.save-chip{position:relative;max-width:clamp(120px,16vw,260px);margin:0;padding-left:14px;overflow:hidden;color:var(--muted);font-size:.8125rem;text-overflow:ellipsis;white-space:nowrap}
+.save-chip:before{content:"";position:absolute;left:0;top:50%;width:8px;height:8px;border-radius:50%;background:#37b550;transform:translateY(-50%)}
+.save-chip[data-state=warn]:before{background:#d3b257}
+.save-chip:empty{display:none}
+
+/* Menu: one place for everything that is not a primary action. */
+.more-menu-list{right:0;left:auto;width:270px;max-height:calc(100dvh - 80px);overflow:auto}
+.more-menu-list .menu-status{margin:0 0 4px;padding:8px 12px 10px;border-bottom:1px solid var(--line);color:var(--muted);font-size:.8125rem;line-height:1.45}
+.more-menu-list .menu-status:empty{display:none}
+.more-menu-list .btn{justify-content:flex-start;min-height:44px;padding:12px;border:0;border-radius:0;background:#fff;color:var(--navy);font-size:.9rem;font-weight:400}
+.more-menu-list .btn:hover{background:var(--mist)}
+.more-menu-list hr{margin:6px 0;border:0;border-top:1px solid var(--line)}
+.more-menu-list button[hidden]{display:none}
+.menu-recent summary{min-height:44px;padding:12px;font-size:.9rem;cursor:pointer}
+.menu-recent summary:hover{background:var(--mist)}
+.menu-recent ol{margin:0;padding:0 12px 10px 32px;color:var(--muted);font-size:.8125rem;line-height:1.5}
+
+/* Lesson & team is its own first page. The pill asks for attention until the team is identified. */
+.app-bar #stepList button[data-attention=true]{box-shadow:inset 0 0 0 1.5px #d3b257}
+.app-bar #stepList button[data-attention=true]:before{content:"";position:absolute;top:2px;right:4px;width:9px;height:9px;border-radius:50%;background:#d3b257;box-shadow:0 0 0 2px #fff}
+.workspace[data-stage=team]{display:block;max-width:760px;margin:0 auto}
+.workspace[data-stage=team] .slide-rail,.workspace[data-stage=team] .preview-pane{display:none}
+.workspace[data-stage=team] .chrome-rail{display:block!important;width:100%;border:0}
+.workspace[data-stage=team] .controls{padding:40px clamp(16px,4vw,32px)}
+.workspace[data-stage=team] .stage-count{display:none}
+.surface-navigation:has(+ .workspace[data-stage=team]){display:none}
+
+/* The Slide options command only applies while the editor is showing. */
+#btnMenuOptions{display:none}
+body:has(.workspace[data-editor=true]) #btnMenuOptions{display:flex}
+#btnMenuOptions{align-items:center;justify-content:space-between;gap:16px}
+.more-menu-list kbd{color:var(--muted);font:inherit;font-size:.8125rem}
+
+/* Notices stay slim; the session strip appears only when it holds a decision. */
+.notice{padding:8px 16px;font-size:.875rem}
+.team-session{display:none;padding:8px 16px;background:#fff5d7;border-bottom:1px solid #d3b257;font-size:.875rem}
+.team-session:has(#btnLoadLatest:not([hidden]),#btnKeepLocal:not([hidden]),#btnCheckStatus:not([hidden]),#historyPanel:not([hidden]),#lastReviewReceipt:not([hidden])){display:flex}
+.team-session[hidden]{display:none}
+.team-session .review-receipt{margin:0}
+
+/* ---- Wide editing canvas ---------------------------------------------- */
+.canvas-hint,.drawer-bar{display:none}
+@media(min-width:1101px){
+ html{scrollbar-gutter:stable}
+ .app-bar{position:sticky;top:0;z-index:20;flex-wrap:nowrap}
+ .workspace[data-editor=true]{display:grid;grid-template-columns:150px minmax(0,1fr);align-items:start;min-height:calc(100dvh - var(--bar-h));background:#eef1f4}
+ .workspace[data-editor=true][data-options=true]{grid-template-columns:150px minmax(0,1fr) 380px}
+ .workspace[data-editor=true] .slide-rail{position:sticky;top:var(--bar-h);grid-column:1;height:calc(100dvh - var(--bar-h));padding:12px 8px;overflow:auto;border-right:1px solid var(--line);background:#fff}
+ .workspace[data-editor=true] .slide-rail h2,.workspace[data-editor=true] .slide-rail>p{display:none}
+ .workspace[data-editor=true] .preview-pane{position:relative;grid-column:2;min-width:0;padding:10px 32px 24px}
+ .workspace[data-editor=true] .chrome-rail,.workspace[data-editor=true][data-options=true] .chrome-rail{position:sticky;top:var(--bar-h);grid-column:3;height:calc(100dvh - var(--bar-h));overflow:auto;border-left:1px solid var(--line);background:#fff;box-shadow:-8px 0 24px #00133f14}
+ .workspace[data-editor=true][data-options=false] .chrome-rail{display:none}
+ /* Pinned so Hide options stays reachable however far the drawer is scrolled. */
+ .workspace[data-editor=true] .drawer-bar{position:sticky;top:0;z-index:3;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:6px 16px 6px 20px;border-bottom:1px solid var(--line);background:#fff}
+ .drawer-bar strong{font-size:1rem}
+
+ .workspace[data-editor=true] .preview-heading{margin:0;min-height:44px}
+ .workspace[data-editor=true] .preview-heading h2{display:inline;font-size:1rem}
+ .workspace[data-editor=true] .canvas-hint{display:inline;margin-left:12px;color:var(--muted);font-size:.8125rem}
+ .workspace[data-editor=true] .selection-help{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+ /* The gap above the slide is where the floating toolbar sits for slide-level selections. */
+ .workspace[data-editor=true] .preview-frame{max-width:min(100%,calc((100dvh - var(--toolbar-gutter) - 226px) * 1.7778));margin:var(--toolbar-gutter) auto 0;padding:0;background:transparent}
+
+ .context-toolbar.is-floating{position:absolute;z-index:6;width:max-content;max-width:calc(100% - 16px);gap:6px 8px;align-items:end;padding:8px 10px;border-color:var(--line);border-radius:12px;box-shadow:0 8px 24px #00133f2e}
+ .context-toolbar.is-floating .toolbar-field{flex:0 0 auto;order:2;max-width:150px;color:var(--muted);font-size:.75rem}
+ .context-toolbar.is-floating .toolbar-field:has(#selectedElement){order:0;max-width:160px}
+ .context-toolbar.is-floating .toolbar-copy{flex:1 1 180px;order:1;max-width:240px;color:var(--muted);font-size:.75rem}
+ .context-toolbar.is-floating .toolbar-copy textarea{min-height:44px;height:44px;padding:9px 10px;font-size:.875rem;line-height:1.35;resize:none}
+ .context-toolbar.is-floating .toolbar-copy:focus-within textarea{height:112px}
+ .context-toolbar.is-floating .btn{order:3;margin:0}
+
+ /* Segmented control: a few closely related choices that act on the selection. */
+ .toolbar-segmented,.toolbar-well{position:relative;display:flex;flex-direction:column;gap:5px;color:var(--muted);font-size:.75rem;font-weight:500}
+ .context-toolbar.is-floating .toolbar-segmented,.context-toolbar.is-floating .toolbar-well{max-width:none}
+ .toolbar-label{line-height:1.2}
+ .segment-icon{display:grid;place-items:center;min-width:44px;padding:0}
+ .segmented{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;border:1px solid #8fa2b3;border-radius:8px;overflow:hidden;background:#fff}
+ .segment{min-width:52px;min-height:44px;padding:0 10px;border:0;border-left:1px solid var(--line);background:#fff;color:var(--navy);font-size:.8125rem;white-space:nowrap}
+ .segment:first-child{border-left:0}
+ .segment:hover:not(:disabled){background:var(--mist)}
+ .segment[aria-checked=true]{background:#dbe9f3;color:var(--blue);font-weight:600;box-shadow:inset 0 -3px 0 var(--blue)}
+ .segment:disabled{opacity:.55}
+ .native-mirror{position:absolute;inset:0;width:100%;height:100%;opacity:0;pointer-events:none}
+ /* Color well: shows the current color; opens the brand swatches. */
+ .well{display:flex;align-items:center;gap:8px;min-height:44px;min-width:128px;padding:0 10px;border:1px solid #8fa2b3;border-radius:8px;background:#fff;color:var(--navy);font-size:.8125rem;text-align:left}
+ .well:hover:not(:disabled){background:var(--mist)}
+ .well[aria-expanded=true]{border-color:var(--blue);box-shadow:0 0 0 2px #dbe9f3}
+ .well-chip{flex:none;width:22px;height:22px;border-radius:50%;box-shadow:inset 0 0 0 1px #00133f40}
+ .well-popover{position:absolute;top:calc(100% + 6px);left:0;z-index:8;padding:10px;border:1px solid var(--line);border-radius:12px;background:#fff;box-shadow:0 10px 28px #00133f33}
+ .swatch-grid{display:grid;grid-template-columns:repeat(6,44px);gap:2px}
+ .swatch{display:grid;place-items:center;width:44px;height:44px;padding:0;border:2px solid transparent;border-radius:10px;background:transparent}
+ .swatch:hover{background:var(--mist)}
+ .swatch[aria-checked=true]{border-color:var(--blue)}
+ .swatch-dot{width:26px;height:26px;border-radius:50%;box-shadow:inset 0 0 0 1px #00133f40}
+ /* Group related controls with quiet dividers: selection and words, formatting, then actions. */
+ .context-toolbar.is-floating .toolbar-copy{padding-right:10px;border-right:1px solid var(--line)}
+ .context-toolbar.is-floating:not(.has-copy) .toolbar-field:has(#selectedElement){padding-right:10px;border-right:1px solid var(--line)}
+ .context-toolbar.is-floating > .btn:first-of-type{margin-left:2px;padding-left:12px;border-left:1px solid var(--line);border-radius:0 6px 6px 0}
+
+ .inspector-more{display:flex;flex-direction:column;gap:16px}
+ .inspector-more:empty{display:none}
+ .inspector-more .toolbar-field{flex:none;max-width:none;font-size:.875rem}
+
+ .workspace[data-editor=true] .similarity{display:grid;grid-template-columns:auto 1fr;gap:2px 18px;align-items:center;margin-top:20px;padding:10px 16px;border:1px solid var(--line);border-radius:8px;background:#fff}
+ .workspace[data-editor=true] .similarity .comparison-heading{grid-column:1}
+ .workspace[data-editor=true] .similarity .distinct-meter{grid-column:2;margin:0}
+ .workspace[data-editor=true] .similarity details,.workspace[data-editor=true] .similarity .comparison-note{grid-column:1 / -1;margin-top:6px}
+ .workspace[data-editor=true] .preview-caption{max-width:none;margin-top:12px}
+}
+
+/* Four stage pills share the bar, so tighten them on narrower desktops. */
+@media(min-width:1101px) and (max-width:1330px){
+ .app-bar #stepList button{padding:6px 8px;font-size:.8125rem}
+ .app-bar .step-num{display:none}
+}
+
+/* Two-row toolbar below 1440px: the gutter above the slide grows to hold it. */
+@media(min-width:1101px) and (max-width:1439px){:root{--toolbar-gutter:150px}}
+
+@media(max-width:760px){
+ .app-bar{position:relative;padding:6px 12px}
+ .app-bar .stepper{order:3;flex:1 0 100%;margin:0;overflow-x:auto}
+ .bar-end{flex:1 0 100%;flex-wrap:wrap;justify-content:flex-end;margin-left:0}
+ .save-chip{flex:1 1 100%;order:-1;max-width:none}
+ .more-menu{position:static}
+ .more-menu-list{left:12px;right:12px;width:auto}
+ /* Touch targets: the project contract is 44px on phones. */
+ .app-bar .brand{min-height:44px}
+ .app-bar #stepList button{min-height:44px}
+}

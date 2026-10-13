@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // Independent role-control acceptance: actual UI, computed paint/type, isolated
 // synthetic service persistence. Never accesses a user's Safari or saved runtime.
-import { builderDestination, recoveryMenu } from './bespoke-test-navigation.mjs';
+import {builderDestination, clickMenuItem, openMoreMenu, recoveryMenu} from './bespoke-test-navigation.mjs';
 import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
 import path from 'node:path';
@@ -69,7 +69,7 @@ async function css(page,kind,part,property){return node(page,kind,part).evaluate
 async function visible(page,kind,part){return node(page,kind,part).isVisible();}
 async function choose(page,group,value){await surface(page,'design');await page.getByRole('group',{name:new RegExp(group)}).locator(`[data-choice="${value}"]`).click();}
 async function backup(page){
-  if(!await page.locator('#btnDownloadBackup').isVisible())await page.locator('.more-menu summary').click();
+  if(!await page.locator('#btnDownloadBackup').isVisible())await page.locator('.more-menu > summary').click();
   const event=page.waitForEvent('download',{timeout:10000});await page.locator('#btnDownloadBackup').click();const file=await event.catch(async error=>{throw new Error(error.message+'; backup status: '+await page.locator('#fileStatus').textContent());});
   const result=JSON.parse(await fs.readFile(await file.path(),'utf8'));await recoveryMenu(page, false);return result;
 }
@@ -132,11 +132,11 @@ try{
   if(!focusOnly){
   const page=await pageFor();await upload(page,payload(defaultDesign(catalog)));await go(page,'Starting look');
   assert(await page.locator('#startingLookChoices').isVisible(),'Beginner introduction is on the first step');
-  const beforeHelp=await design(page);await page.locator('#btnHelp').click();
+  const beforeHelp=await design(page);await clickMenuItem(page, '#btnHelp');
   const help=await page.locator('#builderHelp').textContent();
   for(const pattern of [/editable/i,/sample/i,/eleven/i,/two or three/i,/twelve/i,/four/i,/logo/i,/leader/i,/Undo/i,/Previous versions/i,/six/i,/unmeasured/i,/private/i,/test space/i])assert.match(help,pattern);
   assert.equal(await page.locator('#btnHelp').getAttribute('aria-expanded'),'true');await axe(page,'Getting started help');
-  await page.locator('#btnCloseHelp').click();assert.equal(await page.evaluate(()=>document.activeElement.id),'btnHelp');assert.deepEqual(await design(page),beforeHelp);
+  await page.locator('#btnCloseHelp').click();assert.equal(await page.evaluate(()=>document.activeElement.matches('.more-menu > summary')),true);assert.deepEqual(await design(page),beforeHelp);
 
   for(const kind of Object.keys(labels)){
     await go(page,kind);await setStyle(page,kind,'backgroundMode','solid');
@@ -211,7 +211,7 @@ try{
   const exported=await backup(page);assert.deepEqual(exported.design,cumulative);assert(!JSON.stringify(exported).includes(LOCAL_PREVIEW_CODE));
   await save(page);await page.reload();await ready(page);assert.deepEqual(await design(page),cumulative);assert.deepEqual((await remote()).selection.design,cumulative);
   const reopened=await pageFor();assert.deepEqual(await design(reopened),cumulative);await go(reopened,'activity');await setStyle(reopened,'activity','bodyColor','mauve');await save(reopened);
-  await reopened.locator('#btnHistory').click();await reopened.locator('#historyPanel button').nth(1).click();await reopened.locator('#fileStatus').filter({hasText:'Previous choices loaded'}).waitFor();assert.deepEqual(await design(reopened),cumulative);assert.equal((await draft(reopened)).autosavePaused,true);await save(reopened);
+  await clickMenuItem(reopened, '#btnHistory');await reopened.locator('#historyPanel button').nth(1).click();await reopened.locator('#fileStatus').filter({hasText:'Previous choices loaded'}).waitFor();assert.deepEqual(await design(reopened),cumulative);assert.equal((await draft(reopened)).autosavePaused,true);await save(reopened);
   const recovered=await pageFor();await upload(recovered,exported);assert.deepEqual(await design(recovered),cumulative);
   await go(recovered,'Starting look');await recovered.locator('[data-preset="professional"]').click();if(await recovered.locator('#presetDialog').isVisible())await recovered.locator('#presetApply').click();
   const preset=await design(recovered);assert.deepEqual(preset.samples,cumulative.samples);
@@ -231,7 +231,7 @@ try{
     }
     await go(mobile,'cards');
     for(const count of ['1','2','3','4']){await choose(mobile,'Number of text boxes',count);assert.equal(await mobile.locator('#modelStage .slide-card').count(),Number(count));assert.deepEqual((await design(mobile)).samples.boxes,long.samples.boxes);await preview(mobile,'cards');await geometry(mobile,`${view.width}/cards-${count}`);}
-    await surface(mobile,'design');await mobile.locator('#btnHelp').focus();await mobile.keyboard.press('Enter');assert(await mobile.locator('#builderHelp').isVisible());await axe(mobile,`${view.width}/help`);await mobile.locator('#btnCloseHelp').click();assert.equal(await mobile.evaluate(()=>document.activeElement.id),'btnHelp');
+    await surface(mobile,'design');await openMoreMenu(mobile);await mobile.locator('#btnHelp').focus();await mobile.keyboard.press('Enter');assert(await mobile.locator('#builderHelp').isVisible());await axe(mobile,`${view.width}/help`);await mobile.locator('#btnCloseHelp').click();assert.equal(await mobile.evaluate(()=>document.activeElement.matches('.more-menu > summary')),true);
     await go(mobile,'activity');const control=await openField(mobile,'activity','primary');await control.focus();await mobile.keyboard.press(tabKey);assert.notEqual(await mobile.evaluate(()=>document.activeElement.id),'role-activity-primary','Keyboard can leave each native control');
     console.log(`PASS responsive role editor ${view.width}px text${view.scale||1}`);
   }

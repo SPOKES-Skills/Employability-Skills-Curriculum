@@ -1,5 +1,12 @@
+import {computeToolbarPosition,isQuickField} from './canvas-toolbar.mjs';
+import {colorWell,segmentedControl,SEGMENTED_FIELDS,MAX_SEGMENTS} from './canvas-controls.mjs';
 /** Selection is transient UI state; every edit goes through the existing history/model. */
 export function createPreviewEditor(host) {
+ const wide=matchMedia('(min-width:1101px)');
+ // Where the next control goes: the floating toolbar, or (wide screens only) the options drawer.
+ let place=()=>document.getElementById('contextToolbar');
+ // Wide screens swap small dropdowns for segmented controls and a color well.
+ let richControls=false;
  const stage=document.getElementById('modelStage'),toolbar=document.getElementById('contextToolbar'),inspector=document.getElementById('selectionInspector');
  const names={title:'Title slide',divider:'Chapter divider',cards:'Text boxes',video:'Video slide',activity:'Activity'};
  let selected='background',targets=[],lastKind,editingText=false;
@@ -36,20 +43,30 @@ export function createPreviewEditor(host) {
   if(kind==='activity'&&id.startsWith('heading'))return `${target} selected · Formatting affects the heading and activity label on Activity slides.`;
   return `${target} selected · ${names[kind]} only. Other slide types and shared defaults stay unchanged.`;
  }
- function field(id,title,value,options,onChange){
-  const wrapper=document.createElement('label');wrapper.className='toolbar-field';wrapper.append(document.createTextNode(title));
+ function field(id,title,value,options,onChange,{color=false}={}){
   const select=document.createElement('select');select.id='context-'+id;
   for(const option of options){const el=document.createElement('option');el.value=String(option.id);el.textContent=option.label;select.append(el);}
-  select.value=String(value);select.disabled=!host.context().editable;
+  const editable=host.context().editable;
+  select.value=String(value);select.disabled=!editable;
   select.onchange=()=>{if(!host.context().editable)return;onChange(select.value);document.getElementById(select.id)?.focus({preventScroll:true});};
-  wrapper.append(select);toolbar.append(wrapper);
+  const dest=place(id),rich=richControls&&dest===toolbar;
+  if(rich&&color)return void dest.append(colorWell({id,title,select,swatches:host.catalog.palette,value,editable,onChoose:onChange}));
+  if(rich&&SEGMENTED_FIELDS.includes(id)&&options.length>=2&&options.length<=MAX_SEGMENTS)return void dest.append(segmentedControl({id,title,select,options,value,editable,onChoose:onChange}));
+  const wrapper=document.createElement('label');wrapper.className='toolbar-field';wrapper.append(document.createTextNode(title),select);dest.append(wrapper);
  }
  function renderToolbar(){
   if(editingText)return;
   const activeId=toolbar.contains(document.activeElement)?document.activeElement.id:null;
-  toolbar.replaceChildren();
+  toolbar.replaceChildren();document.getElementById('inspectorMore')?.replaceChildren();
+  document.querySelector('.preview-actions #btnMoreOptions')?.remove();
   const {design,kind,editable,optionsOpen,mode}=host.context();
   if(!design)return;
+  // Wide editing: quick controls float over the slide, the rest wait in the options drawer.
+  const floating=mode==='edit'&&wide.matches,moreBox=document.getElementById('inspectorMore');
+  place=id=>floating&&!isQuickField(selected,id)?moreBox:toolbar;
+  richControls=floating;
+  toolbar.classList.toggle('is-floating',floating);
+  if(!floating){toolbar.style.left='';toolbar.style.top='';delete toolbar.dataset.placement;}
   // Guide me owns the preview while it runs; Start and Review offer one explicit way into editing.
   inspector.hidden=mode!=='edit';
   const phone=mode==='edit'&&matchMedia('(max-width:760px)').matches;
@@ -57,7 +74,7 @@ export function createPreviewEditor(host) {
   const after=phone?followup:document.getElementById('previewPane');
   for(const node of document.querySelectorAll('.similarity,.preview-caption'))if(node.parentElement!==after)after.append(node);
 
-  const mount=mode==='edit'?document.getElementById('inspectorFields'):document.getElementById('previewToolbarMount');
+  const mount=mode==='edit'&&!floating?document.getElementById('inspectorFields'):document.getElementById('previewToolbarMount');
   if(toolbar.parentElement!==mount)mount.append(toolbar);
   toolbar.hidden=mode==='guide';
   document.getElementById('inspectorTitle').textContent=label(selected);
@@ -69,14 +86,14 @@ export function createPreviewEditor(host) {
    edit.onclick=()=>{host.activate();document.getElementById('selectedElement')?.focus({preventScroll:true});};
    toolbar.append(edit);return;
   }
-  const scopeBadge=document.createElement('strong');scopeBadge.className='scope-badge';scopeBadge.id='formattingScope';scopeBadge.textContent=selected==='sidebar'?'Shared navigation':selected==='button'?'All action buttons':selected==='accent'?'Shared accent':kind==='cards'&&selected.startsWith('heading')?'Title bar & all box headings':kind==='cards'&&selected.startsWith('body')?'All box text':selected.startsWith('box')?'All text boxes':kind==='activity'&&selected.startsWith('heading')?'Heading & activity label':kind==='divider'&&selected.startsWith('body')?'Chapter label & supporting text':'This slide type only';toolbar.append(scopeBadge);
+  const scopeBadge=document.createElement('strong');scopeBadge.className='scope-badge';scopeBadge.id='formattingScope';scopeBadge.textContent=selected==='sidebar'?'Shared navigation':selected==='button'?'All action buttons':selected==='accent'?'Shared accent':kind==='cards'&&selected.startsWith('heading')?'Title bar & all box headings':kind==='cards'&&selected.startsWith('body')?'All box text':selected.startsWith('box')?'All text boxes':kind==='activity'&&selected.startsWith('heading')?'Heading & activity label':kind==='divider'&&selected.startsWith('body')?'Chapter label & supporting text':'This slide type only';place('scope').append(scopeBadge);
   field('element','Selected element',selected,targets.map(t=>({id:t.id,label:t.label})),value=>select(value,{focus:true}));
   document.getElementById('context-element').id='selectedElement';
   const saved={...host.model.roleStyleDefaults(host.catalog,design,kind),...design.roleStyles?.[kind]};
   const effective=host.model.effectiveRoleStyle(host.catalog,design,kind);
   const apply=(key,value)=>host.change(`${names[kind]}: ${key.replace(/([A-Z])/g,' $1').toLowerCase()}`,d=>Object.assign(d,host.model.setRoleStyle(host.catalog,d,kind,key,value)));
   const colors=()=>host.catalog.palette.map(c=>({id:c.id,label:c.name}));
-  const colorField=(id,title,value,callback)=>{field(id,title,value,colors(),callback);const input=document.getElementById('context-'+id);input.style.borderLeft='12px solid '+host.catalog.palette.find(c=>c.id===value).hex;};
+  const colorField=(id,title,value,callback)=>{field(id,title,value,colors(),callback,{color:true});const input=document.getElementById('context-'+id);input.style.borderLeft='12px solid '+host.catalog.palette.find(c=>c.id===value).hex;};
   const feature=(id,key,value)=>host.change(label(selected)+': '+key,d=>Object.assign(d,host.model.setFeatureStyle(host.catalog,d,id,key,value)));
   const featureColors=(id,{text=false,border=false}={})=>{
    const values=host.model.effectiveFeatureStyle(host.catalog,design,id);
@@ -90,7 +107,7 @@ export function createPreviewEditor(host) {
   };
   const textField=(id,title,value,maxLength,callback)=>{
    const wrapper=document.createElement('label');wrapper.className='toolbar-copy';wrapper.textContent=title;
-   const input=document.createElement('input');input.id='context-'+id;input.value=value;input.maxLength=maxLength;input.disabled=!editable;input.onchange=()=>{if(editable)callback(input.value);};wrapper.append(input);toolbar.append(wrapper);
+   const input=document.createElement('input');input.id='context-'+id;input.value=value;input.maxLength=maxLength;input.disabled=!editable;input.onchange=()=>{if(editable)callback(input.value);};wrapper.append(input);place(id).append(wrapper);
   };
   if(['sidebar','button'].includes(selected)){
    featureColors(selected,{text:true});
@@ -134,8 +151,8 @@ export function createPreviewEditor(host) {
     if(boxIndex>=0&&type==='body')d.samples.boxes[boxIndex]=input.value;
     else if(boxIndex>=0){const headings=saved.boxHeadings?.slice()??['Step 1','Step 2','Step 3','Step 4'];headings[boxIndex]=input.value;Object.assign(d,host.model.setRoleStyle(host.catalog,d,kind,'boxHeadings',headings));}
     else Object.assign(d,host.model.setRoleStyle(host.catalog,d,kind,copyKey,input.value));
-   },checkpoint);checkpoint=false;};wrapper.append(input);toolbar.append(wrapper);
-   if(type==='extra'){const remove=document.createElement('button');remove.type='button';remove.className='text-link';remove.textContent='Remove added text';remove.disabled=!editable;remove.onclick=()=>{selected='background';apply('extraText',null);};toolbar.append(remove);}
+   },checkpoint);checkpoint=false;};wrapper.append(input);place('text').append(wrapper);
+   if(type==='extra'){const remove=document.createElement('button');remove.type='button';remove.className='text-link';remove.textContent='Remove added text';remove.disabled=!editable;remove.onclick=()=>{selected='background';apply('extraText',null);};place('text').append(remove);}
 
   }else if(selected.startsWith('box')){
    featureColors('box',{border:true});
@@ -149,10 +166,23 @@ export function createPreviewEditor(host) {
   }
   const addText=document.createElement('button');addText.type='button';addText.id='btnAddText';addText.className='btn btn-secondary';addText.textContent=effective.extraText===null?'Add text':'Select added text';addText.disabled=!editable;addText.onclick=()=>{selected='extra';if(effective.extraText===null)apply('extraText','Your text here');else refreshSelection();document.getElementById('context-text')?.focus();};if(selected==='background'||selected==='extra'||selected.startsWith('heading')||selected.startsWith('body'))toolbar.append(addText);
   const featureId=selected.startsWith('box')?'box':selected;
-  if(design.featureStyles?.[featureId]){const reset=document.createElement('button');reset.type='button';reset.className='btn btn-secondary';reset.id='btnResetFeature';reset.textContent='Use shared defaults';reset.disabled=!editable;reset.onclick=()=>host.change(label(selected)+': shared defaults',d=>{delete d.featureStyles[featureId];if(!Object.keys(d.featureStyles).length)delete d.featureStyles;});toolbar.append(reset);}
-  const more=document.createElement('button');more.id='btnMoreOptions';more.type='button';more.className='btn btn-secondary';more.textContent=optionsOpen?'Hide slide options':'More slide options';more.setAttribute('aria-expanded',String(optionsOpen));more.setAttribute('aria-controls','detailControls');more.onclick=()=>host.more(selected);toolbar.append(more);
+  if(design.featureStyles?.[featureId]){const reset=document.createElement('button');reset.type='button';reset.className='btn btn-secondary';reset.id='btnResetFeature';reset.textContent='Use shared defaults';reset.disabled=!editable;reset.onclick=()=>host.change(label(selected)+': shared defaults',d=>{delete d.featureStyles[featureId];if(!Object.keys(d.featureStyles).length)delete d.featureStyles;});place('reset').append(reset);}
+  const more=document.createElement('button');more.id='btnMoreOptions';more.type='button';more.className='btn btn-secondary';more.textContent=optionsOpen?'Hide slide options':'More slide options';more.setAttribute('aria-expanded',String(optionsOpen));more.setAttribute('aria-controls','detailControls');more.onclick=()=>host.more(selected);
+  // Wide screens keep the pane toggle in the canvas header beside Present, so the toolbar stays on one row.
+  (floating?document.querySelector('.preview-actions'):toolbar).append(more);
   if(!editable){const note=document.createElement('span');note.className='toolbar-readonly';note.textContent='View only · open your team design to edit.';toolbar.append(note);}
   if(activeId)document.getElementById(activeId)?.focus({preventScroll:true});
+  toolbar.classList.toggle('has-copy',Boolean(toolbar.querySelector('.toolbar-copy')));
+  positionToolbar();
+ }
+ // Dock the floating toolbar above the slide, never over it, so every element stays clickable.
+ function positionToolbar(){
+  if(!toolbar.classList.contains('is-floating'))return;
+  const pane=document.getElementById('previewPane'),node=stage.querySelector('.bespoke-slide');
+  if(!pane||!node)return;
+  const c=pane.getBoundingClientRect(),a=node.getBoundingClientRect(),t=toolbar.getBoundingClientRect();
+  const pos=computeToolbarPosition({anchor:{left:a.left-c.left,top:a.top-c.top,width:a.width,height:a.height},canvas:{width:c.width,height:c.height},toolbar:{width:t.width,height:t.height}});
+  toolbar.style.left=pos.left+'px';toolbar.style.top=pos.top+'px';toolbar.dataset.placement=pos.placement;
  }
  function refresh({thumbnails=true}={}){
   const {kind}=host.context();if(lastKind!==kind){selected='background';lastKind=kind;}
@@ -193,5 +223,8 @@ export function createPreviewEditor(host) {
   else if(event.key==='Enter'||event.key===' '){const node=event.target.closest('[data-edit-target]');if(node){event.preventDefault();select(node.dataset.editTarget,{focus:false});document.getElementById('selectedElement')?.focus({preventScroll:true});}}
  });
  matchMedia('(max-width:760px)').addEventListener('change',()=>refresh());
+ wide.addEventListener('change',()=>refresh());
+ window.addEventListener('resize',positionToolbar);
+ document.fonts?.ready.then(positionToolbar);
  return {refresh,select};
 }

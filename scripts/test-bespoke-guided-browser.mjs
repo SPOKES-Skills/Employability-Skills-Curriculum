@@ -106,9 +106,10 @@ try {
     await next(page);
     await next(page);
     assert.equal(await heading(page), 'Background pattern');
-    // With no design change the builder re-applies the shared state and opens on Start. The position is kept.
+    // With no design change the builder re-applies the shared state and opens on Lesson & team. The position is kept.
     await page.reload();
     await page.locator('#stepList button').first().waitFor();
+    await page.locator('#stage-start').click();
     await otherStartingPaths(page);await page.locator('#btnGuideContinue').click();
     assert.equal(await heading(page), 'Background pattern', 'Continue guide returns to the question the team left');
     // After a real choice the draft is restored as it was, guide open.

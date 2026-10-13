@@ -23,7 +23,7 @@ try {
   const context=await browser.newContext({viewport:{width,height:1000},reducedMotion:'reduce'});
   await context.addInitScript(()=>window.__bespokeAutosave={enabled:false});
   const page=await context.newPage();page.on('pageerror',e=>errors.push(e.message));
-  await page.goto(server.baseUrl+'/bespoke/');await page.locator('.preset-choice').first().waitFor();
+  await page.goto(server.baseUrl+'/bespoke/');await page.locator('#stage-start').click();await page.locator('.preset-choice').first().waitFor();
   assert.equal(await page.locator('.preset-choice').count(),12);
   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),true);
   if(screenshots){await fs.mkdir(screenshots,{recursive:true});await page.screenshot({path:screenshots+`/layouts-${width}.png`,fullPage:true});}
@@ -74,7 +74,7 @@ try {
   }
   if(screenshots)await page.screenshot({path:screenshots+`/editor-${width}.png`,fullPage:true});
   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),true,'No overflow at '+width);
-  await page.locator('#stage-start').click();await page.locator('.start-team summary').click();
+  await page.locator('#stage-team').click();
   await page.locator('#teamName').fill('Synthetic design team');await page.locator('#spokespersonName').fill('Sample Instructor');await page.locator('#spokespersonEmail').fill('sample@example.org');
   const response=page.waitForResponse(r=>r.url().endsWith('/api/bespoke')&&r.request().postDataJSON()?.action==='save');await page.locator('#btnSave').click();assert.equal((await (await response).json()).ok,true);
   const selection={schema:'bespoke-selection/v2',date:'2026-10-07',lesson:{id:'money-management',title:'Synthetic',displayTitle:'Synthetic',subtitle:''},team:{name:'Synthetic',spokesperson:{name:'Sample Instructor',email:'sample@example.org'}},design:saved};

@@ -3,6 +3,7 @@ import { createReviewTools } from './review-tools.mjs';
 import { readabilitySuggestions } from './readability.mjs';
 import { compareDesign } from './similarity.mjs';
 import { createPreviewEditor } from './preview-editor.mjs';
+import { syncStageChrome } from './canvas-shell.mjs';
 import { createGuide } from './guide/guide.mjs';
 import { guideMark, indexForMark, keepsGuide } from './guide/questions.mjs';
 import { buildQuestions, normalizeGuide } from './guide/questions.mjs';
@@ -25,11 +26,14 @@ const HANDOFF_TIMEOUT_MS = 20000;
 const HANDOFF_CONFIG_URL = './handoff-config.json';
 const VIEW_NAMES = {title:'Title slide',divider:'Chapter divider',cards:'Text boxes',video:'Video slide',activity:'Activity'};
 const STEPS = [
+ {id:'team',label:'Lesson & team',view:'title'},
  {id:'start',label:'Color & layout',view:'title'},
  {id:'slides',label:'Customize',view:'title'},
  {id:'review',label:'Review & save',view:'title'}
 ];
 const LEGACY_STEPS = ['welcome','team','colors','fonts','title','divider','cards','video','activity','review'];
+const onStage = id => STEPS[state.step].id === id;
+const teamIdentified = () => Boolean(state.teamName.trim() && state.spokespersonName.trim());
 const state = {step:0,stepId:'start',meta:null,library:null,lessonId:'money-management',teamName:'',spokespersonName:'',spokespersonEmail:'',lessonTitle:'',lessonSubtitle:'',unspoken:'',editCode:'',previewView:'title',design:null,legacySelection:null,alternatives:null,changes:[],redo:[]};
 const ui = {mode:'view',renderedStep:null,previewPinned:false,teamSession:null,cloudConflict:null,cloudBusy:false,autosavePaused:false,allowUnload:false,skipNextLocalSave:false,restoreNote:'',restoredFromLink:false,editCodeHash:'',activeRole:'sidebar',paintScope:'slide',themeScope:'slide',localPreview:false,editorRole:'title',sharedThemeOpen:false,startingLooksOpen:false,meaningfulDesign:false};
 ui.guide = null;
@@ -55,14 +59,17 @@ const findOption=(family,slug)=>state.library?.families?.[family]?.options.find(
   }
 
   function stepIndex(id) {
-    const mapped = Object.hasOwn(VIEW_NAMES,id) ? 'slides' : ['welcome','team','colors','fonts'].includes(id) ? 'start' : id;
+    const mapped = Object.hasOwn(VIEW_NAMES,id) ? 'slides' : ['welcome','colors','fonts'].includes(id) ? 'start' : id;
     const index = STEPS.findIndex((step) => step.id === mapped);
     return index < 0 ? 0 : index;
   }
 
   function setSaveStatus(text) {
     const el = byId("saveStatus");
-    if (el) el.textContent = text;
+    if (!el) return;
+    el.textContent = text;
+    el.title = text;
+    el.dataset.state = /another tab|failed|could not|not saved|not shared|waiting|newer|unsaved|stale|conflict/i.test(text) ? "warn" : "ok";
   }
 
   function queueSaveAnnouncement() {
@@ -291,10 +298,10 @@ const findOption=(family,slug)=>state.library?.families?.[family]?.options.find(
     });
   }
 
-  function renderTeam(panel) {
+  function renderTeam(panel, {heading = true} = {}) {
     panel.innerHTML = `
-      <h2>Lesson &amp; team</h2>
-      <p class="panel-lead">One spokesperson saves the team’s decisions. Confirm the lesson and team for this design.</p>
+      ${heading ? `<h2>Lesson &amp; team</h2>
+      <p class="panel-lead">One spokesperson saves the team’s decisions. Confirm the lesson and team for this design.</p>` : ""}
       <div class="field-grid two">
         <label class="field">Lesson
           <select id="lessonSelect"></select>
@@ -331,6 +338,7 @@ const findOption=(family,slug)=>state.library?.families?.[family]?.options.find(
       state.lessonId = select.value;
       saveDraft();
       updatePreview();
+      updateTeamPill();
     });
     const bind = (id, key) => {
       const input = byId(id);
@@ -341,6 +349,7 @@ const findOption=(family,slug)=>state.library?.families?.[family]?.options.find(
         state[key] = input.value;
         saveDraft();
         updatePreview();
+        updateTeamPill();
       };
       input.addEventListener("input", sync);
       input.addEventListener("change", sync);
@@ -886,7 +895,7 @@ const findOption=(family,slug)=>state.library?.families?.[family]?.options.find(
     const session = requireTeamSession();
     if (!session) return;
     if (!state.spokespersonName.trim()) {
-      goStage('start');const team=byId('stepPanel').querySelector('.start-team');if(team)team.open=true;byId('spokespersonName')?.focus();fileNotice("Add the spokesperson's name on Lesson & team before sending.");
+      goStage('team');byId('spokespersonName')?.focus();fileNotice("Add the spokesperson's name on Lesson & team before sending.");
       return;
     }
     if (ui.cloudConflict || !session.revision || hasUnsavedTeamWork()) {
@@ -1239,11 +1248,11 @@ function buildSelectionPayload(){
 }
 function restoreStep(saved){
  const legacyId=saved.stepId||(Number.isInteger(saved.step)?LEGACY_STEPS[saved.step]:null)||'start';
- state.step=['colors','fonts'].includes(legacyId)?1:stepIndex(legacyId);
+ state.step=['colors','fonts'].includes(legacyId)?stepIndex('slides'):stepIndex(legacyId);
  ui.editorRole=Object.hasOwn(VIEW_NAMES,saved.editorRole)?saved.editorRole:Object.hasOwn(VIEW_NAMES,legacyId)?legacyId:'title';
  ui.sharedThemeOpen=saved.sharedThemeOpen===true||['colors','fonts'].includes(legacyId);
  ui.moreOptions=saved.moreOptions===true||ui.sharedThemeOpen;
- state.previewView=Object.hasOwn(VIEW_NAMES,saved.previewView)?saved.previewView:state.step===1?ui.editorRole:'title';
+ state.previewView=Object.hasOwn(VIEW_NAMES,saved.previewView)?saved.previewView:onStage('slides')?ui.editorRole:'title';
  if(catalog.roles.some(role=>role.id===saved.activeRole))ui.activeRole=saved.activeRole;
  ui.paintScope=saved.paintScope==='shared'?'shared':'slide';
  ui.themeScope=saved.themeScope==='shared'?'shared':'slide';
@@ -1361,7 +1370,7 @@ function applyPresetChoice(id){
  const preset=catalog.presets.find(item=>item.id===id);if(!preset)return false;
  ui.meaningfulDesign=true;ui.startingLooksOpen=true;
  const samples=clone(state.design.samples);recordChange('Applied '+presetName(preset),clone(state.design));state.design=Model.applyPreset(catalog,preset.id,state.design);state.design.samples=samples;
- state.step=1;ui.editorRole='title';state.previewView='title';ui.moreOptions=false;render(false);fileNotice(presetName(preset)+' applied. Every choice remains editable.');byId('selectedElement')?.focus({preventScroll:true});return true;
+ state.step=stepIndex('slides');ui.editorRole='title';state.previewView='title';ui.moreOptions=false;render(false);fileNotice(presetName(preset)+' applied. Every choice remains editable.');byId('selectedElement')?.focus({preventScroll:true});return true;
 }
 function requestPreset(id){
  if(!isLeadSession())return;
@@ -1393,13 +1402,16 @@ function builderGuidance(compact=false){
 }
 function showBuilderHelp(close=false){
  const help=byId('builderHelp');help.hidden=close;byId('btnHelp').setAttribute('aria-expanded',String(!close));
- if(close){byId('btnHelp').focus({preventScroll:true});return;}
+ if(close){const menu=byId('filesRecovery');(menu.open?byId('btnHelp'):menu.querySelector(':scope > summary')).focus({preventScroll:true});return;}
  byId('builderHelpContent').innerHTML=builderGuidance();byId('builderHelpTitle').focus();
 }
 function goStage(id){if(ui.guide?.on&&id!=='slides')ui.guide={...ui.guide,on:false};state.step=stepIndex(id);render();}
+function renderTeamStage(panel){
+ heading(panel,'Tell us about your team','Choose the lesson, name your team and say who speaks for it. One spokesperson saves the team’s decisions.');
+ const fields=document.createElement('div');fields.className='team-stage';panel.append(fields);renderTeam(fields,{heading:false});
+}
 function renderWelcome(panel){
  heading(panel,'Start with color','Fresh greens, warm golds, crisp whites and deep darks. Twelve editable starting looks—choose the colors that feel right, then make the layout yours.');
- const team=document.createElement('details');team.className='start-team';team.innerHTML='<summary>Lesson &amp; team</summary>';const teamFields=document.createElement('div');team.append(teamFields);panel.append(team);renderTeam(teamFields);
  const looks=document.createElement('section');looks.className='starting-looks';panel.append(looks);
  if(ui.meaningfulDesign){
   const title=document.createElement('h2');title.textContent='Continue your current design';looks.append(title);
@@ -1709,10 +1721,24 @@ function renderReview(panel){
  const backup=document.createElement('button');backup.className='btn btn-secondary';backup.textContent='Download design backup';backup.onclick=saveTeamFile;panel.append(backup);
  if(state.legacySelection){const p=document.createElement('p');p.className='helper';p.textContent='This design began as an older selection. Its complete original is retained for recovery; the new layout is a conversion to review.';panel.append(p);const b=document.createElement('button');b.className='btn btn-secondary';b.textContent='Download original v1 design';b.onclick=()=>downloadText('original-v1-selection.json',JSON.stringify(state.legacySelection,null,2),'application/json');panel.append(b);}
 }
+// The team pill asks for attention until the team is identified, then names the team.
+// Update it in place: rebuilding the pills while the pointer is down would swallow the click.
+function updateTeamPill(){
+ const b=byId('stage-team');if(!b)return;
+ const at=STEPS.findIndex(step=>step.id==='team'),base=`Stage ${at+1} of ${STEPS.length}: ${STEPS[at].label}`;
+ if(teamIdentified()){
+  const lesson=state.meta?.lessons.find(l=>l.id===state.lessonId)?.title;
+  delete b.dataset.attention;b.title=[lesson,state.teamName.trim()].filter(Boolean).join(' · ');b.setAttribute('aria-label',base);
+ }else{
+  b.dataset.attention='true';b.title='Add your team name and spokesperson';b.setAttribute('aria-label',base+'. Team details needed');
+ }
+}
 function buildStepper(){
  const list=byId('stepList');list.replaceChildren();
- STEPS.forEach((step,i)=>{const li=document.createElement('li'),b=document.createElement('button');b.type='button';b.id='stage-'+step.id;b.dataset.stage=step.id;b.innerHTML='<span class="step-num" aria-hidden="true">'+(i+1)+'</span><span>'+escapeHtml(step.label)+'</span>';b.setAttribute('aria-label',`Stage ${i+1} of ${STEPS.length}: ${step.label}`);if(i===state.step)b.setAttribute('aria-current','step');b.onclick=()=>goStage(step.id);li.append(b);list.append(li);});
+ STEPS.forEach((step,i)=>{const li=document.createElement('li'),b=document.createElement('button');b.type='button';b.id='stage-'+step.id;b.dataset.stage=step.id;b.innerHTML='<span class="step-num" aria-hidden="true">'+(i+1)+'</span><span>'+escapeHtml(step.label)+'</span>';b.setAttribute('aria-label',`Stage ${i+1} of ${STEPS.length}: ${step.label}`);if(i===state.step)b.setAttribute('aria-current','step');
+  b.onclick=()=>goStage(step.id);li.append(b);list.append(li);});
  byId('stepCount').textContent='Stage '+(state.step+1)+' of '+STEPS.length;
+ updateTeamPill();
 }
 function selectEditor(kind){
  ui.editorRole=kind;ui.focusStyleField=null;state.previewView=kind;render(false);byId('editor-'+kind)?.focus({preventScroll:true});
@@ -1728,9 +1754,9 @@ function renderEditors(panel){
 function renderPanel(){
  const panel=byId('stepPanel'),id=STEPS[state.step].id;
  if(id==='slides'&&ui.guide?.on){guide.render(panel);return;}
- if(id==='start')renderWelcome(panel);else if(id==='review')renderReview(panel);else renderEditors(panel);
- if(id!=='start'){renderSharedTheme(panel);panel.insertBefore(byId('sharedTheme'),panel.children[2]||null);}
- const nav=document.createElement('div');nav.className='panel-nav';nav.innerHTML='<button class="btn btn-secondary" id="btnBack"'+(state.step===0?' disabled':'')+'>Back'+(state.step>0?': '+escapeHtml(STEPS[state.step-1].label):'')+'</button>'+(state.step<STEPS.length-1?'<button class="btn btn-primary" id="btnNext">'+(state.step===0?'Customize current design':'Review & save')+'</button>':'');panel.append(nav);
+ if(id==='team')renderTeamStage(panel);else if(id==='start')renderWelcome(panel);else if(id==='review')renderReview(panel);else renderEditors(panel);
+ if(!['team','start'].includes(id)){renderSharedTheme(panel);panel.insertBefore(byId('sharedTheme'),panel.children[2]||null);}
+ const nav=document.createElement('div');nav.className='panel-nav';nav.innerHTML='<button class="btn btn-secondary" id="btnBack"'+(state.step===0?' disabled':'')+'>Back'+(state.step>0?': '+escapeHtml(STEPS[state.step-1].label):'')+'</button>'+(state.step<STEPS.length-1?'<button class="btn btn-primary" id="btnNext">'+(id==='team'?'Continue to starting looks':id==='start'?'Customize current design':'Review & save')+'</button>':'');panel.append(nav);
  byId('btnBack').onclick=()=>{state.step=Math.max(0,state.step-1);render();};if(byId('btnNext'))byId('btnNext').onclick=()=>{state.step++;render();};
 }
 function updateSimilarity(design){
@@ -1779,18 +1805,18 @@ function updatePreview(design=state.design,{quick=false}={}){
  if(issues.length&&!dividerIssues){const repair=document.createElement('button');repair.className='text-link';repair.textContent='Edit '+(issues[0]?.feature?({sidebar:'navigation sidebar',button:'action button',box:'text box',titlebar:'title bar',video:'video frame',activity:'activity panel'}[issues[0].feature]):VIEW_NAMES[state.previewView].toLowerCase())+' colors';repair.onclick=()=>issues[0]?.feature?previewEditor.select(issues[0].feature==='box'?'box-0':issues[0].feature):showRoleEditor(state.previewView,'text',issues[0]?.role==='body'||issues[0]?.role==='subtitle'?'bodyColor':'headingColor');repairs.append(repair);}
  byId('liveRegion').textContent=VIEW_NAMES[state.previewView]+' preview updated.'+(issues.length?' Contrast advisory: '+issues.map(issue=>issue.message).join(' ')+' The team leader can keep this choice and save the design.':'');
 }
-function showView(view){if(state.step===1){ui.editorRole=view;}state.previewView=view;ui.previewPinned=true;if(ui.sharedThemeOpen||state.step===1)render(false);else{updatePreview();saveDraft();}}
+function showView(view){if(onStage('slides')){ui.editorRole=view;}state.previewView=view;ui.previewPinned=true;if(ui.sharedThemeOpen||onStage('slides'))render(false);else{updatePreview();saveDraft();}}
 function render(focus=true){
  if(byId('sharedTheme'))ui.sharedThemeOpen=byId('sharedTheme').open;
- const changed=ui.renderedStep!==state.step;if(changed){ui.renderedStep=state.step;if(state.step===1)state.previewView=ui.editorRole;ui.previewPinned=false;}
+ const changed=ui.renderedStep!==state.step;if(changed){ui.renderedStep=state.step;if(onStage('slides'))state.previewView=ui.editorRole;ui.previewPinned=false;}
  const active=document.activeElement,activeId=active?.id;
  ui.roleSections||={};byId('stepPanel').querySelectorAll('[data-role-section]').forEach(d=>{ui.roleSections[d.id]=d.open;});
  const openDetails=new Map(Array.from(byId('stepPanel').querySelectorAll('details[id]')).map(d=>[d.id,d.open]));
  byId('workspace').dataset.stage=STEPS[state.step].id;
- byId('workspace').dataset.editor=String(state.step===1&&!ui.guide?.on);
- byId('workspace').dataset.options=String(ui.moreOptions||state.step!==1||Boolean(ui.guide?.on));
- byId('btnCloseOptions').hidden=state.step!==1||Boolean(ui.guide?.on);
- buildStepper();renderPanel();byId('stepPanel').querySelectorAll('details[id]').forEach(d=>{if(!d.dataset.roleSection&&d.id!=='sharedTheme'&&openDetails.has(d.id))d.open=openDetails.get(d.id);});syncAccessChrome();lockViewControls();updatePreview();updateUndo();reviewTools?.refresh();
+ byId('workspace').dataset.editor=String(onStage('slides')&&!ui.guide?.on);
+ byId('workspace').dataset.options=String(ui.moreOptions||!onStage('slides')||Boolean(ui.guide?.on));
+ byId('btnCloseOptions').hidden=!onStage('slides')||Boolean(ui.guide?.on);
+ syncStageChrome(STEPS[state.step].id);buildStepper();renderPanel();byId('stepPanel').querySelectorAll('details[id]').forEach(d=>{if(!d.dataset.roleSection&&d.id!=='sharedTheme'&&openDetails.has(d.id))d.open=openDetails.get(d.id);});syncAccessChrome();lockViewControls();updatePreview();updateUndo();reviewTools?.refresh();
  if(isLeadSession()){if(ui.skipNextLocalSave)ui.skipNextLocalSave=false;else saveDraft();if(changed)scheduleAutosave(AUTOSAVE.stepMs);}
  if(focus&&changed)(byId('workspace').dataset.options==='false'?byId('selectedElement'):byId('stepPanel'))?.focus({preventScroll:true});else if(activeId)byId(activeId)?.focus({preventScroll:true});
 }
@@ -1831,21 +1857,26 @@ async function init(){
  const data=await Promise.all(paths.map(async url=>{const r=await fetch(url);if(!r.ok)throw new Error('Could not load '+url);return r.json();}));
  [state.meta,state.library,catalog,fingerprints,selectionSchema]=data;state.design=Model.defaultDesign(catalog);
  guide=createGuide(guideHost());
- byId('editorStages').append(byId('chromeRail').querySelector('.stepper'));
  byId('slideRail').append(byId('previewTabs'));
  const thumbnailMedia=matchMedia('(max-width:1100px)');
  const orientThumbnails=()=>byId('previewTabs').setAttribute('aria-orientation',thumbnailMedia.matches?'horizontal':'vertical');
  thumbnailMedia.addEventListener('change',orientThumbnails);orientThumbnails();
  previewEditor=createPreviewEditor({
   catalog, model:Model,
-  context:()=>({design:state.design,kind:state.previewView,editable:isLeadSession(),optionsOpen:ui.moreOptions,mode:ui.guide?.on?'guide':state.step===1?'edit':'browse'}),
-  activate:()=>{if(ui.guide)ui.guide={...ui.guide,on:false};ui.editorRole=state.previewView;state.step=1;ui.sharedThemeOpen=false;render(false);},
+  context:()=>({design:state.design,kind:state.previewView,editable:isLeadSession(),optionsOpen:ui.moreOptions,mode:ui.guide?.on?'guide':onStage('slides')?'edit':'browse'}),
+  activate:()=>{if(ui.guide)ui.guide={...ui.guide,on:false};ui.editorRole=state.previewView;state.step=stepIndex('slides');ui.sharedThemeOpen=false;render(false);},
   change:(label,edit)=>changeDesign(label,edit),
   textChange:(label,edit,checkpoint)=>changeDesign(label,edit,{redraw:false,checkpoint}),
   more:target=>{ui.moreOptions=!ui.moreOptions;if(ui.moreOptions)showRoleEditor(state.previewView,target==='background'?'background':target.startsWith('box')?'arrangement':'text',target.startsWith('body')?'bodyFont':target==='background'?'primary':'headingFont');else{render(false);byId('btnMoreOptions').focus();}},
   thumbnail:kind=>Model.renderSlide(catalog,state.design,kind,{title:state.design.samples.title,subtitle:state.design.samples.subtitle,logoUrl:'../SPOKES-Logo.png'})
  });
- byId('btnCloseOptions').onclick=()=>{ui.moreOptions=false;render(false);byId('btnMoreOptions').focus();};
+ const closeOptions=()=>{ui.moreOptions=false;render(false);byId('btnMoreOptions').focus();};
+ byId('btnCloseOptions').onclick=closeOptions;byId('btnHideDrawer').onclick=closeOptions;
+ // Show or hide the options drawer by toolbar button, menu command or shortcut (Apple HIG: more than one way to reveal a hidden pane).
+ const toggleOptions=()=>{if(byId('workspace').dataset.editor==='true')byId('btnMoreOptions')?.click();};
+ byId('btnMenuOptions').onclick=toggleOptions;
+ if(/Mac|iPhone|iPad/.test(navigator.platform))byId('optionsShortcut').textContent='\u2318\u2325O';
+ document.addEventListener('keydown',event=>{if(event.defaultPrevented||event.repeat||!event.altKey||!(event.ctrlKey||event.metaKey)||event.code!=='KeyO')return;event.preventDefault();toggleOptions();});
  await loadHandoffConfig();const startup=await openShareLink();
  if(ui.localPreview&&!ui.teamSession&&!startup?.snapshot){installTeamSession(state.lessonId,'bespoke-local-preview-synthetic');ui.mode='edit';}
  const mayReplace=Boolean(ui.teamSession)&&(!lastSavedRaw||Boolean(ui.teamSession.baseSelectionKey&&currentSelectionKey()===ui.teamSession.baseSelectionKey));

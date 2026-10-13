@@ -34,6 +34,8 @@ try{
   await page.addScriptTag({content:axeSource});
   const accessibility=await page.evaluate(()=>axe.run({include:[['#contextToolbar'],['#modelStage']]},{runOnly:{type:'tag',values:['wcag2a','wcag2aa','wcag21aa']},rules:{'color-contrast':{enabled:false}}}));
   assert.deepEqual(accessibility.violations.map(v=>({id:v.id,targets:v.nodes.map(n=>n.target)})),[],'Editor selection semantics at '+width);
+  // Wide screens keep font in the options drawer; open it to reach the control.
+  if(width>=1101)await page.locator('#btnMoreOptions').click();
   await page.locator('#context-font').selectOption('inter');
   assert.equal((await current(page)).roleStyles.title.headingFont,'inter');
   assert.deepEqual((await current(page)).roles,before.roles);
@@ -56,16 +58,17 @@ try{
   await page.locator('#modelStage .slide-card').first().focus();await page.keyboard.press('Escape');
   assert.equal(await page.locator('#selectedElement').inputValue(),'background');
   await page.locator('#context-finish').selectOption('solid');await page.locator('#context-background').selectOption('light');
-  await page.locator('#btnMoreOptions').click();assert.equal(await page.locator('#detailControls').isVisible(),true);
+  // On wide screens the drawer is already open from the font step above.
+  if(!await page.locator('#detailControls').isVisible())await page.locator('#btnMoreOptions').click();assert.equal(await page.locator('#detailControls').isVisible(),true);
   await page.locator('#btnCloseOptions').click();assert.equal(await page.locator('#detailControls').isVisible(),false);
   // Picker is the native keyboard equivalent of clicking visible text.
-  await page.locator('#selectedElement').selectOption('heading-1');assert.equal(await page.locator('#context-font').isVisible(),true);
+  await page.locator('#selectedElement').selectOption('heading-1');assert.equal(width>=1101?await page.locator('#context-font').count()===1:await page.locator('#context-font').isVisible(),true);
   assert.match(await page.locator('#editScope').textContent(),/ALL box headings/);
   await page.locator('#context-color').selectOption('royal');
   const saved=await current(page);await page.reload();await page.locator('#selectedElement').waitFor();assert.deepEqual(await current(page),saved);
-  await page.locator('#stage-start').click();
+  await page.locator('#stage-team').click();
   if(await page.locator('#surface-design').isVisible())await page.locator('#surface-design').click();
-  await page.locator('.start-team > summary').click();await page.locator('#teamName').fill('Preview editor test');await page.locator('#spokespersonName').fill('Sample Instructor');await page.locator('#spokespersonEmail').fill('sample@example.org');
+  await page.locator('#teamName').fill('Preview editor test');await page.locator('#spokespersonName').fill('Sample Instructor');await page.locator('#spokespersonEmail').fill('sample@example.org');
   const save=page.waitForResponse(r=>r.url().endsWith('/api/bespoke')&&r.request().postDataJSON()?.action==='save');await page.locator('#btnSave').click();assert.equal((await (await save).json()).ok,true);
   const session=await context.storageState();
   for(const origin of session.origins)origin.localStorage=origin.localStorage.filter(item=>!['bespoke-draft-v2','bespoke-previous-draft-v2'].includes(item.name));

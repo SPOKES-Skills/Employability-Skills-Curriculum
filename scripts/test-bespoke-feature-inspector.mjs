@@ -19,8 +19,10 @@ try{
   const page=await context.newPage();page.on('pageerror',e=>errors.push(e.message));
   try{
    await page.goto(server.baseUrl+'/bespoke/');await page.locator('#stage-slides').click();
+   // Wide screens float the quick controls over the slide; the rest wait in the options drawer.
+   const wide=width>=1101;if(wide)await page.locator('#btnMoreOptions').click();
    const view=async kind=>{await page.locator(`#previewTabs [data-view=${kind}]`).click();};
-   const choose=async(selector,id)=>{await page.locator(selector).first().click();assert.equal(await page.locator('#selectedElement').inputValue(),id);assert.equal(await page.locator('#selectionInspector #contextToolbar').count(),1);};
+   const choose=async(selector,id)=>{await page.locator(selector).first().click();assert.equal(await page.locator('#selectedElement').inputValue(),id);assert.equal(await page.locator((wide?'#previewToolbarMount':'#selectionInspector')+' #contextToolbar').count(),1);};
    await view('cards');const before=await current(page);
    const sidebar=async()=>{
     if(await page.locator('#modelStage .slide-sidebar').isVisible())await choose('#modelStage .slide-sidebar .sample-sidebar-title','sidebar');
@@ -57,7 +59,7 @@ try{
    const violations=await page.evaluate(async()=>(await axe.run({include:[['#selectionInspector'],['#modelStage']]},{runOnly:{type:'tag',values:['wcag2a','wcag2aa','wcag21aa']},rules:{'color-contrast':{enabled:false}}})).violations.map(v=>({id:v.id,targets:v.nodes.map(n=>n.target)})));
    assert.deepEqual(violations,[]);assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),true);
    if(width>760){const boxes=await page.evaluate(()=>['previewPane','selectionInspector'].map(id=>{const r=document.getElementById(id).getBoundingClientRect();return {x:r.x,right:r.right,top:r.top,bottom:r.bottom};}));assert(boxes[0].right<=boxes[1].x+1);assert(boxes[0].top<boxes[1].bottom&&boxes[1].top<boxes[0].bottom);}
-   await page.locator('#stage-start').click();await page.locator('.start-team summary').click();await page.locator('#teamName').fill('Feature inspector test');await page.locator('#spokespersonName').fill('Sample');await page.locator('#spokespersonEmail').fill('sample@example.org');
+   await page.locator('#stage-team').click();await page.locator('#teamName').fill('Feature inspector test');await page.locator('#spokespersonName').fill('Sample');await page.locator('#spokespersonEmail').fill('sample@example.org');
    const response=page.waitForResponse(r=>r.url().endsWith('/api/bespoke')&&r.request().postDataJSON()?.action==='save');await page.locator('#btnSave').click();assert.equal((await (await response).json()).ok,true);
    const state=await context.storageState();for(const origin of state.origins)origin.localStorage=origin.localStorage.filter(item=>!['bespoke-draft-v2','bespoke-previous-draft-v2'].includes(item.name));
    const reopened=await browser.newContext({storageState:state});await reopened.addInitScript(()=>window.__bespokeAutosave={enabled:false});const restore=await reopened.newPage();await restore.goto(server.baseUrl+'/bespoke/');await restore.waitForFunction(()=>JSON.parse(localStorage.getItem('bespoke-draft-v2'))?.design.featureStyles?.sidebar?.font==='merriweather');assert.deepEqual(await current(restore),saved);await reopened.close();

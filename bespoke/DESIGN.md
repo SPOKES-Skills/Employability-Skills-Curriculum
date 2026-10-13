@@ -262,7 +262,7 @@ Text offers local heading/body colors, the twelve curated fonts, size, alignment
 
 ### Navigation and continuity
 
-Three named stages are **Start**, **Slide designs**, and **Review & save**. Start combines Lesson & team with Build my own or six editable presets. A preset can go directly to Review & save. Current stage navigation uses `aria-current="step"`, an accessible Stage N of 3 name, and a visible stage counter; Back and Continue controls name the destination. Undo, Redo, and Recent choices remain adjacent to navigation. Returning teams get Continue editing and Review & save; Change starting look deliberately exposes replacement choices instead of requiring a new preset.
+Four named stages are **Lesson & team**, **Color & layout**, **Customize**, and **Review & save**. Lesson & team is its own first page (decisions, October 9, 2026) and its pill is marked until the team is identified. Color & layout offers Build my own or the editable presets. A preset can go directly to Review & save. Current stage navigation uses `aria-current="step"`, an accessible Stage N of 4 name, and a visible stage counter; Back and Continue controls name the destination. Undo, Redo, and Recent choices remain adjacent to navigation. Returning teams get Continue editing and Review & save; Change starting look deliberately exposes replacement choices instead of requiring a new preset.
 
 Within Slide designs, the distinct Slide design editors tablist offers **Title slide**, **Chapter divider**, **Text boxes**, **Video slide**, and **Activity**. All are optional. Selected editor tabs use Mist, a Blue border and a 3px inset bottom rule; the corresponding editor has a named tabpanel. Next slide type is a convenience action, with Review & save after Activity.
 

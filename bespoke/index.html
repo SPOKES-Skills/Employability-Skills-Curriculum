@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>BeSpoke · Make the lesson yours</title>
-<link rel="icon" href="../SPOKES-Logo.png"><link rel="stylesheet" href="./builder.css"><link rel="stylesheet" href="./guide.css">
+<link rel="icon" href="../SPOKES-Logo.png"><link rel="stylesheet" href="./builder.css"><link rel="stylesheet" href="./guide.css"><link rel="stylesheet" href="./canvas.css">
 <style id="designStyle"></style>
 </head>
 <body>
@@ -17,28 +17,43 @@ FINISH: unreviewed and undocumented is unfinished; this build ends with the fini
 -->
 <a class="skip-link" href="#stepPanel">Skip to design controls</a>
 <div id="liveRegion" class="sr-only" aria-live="polite"></div><span id="saveLive" class="sr-only" aria-live="polite"></span>
-<header class="app-header">
+<header class="app-header app-bar">
  <a class="brand" href="./"><img src="../SPOKES-Logo.png" alt="" width="42" height="42"><span><strong>BeSpoke</strong><small>A look that belongs to your lesson.</small></span></a>
- <div class="header-actions"><button class="btn btn-secondary" id="btnHelp" type="button" aria-expanded="false" aria-controls="builderHelp">How it works</button><button class="btn btn-primary" id="btnSave" type="button">Save shared design</button><button class="btn btn-secondary" id="btnOpen" type="button">Open team design</button><button class="btn btn-primary" id="btnSend" type="button">Send to Britt</button>
- <details class="more-menu" id="filesRecovery"><summary class="btn btn-secondary">Files &amp; recovery</summary><div class="more-menu-list"><button id="btnDownloadBackup" type="button">Download backup</button><button id="btnOpenBackup" type="button">Open backup</button><button id="btnRecoverDraft" type="button" hidden>Recover previous draft</button><button id="btnClear" type="button">Start a new draft</button><a href="./legacy.html" target="_blank" rel="noopener">Original wizard</a></div></details>
- <input id="teamFileInput" type="file" accept="application/json,.json" hidden></div>
+ <p id="localPreviewNotice" class="local-pill" hidden><strong>Local test</strong><span class="sr-only"> · Synthetic test saving on this computer. No submission or publishing.</span></p>
+ <nav class="stepper" aria-label="Design stages"><ol id="stepList"></ol></nav>
+ <div class="bar-end" id="barEnd">
+  <div class="undo-actions"><button class="btn btn-ghost" id="btnUndo" aria-keyshortcuts="Control+Z Meta+Z" type="button">Undo</button><button class="btn btn-ghost" id="btnRedo" aria-keyshortcuts="Control+Shift+Z Meta+Shift+Z Control+Y" type="button">Redo</button></div>
+  <p id="saveStatus" class="save-chip"></p>
+  <button class="btn btn-primary" id="btnSave" type="button">Save shared design</button>
+  <details class="more-menu" id="filesRecovery"><summary class="btn btn-ghost" aria-label="More actions" title="More actions"><span aria-hidden="true">⋯</span></summary><div class="more-menu-list">
+   <p id="teamSessionStatus" class="menu-status"></p>
+   <button id="btnHelp" type="button" aria-expanded="false" aria-controls="builderHelp">How it works</button>
+   <button id="btnOpen" type="button">Open team design</button>
+   <button id="btnMenuOptions" type="button" aria-keyshortcuts="Control+Alt+O Meta+Alt+O">Slide options <kbd id="optionsShortcut" aria-hidden="true">Ctrl+Alt+O</kbd></button>
+   <button class="btn btn-primary" id="btnSend" type="button">Send to Britt</button>
+   <details class="menu-recent"><summary>Recent choices</summary><ol id="changeList"></ol></details>
+   <button id="btnHistory" type="button" aria-expanded="false" aria-controls="historyPanel">Previous versions</button>
+   <button id="btnLeaveSession" type="button">Leave session</button>
+   <hr>
+   <button id="btnDownloadBackup" type="button">Download backup</button><button id="btnOpenBackup" type="button">Open backup</button><button id="btnRecoverDraft" type="button" hidden>Recover previous draft</button><button id="btnClear" type="button">Start a new draft</button><a href="./legacy.html" target="_blank" rel="noopener">Original wizard</a>
+  </div></details>
+  <input id="teamFileInput" type="file" accept="application/json,.json" hidden>
+ </div>
 </header>
 <section id="builderHelp" class="builder-help" aria-labelledby="builderHelpTitle" hidden><div><h2 id="builderHelpTitle" tabindex="-1">How BeSpoke works</h2><button id="btnCloseHelp" type="button" class="btn btn-secondary">Back to my design</button></div><div id="builderHelpContent"></div></section>
-<section aria-label="Design status"><div class="status-strip"><p id="localPreviewNotice" hidden><strong>Local review preview</strong> · Synthetic test saving on this computer. No submission or publishing.</p><p id="saveStatus"></p></div>
-<p id="fileStatus" class="notice" role="status" hidden></p><p id="restoreNotice" class="notice" role="status" hidden></p><p id="accessBanner" class="notice" role="status" hidden></p>
+<section aria-label="Design status"><p id="fileStatus" class="notice" role="status" hidden></p><p id="restoreNotice" class="notice" role="status" hidden></p><p id="accessBanner" class="notice" role="status" hidden></p>
 </section>
-<section id="teamSessionBar" class="team-session" aria-label="Design session" hidden><p id="teamSessionStatus"></p><div class="session-actions"><button class="text-link" id="btnLoadLatest" hidden>Load latest shared design</button><button class="text-link" id="btnKeepLocal" hidden>Keep this browser draft</button><button class="text-link" id="btnHistory" aria-expanded="false" aria-controls="historyPanel">Previous versions</button><button class="text-link" id="btnCheckStatus" hidden>Check review status</button><button class="text-link" id="btnLeaveSession">Leave session</button></div><div id="historyPanel" class="history-panel" hidden></div></section>
+<section id="teamSessionBar" class="team-session" aria-label="Design session" hidden><div class="session-actions"><button class="text-link" id="btnLoadLatest" hidden>Load latest shared design</button><button class="text-link" id="btnKeepLocal" hidden>Keep this browser draft</button><button class="text-link" id="btnCheckStatus" hidden>Check review status</button></div><div id="historyPanel" class="history-panel" hidden></div></section>
 <nav aria-label="Workspace views" class="surface-navigation"><div class="surface-switcher" role="tablist" aria-label="Workspace surface" id="surfaceSwitcher"><button type="button" role="tab" id="surface-design" data-surface="design" aria-selected="true" aria-controls="chromeRail">Design</button><button type="button" role="tab" id="surface-preview" data-surface="preview" aria-selected="false" aria-controls="previewPane">Preview</button></div></nav>
-<div class="editor-stages" id="editorStages"></div>
 <main class="workspace" id="workspace" data-active-surface="design" aria-label="Design and preview workspace" tabindex="0">
  <aside class="slide-rail" id="slideRail" aria-label="Reusable slide designs"><h2>Slides</h2><p>Five reusable designs</p></aside>
  <div class="chrome-rail" id="chromeRail">
-  <nav class="stepper" aria-label="Design stages"><ol id="stepList"></ol><div class="history-local"><div class="undo-actions"><button class="btn btn-secondary" id="btnUndo" aria-keyshortcuts="Control+Z Meta+Z" type="button">Undo</button><button class="btn btn-secondary" id="btnRedo" aria-keyshortcuts="Control+Shift+Z Meta+Shift+Z Control+Y" type="button">Redo</button></div><details><summary>Recent choices</summary><ol id="changeList"></ol></details></div></nav>
-  <section id="selectionInspector" class="selection-inspector" aria-labelledby="inspectorTitle" hidden><h2 id="inspectorTitle">Background</h2><p id="editScope" class="edit-scope" role="status"></p><div id="inspectorFields"></div></section>
+  <div class="drawer-bar"><strong>Slide options</strong><button id="btnHideDrawer" class="btn btn-secondary" type="button">Hide options</button></div>
+  <section id="selectionInspector" class="selection-inspector" aria-labelledby="inspectorTitle" hidden><h2 id="inspectorTitle">Background</h2><p id="editScope" class="edit-scope" role="status"></p><div id="inspectorFields"><div id="inspectorMore" class="inspector-more"></div></div></section>
   <section class="controls" id="detailControls" aria-label="Design controls"><button id="btnCloseOptions" class="text-link" type="button">Close options</button><p class="stage-count" id="stepCount"></p><section id="stepPanel" tabindex="-1" aria-label="Current design stage"><h1>Opening your design…</h1></section></section>
  </div>
  <section class="preview-pane" id="previewPane" aria-label="Cumulative design preview">
-  <div class="preview-heading"><div><h2 id="previewName">Title slide</h2></div><div class="preview-actions"><button class="btn btn-secondary" id="btnPresent" type="button">Present</button><button class="btn btn-secondary" id="btnTryVersion" type="button">Try another version</button><button class="btn btn-secondary" id="btnCompareVersions" type="button" hidden>Compare A &amp; B</button></div></div><p id="versionStatus" class="version-status" role="status" hidden></p>
+  <div class="preview-heading"><div><h2 id="previewName">Title slide</h2><span class="canvas-hint" aria-hidden="true">Click any part of the slide to edit it.</span></div><div class="preview-actions"><button class="btn btn-secondary" id="btnPresent" type="button">Present</button><button class="btn btn-secondary" id="btnTryVersion" type="button">Try another version</button><button class="btn btn-secondary" id="btnCompareVersions" type="button" hidden>Compare A &amp; B</button></div></div><p id="versionStatus" class="version-status" role="status" hidden></p>
   <div class="preview-tabs" id="previewTabs" role="tablist" aria-label="Slide preview"><button type="button" role="tab" data-view="title" aria-selected="true" aria-controls="modelStage">Title</button><button type="button" role="tab" data-view="divider" aria-selected="false" aria-controls="modelStage">Divider</button><button type="button" role="tab" data-view="cards" aria-selected="false" aria-controls="modelStage">Text boxes</button><button type="button" role="tab" data-view="video" aria-selected="false" aria-controls="modelStage">Video</button><button type="button" role="tab" data-view="activity" aria-selected="false" aria-controls="modelStage">Activity</button></div>
   <div id="previewToolbarMount"><section id="contextToolbar" class="context-toolbar" aria-label="Selected element formatting"></section></div>
   <p id="selectionHelp" class="selection-help">Click any feature to see its options in the editor sidebar. Tab to an element and press Enter to select it; Escape selects the background. Edit the selected words in Sample text. Placement moves text inside its text area.</p>

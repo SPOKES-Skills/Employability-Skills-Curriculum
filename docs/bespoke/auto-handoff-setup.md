@@ -67,13 +67,15 @@ node scripts/bespoke-provision.mjs \
   --wizard-url "https://YOUR-PAGES-HOST/YOUR-PROJECT/bespoke/"
 ```
 
-Use an output directory outside this repository and outside any public website.
+Use an output directory outside any git repository and outside any public website.
 The command creates `server-env.json`, `team-access.json`, and `team-links.html`
 with owner-only file permissions in an owner-only directory. It refuses an existing
-output directory or a directory inside the repository. It does not create a PAT
+output directory or a directory inside a git repository. It does not create a PAT
 or rotate an existing service's keys. Store the resulting material in approved
-private storage. Do not paste access codes, private links, encryption keys, or tokens into an issue,
-pull request, repository file, public channel, or diagnostic log.
+private storage. Do not paste access codes, private links, encryption keys, tokens,
+the `BESPOKE_TEAM_KEYS` value, or `team-env.json` into an issue, pull request,
+repository file, public channel, or diagnostic log. The team-key table holds only
+hashes, but an 8-character code can be recovered from its hash in minutes.
 
 A team link ends with `#team=<lesson-id>.<access-code>`. A team without its link
 can type the code in **Open your team design**; case, spaces and the dash do not
@@ -236,6 +238,9 @@ Then:
    pick up the new value.
 4. Send the new link and code privately to the team. Pin the new link in its
    Teams channel and unpin the old one.
+5. Delete the `previous-*` folder. After a one-lesson reissue it still holds the
+   other five live codes, so it needs the same care as `team-access.json` until
+   it is gone.
 
 After a reissue, `team-env.json` holds the current `BESPOKE_TEAM_KEYS`. The copy
 inside `server-env.json` is the original table. Never restore it into Netlify

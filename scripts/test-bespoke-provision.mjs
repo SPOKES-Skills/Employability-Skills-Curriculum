@@ -118,6 +118,25 @@ test('reissue refuses unknown lessons, missing or incomplete records, and reposi
   assert.throws(() => reissue({ output: path.resolve('.private-test'), wizardUrl, lesson: 'all' }), /outside this repository/);
 }));
 
+test('provisioning refuses any git work tree and a symlink that leads into this repository', () => withTmp(tmp => {
+  const repo = path.join(tmp, 'other-repo');
+  execFileSync('git', ['init', '-q', repo]);
+  assert.throws(() => provision({ output: path.join(repo, 'private'), wizardUrl }), /git/);
+  assert.throws(() => reissue({ output: path.join(repo, 'private'), wizardUrl, lesson: 'all' }), /git/);
+  const link = path.join(tmp, 'link');
+  fs.symlinkSync(path.resolve('docs'), link);
+  assert.throws(() => reissue({ output: link, wizardUrl, lesson: 'all' }), /outside this repository|git/);
+}));
+
+test('a one-lesson reissue keeps only real lessons in the team table', () => withTmp(tmp => {
+  const output = provision({ output: path.join(tmp, 'private'), wizardUrl });
+  const record = readJson(output, 'team-access.json');
+  fs.writeFileSync(path.join(output, 'team-access.json'), JSON.stringify({ ...record, 'old-lesson': { title: 'Old', code: 'K7QX-M3PD', url: wizardUrl } }));
+  reissue({ output, wizardUrl, lesson: 'goal-setting', now: new Date('2026-10-13T15:30:00Z') });
+  assert.deepEqual(Object.keys(JSON.parse(readJson(output, 'team-env.json').BESPOKE_TEAM_KEYS)).sort(), [...LESSONS].sort());
+  assert.deepEqual(Object.keys(readJson(output, 'team-access.json')).sort(), [...LESSONS].sort());
+}));
+
 test('the reissue command prints no codes', () => withTmp(tmp => {
   const output = path.join(tmp, 'private');
   const stdout = execFileSync(process.execPath, ['scripts/bespoke-provision.mjs', '--reissue', 'all', '--output', output, '--wizard-url', wizardUrl], { encoding: 'utf8' });

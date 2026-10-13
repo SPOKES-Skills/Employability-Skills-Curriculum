@@ -10,7 +10,7 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const lessons = JSON.parse(fs.readFileSync(path.join(root, 'bespoke/catalog.json'), 'utf8')).lessons;
 const TEAM_FILES = ['team-env.json', 'team-access.json', 'team-links.html'];
 const USAGE = 'Usage: node scripts/bespoke-provision.mjs --output /private/path --wizard-url https://host/bespoke/ [--reissue all|<lesson-id>]';
-const MISSING_RECORD = 'Point --output at the private folder that holds team-access.json, or use --reissue all with a new folder.';
+const MISSING_RECORD = 'Point --output at the private folder that holds team-access.json, or use --reissue all with a new folder. If a reissue stopped partway, move the files back from the newest previous-* folder first.';
 const PROVISION_NOTE = 'Back up server-env.json in your protected secret store. Its encryption key must remain available when the GitHub token changes. No GitHub token is included here.';
 const REISSUE_NOTE = 'Set BESPOKE_TEAM_KEYS in Netlify from team-env.json, then redeploy the service. The old links keep working until that deploy. The encryption key is not changed.';
 const json = value => JSON.stringify(value, null, 2) + '\n';
@@ -31,14 +31,27 @@ function pageUrl(wizardUrl) {
   return url;
 }
 
+/** Resolves symlinks through the target itself when it exists, or through its nearest existing parent. */
+function realLocation(target) {
+  const missing = [];
+  let existing = target;
+  while (!fs.existsSync(existing)) { missing.unshift(path.basename(existing)); existing = path.dirname(existing); }
+  return path.join(fs.realpathSync(existing), ...missing);
+}
+
+function insideGitWorkTree(real) {
+  for (let dir = real; ; dir = path.dirname(dir)) {
+    if (fs.existsSync(path.join(dir, '.git'))) return true;
+    if (path.dirname(dir) === dir) return false;
+  }
+}
+
 function privateTarget(output) {
   const target = path.resolve(output);
+  const real = realLocation(target), realRoot = fs.realpathSync(root);
+  if (real === realRoot || real.startsWith(realRoot + path.sep)) throw new Error('Choose a private output directory outside this repository.');
+  if (insideGitWorkTree(real)) throw new Error('Choose a private output directory outside any git repository.');
   fs.mkdirSync(path.dirname(target), { recursive: true, mode: 0o700 });
-  const realTarget = path.join(fs.realpathSync(path.dirname(target)), path.basename(target));
-  const realRoot = fs.realpathSync(root);
-  if (realTarget === realRoot || realTarget.startsWith(realRoot + path.sep)) {
-    throw new Error('Choose a private output directory outside this repository.');
-  }
   return target;
 }
 
@@ -73,7 +86,8 @@ function currentAccess(target, all) {
   try { access = JSON.parse(fs.readFileSync(file, 'utf8')); } catch { throw new Error('team-access.json could not be read. Use --reissue all instead.'); }
   const complete = lessons.every(({ id }) => typeof access?.[id]?.code === 'string' && typeof access[id].url === 'string');
   if (!complete) throw new Error('team-access.json does not list every lesson. Use --reissue all instead.');
-  return access;
+  // Only catalog lessons: the service refuses a team table that names any other lesson.
+  return Object.fromEntries(lessons.map(({ id }) => [id, access[id]]));
 }
 
 /** Moves the current team files aside, because they stay the live codes until the service is redeployed. */

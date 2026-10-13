@@ -20,7 +20,7 @@ let pendingPreset = null;
 const PENDING_SUBMISSION_STORAGE = 'bespoke-pending-submission-v2';
 const MAX_FILE_BYTES = 256000;
 const SHARE_URL_MAX = 8000;
-const EDIT_CODE_MIN = 20;
+const EDIT_CODE_MIN = 8;
 const EDIT_CODE_MAX = 128;
 const HANDOFF_TIMEOUT_MS = 20000;
 const HANDOFF_CONFIG_URL = './handoff-config.json';
@@ -994,7 +994,7 @@ const findOption=(family,slug)=>state.library?.families?.[family]?.options.find(
     const editCode = (byId("openEditCode")?.value || "").trim();
     const err = byId("openError");
     if (editCode.length < EDIT_CODE_MIN) {
-      if (err) err.textContent = "Enter the administrator-provided private access code. It needs at least " + EDIT_CODE_MIN + " characters.";
+      if (err) err.textContent = "Enter your 8-character team code, or open the link pinned in your team's Teams channel.";
       return;
     }
     handoffBusy = true;

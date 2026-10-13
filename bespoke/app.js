@@ -18,7 +18,7 @@
    * A normal design view link is about 1,000 characters.
    */
   const SHARE_URL_MAX = 8000;
-  const EDIT_CODE_MIN = 20;
+  const EDIT_CODE_MIN = 8;
   const EDIT_CODE_MAX = 128;
   const HANDOFF_TIMEOUT_MS = 20000;
   const UNLOCK_HASH_KEY = "bespoke-lead-ok";
@@ -2674,7 +2674,7 @@
     const editCode = (byId("openEditCode")?.value || "").trim();
     const err = byId("openError");
     if (editCode.length < EDIT_CODE_MIN) {
-      if (err) err.textContent = "Enter the administrator-provided private access code. It needs at least " + EDIT_CODE_MIN + " characters.";
+      if (err) err.textContent = "Enter your 8-character team code, or open the link pinned in your team's Teams channel.";
       return;
     }
     handoffBusy = true;

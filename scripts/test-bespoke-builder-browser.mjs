@@ -129,6 +129,23 @@ async function axe(page, label, { excludePreview = false } = {}) {
 }
 
 try {
+  await scenario('an 8-character team code reaches the service from the Open dialog and from a team link', async ({ makePage }) => {
+    const page = await makePage();
+    const sent = code => page.waitForRequest(request => request.url().endsWith('/api/bespoke') && request.method() === 'POST' && request.postDataJSON()?.editCode === code, { timeout: 5000 });
+    await page.evaluate(() => {
+      document.querySelector('#openLesson').add(new Option('Money Management', 'money-management', true, true));
+      document.querySelector('#openDialog').showModal();
+    });
+    await page.locator('#openEditCode').fill('k7qx m3pd');
+    const typed = sent('k7qx m3pd');
+    await page.locator('#openConfirm').click();
+    await typed;
+    await page.evaluate(() => { location.hash = '#team=money-management.K7QX-M3PD'; });
+    const linked = sent('K7QX-M3PD');
+    await page.reload();
+    await linked;
+  });
+
   await scenario('design history shortcuts preserve typing, cancellation, repeated actions and saved state', async ({ makePage }) => {
     const page = await makePage(); await fillTeam(page);
     const original = await design(page);

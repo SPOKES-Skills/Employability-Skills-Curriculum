@@ -266,3 +266,15 @@ test("arrow keys in the dialog change the choice, not the slide behind it", asyn
   assert.equal(await page.evaluate(() => document.getElementById("spokesPrintSlides").contains(document.activeElement)), true);
   await page.close();
 });
+
+test("printing the page without the dialog keeps the lesson's own print layout", async () => {
+  const page = await openFixture();
+  await page.addStyleTag({ content: "html, body { height: 100vh; overflow: hidden; }" });
+  await page.emulateMedia({ media: "print" });
+  const overflow = () => page.evaluate(() =>
+    [getComputedStyle(document.documentElement).overflow, getComputedStyle(document.body).overflow]);
+  assert.deepEqual(await overflow(), ["hidden", "hidden"]);
+  await page.evaluate(() => document.body.classList.add("sp-printing"));
+  assert.deepEqual(await overflow(), ["visible", "visible"]);
+  await page.close();
+});

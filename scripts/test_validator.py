@@ -561,5 +561,38 @@ class TestTYP05SelfHostedFonts(unittest.TestCase):
         self.assertIn("No self-hosted @font-face", r.message)
 
 
+class TestPrintRule(unittest.TestCase):
+    """PRT-01: lessons load print/manifest.js before ../scripts/print-slides.js."""
+
+    def _load_mod(self):
+        import importlib.util
+        spec = importlib.util.spec_from_file_location(
+            "validate_lesson", Path(__file__).parent / "validate-lesson.py")
+        mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)
+        return mod
+
+    def _prt(self, html):
+        mod = self._load_mod()
+        return next(r for r in mod.check_print(mod.parse_document(html)) if r.rule_id == "PRT-01")
+
+    def test_prt01_passes_with_both_scripts_in_order(self):
+        r = self._prt('<html><body><script src="print/manifest.js"></script>'
+                      '<script src="../scripts/print-slides.js"></script></body></html>')
+        self.assertEqual(r.status, "PASS")
+
+    def test_prt01_warns_when_scripts_missing(self):
+        r = self._prt('<html><body></body></html>')
+        self.assertEqual(r.status, "WARN")
+        self.assertIn("print/manifest.js", r.message)
+        self.assertIn("../scripts/print-slides.js", r.message)
+
+    def test_prt01_warns_when_runtime_loads_first(self):
+        r = self._prt('<html><body>\n<script src="../scripts/print-slides.js"></script>\n'
+                      '<script src="print/manifest.js"></script>\n</body></html>')
+        self.assertEqual(r.status, "WARN")
+        self.assertIn("after", r.message)
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -20,6 +20,9 @@ python3 -m unittest discover -s scripts -p 'test_validator.py' -v
 echo "==> registry / dashboard fallback sync"
 python3 scripts/check-registry-sync.py
 
+echo "==> print slides pictures current"
+node scripts/capture-print-slides.mjs --check
+
 echo "==> bespoke selection schema (generate --check + fixtures + submissions)"
 python3 scripts/generate-selection-schema.py --check
 node scripts/generate-selection-v2-schema.mjs --check
@@ -29,7 +32,7 @@ node scripts/test-bespoke-role-contracts.mjs
 node scripts/test-bespoke-similarity.mjs
 python3 -m unittest discover -s scripts -p 'test_bespoke*.py' -v
 echo "==> bespoke handoff endpoint"
-node --test scripts/test-bespoke-dev-server.mjs scripts/test-bespoke-v2-contracts.mjs scripts/test-bespoke-handoff.mjs scripts/test-bespoke-provision.mjs scripts/test-bespoke-brief.mjs scripts/test-bespoke-guide.mjs
+node --test scripts/test-bespoke-dev-server.mjs scripts/test-bespoke-v2-contracts.mjs scripts/test-bespoke-handoff.mjs scripts/test-bespoke-provision.mjs scripts/test-bespoke-brief.mjs scripts/test-bespoke-guide.mjs scripts/test-print-slides.mjs scripts/test-print-slides-lib.mjs
 # Valid fixtures + any docs/phase-2/submissions/**/selection.json (skips *invalid*/*broken*)
 python3 scripts/validate-bespoke-selection.py \
   scripts/test-fixtures/bespoke/selection-money-management.json
@@ -77,6 +80,8 @@ if [ -d node_modules/playwright ] && [ -d node_modules/axe-core ]; then
   node scripts/test-bespoke-video-frames.mjs
   node scripts/test-bespoke-patterns.mjs
   node scripts/generate-lesson-fingerprints.mjs --check
+  echo "==> print slides dialog and lesson printouts"
+  node --test scripts/test-print-slides-browser.mjs scripts/test-print-slides-lessons.mjs
   echo "==> theme library title-slide layouts"
   node scripts/check-title-layouts.mjs
   if [ -f scripts/test-bespoke-design.mjs ]; then

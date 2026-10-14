@@ -77,7 +77,7 @@ Additional Presentation chapters (P4, P5, etc.) may be added if the lesson has m
 
 ### Step 4: Copy Template & Apply Theme
 
-1. Copy `template.html` to the new project directory as `index.html`
+1. Copy `template.html` to the new project directory as `index.html`, and copy `SPOKES Builder/print/manifest.js` to `print/manifest.js` in the new project. The template loads that placeholder, and the validator's REF-01 rule blocks every edit to `index.html` while it is missing.
 2. Add lesson-specific **self-hosted** `@font-face` rules in `<head>` (or a local CSS block) for the assigned pairing — look up file names in `font-pairings.md` / the repo `fonts/` directory. **Do not** add Google Fonts `<link>` tags (TYP-05). Use `font-display: swap`.
 3. Generate a `<style id="theme-override">` block AFTER the main CSS block by assembling snippets from `theme-library.css` (generated from `theme-options.json`):
    - Font family overrides
@@ -137,6 +137,7 @@ Lesson-Name/
   SPOKES-Logo.png
   Handouts/           (student PDFs)
   Teacher-Resources/  (teacher guides)
+  print/              (manifest.js placeholder, then print pictures from Step 10)
   .claude/launch.json
   .gitignore
 ```
@@ -152,6 +153,7 @@ Use the preview server to confirm:
 - Closing slide triggers confetti
 - No console errors
 - **No off-brand colors** — check all CSS values against the 11-color palette in `SPOKES-STANDARD.md`
+- **Print slides.** Once the deck is final, register the lesson in `lesson-registry.json`, write `print/print-settings.json` (`{}` unless a video slide keeps its text or a tab holds answers), run `node scripts/capture-print-slides.mjs lesson-<slug>`, then print both versions in all three layouts and confirm the Student workbook shows no answers. Details: `build-process.md` Phase 5 step 8. `scripts/quality.sh` fails until the pictures match the lesson.
 
 ## Component Selection Decision Guide
 
@@ -174,7 +176,7 @@ Simple arrow-pointed list?             --> content-list
 
 ## Design System Rules
 
-See `SPOKES-STANDARD.md` for the complete rule inventory covering colors (Section 1), typography (Section 2), accessibility (Section 3), components (Section 4), navigation engine (Section 5), theme system (Section 6), mobile/touch (Section 7), performance (Section 8), engagement (Section 9), and reduced motion (Section 10).
+See `SPOKES-STANDARD.md` for the complete rule inventory covering colors (Section 1), typography (Section 2), accessibility (Section 3), components (Section 4), navigation engine (Section 5), theme system (Section 6), mobile/touch (Section 7), performance (Section 8), engagement (Section 9), reduced motion (Section 10), and print (Section 11).
 
 ### Global Design Standards
 

@@ -5,8 +5,8 @@ SPOKES interactive employability curriculum system with standards, templates, an
 ## Instructor collaboration
 
 Round 2 teams use BeSpoke during Teams calls to choose the visual style of their
-lessons: colors, fonts, backgrounds, layouts and cards. Britt supplies a private
-lesson link to pin in each team's private Teams channel. Teams use **Save shared
+lessons: colors, fonts, backgrounds, layouts and cards. Britt puts each team's
+private 8-character code in that team's OneDrive folder. Teams use **Save shared
 design** and **Open team design** to save and resume their shared choices across
 computers. One spokesperson operates BeSpoke during the call; OneDrive can hold
 optional files from **Download backup**. No lesson-writing form, coding or GitHub

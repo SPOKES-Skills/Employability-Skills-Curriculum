@@ -994,7 +994,7 @@ const findOption=(family,slug)=>state.library?.families?.[family]?.options.find(
     const editCode = (byId("openEditCode")?.value || "").trim();
     const err = byId("openError");
     if (editCode.length < EDIT_CODE_MIN) {
-      if (err) err.textContent = "Enter your 8-character team code, or open the link pinned in your team's Teams channel.";
+      if (err) err.textContent = "Enter the 8-character team code from your team's OneDrive folder.";
       return;
     }
     handoffBusy = true;

@@ -56,8 +56,8 @@ Access is assigned by Britt or an administrator before teams begin. Each of the
 six planned lessons gets its own random access code and private link. A code is
 8 characters in two groups of four, like `K7QX-M3PD`, with no 0, O, 1, I or L. There is no
 public first-come claim of a lesson and no teacher-chosen four-character code.
-Anyone with a private link can use that team's design, so share it only in the
-intended team's private channel or other approved private location.
+Anyone with a team's code or link can use that team's design, so share it only in
+that team's private OneDrive folder or another approved private location.
 
 The administrator provisioning command is:
 
@@ -86,9 +86,10 @@ the initial page request. The credential is still used to authenticate service
 requests; it is a real access secret, not a visual-preview lock. Treat remembered
 access on shared computers with the same care as the original link.
 
-Pin the correct private link in each team's Teams channel. A teacher returning on
-another computer uses that original link. Ask teams to keep one person operating
-BeSpoke during each meeting.
+Put each team's code in that team's private OneDrive folder, and only that team's
+code. Never put `team-links.html` or `team-access.json` there: they hold all six
+codes. A teacher on another computer types the code in Open team design. Ask teams
+to keep one person operating BeSpoke during each meeting.
 
 ## Configure the service
 
@@ -236,8 +237,7 @@ Then:
    on a new deploy.
 3. Open the old link. It must be refused. If it still opens, the deploy did not
    pick up the new value.
-4. Send the new link and code privately to the team. Pin the new link in its
-   Teams channel and unpin the old one.
+4. Put the new code in the team's OneDrive folder and delete the old one.
 5. Delete the `previous-*` folder. After a one-lesson reissue it still holds the
    other five live codes, so it needs the same care as `team-access.json` until
    it is gone.

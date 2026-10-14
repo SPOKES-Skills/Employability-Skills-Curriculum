@@ -20,7 +20,7 @@ const teamKeys = access => JSON.stringify(Object.fromEntries(Object.entries(acce
 
 function teamLinksPage(access, note) {
   const items = Object.values(access).map(item => `<li><a href="${escapeHtml(item.url)}">${escapeHtml(item.title)}</a> <code>${escapeHtml(item.code)}</code></li>`).join('');
-  return `<!doctype html><html lang="en"><meta charset="utf-8"><meta name="referrer" content="no-referrer"><title>Private BeSpoke team links</title><style>body{font:18px system-ui;max-width:760px;margin:3rem auto;line-height:1.6}li{margin:1rem 0}code{font-size:1.1em;margin-left:.5rem}</style><h1>Private BeSpoke team links</h1><p>For Britt. Share each link only with its teaching team and pin it in their Teams channel. Each link and its 8-character code grant editing access; a team without its link can type the code. Do not publish this page or commit these files.</p><ul>${items}</ul><p>${note}</p></html>`;
+  return `<!doctype html><html lang="en"><meta charset="utf-8"><meta name="referrer" content="no-referrer"><title>Private BeSpoke team links</title><style>body{font:18px system-ui;max-width:760px;margin:3rem auto;line-height:1.6}li{margin:1rem 0}code{font-size:1.1em;margin-left:.5rem}</style><h1>Private BeSpoke team links</h1><p>For Britt. Put each code only in its own team's OneDrive folder, never this page. Each code, and the link that carries it, grants editing access. Do not publish this page or commit these files.</p><ul>${items}</ul><p>${note}</p></html>`;
 }
 
 function pageUrl(wizardUrl) {

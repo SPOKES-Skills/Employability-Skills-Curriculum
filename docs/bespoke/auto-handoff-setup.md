@@ -77,10 +77,10 @@ node scripts/bespoke-provision.mjs \
   --wizard-url "https://YOUR-PAGES-HOST/YOUR-PROJECT/bespoke/"
 ```
 
-Use an output directory outside this repository and outside any public website.
+Use an output directory outside any git repository and outside any public website.
 The command creates `server-env.json`, `team-access.json`, and `team-links.html`
 with owner-only file permissions in an owner-only directory. It refuses an existing
-output directory or a directory inside the repository. It does not create a PAT
+output directory or a directory inside a git repository. It does not create a PAT
 or rotate an existing service's keys. Store the resulting material in approved
 private storage. Do not paste access codes, private links, encryption keys, or tokens into an issue,
 pull request, repository file, public channel, or diagnostic log.

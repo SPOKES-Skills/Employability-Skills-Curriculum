@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Fixture Lesson &mdash; SPOKES</title>
+  <!-- Same global reset the lessons use; it removes the dialog's default centring margin. -->
+  <style>* { margin: 0; padding: 0; box-sizing: border-box; }</style>
+</head>
+<body>
+  <div class="container">
+    <nav class="sidebar" aria-label="Lesson navigation">
+      <div class="sidebar-title">Fixture Lesson</div>
+      <div class="resources-section">
+        <div class="resources-title">Resources</div>
+        <button class="print-all-btn" type="button">Print All</button>
+        <a class="resource-link" href="#plan">Lesson Plan</a>
+      </div>
+    </nav>
+    <main class="main"><section class="slide active"><h1>Fixture</h1></section></main>
+  </div>
+  <img class="branding-logo" src="../../SPOKES-Logo.png" alt="">
+  <script>
+    // Every picture reuses the repo logo so the fixture needs no slide pictures.
+    // #none simulates a lesson whose pictures were never taken; #broken a missing file.
+    var picture = "../../SPOKES-Logo.png";
+    window.SPOKES_PRINT_MANIFEST = location.hash === "#none" ? null : {
+      version: 1,
+      lessonTitle: "Fixture Lesson",
+      sourceHash: "fixture",
+      pictures: [
+        { slide: 1, title: "One", label: "", student: picture, teacher: picture, width: 2400, height: 1350 },
+        { slide: 2, title: "Two", label: "", student: picture, teacher: picture, width: 2400, height: 1350 },
+        { slide: 3, title: "Quiz", label: "", student: picture,
+          teacher: location.hash === "#broken" ? "missing-picture.jpg" : picture, width: 2400, height: 1350 }
+      ]
+    };
+  </script>
+  <script>
+    // Stands in for the lessons' slide navigation, which listens for arrow keys on document.
+    window.__deckKeys = [];
+    document.addEventListener("keydown", function (event) { window.__deckKeys.push(event.key); });
+  </script>
+  <script src="../print-slides.js"></script>
+</body>
+</html>

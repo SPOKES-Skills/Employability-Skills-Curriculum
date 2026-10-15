@@ -1,5 +1,5 @@
 /** Advisory exact-choice comparison. Unknown measurements never count as matches. */
-import { effectiveRoleStyle, roleStyleDefaults } from './builder-model.mjs';
+import { effectiveRoleStyle, roleStyleDefaults, effectiveFeatureStyle } from './builder-model.mjs';
 
 export const CHARACTERISTICS = Object.freeze([
   ['roles.sidebar', 'Sidebar color'],
@@ -128,7 +128,14 @@ function roleComparison(design, catalog) {
  * No suggestion, restriction, or design mutation is performed here.
  */
 export function compareDesign(fingerprints, design, catalog) {
-  const resolved = roleComparison(design, catalog);
+  const resolved = roleComparison(design, catalog)||{values:new Map(),reasons:new Map(),extra:[]};
+  for(const [feature,style] of Object.entries(design.featureStyles||{})){
+    const measured={sidebar:{background:'roles.sidebar'},button:{background:'roles.button'},box:{border:'roles.accent'}}[feature]||{};
+    for(const [field,value] of Object.entries(style))if(value!=='inherit'){
+      if(measured[field]){resolved.values.set(measured[field],catalog?effectiveFeatureStyle(catalog,design,feature)[field]:null);if(!catalog)resolved.reasons.set(measured[field],'Feature choices need the current catalog to compare safely.');}
+      else resolved.extra.push({key:`featureStyles.${feature}.${field}`,label:`${feature} ${field}`,reason:'This independent feature choice has not been measured in the reference lessons.',source:null});
+    }
+  }
   return (fingerprints?.lessons || []).map((lesson) => {
     const matches = [], differences = [], unknown = [];
     for (const { key, label } of CHARACTERISTICS) {

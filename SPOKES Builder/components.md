@@ -8,6 +8,26 @@ This document defines every slide type and content component available in the SP
 
 ## Slide Types
 
+## When printed
+
+Print slides prints a picture of every slide. Each component prints as content (the same in both versions) or as an answer (Teacher copy only). A new click-to-show component needs a row here and a matching rule in `scripts/capture-print-slides.mjs` before it ships.
+
+| Component | When printed |
+|---|---|
+| `slide-title`, `slide-section`, `big-statement`, standard content slide | Content. Prints as on screen. |
+| `slide-video` | Left out. To keep the slide's text, add its number to `keepVideoSlides`; each player prints as a "Video: [caption]" box. |
+| `slide-closing` | Content. Prints without confetti. |
+| `cards-grid`, `takeaways`, `smart-stack`, `matrix-grid`, `areas-grid`, `split-layout`, `activity-box`, `content-list` | Content. Prints as on screen. |
+| `dangers-grid` flip cards | Content. Two pictures: every card front, then every card back. |
+| `download-resource` | Content. Prints as on screen; the button is not a link on paper. |
+| Tabs, `tab-btn` / `tab-panel` | Content. One picture per tab. A tab whose panel id is in `teacherOnlyTabs` is an answer. |
+| Accordions | Content. All sections open in one picture, or one picture per section when that would print below 75% scale. |
+| Carousel, `carousel-card` | Content. One picture per card. |
+| Quiz and checkpoint answers (`checkQuiz(this, true)`, `checkAnswer(this, true)`, `data-correct="true"`, `quiz-reveal-btn`, `revealMatchingAnswers`) | Answer. Student workbook shows the question unanswered; Teacher copy shows the answer and feedback. |
+| Write-in `textarea` | Content. Prints as blank ruled lines. |
+| Glass card, animated gradient divider, clip-path shape reveal, magnetic button | Content. Prints in its finished state. |
+| Staggered grid reveal, scroll-triggered counter | Content. Prints in its finished state; check the picture shows every item and the final number. |
+
 ### 1. `slide-title` — Opening Title Slide
 
 **When to use:** Always the first slide. One per presentation.

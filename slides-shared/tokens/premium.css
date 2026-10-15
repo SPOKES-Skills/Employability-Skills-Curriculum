@@ -1,0 +1,56 @@
+/* ==========================================================================
+   SPOKES — Premium ("Editorial Executive") Token Extension
+   A small, on-brand extension for elevated materials: deep ink grounds, warm
+   ivory light surfaces, gold hairlines, editorial type, layered depth, glass.
+   Everything here derives from the 11-color brand palette; the three new
+   surface/tint values are refined neutrals in the SPOKES spirit.
+   ========================================================================== */
+
+:root {
+  /* ---- Refined surface extension (small, deliberate) ---- */
+  --ink: #041226; /* @kind color */        /* deeper than --royal: richest ground */
+  --cream: #f7f3ea; /* @kind color */       /* warm ivory light surface */
+  --champagne: #e8d9a8; /* @kind color */   /* light gold tint — hairlines/text on dark */
+
+  /* ---- Premium semantic surfaces ---- */
+  --surface-exec: var(--ink);         /* dark executive slides */
+  --surface-editorial: var(--cream);  /* light editorial slides */
+  --text-on-exec: rgba(255, 255, 255, 0.92);
+  --text-on-exec-soft: rgba(255, 255, 255, 0.62);
+
+  /* ---- Gold hairlines & rules ---- */
+  --hairline: rgba(211, 178, 87, 0.45); /* @kind other */
+  --hairline-strong: rgba(211, 178, 87, 0.8); /* @kind other */
+  --hairline-light: rgba(0, 64, 113, 0.14); /* @kind other */
+
+  /* ---- Image scrims (legibility over full-bleed photos) ---- */
+  --scrim-bottom: linear-gradient(180deg, transparent 0%, rgba(4, 18, 38, 0.05) 40%, rgba(4, 18, 38, 0.82) 100%); /* @kind other */
+  --scrim-left: linear-gradient(90deg, rgba(4, 18, 38, 0.85) 0%, rgba(4, 18, 38, 0.35) 55%, transparent 100%); /* @kind other */
+  --scrim-full: linear-gradient(120deg, rgba(0, 19, 63, 0.72), rgba(0, 64, 113, 0.35)); /* @kind other */
+
+  /* ---- Duotone image placeholders (brand-tinted) ---- */
+  --duotone-royal: linear-gradient(135deg, var(--royal), var(--primary)); /* @kind other */
+  --duotone-teal: linear-gradient(135deg, var(--primary), #0a9bb8); /* @kind other */
+  --duotone-forest: linear-gradient(135deg, var(--dark), var(--accent)); /* @kind other */
+  --duotone-gold: linear-gradient(135deg, var(--muted-gold), var(--dark)); /* @kind other */
+
+  /* ---- Premium glass ---- */
+  --glass-exec: rgba(4, 18, 38, 0.45); /* @kind color */
+  --glass-light: rgba(255, 255, 255, 0.72); /* @kind color */
+  --glass-blur-lg: blur(22px) saturate(1.6); /* @kind other */
+
+  /* ---- Layered / premium shadows (deep, soft, navy-tinted) ---- */
+  --shadow-float: 0 18px 50px -12px rgba(0, 19, 63, 0.35); /* @kind shadow */
+  --shadow-float-lg: 0 34px 80px -20px rgba(0, 19, 63, 0.45); /* @kind shadow */
+  --shadow-panel: 0 2px 1px rgba(255, 255, 255, 0.5) inset, 0 24px 60px -22px rgba(0, 19, 63, 0.4); /* @kind shadow */
+  --shadow-gold-glow: 0 10px 40px -8px rgba(211, 178, 87, 0.5); /* @kind shadow */
+
+  /* ---- Subtle textures ---- */
+  --grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.4'/%3E%3C/svg%3E"); /* @kind other */
+
+  /* ---- Editorial type ---- */
+  --font-editorial: "Cormorant Garamond", "DM Serif Display", Georgia, serif; /* @kind font */
+  --fs-editorial: clamp(3.5rem, 6vw, 6.5rem); /* @kind other */
+  --ls-eyebrow-wide: 0.42em; /* @kind spacing */
+  --ls-display-tight: -0.02em; /* @kind other */
+}

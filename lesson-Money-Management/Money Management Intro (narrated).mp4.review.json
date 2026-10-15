@@ -1,0 +1,43 @@
+{
+  "tool": "render-review",
+  "version": 1,
+  "render": "/Users/brittlegg/MacDev/companies/education/Curriculum-Employability-Skills/.claude/worktrees/bespoke-wizard-ui-review-c1971a/lesson-Money-Management/Money Management Intro (narrated).mp4",
+  "sha256": "57391f0a45f30272e4065e639c88827fc652508c1f35c1fc1cdeae78b8a851ae",
+  "durationSeconds": 60,
+  "model": "google/gemini-3.5-flash",
+  "route": "openrouter",
+  "generatedAt": "2026-10-09T14:25:12.653Z",
+  "proxy": {
+    "megabytes": 0.65,
+    "segments": 1
+  },
+  "verdict": "revise",
+  "issueCounts": {
+    "blocker": 1,
+    "major": 0,
+    "minor": 0
+  },
+  "issues": [
+    {
+      "t": 27,
+      "dimension": "mismatch",
+      "severity": "blocker",
+      "confidence": 1,
+      "description": "The sorting animation mismatches the narration and the script. 'Transportation' (which represents 'able to get to work' under Needs) is incorrectly sorted into the 'Wants' box, while 'New Shoes' (which is narrated as a Want) disappears entirely, leaving the fourth slot in the 'Needs' box empty.",
+      "suggested_edit": "Correct the animation so that 'Transportation' sorts into the 'Needs' box and 'New Shoes' sorts into the 'Wants' box.",
+      "timestamp": "00:27",
+      "tier1": {
+        "status": "unconfirmed",
+        "checkedAt": "2026-10-09",
+        "method": "frames extracted every 1s from 26s to 37s at full resolution",
+        "finding": "Not confirmed as stated. From 35s the Needs box holds Rent, Groceries, Phone, Transportation and the Wants box holds Streaming, Dining Out, Games, New Shoes; New Shoes never disappears. Related real effect in the source animation, not the audio: from about 27s to 33s the Transportation tag sits on the lower edge of the Wants box, then moves to Needs at about 34s, which a 12 fps proxy can read as a wrong sort.",
+        "owner": "Claude Design animation (Money Management Intro), Britt's team"
+      }
+    }
+  ],
+  "usage": {
+    "promptTokens": 6815,
+    "completionTokens": 2542,
+    "costUsd": 0.0354
+  }
+}

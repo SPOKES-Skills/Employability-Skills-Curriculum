@@ -111,7 +111,7 @@ const viewerCopy = ({ unspoken, legacySelection, ...shared }) => {
   return { ...shared, team: { ...shared.team, spokesperson: leader } };
 };
 function memoryService(existingSelection) {
-  let current = null, writes = 0, dispatched = 0, proposal = null, run = null;
+  let current = null, writes = 0, dispatched = 0, dispatchedPayload = null, proposal = null, run = null;
   const revisions = new Map();
   const api = {
     async readDraft() { return structuredClone(current); },
@@ -124,7 +124,7 @@ function memoryService(existingSelection) {
     async listDraftHistory() { return [...revisions.values()].reverse(); },
     async findProposal() { return proposal; },
     async findRun() { return run; },
-    async dispatchSpokeSignal(raw) { dispatched++; assert.equal(JSON.parse(raw).schema, 'bespoke-selection/v2'); run = { id: 1, status: 'queued' }; return run; },
+    async dispatchSpokeSignal(raw) { dispatchedPayload=JSON.parse(raw); dispatched++; assert.equal(JSON.parse(raw).schema, 'bespoke-selection/v2'); run = { id: 1, status: 'queued' }; return run; },
   };
   const code = 'synthetic-v2-team-access-code';
   const context = { github: api, token: 'synthetic', draftKey: Buffer.alloc(32, 4).toString('base64'), teamKeys: Object.fromEntries(LESSON_IDS.map(id => [id, hashEditCode(code)])), viewKeys: JSON.stringify({ [legacy.lesson.id]: hashViewCode(VIEW_CODE) }) };
@@ -297,4 +297,38 @@ test('staged service includes every v2 model authority dependency', async () => 
     const selection = payload(); assert.deepEqual(authority.selectionErrors(selection, selection.lesson.id), []);
     assert.equal(fs.existsSync(path.join(stage, 'fonts')), false);
   } finally { fs.rmSync(temp, { recursive: true, force: true }); }
+});
+
+
+test('A/B selection survives encrypted save, exact dispatch, immutable visual package and verified review', async () => {
+  const selection=payload();
+  selection.design=applyPreset(catalog,'outspoken');
+  selection.design=setFeatureStyle(catalog,selection.design,'sidebar','font','bitter');
+  selection.design=setFeatureStyle(catalog,selection.design,'sidebar','background','gold');
+  selection.design=setRoleStyle(catalog,selection.design,'title','headingText','Chosen B — <script>never execute</script>');
+  selection.design=setRoleStyle(catalog,selection.design,'title','extraText','A separate note');
+  selection.alternatives={active:'B',otherDesign:applyPreset(catalog,'modern')};
+  selection.alternatives.otherDesign.samples.boxes[3]='A remains recoverable';
+  const service=memoryService(),saved=await service.request('save',{selection,expectedRevision:null,mutationId:randomUUID()});
+  assert.equal(saved.status,200);assert.deepEqual((await service.request('open')).body.selection,selection);
+  await service.request('send',{selection,expectedRevision:saved.body.revision});assert.deepEqual(service.dispatchedPayload,selection);
+  const chosenA=structuredClone(selection);chosenA.design=selection.alternatives.otherDesign;chosenA.alternatives={active:'A',otherDesign:selection.design};
+  const next=await service.request('save',{selection:chosenA,expectedRevision:saved.body.revision,mutationId:randomUUID()});assert.equal(next.status,200);
+  assert.deepEqual((await service.request('open')).body.selection,chosenA);
+  assert.deepEqual((await service.request('openRevision',{revision:saved.body.revision})).body.selection,selection);
+  const tmp=fs.mkdtempSync(path.join(os.tmpdir(),'bespoke-review-package-'));
+  try {
+    const file=path.join(tmp,'payload.json');fs.writeFileSync(file,JSON.stringify(service.dispatchedPayload));
+    const out=execFileSync('python3',['scripts/bespoke-write-submission.py',file,'--repo-root',tmp],{cwd:root,encoding:'utf8'});
+    const folder=out.trim().slice('Wrote '.length);
+    const verified=JSON.parse(execFileSync('python3',['scripts/bespoke-review-package.py',folder],{cwd:root,encoding:'utf8'}));
+    assert.equal(verified.selectionSha256,digest(selection));assert.equal(verified.chosenOption,'B');
+    const contract=JSON.parse(fs.readFileSync(path.join(folder,'build-contract.json')));assert.deepEqual(contract.design,selection.design);
+    const visual=fs.readFileSync(path.join(folder,'review.html'),'utf8');assert.match(visual,/data:font\/woff2;base64,/);assert.match(visual,/data:image\/png;base64,/);assert(!visual.includes('<base '));assert(!visual.includes('<script>'));
+    assert.deepEqual(JSON.parse(fs.readFileSync(path.join(folder,'selection.json'))).alternatives,selection.alternatives);
+    fs.appendFileSync(path.join(folder,'review.html'),'tampered');
+    assert.throws(()=>execFileSync('python3',['scripts/bespoke-write-submission.py',file,'--repo-root',tmp],{cwd:root,stdio:'pipe'}),/Command failed/,'Retry does not overwrite tampered review artifacts');
+    assert.throws(()=>execFileSync('python3',['scripts/bespoke-review-package.py',folder],{cwd:root,stdio:'pipe'}),/Command failed/);
+    const malformed=structuredClone(selection);malformed.alternatives.otherDesign.roles.sidebar='malicious';assert(selectionErrors(malformed,selection.lesson.id).length);
+  }finally{fs.rmSync(tmp,{recursive:true,force:true});}
 });

@@ -36,7 +36,7 @@ async function pageFor(view) {
   if(view.textScale)await page.addStyleTag({content:`html{font-size:${view.textScale*100}%!important}`});
   await page.evaluate(()=>document.fonts.ready);return page;
 }
-async function surface(page,name) {if(await page.locator('#surface-'+name).isVisible())await page.locator('#surface-'+name).click();}
+async function surface(page,name) {if(name==='preview'&&['team','start'].includes(await page.locator('#workspace').getAttribute('data-stage')))await page.locator('#stage-slides').click();if(await page.locator('#surface-'+name).isVisible())await page.locator('#surface-'+name).click();}
 function longDesign() {
   const d=defaultDesign(catalog);d.background='crosshatch';
   d.samples.title='A useful next step '.repeat(12).slice(0,catalog.sampleLimits.title);d.samples.subtitle='Long sample copy remains available and readable. '.repeat(15).slice(0,catalog.sampleLimits.subtitle);
@@ -93,7 +93,7 @@ try {
     }
     await surface(page,'design');await builderDestination(page, 'Starting look');
     await page.locator('[data-preset="modern"]').click();
-    if(!await page.locator('#presetDialog').isVisible())await page.locator('[data-preset="professional"]').click();
+    if(!await page.locator('#presetDialog').isVisible()){await builderDestination(page,'Starting look');await page.locator('[data-preset="professional"]').click();}
     await page.locator('#presetDialog').waitFor({state:'visible'});await axe(page,label+'/preset dialog');
     const dialog=await page.locator('#presetDialog').evaluate(el=>{const r=el.getBoundingClientRect();return {x:r.x,y:r.y,w:r.width,h:r.height,sw:el.scrollWidth,cw:el.clientWidth};});
     if(dialog.x<0||dialog.y<0||dialog.x+dialog.w>view.width+1||dialog.y+dialog.h>view.height+1||dialog.sw>dialog.cw+1)report('dialog containment '+label,dialog);
@@ -109,7 +109,7 @@ try {
   // frame and pattern suites own broad color/pixel matrices and canonical parity.
   for(const view of [{width:320,height:800},{width:768,height:900},{width:1100,height:700},{width:1920,height:1080},{width:844,height:390},{width:390,height:800,textScale:2}]) {
     const page=await pageFor(view);await surface(page,'preview');
-    const canvas=await page.locator('#modelStage').evaluate(el=>el.getBoundingClientRect().width);
+    const canvas=await page.locator('#modelStage').evaluate(el=>el.getBoundingClientRect().width);assert(canvas>0,'Measure a visible preview canvas, not the layout gallery');
     const samplePage=await page.context().newPage();
     const fixture=longDesign();await surface(page,'design');
     await page.locator('#teamFileInput').setInputFiles({name:'synthetic-visual.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify({schema:'bespoke-selection/v2',date:'2026-09-24',submittedAt:'2026-09-24T16:30:00.000Z',lesson:legacy.lesson,team:legacy.team,design:fixture}))});

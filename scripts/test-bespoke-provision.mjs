@@ -27,11 +27,12 @@ test('provisioned links have independent credentials, matching hashes, and priva
     assert.equal(Buffer.from(env.BESPOKE_DRAFT_KEY, 'base64').length, 32);
     assert.equal(new Set(Object.values(access).map(item => item.code)).size, 6);
     for (const [lesson, item] of Object.entries(access)) {
-      assert.equal(item.code.length, 32);
-      assert.equal(hashes[lesson], createHash('sha256').update(item.code).digest('base64url'));
+      assert.match(item.code, CODE);
+      assert.equal(hashes[lesson], hashAccessCode(item.code));
       assert.equal(new URL(item.url).hash, `#team=${lesson}.${item.code}`);
       assert.equal(JSON.stringify(env).includes(item.code), false);
     }
+    assert.ok(Object.values(access).every(item => fs.readFileSync(path.join(output, 'team-links.html'), 'utf8').includes(item.code)));
     if (process.platform !== 'win32') assert.equal(fs.statSync(path.join(output, 'server-env.json')).mode & 0o777, 0o600);
     assertTeamLinksWording(fs.readFileSync(path.join(output, 'team-links.html'), 'utf8'));
     assert.throws(() => provision({ output, wizardUrl: 'https://example.test/bespoke/' }), /already exists/);

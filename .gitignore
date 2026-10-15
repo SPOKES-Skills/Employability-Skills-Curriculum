@@ -23,3 +23,10 @@ node_modules
 
 # Netlify local state (the handoff token is a site secret, never a file here)
 .netlify
+
+# Offline lessons package (scripts/build-offline-package.py output)
+dist/
+
+# Original module files (pptx, pdf, docx) kept on disk for reference; too large for git
+/Employability Modules/
+/lesson-*/Old */

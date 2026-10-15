@@ -132,7 +132,7 @@
     {
       "id": "titleBackgroundEnd",
       "label": "Title & divider second color",
-      "note": "The second color of title and divider gradients, and the title split layout’s right panel.",
+      "note": "The second color of title and divider gradients, and the title split layout\u2019s right panel.",
       "kind": "surface"
     },
     {
@@ -182,7 +182,7 @@
     {
       "id": "dividerBackground",
       "label": "Chapter divider background",
-      "note": "Behind each chapter’s opening slide. Heading color uses Title & divider headings; chapter labels and supporting text use Subtitle & divider supporting text.",
+      "note": "Behind each chapter\u2019s opening slide. Heading color uses Title & divider headings; chapter labels and supporting text use Subtitle & divider supporting text.",
       "kind": "surface"
     }
   ],
@@ -439,6 +439,38 @@
             {
               "id": "split",
               "label": "Split panels"
+            },
+            {
+              "id": "frame",
+              "label": "Framed"
+            },
+            {
+              "id": "headline",
+              "label": "Headline"
+            },
+            {
+              "id": "sidebar",
+              "label": "Side rule"
+            },
+            {
+              "id": "horizon",
+              "label": "Horizon"
+            },
+            {
+              "id": "corner",
+              "label": "Corner"
+            },
+            {
+              "id": "masthead",
+              "label": "Masthead"
+            },
+            {
+              "id": "columns",
+              "label": "Two columns"
+            },
+            {
+              "id": "plaque",
+              "label": "Inset"
             }
           ]
         },
@@ -834,7 +866,7 @@
           "title": {
             "layout": "left",
             "logo": "corner",
-            "colors": "gradient"
+            "colors": "solid"
           },
           "divider": {
             "layout": "left",
@@ -869,8 +901,47 @@
             "Keep the progress going. Celebrate a useful lesson learned."
           ]
         },
-        "startingPoint": "professional"
-      }
+        "startingPoint": "professional",
+        "roleStyles": {
+          "title": {
+            "backgroundMode": "inherit",
+            "primary": "inherit",
+            "secondary": "inherit",
+            "direction": "diagonal",
+            "pattern": "inherit",
+            "patternStrength": "normal",
+            "headingColor": "inherit",
+            "bodyColor": "inherit",
+            "headingFont": "inherit",
+            "bodyFont": "inherit",
+            "headingSize": "default",
+            "bodySize": "default",
+            "headingAlignment": "layout",
+            "bodyAlignment": "layout",
+            "headingPlacement": "layout",
+            "bodyPlacement": "layout",
+            "extraText": null,
+            "extraColor": "inherit",
+            "extraSize": "default",
+            "extraAlignment": "left",
+            "extraPlacement": "bottom",
+            "boxHeadings": null,
+            "headingVisible": true,
+            "bodyVisible": true,
+            "headingText": null,
+            "bodyText": null,
+            "labelText": null,
+            "labelVisible": true,
+            "watermarkMode": "inherit",
+            "watermarkText": "SPOKES",
+            "watermarkColor": "inherit",
+            "watermarkSize": "medium",
+            "watermarkPlacement": "bottom-right",
+            "watermarkOpacity": "low"
+          }
+        }
+      },
+      "colorLabel": "Paper & berry"
     },
     {
       "id": "modern",
@@ -885,11 +956,11 @@
           "titleText": "light",
           "subtitle": "light",
           "contentBackground": "light",
-          "heading": "primary",
+          "heading": "royal",
           "body": "royal",
-          "accent": "primary",
-          "button": "primary",
-          "dividerBackground": "royal"
+          "accent": "royal",
+          "button": "royal",
+          "dividerBackground": "accent"
         },
         "fonts": {
           "heading": "outfit",
@@ -923,7 +994,7 @@
             "labelStyle": "pill"
           }
         },
-        "background": "diagonal",
+        "background": "plain",
         "samples": {
           "title": "Make room for your next step",
           "subtitle": "A sample lesson for a confident start",
@@ -934,8 +1005,47 @@
             "Keep the progress going. Celebrate a useful lesson learned."
           ]
         },
-        "startingPoint": "modern"
-      }
+        "startingPoint": "modern",
+        "roleStyles": {
+          "title": {
+            "backgroundMode": "inherit",
+            "primary": "inherit",
+            "secondary": "inherit",
+            "direction": "right",
+            "pattern": "inherit",
+            "patternStrength": "normal",
+            "headingColor": "inherit",
+            "bodyColor": "inherit",
+            "headingFont": "inherit",
+            "bodyFont": "inherit",
+            "headingSize": "default",
+            "bodySize": "default",
+            "headingAlignment": "layout",
+            "bodyAlignment": "layout",
+            "headingPlacement": "layout",
+            "bodyPlacement": "layout",
+            "extraText": null,
+            "extraColor": "inherit",
+            "extraSize": "default",
+            "extraAlignment": "left",
+            "extraPlacement": "bottom",
+            "boxHeadings": null,
+            "headingVisible": true,
+            "bodyVisible": true,
+            "headingText": null,
+            "bodyText": null,
+            "labelText": null,
+            "labelVisible": true,
+            "watermarkMode": "inherit",
+            "watermarkText": "SPOKES",
+            "watermarkColor": "inherit",
+            "watermarkSize": "medium",
+            "watermarkPlacement": "bottom-right",
+            "watermarkOpacity": "low"
+          }
+        }
+      },
+      "colorLabel": "Fresh green"
     },
     {
       "id": "serious",
@@ -999,8 +1109,47 @@
             "Keep the progress going. Celebrate a useful lesson learned."
           ]
         },
-        "startingPoint": "serious"
-      }
+        "startingPoint": "serious",
+        "roleStyles": {
+          "title": {
+            "backgroundMode": "inherit",
+            "primary": "inherit",
+            "secondary": "inherit",
+            "direction": "down",
+            "pattern": "inherit",
+            "patternStrength": "normal",
+            "headingColor": "inherit",
+            "bodyColor": "inherit",
+            "headingFont": "inherit",
+            "bodyFont": "inherit",
+            "headingSize": "default",
+            "bodySize": "default",
+            "headingAlignment": "layout",
+            "bodyAlignment": "layout",
+            "headingPlacement": "layout",
+            "bodyPlacement": "layout",
+            "extraText": null,
+            "extraColor": "inherit",
+            "extraSize": "default",
+            "extraAlignment": "left",
+            "extraPlacement": "bottom",
+            "boxHeadings": null,
+            "headingVisible": true,
+            "bodyVisible": true,
+            "headingText": null,
+            "bodyText": null,
+            "labelText": null,
+            "labelVisible": true,
+            "watermarkMode": "inherit",
+            "watermarkText": "SPOKES",
+            "watermarkColor": "inherit",
+            "watermarkSize": "medium",
+            "watermarkPlacement": "bottom-right",
+            "watermarkOpacity": "low"
+          }
+        }
+      },
+      "colorLabel": "Warm gold"
     },
     {
       "id": "light-hearted",
@@ -1015,7 +1164,7 @@
           "titleText": "royal",
           "subtitle": "royal",
           "contentBackground": "light",
-          "heading": "dark",
+          "heading": "royal",
           "body": "royal",
           "accent": "accent",
           "button": "dark",
@@ -1053,7 +1202,7 @@
             "labelStyle": "pill"
           }
         },
-        "background": "dot-grid",
+        "background": "plain",
         "samples": {
           "title": "Make room for your next step",
           "subtitle": "A sample lesson for a confident start",
@@ -1064,8 +1213,47 @@
             "Keep the progress going. Celebrate a useful lesson learned."
           ]
         },
-        "startingPoint": "light-hearted"
-      }
+        "startingPoint": "light-hearted",
+        "roleStyles": {
+          "title": {
+            "backgroundMode": "inherit",
+            "primary": "inherit",
+            "secondary": "inherit",
+            "direction": "diagonal",
+            "pattern": "inherit",
+            "patternStrength": "normal",
+            "headingColor": "inherit",
+            "bodyColor": "inherit",
+            "headingFont": "inherit",
+            "bodyFont": "inherit",
+            "headingSize": "default",
+            "bodySize": "default",
+            "headingAlignment": "layout",
+            "bodyAlignment": "layout",
+            "headingPlacement": "layout",
+            "bodyPlacement": "layout",
+            "extraText": null,
+            "extraColor": "inherit",
+            "extraSize": "default",
+            "extraAlignment": "left",
+            "extraPlacement": "bottom",
+            "boxHeadings": null,
+            "headingVisible": true,
+            "bodyVisible": true,
+            "headingText": null,
+            "bodyText": null,
+            "labelText": null,
+            "labelVisible": true,
+            "watermarkMode": "inherit",
+            "watermarkText": "SPOKES",
+            "watermarkColor": "inherit",
+            "watermarkSize": "medium",
+            "watermarkPlacement": "bottom-right",
+            "watermarkOpacity": "low"
+          }
+        }
+      },
+      "colorLabel": "Soft silver"
     },
     {
       "id": "fun",
@@ -1080,7 +1268,7 @@
           "titleText": "royal",
           "subtitle": "royal",
           "contentBackground": "light",
-          "heading": "mauve",
+          "heading": "royal",
           "body": "royal",
           "accent": "mauve",
           "button": "mauve",
@@ -1094,7 +1282,7 @@
           "title": {
             "layout": "bottom",
             "logo": "corner",
-            "colors": "gradient"
+            "colors": "solid"
           },
           "divider": {
             "layout": "band",
@@ -1118,7 +1306,7 @@
             "labelStyle": "pill"
           }
         },
-        "background": "crosshatch",
+        "background": "plain",
         "samples": {
           "title": "Make room for your next step",
           "subtitle": "A sample lesson for a confident start",
@@ -1129,8 +1317,47 @@
             "Keep the progress going. Celebrate a useful lesson learned."
           ]
         },
-        "startingPoint": "fun"
-      }
+        "startingPoint": "fun",
+        "roleStyles": {
+          "title": {
+            "backgroundMode": "inherit",
+            "primary": "inherit",
+            "secondary": "inherit",
+            "direction": "right",
+            "pattern": "inherit",
+            "patternStrength": "normal",
+            "headingColor": "inherit",
+            "bodyColor": "inherit",
+            "headingFont": "inherit",
+            "bodyFont": "inherit",
+            "headingSize": "default",
+            "bodySize": "default",
+            "headingAlignment": "layout",
+            "bodyAlignment": "layout",
+            "headingPlacement": "layout",
+            "bodyPlacement": "layout",
+            "extraText": null,
+            "extraColor": "inherit",
+            "extraSize": "default",
+            "extraAlignment": "left",
+            "extraPlacement": "bottom",
+            "boxHeadings": null,
+            "headingVisible": true,
+            "bodyVisible": true,
+            "headingText": null,
+            "bodyText": null,
+            "labelText": null,
+            "labelVisible": true,
+            "watermarkMode": "inherit",
+            "watermarkText": "SPOKES",
+            "watermarkColor": "inherit",
+            "watermarkSize": "medium",
+            "watermarkPlacement": "bottom-right",
+            "watermarkOpacity": "low"
+          }
+        }
+      },
+      "colorLabel": "Midnight & gold"
     },
     {
       "id": "outspoken",

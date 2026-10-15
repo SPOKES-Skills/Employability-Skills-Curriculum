@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>My First Step Cards</title>
+<!-- Printable handout for Money Management Part 2. US Letter, four cards per page (2 x 2), cut on the dashed lines.
+     Colors match The Cushion Challenge; SPOKES locked palette only. Ink-light: colored outlines and small fills, no full-bleed color. -->
+<style>
+@font-face { font-family: "DM Serif Display"; src: url("../../fonts/dm-serif-display-latin.woff2") format("woff2"); font-weight: 400; }
+@font-face { font-family: "Outfit"; src: url("../../fonts/outfit-latin.woff2") format("woff2"); font-weight: 100 900; }
+@page { size: letter; margin: 0; }
+:root { --blue: #007baf; --green: #37b550; --gold: #d3b257; --mauve: #a7253f; --navy: #004071; --royal: #00133f; --gray: #60636b; --line: #d1d3d4; --white: #ffffff; }
+* { box-sizing: border-box; }
+html, body { margin: 0; background: var(--white); color: var(--royal); font-family: "Outfit", "Segoe UI", sans-serif; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+.sheet { width: 8.5in; height: 11in; display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 5.5in 5.5in; overflow: hidden; page-break-after: always; position: relative; }
+.sheet:last-child { page-break-after: auto; }
+.sheet::before, .sheet::after { content: ""; position: absolute; border-color: var(--gray); border-style: dashed; }
+.sheet::before { left: 50%; top: 0.15in; bottom: 0.15in; border-width: 0 0 0 1px; }
+.sheet::after { top: 50%; left: 0.15in; right: 0.15in; border-width: 1px 0 0 0; }
+.cell { padding: 0.3in 0.3in; display: flex; min-height: 0; }
+.card { flex: 1; border: 3px solid var(--navy); border-radius: 16px; overflow: hidden; display: flex; flex-direction: column; }
+.top { background: var(--navy); color: var(--white); padding: 0.11in 0.18in 0.09in; border-bottom: 5px solid var(--gold); }
+.eyebrow { font-size: 7.5pt; letter-spacing: 0.12em; text-transform: uppercase; font-weight: 700; color: var(--gold); }
+h1 { font-family: "DM Serif Display", Georgia, serif; font-weight: 400; font-size: 21pt; line-height: 1.05; margin: 2px 0 0; }
+.body { padding: 0.09in 0.18in 0.08in; display: flex; flex-direction: column; gap: 0.05in; flex: 1; min-height: 0; }
+.lead { font-size: 10.5pt; font-weight: 700; margin: 0; }
+.lead span { font-weight: 400; color: var(--gray); }
+ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.045in; }
+li { display: flex; align-items: center; gap: 0.09in; font-size: 9.8pt; line-height: 1.18; }
+.box { flex: 0 0 auto; width: 0.2in; height: 0.2in; border: 2px solid var(--c); border-radius: 4px; }
+.n { flex: 0 0 auto; width: 0.24in; height: 0.24in; border-radius: 50%; background: var(--c); color: var(--on, var(--white)); display: grid; place-items: center; font-weight: 800; font-size: 8.5pt; }
+li:nth-child(1) { --c: var(--blue); }
+li:nth-child(2) { --c: var(--green); --on: var(--royal); }
+li:nth-child(3) { --c: var(--gold); --on: var(--royal); }
+li:nth-child(4) { --c: var(--mauve); }
+li:nth-child(5) { --c: var(--navy); }
+.amt { display: flex; align-items: flex-end; gap: 0.06in; font-size: 10pt; font-weight: 600; margin-top: 0.03in; }
+.amt .rule { flex: 1; border-bottom: 1.5px solid var(--royal); height: 1.1em; }
+.amt small { font-weight: 400; color: var(--gray); font-size: 8pt; }
+.when { display: flex; gap: 0.08in; font-size: 10pt; align-items: center; }
+.when .rule { flex: 1; border-bottom: 1.5px solid var(--royal); height: 1.1em; }
+.tracker { border: 2px solid var(--green); border-radius: 10px; padding: 0.07in 0.1in 0.08in; display: flex; flex-direction: column; gap: 0.05in; margin-top: 0.04in; }
+.tracker .lbl { display: flex; justify-content: flex-start; align-items: flex-end; gap: 0.08in; font-size: 9.6pt; font-weight: 700; }
+.tracker .lbl .rule { flex: 0 0 1.1in; border-bottom: 1.5px solid var(--royal); height: 1.1em; }
+.tracker .hint { font-size: 8pt; color: var(--gray); }
+.segs { display: grid; grid-template-columns: repeat(10, 1fr); gap: 3px; }
+.segs i { height: 0.2in; border: 1.5px solid var(--green); border-radius: 3px; }
+.segs i:last-child { border-color: var(--gold); border-width: 2px; }
+.foot { margin-top: auto; border-top: 1px solid var(--line); padding-top: 0.06in; display: flex; justify-content: space-between; align-items: center; gap: 0.1in; }
+.motto { font-family: "DM Serif Display", Georgia, serif; font-size: 11pt; color: var(--navy); }
+.private { font-size: 7.4pt; color: var(--gray); text-align: right; line-height: 1.25; }
+</style>
+</head>
+<body>
+<template id="card">
+  <div class="cell"><div class="card">
+    <div class="top">
+      <div class="eyebrow">SPOKES Money Management · Part 2</div>
+      <h1>My First Step</h1>
+    </div>
+    <div class="body">
+      <p class="lead">This week I will: <span>(check one)</span></p>
+      <ul>
+        <li><span class="box"></span><span class="n">1</span>Pick an amount to save first each payday</li>
+        <li><span class="box"></span><span class="n">2</span>Open a safe place for savings</li>
+        <li><span class="box"></span><span class="n">3</span>Set up one automatic transfer or split deposit</li>
+        <li><span class="box"></span><span class="n">4</span>Ask my caseworker one question about saving</li>
+        <li><span class="box"></span><span class="n">5</span>Plan part of my tax refund before it arrives</li>
+      </ul>
+      <div class="amt">Amount: $<span class="rule"></span><small>(optional)</small></div>
+      <div class="when">I'll do it by:<span class="rule"></span></div>
+      <div class="tracker">
+        <div class="lbl"><span>My cushion goal: $</span><span class="rule"></span></div>
+        <div class="segs"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+        <div class="hint">Shade a box each time you save. The gold box means you reached your goal.</div>
+      </div>
+      <div class="foot">
+        <span class="motto">Small and steady counts.</span>
+        <span class="private">This card is yours.<br>Nobody collects it.</span>
+      </div>
+    </div>
+  </div></div>
+</template>
+<div class="sheet" id="sheet"></div>
+<script>
+  var t = document.getElementById("card"), s = document.getElementById("sheet");
+  for (var i = 0; i < 4; i++) s.appendChild(t.content.cloneNode(true));
+</script>
+</body>
+</html>

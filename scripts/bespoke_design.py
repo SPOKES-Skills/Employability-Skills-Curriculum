@@ -128,6 +128,7 @@ def build_design_v2(payload: dict) -> tuple[str, dict]:
         "fonts": result["fonts"],
         "fontPaths": font_paths,
         "componentMarkup": result["markup"],
+        "reviewMarkup": result["reviewMarkup"],
         "componentRequirements": {
             kind: {"rootClass": "bespoke-slide", "attributes": {"data-kind": kind, **{
                 "data-" + re.sub(r"([A-Z])", lambda match: "-" + match[1].lower(), key): str(value).lower() if isinstance(value, bool) else value
@@ -149,13 +150,23 @@ def build_design_v2(payload: dict) -> tuple[str, dict]:
     return css, manifest
 
 
-def component_sample_html(css: str, contract: dict) -> str:
+def component_sample_html(css: str, contract: dict, standalone: bool = False) -> str:
     """Reviewable sample artifact located with an immutable submission in the repo."""
     import html
     markup = "\n".join(
         f'<h2>{html.escape(kind.capitalize())} sample</h2>\n{fragment}'
-        for kind, fragment in contract["componentMarkup"].items()
+        for kind, fragment in contract.get("reviewMarkup", contract["componentMarkup"]).items()
     )
+    base = '<base href="../../../../../bespoke/">'
+    if standalone:
+        import base64
+        # Preserve the exact submitted fonts and logo independently of future repo edits.
+        for font_path in contract["fontPaths"]:
+            encoded = base64.b64encode((ROOT / "bespoke" / font_path).read_bytes()).decode("ascii")
+            css = css.replace(font_path, "data:font/woff2;base64," + encoded)
+        logo = base64.b64encode((ROOT / "SPOKES-Logo.png").read_bytes()).decode("ascii")
+        markup = markup.replace('../SPOKES-Logo.png', "data:image/png;base64," + logo)
+        base = ''
     advisories = contract.get("contrastAdvisories", [])
     guidance = ("<aside class=\"contrast-advisory\" aria-label=\"Contrast advisory\"><h2>Contrast advisory</h2>"
                 "<p>Contrast is the difference between text and its background. Low contrast can make text harder to read.</p><ul>"
@@ -164,7 +175,7 @@ def component_sample_html(css: str, contract: dict) -> str:
     return f'''<!doctype html>
 <html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<base href="../../../../../bespoke/">
+{base}
 <meta name="bespoke-selection-sha256" content="{contract['selectionSha256']}">
 <title>BeSpoke reusable visual samples</title>
 <style>body{{margin:0;padding:2rem;background:#edf3f7;color:#00133f;font-family:system-ui}}main{{max-width:1100px;margin:auto}}h2{{margin-top:2rem}}.contrast-advisory{{padding:1rem;background:#fff4f0;color:#6d2434;font:1rem/1.5 system-ui}}.contrast-advisory h2{{margin-top:0}}</style>

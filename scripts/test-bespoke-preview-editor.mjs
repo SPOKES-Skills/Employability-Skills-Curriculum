@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import {otherStartingPaths} from './bespoke-test-navigation.mjs';
 import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
 import path from 'node:path';
@@ -23,8 +24,8 @@ try{
   const page=await context.newPage();page.on('pageerror',e=>errors.push(e.message));
   await page.goto(server.baseUrl+'/bespoke/');await page.locator('#localPreviewNotice').waitFor({state:'visible'});
   const before=await current(page);
-  if(width<=760)await page.locator('#surface-preview').click();
-  await page.locator('#btnEditSlide').click();
+  if(await page.locator('#surface-preview').isVisible())await page.locator('#surface-preview').click();
+  await page.locator('#stage-slides').click();
   await page.locator('#modelStage .slide-title-text').click();
   assert.equal(await page.locator('#workspace').getAttribute('data-editor'),'true');
   assert.equal(await page.locator('#detailControls').isVisible(),false);
@@ -36,6 +37,8 @@ try{
   await page.addScriptTag({content:axeSource});
   const accessibility=await page.evaluate(()=>axe.run({include:[['#contextToolbar'],['#modelStage']]},{runOnly:{type:'tag',values:['wcag2a','wcag2aa','wcag21aa']},rules:{'color-contrast':{enabled:false}}}));
   assert.deepEqual(accessibility.violations.map(v=>({id:v.id,targets:v.nodes.map(n=>n.target)})),[],'Editor selection semantics at '+width);
+  // Wide screens keep font in the options drawer; open it to reach the control.
+  if(width>=1101)await page.locator('#btnMoreOptions').click();
   await page.locator('#context-font').selectOption('inter');
   assert.equal((await current(page)).roleStyles.title.headingFont,'inter');
   assert.deepEqual((await current(page)).roles,before.roles);
@@ -58,15 +61,16 @@ try{
   await page.locator('#modelStage .slide-card').first().focus();await page.keyboard.press('Escape');
   assert.equal(await page.locator('#selectedElement').inputValue(),'background');
   await page.locator('#context-finish').selectOption('solid');await page.locator('#context-background').selectOption('light');
-  await page.locator('#btnMoreOptions').click();assert.equal(await page.locator('#detailControls').isVisible(),true);
+  // On wide screens the drawer is already open from the font step above.
+  if(!await page.locator('#detailControls').isVisible())await page.locator('#btnMoreOptions').click();assert.equal(await page.locator('#detailControls').isVisible(),true);
   await page.locator('#btnCloseOptions').click();assert.equal(await page.locator('#detailControls').isVisible(),false);
   // Picker is the native keyboard equivalent of clicking visible text.
-  await page.locator('#selectedElement').selectOption('heading-1');assert.equal(await page.locator('#context-font').isVisible(),true);
+  await page.locator('#selectedElement').selectOption('heading-1');assert.equal(width>=1101?await page.locator('#context-font').count()===1:await page.locator('#context-font').isVisible(),true);
   assert.match(await page.locator('#editScope').textContent(),/ALL box headings/);
   await page.locator('#context-color').selectOption('royal');
   const saved=await current(page);await page.reload();await page.locator('#selectedElement').waitFor();assert.deepEqual(await current(page),saved);
-  await page.locator('#stage-start').click();
-  if(width<=760)await page.locator('#surface-design').click();
+  await page.locator('#stage-team').click();
+  if(await page.locator('#surface-design').isVisible())await page.locator('#surface-design').click();
   await page.locator('#teamName').fill('Preview editor test');await page.locator('#spokespersonName').fill('Sample Instructor');await page.locator('#spokespersonEmail').fill('sample@example.org');
   const save=page.waitForResponse(r=>r.url().endsWith('/api/bespoke')&&r.request().postDataJSON()?.action==='save');await page.locator('#btnSave').click();assert.equal((await (await save).json()).ok,true);
   const session=await context.storageState();
@@ -96,7 +100,7 @@ try{
  const beside=async(page,a,b)=>page.evaluate(([a,b])=>{const x=document.querySelector(a).getBoundingClientRect(),y=document.querySelector(b).getBoundingClientRect();return {sameRow:x.top<y.bottom&&y.top<x.bottom,leftOf:x.right<=y.left+1,a:[x.left|0,x.top|0,x.width|0],b:[y.left|0,y.top|0,y.width|0]};},[a,b]);
  await check('guide',async()=>{
   const {page,done}=await fresh(1440);
-  await page.locator('#stage-start').click();await page.locator('#btnGuideMe').click();await page.locator('.guide-count').waitFor();
+  await page.locator('#stage-start').click();await otherStartingPaths(page);await page.locator('#btnGuideMe').click();await page.locator('.guide-count').waitFor();
   const question=await page.locator('.guide-count').textContent();
   await page.locator('#modelStage .slide-title-text').click();
   assert.equal(await page.locator('.guide-count').count(),1,'Clicking the preview keeps Guide me open');
@@ -148,7 +152,7 @@ try{
   const gap=await page.evaluate(()=>document.getElementById('previewPane').getBoundingClientRect().top-document.getElementById('slideRail').getBoundingClientRect().bottom);
   assert.ok(gap<60,'The preview starts right under the thumbnails at '+lw+'px, not after a gap of '+Math.round(gap)+'px');
   await page.locator('#btnCloseOptions').click();
-  await page.locator('#stage-start').click();await page.locator('#btnGuideMe').click();await page.locator('.guide-count').waitFor();
+  await page.locator('#stage-start').click();await otherStartingPaths(page);await page.locator('#btnGuideMe').click();await page.locator('.guide-count').waitFor();
   const guided=await beside(page,'#previewPane','#chromeRail');
   assert.ok(guided.sameRow&&guided.leftOf,'Guide me sits beside the preview at '+lw+'px: '+JSON.stringify(guided));
   await done();console.log('PASS options and the guide stay beside the preview at '+lw+'px');
@@ -156,8 +160,9 @@ try{
  await check('a11y',async()=>{
   const {page,done}=await fresh(1440);
   await page.locator('#stage-slides').click();
-  const named=await page.evaluate(()=>[...document.querySelectorAll('#modelStage [data-edit-target]')].map(n=>({tag:n.tagName,label:n.getAttribute('aria-label'),role:n.getAttribute('role'),container:n.matches('.bespoke-slide,.slide-card')})));
-  for(const n of named.filter(n=>!n.container))assert.equal(n.label,null,'A '+n.tag+' keeps its visible text as its name: '+JSON.stringify(n));
+  const named=await page.evaluate(()=>[...document.querySelectorAll('#modelStage [data-edit-target]')].map(n=>({tag:n.tagName,label:n.getAttribute('aria-label'),role:n.getAttribute('role'),container:n.matches('.bespoke-slide,.slide-card'),text:/^(heading|body|extra)/.test(n.dataset.editTarget)})));
+  for(const n of named.filter(n=>n.text))assert.equal(n.label,null,'A '+n.tag+' keeps its visible text as its name: '+JSON.stringify(n));
+  for(const n of named.filter(n=>!n.text))assert(n.label,'Non-text features have an accessible name');
   for(const n of named.filter(n=>n.container)){assert.equal(n.role,'group');assert.match(n.label||'',/^(Background|Box \d)$/);}
   await page.locator('#modelStage .slide-title-text').click();
   const current=await page.evaluate(()=>[...document.querySelectorAll('#modelStage [aria-current="true"]')].map(n=>n.className));

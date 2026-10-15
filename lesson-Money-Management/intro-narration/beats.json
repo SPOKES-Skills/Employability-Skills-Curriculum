@@ -1,0 +1,10 @@
+[
+  { "id": "n1-title", "start": 1.5, "window": 4.5, "text": "Welcome to Money Management and Budget." },
+  { "id": "n2-income", "start": 7.5, "window": 6.8, "text": "Money comes in. That's your income, whatever it looks like for you this month." },
+  { "id": "n3-out", "start": 14.8, "window": 5.2, "text": "Then money goes out, in a lot of directions." },
+  { "id": "n4-choose", "start": 20.5, "window": 5.8, "text": "Some of these you have to pay. Others you get to choose." },
+  { "id": "n5-needs", "start": 27.0, "window": 6.2, "text": "Needs keep you housed, fed, connected, and able to get to work." },
+  { "id": "n6-wants", "start": 33.5, "window": 6.5, "text": "Wants are the extras that make life better. Streaming, dining out, games, new shoes." },
+  { "id": "n7-budget", "start": 40.5, "window": 9.5, "text": "A budget gives every dollar a job. Needs first, then wants, then savings, even if it's a little." },
+  { "id": "n8-question", "start": 51.5, "window": 7.5, "text": "Here's one to think about. What is one want you could trade for savings?" }
+]

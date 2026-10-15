@@ -1,6 +1,7 @@
 /** Durable, team-authorized Bespoke drafts. No writes to main and no lesson builds. */
 import { createCipheriv, createDecipheriv, createHash, randomBytes, timingSafeEqual } from 'node:crypto';
 import { LESSON_IDS, selectionErrors, semanticDigest, digest, submissionId } from './_shared/selection.mjs';
+import { CODE_MIN_LENGTH, hashAccessCode } from './_shared/access-code.mjs';
 export { LESSON_IDS, submissionId };
 export const DRAFT_BRANCH = 'bespoke-drafts';
 export const WORKFLOW_FILE = 'spoke-signals.yml';
@@ -121,7 +122,7 @@ function replay(draft, mutationId, requestDigest) {
 const runName = (lessonId, receipt) => `Bespoke receipt ${lessonId} ${receipt}`;
 async function receiptStatus(github, lessonId, receipt, runId) {
   const proposal = await github.findProposal(lessonId, receipt);
-  if (proposal) return { submissionId: receipt, status: 'received', url: proposal.url };
+  if (proposal) return { submissionId: receipt, status: 'received', url: proposal.url, ...(proposal.revision?{revision:proposal.revision,selectionSha256:proposal.selectionSha256,artifactUrl:proposal.artifactUrl}:{}) };
   const run = await github.findRun(lessonId, receipt, runId);
   if (!run) return { submissionId: receipt, status: 'processing' };
   const base = { submissionId: receipt, runId: run.id };
@@ -264,7 +265,41 @@ export function createGitHub(token, repository = REPO, fetchImpl = globalThis.fe
       const branch = `bespoke-signal/${lessonId}/${receipt}`;
       const data = requireStatus(await request('GET', `${base}/pulls?state=all&head=${encodeURIComponent(`${owner}:${branch}`)}&per_page=100`), [200]);
       const proposal = data.find(pr => pr.head?.ref === branch && pr.head?.repo?.full_name?.toLowerCase() === repository.toLowerCase() && pr.base?.ref === 'main');
-      return proposal ? { url: proposal.html_url, number: proposal.number } : null;
+      if (!proposal || !SHA.test(proposal.head.sha || '')) return null;
+      const folder = `docs/phase-2/submissions/${lessonId}/${receipt}`;
+      const revision = proposal.head.sha;
+      const readArtifact = async name => {
+        const res = await request('GET', `${base}/contents/${folder}/${name}?ref=${revision}`);
+        if (res.status === 404) return null;
+        let data = requireStatus(res, [200]);
+        if (!data.content && data.sha) data = requireStatus(await request('GET', `${base}/git/blobs/${data.sha}`), [200]);
+        if (typeof data.content !== 'string' || data.encoding !== 'base64') return null;
+        return Buffer.from(data.content.replace(/\n/g, ''), 'base64');
+      };
+      const bytes = await readArtifact('selection.json');
+      if (!bytes) return null;
+      let selection;
+      try { selection = JSON.parse(bytes.toString('utf8')); } catch { return null; }
+      if (selectionErrors(selection, lessonId).length || submissionId(selection) !== receipt) return null;
+      const manifestBytes = await readArtifact('review-package.json');
+      if (manifestBytes) {
+        let manifest;
+        try { manifest = JSON.parse(manifestBytes.toString('utf8')); } catch { return null; }
+        const required = ['selection.json','design.css','build-contract.json',...(selection.schema==='bespoke-selection/v2'?['component-samples.html','review.html']:[])];
+        if (!object(manifest) || (manifest.chosenOption ?? null) !== (selection.alternatives?.active ?? null) || manifest.schema !== 'bespoke-review-package/v1' || manifest.submissionId !== receipt || manifest.selectionSha256 !== digest(selection)) return null;
+        for (const name of required) {
+          const content = name === 'selection.json' ? bytes : await readArtifact(name);
+          if (!content || createHash('sha256').update(content).digest('hex') !== manifest.files?.[name]) return null;
+        }
+      } else {
+        if (selection.schema === 'bespoke-selection/v2') return null;
+        // Historical proposals predate the package manifest; verify their contract
+        // against the exact selection, rather than trusting a matching branch name.
+        const contractBytes = await readArtifact('build-contract.json');
+        if (!contractBytes) return null;
+        try { if (JSON.parse(contractBytes.toString('utf8')).selectionSha256 !== digest(selection)) return null; } catch { return null; }
+      }
+      return { url: proposal.html_url, number: proposal.number, revision, selectionSha256:digest(selection), artifactUrl:`https://github.com/${repository}/blob/${revision}/${folder}/${manifestBytes && selection.schema==='bespoke-selection/v2'?'review.html':'build-contract.json'}` };
     },
     async findRun(lessonId, receipt, runId) {
       const title = runName(lessonId, receipt);

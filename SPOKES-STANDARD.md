@@ -484,3 +484,13 @@ Generation D merges the best features from three incompatible navigation engine 
 - **Validation:** heuristic
 - **Rule:** `showSlide()` must skip `document.startViewTransition()` when `prefersReduced` is true. The View Transitions API operates outside the CSS `transition` property system and is not suppressed by RDM-01's CSS rule.
 - **Rationale:** The View Transitions API creates cross-fade animations between DOM states. Unlike CSS transitions, these are not governed by the `transition` property and therefore are not suppressed by RDM-01's `0.01ms` override. An explicit JS check is the only way to prevent these animations for reduced-motion users.
+
+---
+
+## Section 11: Print
+
+### PRT-01 — Print Slides Loaded
+- **Severity:** WARN
+- **Validation:** deterministic
+- **Rule:** Every lesson loads `print/manifest.js` and then `../scripts/print-slides.js`, after its other scripts. Freshness is separate: `node scripts/capture-print-slides.mjs --check` in `scripts/quality.sh` fails when `index.html` changed after the print pictures were taken.
+- **Rationale:** Teachers print lessons as stapled or binder workbooks in a Student version and a Teacher version with answers. The Print slides button prints saved pictures of each slide, because the live slides size themselves from the screen and do not survive a paper page.

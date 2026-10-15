@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>SPOKES lessons, offline copy</title>
+    <!-- Template for the offline package's START HERE page.
+         scripts/build-offline-package.py fills in BUILT and COMMIT. -->
+    <style>
+        :root {
+            --royal: #00133f;
+            --primary: #007baf;
+            --gold: #d3b257;
+            --ink: #1d2433;
+            --muted: #4a5468;
+            --paper: #ffffff;
+            --note: #fff8e6;
+        }
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            background: var(--paper);
+            color: var(--ink);
+            font: 1.125rem/1.6 "Segoe UI", system-ui, -apple-system, Roboto, Arial, sans-serif;
+        }
+        main {
+            max-width: 44rem;
+            margin: 0 auto;
+            padding: 3rem 1.25rem 4rem;
+        }
+        .logo { display: block; width: 96px; height: auto; }
+        h1 { color: var(--royal); font-size: 2.25rem; line-height: 1.2; margin: 1.25rem 0 0.5rem; }
+        h2 { color: var(--royal); font-size: 1.35rem; margin: 2.25rem 0 0.5rem; }
+        .lead { color: var(--muted); margin: 0 0 1.75rem; }
+        .open {
+            display: inline-block;
+            padding: 1rem 2rem;
+            border-radius: 0.5rem;
+            background: var(--royal);
+            color: var(--paper);
+            font-size: 1.35rem;
+            font-weight: 700;
+            text-decoration: none;
+        }
+        .open:hover { background: var(--primary); }
+        .open:focus-visible { outline: 4px solid var(--gold); outline-offset: 3px; }
+        .note {
+            margin-top: 2.25rem;
+            padding: 1rem 1.25rem;
+            border-left: 6px solid var(--gold);
+            background: var(--note);
+        }
+        .note h2 { margin-top: 0; font-size: 1.15rem; }
+        .note p { margin: 0; }
+        ul { padding-left: 1.25rem; }
+        li { margin-bottom: 0.5rem; }
+    </style>
+</head>
+<body>
+    <main>
+        <img class="logo" src="lesson-files/SPOKES-Logo.png" alt="SPOKES logo">
+        <h1>Employability Skills lessons</h1>
+        <p class="lead">This copy runs without the internet. It was made on {{BUILT}}.</p>
+        <p><a class="open" href="lesson-files/Dashboard.html">Open the lessons</a></p>
+
+        <section class="note" aria-labelledby="zip-note">
+            <h2 id="zip-note">Opened this from inside a zip file?</h2>
+            <p>The lessons won't open from there. Close this page, right-click the zip file and choose Extract All, then open START HERE from the folder it makes. On a Mac, double-click the zip instead.</p>
+        </section>
+
+        <h2>Before class</h2>
+        <ul>
+            <li>Keep this folder together. Copy the whole folder, not single files.</li>
+            <li>Plug the flash drive into the computer that's connected to the projector. A projector can't run the lessons on its own.</li>
+            <li>Open the lessons in Chrome or Edge. Safari works on a Mac.</li>
+            <li>If the computer won't open files from the flash drive, copy this folder to the computer's desktop and open it from there.</li>
+        </ul>
+
+        <h2>Good to know</h2>
+        <ul>
+            <li>Every video has captions. Turn them on from the video's controls.</li>
+            <li>The Jeopardy game in Controlling Anger is a website, so it needs the internet. Everything else works offline.</li>
+            <li>This copy won't update itself. When the lessons change, download a new copy and replace this folder.</li>
+        </ul>
+    </main>
+    <!-- Built from commit {{COMMIT}} -->
+</body>
+</html>

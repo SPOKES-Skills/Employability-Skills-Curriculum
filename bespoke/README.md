@@ -32,6 +32,39 @@ A preset can go directly to Review & save, or through just one editor for a twea
 Build my own can use the optional Shared theme and whichever editors are useful.
 Returning teams can **Continue editing** or **Review & save** their existing look;
 **Change starting look** opens the starting choices deliberately.
+**October 7, 2026 status:** the simplified workflow is implemented for local
+review in an isolated worktree. Synthetic local saving is separate from hosted
+acceptance; this revision has not been merged or deployed.
+
+## Name the team, choose, customize, review
+
+BeSpoke opens on **Lesson & team**. Choose the lesson, name the team and enter the
+spokesperson's name and email. The stage pill stays marked until the team is
+identified. Nothing blocks you from moving on, but Send to Britt needs the
+spokesperson's name.
+
+1. **Choose a layout:** choose one of exactly twelve slide thumbnails: Editorial,
+   Split stage, Centered, Grounded, Framed, Headline, Side rule, Horizon, Corner,
+   Masthead, Two columns and Inset. These use twelve different title compositions,
+   rendered with the same model as the live slide. **Other ways to start** retains the detailed guide and current-design path.
+2. **Customize:** select visible text in the large preview, or use Selected element.
+   Edit the words in the nearby Sample text field. Choose a text color, one of three
+   sizes, Left/Center/Right alignment, and Top/Middle/Bottom placement within the
+   text area. A continuous typing session is one Undo action. **Add text** adds one
+   additional editable text area per slide type; select it again to edit or remove it.
+   Existing box headings and bodies can be edited separately. Formatting scope is
+   stated above the preview; matching box text still shares formatting.
+3. **Review & save:** inspect the five reusable slide types, then use existing
+   Save/Open and Files & recovery. Saving remains a visual-design review workflow.
+
+Select Background for **Solid** (one brand-color picker) or **Gradient**
+(independent start and end brand-color pickers). Changes appear immediately.
+The preset supplies the direction; no direction choice is shown. Solid retains
+its second color for later use. The eleven established brand colors remain available.
+
+Undo and Redo remain beside the four stages. **More options** retains the detailed
+slide choices and shared theme, without requiring a team to work through them.
+The original v1 wizard remains separate at `legacy.html`.
 
 A preset fills the same controls as individual editing. Changing a field keeps
 the other choices. Applying another preset replaces the visual choices, preserves
@@ -49,7 +82,7 @@ Start a new browser draft, or a fresh tab after closing this one. It uses only
 `sessionStorage`; it never enters designs, backups, history, or shared records.
 If tab storage is unavailable, the preference lasts only until the page reloads.
 
-**Shared theme** is an optional disclosure available in every stage. It contains
+**Shared theme** is an optional disclosure in More options and Review & save. It contains
 the shared colors, heading/body fonts and texture, including Sidebar, Accent and
 Buttons colors. These three colors have no local slide replacement; shared body
 typography also supplies navigation and buttons. Shared content background still
@@ -141,7 +174,7 @@ guarantee.
 
 ## Guide me
 
-The Start stage also offers **Guide me step by step**. The guide asks one question per
+**Choose a layout → Other ways to start** offers **Guide me step by step**. The guide asks one question per
 screen, slide by slide: a starting look, a shared look (fonts, pattern, sidebar, accent and
 button colors), then the title slide, chapter divider, text boxes, video slide and activity.
 Each question shows its choices as small pictures drawn from the real slide styles, and
@@ -195,15 +228,18 @@ request. Local preview disables Send and receipt-status requests completely.
 
 ## Local review
 
+For this simplified-workflow worktree, use port **8778** and runtime directory
+`~/Library/Application Support/Codex/local-previews/bespoke-simple-layouts`.
+
 Use HTTP so catalogs and fonts load. A `file://` preview cannot load the wizard's
 catalogs. From this isolated worktree:
 
 ```sh
-node scripts/bespoke-dev-server.mjs --port 8766 \
-  --runtime-dir "/Users/brittlegg/Library/Application Support/Codex/local-previews/bespoke-guided-builder"
+node scripts/bespoke-dev-server.mjs --port 8778 \
+  --runtime-dir "/Users/brittlegg/Library/Application Support/Codex/local-previews/bespoke-simple-layouts"
 ```
 
-Open [the local builder](http://127.0.0.1:8766/bespoke/). The server binds only to
+Open [the local builder](http://127.0.0.1:8778/bespoke/). The server binds only to
 loopback and overrides the handoff configuration with its own synthetic draft
 service. **Save test design**, Open and history use only local test data, with the
 same revision and retry handler. No real team code or hosted-service connection is
@@ -211,8 +247,8 @@ needed. The external runtime directory keeps these drafts across server restarts
 omitting `--runtime-dir` keeps them only in memory. Do not place runtime data in
 MacDev or another Git checkout. Stop the foreground server with Ctrl-C.
 
-Port 8766 is a different browser origin from the older saved-checkout preview at
-port 8765. Keep the older server and its Safari draft intact while reviewing v2.
+Port 8778 is separate from the earlier previews at 8765, 8766 and 8767.
+Keep those servers and browser drafts intact while reviewing this workflow.
 Local testing does not establish online multi-device or hosted delivery acceptance.
 
 ## Sources and integration
@@ -250,6 +286,7 @@ a deployment or change production configuration.
 ## Checks and historical references
 
 ```sh
+node scripts/test-bespoke-simple-workflow.mjs
 node scripts/generate-selection-v2-schema.mjs --check
 python3 -m unittest discover -s scripts -p 'test_bespoke*.py' -v
 node --test scripts/test-bespoke-handoff.mjs scripts/test-bespoke-v2-contracts.mjs scripts/test-bespoke-dev-server.mjs
@@ -261,6 +298,6 @@ current implementation's evidence belongs in its dated verification report.
 Read [decisions](../docs/bespoke/decisions.md) for the September 24 overrides. The
 September 23 slide-builder specification and color mockup remain historical design
 records; their restricted palette, fixed pairing and no-preset constraints are
-superseded. The [team meeting guide](team-guide.html) describes the three-stage
+superseded. The [team meeting guide](team-guide.html) describes the four-stage
 builder, optional editors, shared defaults and recovery. The original wizard is
 preserved separately; its historical sequence is not the current builder's flow.

@@ -1,0 +1,608 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>The Cushion Challenge</title>
+<style>
+@font-face { font-family: "DM Serif Display"; src: url("../fonts/dm-serif-display-latin.woff2") format("woff2"); font-weight: 400; font-style: normal; font-display: swap; }
+@font-face { font-family: "Outfit"; src: url("../fonts/outfit-latin.woff2") format("woff2"); font-weight: 100 900; font-style: normal; font-display: swap; }
+</style>
+<style>
+/* Layout: navy title card and royal cushion meter on top, then one stage card that changes per step.
+   Color: each payday has its own color (blue, green, gold, mauve) and the answer choices are color-coded A-D like a game show.
+   SPOKES locked 11-color palette only. */
+:root {
+  --page: #edf3f7;      /* muted */
+  --card: #ffffff;      /* light */
+  --ink: #00133f;       /* royal */
+  --head: #004071;      /* dark */
+  --soft: #60636b;      /* gray */
+  --line: #d1d3d4;      /* offwhite */
+  --primary: #007baf;   /* primary */
+  --on-primary: #ffffff;
+  --fill: #37b550;      /* accent (fills, never text on light) */
+  --goal: #ad8806;      /* muted-gold (focus ring) */
+  --warn: #a7253f;      /* mauve */
+  --chip: #edf3f7;
+  --blue: #007baf; --green: #37b550; --gold: #d3b257; --mauve: #a7253f; --navy: #004071; --royal: #00133f; --white: #ffffff; --silver: #d1d3d4;
+  --hero: #004071; --meter: #00133f; --why: #004071; --hero-line: #004071;
+  --font-heading: "DM Serif Display", Georgia, "Times New Roman", serif;
+  --font-body: "Outfit", "Segoe UI", system-ui, sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --page: #00133f; --card: #004071; --ink: #ffffff; --head: #ffffff; --soft: #d1d3d4;
+    --line: #60636b; --primary: #007baf; --on-primary: #ffffff; --fill: #37b550;
+    --goal: #d3b257; --warn: #d3b257; --chip: #00133f; color-scheme: dark;
+    --hero: #00133f; --meter: #00133f; --why: #00133f; --hero-line: #60636b;
+  }
+}
+:root[data-theme="dark"] {
+  --page: #00133f; --card: #004071; --ink: #ffffff; --head: #ffffff; --soft: #d1d3d4;
+  --line: #60636b; --primary: #007baf; --on-primary: #ffffff; --fill: #37b550;
+  --goal: #d3b257; --warn: #d3b257; --chip: #00133f; color-scheme: dark;
+  --hero: #00133f; --meter: #00133f; --why: #00133f; --hero-line: #60636b;
+}
+
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--page); color: var(--ink);
+  font-family: var(--font-body); font-size: 1.125rem; line-height: 1.55;
+  padding-inline: 16px; padding-block: 20px 48px;
+}
+.wrap { max-width: 760px; margin-inline: auto; display: flex; flex-direction: column; gap: 18px; }
+
+/* Title card */
+header { display: flex; flex-direction: column; gap: 12px; background: var(--hero); border: 1px solid var(--hero-line); color: var(--white); border-radius: 18px; padding: clamp(16px, 3vw, 24px); border-bottom: 6px solid var(--gold); }
+.brand { font-size: 0.8rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--gold); font-weight: 700; }
+h1 { font-family: var(--font-heading); font-weight: 400; color: var(--white); font-size: clamp(2rem, 6vw, 2.8rem); line-height: 1.1; margin: 0; text-wrap: balance; }
+
+.steps { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px; }
+.steps li { font-size: 0.82rem; font-weight: 600; padding: 4px 10px; border-radius: 999px; border: 1px solid var(--silver); color: var(--silver); background: transparent; }
+.steps li[aria-current="step"] { background: var(--gold); border-color: var(--gold); color: var(--royal); }
+.steps li.done { color: var(--white); border-color: var(--green); }
+.steps li.done::before { content: "✓ "; color: var(--green); font-weight: 800; }
+
+/* Cushion meter */
+.meter { background: var(--meter); color: var(--white); border: 1px solid var(--hero-line); border-radius: 18px; padding: 16px 18px; display: flex; flex-direction: column; gap: 10px; }
+.meter-top { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+.meter-label { font-weight: 700; color: var(--white); }
+.meter.reached .meter-label::after { content: "  ★ Goal reached"; color: var(--gold); }
+.meter-amt { font-family: var(--font-heading); font-size: 2.2rem; color: var(--gold); font-variant-numeric: tabular-nums; line-height: 1; }
+.track { position: relative; height: 20px; border-radius: 10px; background: var(--navy); border: 1px solid var(--soft); overflow: visible; }
+.bar { position: absolute; inset: 0 auto 0 0; width: 0; border-radius: 10px; background: var(--green); transition: width 0.6s ease; }
+.goal { position: absolute; top: -7px; bottom: -7px; width: 4px; background: var(--gold); border-radius: 2px; }
+.goal-note { font-size: 0.85rem; color: var(--silver); }
+.goal-note b { color: var(--gold); }
+.top-row { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+.reset { font: inherit; font-size: 0.85rem; font-weight: 600; cursor: pointer; background: transparent; color: var(--white); border: 1px solid var(--silver); border-radius: 999px; padding: 6px 14px; min-height: 36px; }
+.reset:hover { background: var(--royal); }
+.reset[aria-pressed="true"] { background: var(--gold); border-color: var(--gold); color: var(--royal); }
+
+/* Stage: top stripe and kicker pill take the color of the current payday */
+.stage { --tone: var(--blue); --on-tone: var(--white); background: var(--card); border: 1px solid var(--line); border-top: 10px solid var(--tone); border-radius: 18px; padding: clamp(18px, 4vw, 30px); display: flex; flex-direction: column; gap: 16px; }
+.stage[data-tone="navy"]  { --tone: var(--navy);  --on-tone: var(--white); }
+.stage[data-tone="green"] { --tone: var(--green); --on-tone: var(--royal); }
+.stage[data-tone="gold"]  { --tone: var(--gold);  --on-tone: var(--royal); }
+.stage[data-tone="mauve"] { --tone: var(--mauve); --on-tone: var(--white); }
+.kicker { align-self: flex-start; font-size: 0.82rem; letter-spacing: 0.1em; text-transform: uppercase; font-weight: 800; background: var(--tone); color: var(--on-tone); padding: 4px 12px; border-radius: 999px; }
+.stage h3.sub { margin: 0.4rem 0 0; font-size: 0.85rem; letter-spacing: 0.1em; text-transform: uppercase; font-weight: 800; color: var(--head); }
+h2 { font-family: var(--font-heading); font-weight: 400; color: var(--head); font-size: clamp(1.6rem, 4.5vw, 2.1rem); line-height: 1.15; margin: 0; text-wrap: balance; }
+h2:focus { outline: none; }
+.stage p { margin: 0; max-width: 62ch; }
+
+/* Choices: color-coded A blue, B green, C gold, D mauve */
+.choices { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; }
+.choice {
+  --c: var(--blue); --on-c: var(--white);
+  font: inherit; font-weight: 700; text-align: left; cursor: pointer;
+  background: var(--c); color: var(--on-c);
+  border: none; border-radius: 14px; padding: 16px 18px; min-height: 64px;
+  display: flex; flex-direction: row; align-items: center; gap: 14px;
+  box-shadow: 0 4px 0 rgba(0,19,63,0.35);
+}
+.choice[data-key="B"] { --c: var(--green); --on-c: var(--royal); }
+.choice[data-key="C"] { --c: var(--gold);  --on-c: var(--royal); }
+.choice[data-key="D"] { --c: var(--mauve); --on-c: var(--white); }
+.choice .ct { display: flex; flex-direction: column; gap: 2px; }
+.choice .letter { flex: 0 0 auto; width: 2.1em; height: 2.1em; border-radius: 50%; display: grid; place-items: center; background: var(--white); color: var(--royal); font-weight: 800; }
+.choice small { font-weight: 500; color: inherit; font-size: 0.9rem; }
+.choice, .next, .ghost { transition: transform 0.18s ease, box-shadow 0.18s ease, background 0.18s ease, opacity 0.18s ease; }
+.choice:hover:not(:disabled) { transform: translateY(-3px); box-shadow: 0 8px 18px rgba(0,19,63,0.3); }
+.next:hover, .ghost:hover { transform: translateY(-2px); box-shadow: 0 6px 18px rgba(0,123,175,0.35); }
+.choice:active:not(:disabled), .next:active, .ghost:active { transform: scale(0.97); box-shadow: 0 2px 6px rgba(0,64,113,0.2); }
+.choice:disabled { cursor: default; opacity: 0.3; box-shadow: none; }
+.choice.picked { opacity: 1; box-shadow: 0 0 0 4px var(--card), 0 0 0 8px var(--ink); }
+.choice.picked .letter { background: var(--royal); color: var(--white); }
+button:focus-visible, input:focus-visible, label:focus-within { outline: 3px solid var(--goal); outline-offset: 3px; }
+
+/* Feedback: solid green when it helped, mauve when it hurt */
+.feedback { background: var(--green); color: var(--royal); border-radius: 14px; padding: 16px 18px; display: flex; flex-direction: column; gap: 6px; }
+.feedback.warn { background: var(--mauve); color: var(--white); }
+.feedback h3 { margin: 0; font-size: 1.15rem; color: inherit; display: flex; align-items: center; gap: 10px; }
+.feedback .ico { flex: 0 0 auto; width: 1.7em; height: 1.7em; border-radius: 50%; display: grid; place-items: center; background: var(--white); color: var(--royal); font-size: 0.95rem; font-weight: 800; }
+.feedback:focus { outline: none; }
+
+/* "Why" card: navy with a gold tag, like a sticky note from the teacher */
+.why { background: var(--why); color: var(--white); border-radius: 14px; padding: 14px 18px; display: flex; flex-direction: column; gap: 6px; border-left: 6px solid var(--gold); }
+.why .tag { font-size: 0.78rem; letter-spacing: 0.1em; text-transform: uppercase; font-weight: 800; color: var(--gold); }
+.why a { color: var(--white); }
+.why .src { color: var(--silver); }
+.src { font-size: 0.85rem; color: var(--soft); }
+.src a { color: var(--primary); }
+.why .src a { color: var(--white); }
+
+.ledger { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; font-size: 0.98rem; }
+.ledger li { display: flex; justify-content: space-between; gap: 12px; border-bottom: 1px solid var(--line); padding-block: 4px; }
+.ledger .amt { font-variant-numeric: tabular-nums; font-weight: 700; white-space: nowrap; }
+.ledger .neg { color: var(--warn); }
+.ledger.good li, .ledger.bad li { justify-content: flex-start; align-items: center; }
+.ledger.good li::before, .ledger.bad li::before { flex: 0 0 auto; width: 1.6em; height: 1.6em; border-radius: 50%; display: grid; place-items: center; font-weight: 800; font-size: 0.85rem; }
+.ledger.good li::before { content: "✓"; background: var(--green); color: var(--royal); }
+.ledger.bad li::before { content: "✕"; background: var(--mauve); color: var(--white); }
+
+.actions { display: flex; flex-wrap: wrap; gap: 10px; }
+.next {
+  font: inherit; font-weight: 700; cursor: pointer; border: none; border-radius: 12px;
+  background: var(--primary); color: var(--on-primary); padding: 14px 24px; min-height: 52px;
+}
+.next::after { content: " →"; }
+.next[data-reveal] { background: var(--navy); }
+.next[data-reveal]::after { content: ""; }
+.ghost { font: inherit; font-weight: 600; cursor: pointer; border: 2px solid var(--line); background: transparent; color: var(--ink); border-radius: 12px; padding: 12px 20px; min-height: 52px; }
+
+.intro-video { display: block; width: 100%; max-width: 100%; aspect-ratio: 16 / 9; border-radius: 14px; background: var(--royal); border: 4px solid var(--gold); }
+.fig { display: flex; gap: 16px; align-items: center; flex-wrap: wrap; }
+.fig svg { flex: 0 0 auto; }
+.fig > div { flex: 1 1 260px; min-width: 0; display: flex; flex-direction: column; gap: 10px; }
+
+.card-out { border: 4px solid var(--gold); border-radius: 16px; padding: 18px; display: flex; flex-direction: column; gap: 8px; }
+.card-out .t { font-family: var(--font-heading); font-size: 1.5rem; color: var(--head); }
+.field { display: flex; flex-direction: column; gap: 6px; }
+.field input { font: inherit; padding: 10px 12px; border: 2px solid var(--line); border-radius: 10px; background: var(--card); color: var(--ink); max-width: 220px; }
+.fine { font-size: 0.88rem; color: var(--soft); }
+#stepForm .choice { --c: var(--card); --on-c: var(--ink); border: 2px solid var(--primary); box-shadow: none; font-weight: 600; }
+
+.top-btns { display: flex; gap: 8px; flex-wrap: wrap; }
+.first-list { counter-reset: fs; }
+.first-list li { padding-block: 8px; justify-content: flex-start; align-items: center; counter-increment: fs; }
+.first-list li::before { content: counter(fs); flex: 0 0 auto; width: 1.8em; height: 1.8em; border-radius: 50%; display: grid; place-items: center; font-weight: 800; background: var(--blue); color: var(--white); }
+.first-list li:nth-child(2)::before { background: var(--green); color: var(--royal); }
+.first-list li:nth-child(3)::before { background: var(--gold); color: var(--royal); }
+.first-list li:nth-child(4)::before { background: var(--mauve); color: var(--white); }
+.first-list li:nth-child(5)::before { background: var(--navy); color: var(--white); }
+
+/* Class mode: sized for a projector or large monitor. Text scales with screen width; title card and meter share the top row so the question has room. */
+.class-mode { font-size: clamp(16px, 1.35vw, 28px); }
+.class-mode body { padding-inline: 2vw; padding-block: 1.5vh 4vh; }
+.class-mode .wrap { max-width: min(96vw, 1700px); }
+.class-mode .brand, .class-mode .reset, .class-mode .steps li, .class-mode .kicker, .class-mode .why .tag,
+.class-mode .goal-note, .class-mode .src, .class-mode .fine, .class-mode .choice small, .class-mode .stage h3.sub { font-size: 0.95rem; }
+.class-mode .reset { min-height: 2.2em; }
+.class-mode .stage p { max-width: 70ch; }
+.class-mode .choices { grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr)); }
+.class-mode .feedback h3 { font-size: 1.3rem; }
+.class-mode .track { height: 28px; border-radius: 14px; }
+.class-mode .bar { border-radius: 14px; }
+.class-mode .meter-amt { font-size: 2.8rem; }
+.class-mode .intro-video { width: min(100%, calc(50vh * 16 / 9)); margin-inline: auto; }
+@media (min-width: 900px) {
+  .class-mode .wrap { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); align-items: stretch; gap: 1.2rem 1.5rem; }
+  .class-mode .meter { justify-content: center; }
+  .class-mode .stage { grid-column: 1 / -1; }
+}
+
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+@media (prefers-reduced-motion: reduce) { .bar, .choice, .next, .ghost { transition: none; } .choice:hover:not(:disabled), .next:hover, .ghost:hover, .choice:active:not(:disabled), .next:active, .ghost:active { transform: none; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="top-row"><div class="brand">SPOKES Money Management · Part 2</div><div class="top-btns"><button type="button" class="reset" id="mode" aria-pressed="true">Class mode <span id="modeState" aria-hidden="true">On</span></button><button type="button" class="reset" id="reset">Start over</button></div></div>
+    <h1>The Cushion Challenge</h1>
+    <ol class="steps" id="steps" aria-label="Progress"></ol>
+  </header>
+
+  <section class="meter" id="meter" aria-label="Jess's cushion">
+    <div class="meter-top">
+      <span class="meter-label">Jess's cushion</span>
+      <span class="meter-amt" id="amt">$0</span>
+    </div>
+    <div class="track" role="img" id="track" aria-label="Cushion meter">
+      <div class="bar" id="bar"></div>
+      <div class="goal" id="goal"></div>
+    </div>
+    <div class="goal-note">Goal line: <b>$250</b>, the small cushion research links to fewer missed rent and utility payments.</div>
+  </section>
+
+  <main class="stage" id="stage" aria-live="polite"></main>
+  <div class="sr" aria-live="assertive" id="announce"></div>
+</div>
+
+<script>
+(function () {
+  "use strict";
+  var GOAL = 250, PAY = 400, TIRE = 60, PICS = 30, FEE = 12, JAR = 15;
+  var SRC = {
+    urban: "https://www.urban.org/research/publication/thriving-residents-thriving-cities-family-financial-security-matters-cities",
+    cfpb: "https://files.consumerfinance.gov/f/documents/cfpb_ymyg-savings-booklet.pdf",
+    bankon: "https://detroitmi.gov/sites/detroitmi.localhost/files/2026-05/CFE-Bank-On-NAS-2025-2026.pdf",
+    fns: "https://fns-prod.azureedge.us/sites/default/files/resource-files/BBCE-States-Chart-June2026.pdf",
+    irs: "https://www.irs.gov/refunds/frequently-asked-questions-about-splitting-federal-income-tax-refunds"
+  };
+  var STEPS = ["Meet Jess", "Payday 1", "Payday 2", "Payday 3", "Payday 4", "How it went", "Your turn"];
+
+  var s;
+  function fresh() {
+    return { screen: 0, cushion: 0, save1: null, acct: null, auto: null, autoAmt: 0, pics: null,
+             snap: null, refund: null, shortfall: 0, p3done: false, ledger: [], applied: {} };
+  }
+  var KEY = "cushion-challenge-v2";
+  var FIRST = ["Pick an amount to save first each payday", "Open a safe place for savings", "Set up one automatic transfer or split deposit", "Ask my caseworker one question about saving", "Plan part of my tax refund before it arrives"];
+
+  /* Class mode (default): big text for a projector, lettered choices, and the answer waits for the teacher to reveal it. */
+  var classMode = true;
+  try { if (localStorage.getItem("cushion-mode") === "solo") classMode = false; } catch (e) {}
+  var qm = /[?&]mode=(solo|class)\b/.exec(location.search);
+  if (qm) classMode = qm[1] === "class";
+  function applyMode() {
+    document.documentElement.classList.toggle("class-mode", classMode);
+    var b = document.getElementById("mode");
+    b.setAttribute("aria-pressed", classMode ? "true" : "false");
+    document.getElementById("modeState").textContent = classMode ? "On" : "Off";
+  }
+  function open(name) { return !!s.applied[name]; }
+  function revealBtn(name) {
+    return '<p class="fine">Ask the class why they picked it. Then reveal what happens.</p>' +
+      '<div class="actions"><button type="button" class="next" data-reveal="' + name + '">Reveal what happens</button></div>';
+  }
+
+  var $ = function (id) { return document.getElementById(id); };
+  function money(n) { return "$" + Math.round(n).toLocaleString("en-US"); }
+  function esc(t) { return String(t).replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); }
+
+  function add(label, amt, week) {
+    var before = s.cushion;
+    s.cushion = Math.max(0, s.cushion + amt);
+    var real = s.cushion - before;
+    s.ledger.push({ label: label, amt: real, week: week });
+    meter();
+    if (real !== 0) $("announce").textContent = label + ": " + (real > 0 ? "plus " : "minus ") + money(Math.abs(real)) + ". Cushion is " + money(s.cushion) + ".";
+    return real;
+  }
+
+  function meter() {
+    var max = Math.max(GOAL * 1.25, s.cushion * 1.08);
+    $("bar").style.width = Math.min(100, (s.cushion / max) * 100) + "%";
+    $("goal").style.left = "calc(" + (GOAL / max) * 100 + "% - 1px)";
+    $("amt").textContent = money(s.cushion);
+    $("meter").classList.toggle("reached", s.cushion >= GOAL);
+    $("track").setAttribute("aria-label", "Cushion " + money(s.cushion) + " of a " + money(GOAL) + " goal");
+  }
+
+  function stepIndex(i) {
+    var map = [0, 1, 2, 2, 2, 3, 3, 4, 5, 6];
+    return map[i];
+  }
+  function steps() {
+    var cur = stepIndex(s.screen);
+    $("steps").innerHTML = STEPS.map(function (t, i) {
+      return '<li' + (i === cur ? ' aria-current="step"' : (i < cur ? ' class="done"' : '')) + '>' + t + '</li>';
+    }).join("");
+  }
+
+  function why(tag, html, srcKey, srcName) {
+    return '<div class="why"><span class="tag">' + tag + '</span><p>' + html + '</p>' +
+      (srcKey ? '<p class="src">Source: <a href="' + SRC[srcKey] + '" target="_blank" rel="noopener">' + srcName + '</a></p>' : '') + '</div>';
+  }
+  function fb(title, body, warn) {
+    return '<div class="feedback' + (warn ? ' warn' : '') + '" tabindex="-1"><h3><span class="ico" aria-hidden="true">' + (warn ? '!' : '✓') + '</span>' + title + '</h3><p>' + body + '</p></div>';
+  }
+  function weekLedger(week) {
+    var rows = s.ledger.filter(function (r) { return r.week === week; });
+    if (!rows.length) return "";
+    return '<ul class="ledger" aria-label="This payday">' + rows.map(function (r) {
+      var cls = r.amt < 0 ? "amt neg" : "amt";
+      return '<li><span>' + esc(r.label) + '</span><span class="' + cls + '">' + (r.amt < 0 ? "−" : "+") + money(Math.abs(r.amt)) + '</span></li>';
+    }).join("") + '</ul>';
+  }
+
+  function choices(name, opts, picked) {
+    var on = picked !== null && picked !== undefined;
+    return '<div class="choices" role="group" aria-label="Choices">' + opts.map(function (o, i) {
+      var L = "ABCD".charAt(i);
+      return '<button type="button" class="choice' + (picked === o.v ? ' picked' : '') + '" data-name="' + name + '" data-v="' + o.v + '" data-key="' + L + '"' + (on ? ' disabled' : '') + '>' +
+        '<span class="letter">' + L + '</span><span class="ct">' + o.t + (o.d ? '<small>' + o.d + '</small>' : '') + '</span></button>';
+    }).join("") + '</div>';
+  }
+  function next(label) { return '<div class="actions"><button type="button" class="next" data-go="next">' + (label || "Next") + '</button></div>'; }
+
+  /* ---------- screens ---------- */
+  var screens = [
+    function intro() {
+      return '<span class="kicker">Meet Jess</span>' +
+        '<video class="intro-video" controls preload="none" playsinline poster="Meet_Jess_poster.jpg" aria-label="Video: Meet Jess, about one minute">' +
+        '<source src="Meet_Jess.mp4" type="video/mp4">' +
+        '<track kind="captions" src="Meet_Jess.vtt" srclang="en" label="English" default>' +
+        '</video>' +
+        '<div class="fig"><div>' +
+        '<h2 tabindex="-1">Jess Just Started a New Job</h2>' +
+        '<p>Jess is a mom of two. She found work through SPOKES and still gets SNAP. Her take-home pay is <b>' + money(PAY) + '</b> a week. Every dollar has a job: rent, lights, gas, food, the kids.</p>' +
+        '<p>Her goal is a small cushion, so one bad week doesn\'t turn into a crisis. You\'ll make her choices for four paydays.</p>' +
+        '<p class="fine">Jess and her numbers are made up. Nobody shares their own money in this activity.</p>' +
+        '</div></div>' + next("Start Payday 1");
+    },
+    function payday1() {
+      var h = '<span class="kicker">Payday 1</span><h2 tabindex="-1">' + money(PAY) + ' Just Landed. When Does Jess Save?</h2>' +
+        choices("save1", [
+          { v: 10, t: "Save $10 first", d: "Right when pay arrives" },
+          { v: 25, t: "Save $25 first", d: "Right when pay arrives" },
+          { v: 50, t: "Save $50 first", d: "Right when pay arrives" },
+          { v: 0, t: "Save what's left", d: "At the end of the week" }
+        ], s.save1);
+      if (s.save1 !== null) {
+        if (!open("save1")) return h + revealBtn("save1");
+        h += s.save1 > 0
+          ? fb("Saved First: +" + money(s.save1), "The money was set aside before the week could spend it. The rest still covered her bills.")
+          : fb("Nothing Was Left", "A snack here, a gas top-off there. By Friday the leftovers were gone. Saving last usually means saving nothing.", true);
+        h += why("Pay yourself first", "Treat savings like a bill you pay first, the day money arrives. Any amount counts; the habit matters more than the size.", "cfpb", "CFPB, Your Money, Your Goals");
+        h += next("Go to Payday 2");
+      }
+      return h;
+    },
+    function account() {
+      var h = '<span class="kicker">Payday 2</span><h2 tabindex="-1">Where Should Jess Keep Her Savings?</h2>' +
+        choices("acct", [
+          { v: "jar", t: "A jar at home", d: "Easy to reach" },
+          { v: "fee", t: "An account with fees", d: money(FEE) + " monthly fee and overdraft charges" },
+          { v: "bankon", t: "A Bank On-style account", d: "No overdraft fees, insured" }
+        ], s.acct);
+      if (s.acct) {
+        if (!open("acct")) return h + revealBtn("acct");
+        if (s.acct === "bankon") h += fb("Safe and Low-Cost", "Her savings is insured and won't get eaten by fees.");
+        if (s.acct === "fee") h += fb("The Fee Took a Bite: −" + money(FEE), "Some accounts charge just for holding your money. That fee came out of her cushion.", true);
+        if (s.acct === "jar") h += fb("Safe for Now", "Cash at home isn't insured, and it's easy to dip into on a long week. Watch what happens later.", true);
+        h += why("Keep it somewhere safe", "Bank On certified accounts have no overdraft fees, need $25 or less to open, and are federally insured.", "bankon", "Bank On National Account Standards 2025–2026");
+        h += next();
+      }
+      return h;
+    },
+    function automate() {
+      var amt = s.save1 > 0 ? s.save1 : 25;
+      var h = '<span class="kicker">Payday 2</span><h2 tabindex="-1">Should Jess Make Saving Automatic?</h2>' +
+        '<p>Her employer can split her direct deposit, sending <b>' + money(amt) + '</b> to savings every payday before she sees it.</p>' +
+        choices("auto", [
+          { v: "yes", t: "Yes, split the deposit", d: "Set it once" },
+          { v: "no", t: "No, she'll move it herself", d: "Decide every payday" }
+        ], s.auto);
+      if (s.auto) {
+        if (!open("auto")) return h + revealBtn("auto");
+        h += s.auto === "yes"
+          ? fb("Set It Once", money(amt) + " now goes to savings every payday without a decision.")
+          : fb("Up to Jess Each Week", "That works when life is calm. Busy weeks are another story.", true);
+        h += weekLedger(2);
+        h += why("Make it automatic", "Automatic transfers mean saving doesn't depend on remembering or willpower.", "cfpb", "CFPB, Your Money, Your Goals");
+        h += next();
+      }
+      return h;
+    },
+    function pictures() {
+      var h = '<span class="kicker">Payday 2</span><h2 tabindex="-1">School Picture Day Costs ' + money(PICS) + '. Is That an Emergency?</h2>' +
+        '<p>The form came home two weeks ago.</p>' +
+        choices("pics", [
+          { v: "emergency", t: "Yes, use the cushion", d: "Take it from savings" },
+          { v: "planned", t: "No, it's a planned cost", d: "Pay it from this week's money" }
+        ], s.pics);
+      if (s.pics) {
+        if (!open("pics")) return h + revealBtn("pics");
+        h += s.pics === "planned"
+          ? fb("Right: She Saw It Coming", "Planned costs come from the weekly plan, so the cushion stays ready for real surprises.")
+          : fb("The Cushion Took a Hit: −" + money(PICS), "Picture day was on the calendar. Using the cushion for planned costs leaves less for real emergencies.", true);
+        h += why("Emergency or expected?", "An emergency is something you didn't see coming. School pictures, birthdays, and car registration come every year, so plan for them separately.", null);
+        h += next("Go to Payday 3");
+      }
+      return h;
+    },
+    function payday3() {
+      if (!s.p3done) {
+        s.p3done = true;
+        if (s.auto === "yes") add("Split deposit", s.autoAmt, 3);
+        else s.ledger.push({ label: "Busy week, money never moved", amt: 0, week: 3 });
+        if (s.acct === "jar") add("Dipped into the jar", -JAR, 3);
+        var paid = Math.min(s.cushion, TIRE);
+        s.shortfall = TIRE - paid;
+        add("Flat tire repair", -paid, 3);
+      }
+      var h = '<span class="kicker">Payday 3</span><h2 tabindex="-1">Flat Tire on the Way to Work: ' + money(TIRE) + '</h2>' + weekLedger(3);
+      h += s.shortfall === 0
+        ? fb("The Cushion Covered It", "No late rent, no borrowing, no missed shift. This is what the cushion is for.")
+        : fb("Jess Was " + money(s.shortfall) + " Short", "She had to borrow the rest and pay a bill late. A slightly bigger cushion would have covered it.", true);
+      h += why("Small cushions matter", "Families with $250 to $749 saved were less likely to be evicted or miss a housing or utility payment after a money shock.", "urban", "Urban Institute, April 2016");
+      return h + next();
+    },
+    function snap() {
+      var h = '<span class="kicker">Payday 3</span><h2 tabindex="-1">A Friend Says Saving Will Cost Jess Her SNAP. What Should She Do?</h2>' +
+        choices("snap", [
+          { v: "stop", t: "Stop saving to be safe" },
+          { v: "hide", t: "Keep it quiet" },
+          { v: "ask", t: "Ask her caseworker how savings affects her benefits" }
+        ], s.snap);
+      if (s.snap) {
+        if (!open("snap")) return h + revealBtn("snap");
+        h += s.snap === "ask"
+          ? fb("That's the Move", "Her caseworker knows the rules for her programs. Now she can save with confidence.")
+          : fb("Better to Ask", s.snap === "stop" ? "Stopping out of fear can leave her with no cushion at all, often for no reason." : "Programs have rules about reporting changes. Asking first keeps her safe.", true);
+        h += why("Know the rule", "In West Virginia, SNAP lists no limit on savings for most households. WV WORKS is different: it counts savings, so check with a caseworker.", "fns", "USDA FNS, SNAP eligibility chart, June 2026");
+        h += next("Go to Payday 4");
+      }
+      return h;
+    },
+    function refund() {
+      var h = '<span class="kicker">Payday 4</span><h2 tabindex="-1">Jess\'s Tax Refund Arrived: $1,200. How Much Goes to Savings First?</h2>' +
+        choices("refund", [
+          { v: 0, t: "$0", d: "Spend it all" },
+          { v: 100, t: "$100" },
+          { v: 300, t: "$300" },
+          { v: 600, t: "$600", d: "Half of it" }
+        ], s.refund);
+      if (s.refund !== null) {
+        if (!open("refund")) return h + revealBtn("refund");
+        h += weekLedger(4);
+        h += s.refund > 0
+          ? fb("Decided Before It Was Spent", money(s.refund) + " went to savings. The rest went to catching up and a treat for the kids.")
+          : fb("Gone in a Week", "Refunds disappear fast when there's no plan. Deciding ahead of time is the trick.", true);
+        h += why("A savings moment", "You can split a federal tax refund into up to three accounts, including savings, when you e-file or with Form 8888.", "irs", "IRS, splitting federal refunds");
+        h += next("See how it went");
+      }
+      return h;
+    },
+    function results() {
+      var reached = s.cushion >= GOAL;
+      var helped = [], hurt = [];
+      (s.save1 > 0 ? helped : hurt).push(s.save1 > 0 ? "Saved first on payday 1" : "Waited to save what was left");
+      (s.acct === "bankon" ? helped : hurt).push(s.acct === "bankon" ? "Chose a safe, low-fee account" : (s.acct === "fee" ? "Lost money to account fees" : "Kept cash where it was easy to spend"));
+      (s.auto === "yes" ? helped : hurt).push(s.auto === "yes" ? "Made saving automatic" : "Skipped saving in a busy week");
+      (s.pics === "planned" ? helped : hurt).push(s.pics === "planned" ? "Kept planned costs out of the cushion" : "Used the cushion for a planned cost");
+      (s.snap === "ask" ? helped : hurt).push(s.snap === "ask" ? "Asked her caseworker instead of guessing" : "Acted on a rumor about benefits");
+      (s.refund > 0 ? helped : hurt).push(s.refund > 0 ? "Planned her refund before spending it" : "Spent the whole refund");
+      function list(a, cls) { return '<ul class="ledger ' + cls + '">' + a.map(function (t) { return '<li><span>' + t + '</span></li>'; }).join("") + '</ul>'; }
+      var h = '<span class="kicker">How it went</span><h2 tabindex="-1">' + (reached ? "Jess Built a Real Cushion: " : "Jess's Cushion: ") + money(s.cushion) + '</h2>' +
+        '<p>' + (reached
+          ? "She's past the $250 line, the amount researchers tied to fewer evictions and missed bills."
+          : "That's a start, and every dollar counts. Play again and see which choices move her past the $250 line.") + '</p>';
+      if (helped.length) h += '<h3 class="sub">What helped</h3>' + list(helped, "good");
+      if (hurt.length) h += '<h3 class="sub">What held her back</h3>' + list(hurt, "bad");
+      h += '<div class="why"><span class="tag">The whole idea</span><p><b>Save a little first, automatically, somewhere safe, so a small cushion protects your family. You can do it while on benefits.</b></p></div>';
+      return h + '<div class="actions"><button type="button" class="next" data-go="next">Your turn</button><button type="button" class="ghost" data-go="restart">Play again</button></div>';
+    },
+    function firstStep() {
+      if (classMode) {
+        return '<span class="kicker">Your turn</span><h2 tabindex="-1">Pick One First Step for This Week</h2>' +
+          '<p>Take a paper <b>My First Step</b> card. Circle one of these steps, and add an amount only if you want to.</p>' +
+          '<ul class="ledger first-list">' + FIRST.map(function (t) { return '<li><span>' + t + '</span></li>'; }).join("") + '</ul>' +
+          '<p class="fine">Your card is yours. Nobody collects it or reads it out loud.</p>' +
+          '<div class="actions"><button type="button" class="ghost" data-go="restart">Play again</button></div>';
+      }
+      return '<span class="kicker">Your turn</span><h2 tabindex="-1">Pick One First Step for This Week</h2>' +
+        '<p>Just for you. Nothing here is saved or shared.</p>' +
+        '<form id="stepForm" class="choices" style="grid-template-columns:1fr" novalidate>' +
+        FIRST.map(function (t, i) { return '<label class="choice" style="flex-direction:row;align-items:center;gap:12px"><input type="radio" name="fs" id="fs' + i + '" value="' + t + '"' + (i === 0 ? ' checked' : '') + '> <span>' + t + '</span></label>'; }).join("") +
+        '<div class="field"><label for="fsAmt">Amount, if it fits (optional)</label><input id="fsAmt" inputmode="numeric" placeholder="$5"></div>' +
+        '<div class="actions"><button class="next" type="submit">Make my card</button><button type="button" class="ghost" data-go="restart">Play again</button></div>' +
+        '</form><div id="cardOut"></div>';
+    }
+  ];
+
+  function jessArt() {
+    return '<svg width="120" height="120" viewBox="0 0 120 120" role="img" aria-label="Illustration of Jess">' +
+      '<circle cx="60" cy="60" r="58" fill="var(--chip)" stroke="var(--line)" stroke-width="2"/>' +
+      '<circle cx="60" cy="48" r="20" fill="var(--goal)"/>' +
+      '<path d="M40 44 Q60 18 80 44 Q78 30 60 28 Q42 30 40 44Z" fill="var(--head)"/>' +
+      '<path d="M24 104 Q60 66 96 104Z" fill="var(--primary)"/>' +
+      '<rect x="74" y="76" width="20" height="14" rx="3" fill="var(--fill)"/>' +
+      '<text x="84" y="87" text-anchor="middle" font-size="10" font-family="Outfit, sans-serif" font-weight="700" fill="var(--ink)">$</text>' +
+      '</svg>';
+  }
+
+  function render(focus) {
+    steps();
+    meter();
+    $("stage").dataset.tone = ["navy", "blue", "green", "green", "green", "gold", "gold", "mauve", "green", "blue"][s.screen];
+    $("stage").innerHTML = screens[s.screen]();
+    if (focus) { var h = $("stage").querySelector("h2"); if (h) h.focus({ preventScroll: false }); }
+    try { localStorage.setItem(KEY, JSON.stringify(s)); } catch (e) {}
+  }
+
+  function showFeedback() {
+    var fbx = $("stage").querySelector(".feedback");
+    if (!fbx) return;
+    fbx.focus({ preventScroll: true });
+    fbx.scrollIntoView({ block: "nearest", behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
+  }
+
+  function choose(name, raw) {
+    if (s[name] !== null && s[name] !== undefined) return;
+    s[name] = isNaN(Number(raw)) ? raw : Number(raw);
+    if (!classMode) applyChoice(name);
+    render(false);
+    if (open(name)) showFeedback();
+    else { var r = $("stage").querySelector("[data-reveal]"); if (r) r.focus(); }
+  }
+
+  function applyChoice(name) {
+    if (s.applied[name]) return;
+    s.applied[name] = true;
+    var v = s[name];
+    if (name === "save1" && v > 0) add("Saved first", v, 1);
+    if (name === "acct" && v === "fee") add("Monthly account fee", -FEE, 2);
+    if (name === "auto") {
+      s.autoAmt = s.save1 > 0 ? s.save1 : 25;
+      if (v === "yes") add("Split deposit", s.autoAmt, 2);
+      else if (s.save1 > 0) add("Moved to savings by hand", s.save1, 2);
+      else s.ledger.push({ label: "Nothing moved to savings", amt: 0, week: 2 });
+    }
+    if (name === "pics" && v === "emergency") add("School pictures from cushion", -PICS, 2);
+    if (name === "refund") {
+      if (s.auto === "yes") add("Split deposit", s.autoAmt, 4);
+      else if (s.save1 > 0) add("Moved to savings by hand", s.save1, 4);
+      if (v > 0) add("Refund to savings", v, 4);
+    }
+  }
+
+  $("stage").addEventListener("click", function (e) {
+    var b = e.target.closest("button");
+    if (!b) return;
+    if (b.dataset.name) choose(b.dataset.name, b.dataset.v);
+    if (b.dataset.reveal) { applyChoice(b.dataset.reveal); render(false); showFeedback(); }
+    if (b.dataset.go === "next") { s.screen = Math.min(screens.length - 1, s.screen + 1); render(true); window.scrollTo({ top: 0 }); }
+    if (b.dataset.go === "restart") { s = fresh(); render(true); window.scrollTo({ top: 0 }); }
+  });
+
+  $("mode").addEventListener("click", function () {
+    classMode = !classMode;
+    try { localStorage.setItem("cushion-mode", classMode ? "class" : "solo"); } catch (e) {}
+    applyMode();
+    render(false);
+  });
+
+  /* Class mode only: the teacher can press A, B, C or D to enter the class's pick. Turning class mode off turns these keys off. */
+  document.addEventListener("keydown", function (e) {
+    if (!classMode || e.ctrlKey || e.metaKey || e.altKey || !e.key || e.key.length !== 1) return;
+    var t = e.target;
+    if (t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.tagName === "VIDEO" || t.isContentEditable)) return;
+    var k = e.key.toUpperCase();
+    if ("ABCD".indexOf(k) < 0) return;
+    var b = $("stage").querySelector('.choice[data-key="' + k + '"]:not(:disabled)');
+    if (b) { e.preventDefault(); choose(b.dataset.name, b.dataset.v); }
+  });
+
+  $("reset").addEventListener("click", function () { s = fresh(); render(true); window.scrollTo({ top: 0 }); });
+
+  $("stage").addEventListener("submit", function (e) {
+    e.preventDefault();
+    var form = e.target, pick = form.querySelector('input[name="fs"]:checked');
+    var amt = ($("fsAmt").value || "").replace(/[^0-9.]/g, "");
+    $("cardOut").innerHTML = '<div class="card-out" tabindex="-1" id="card"><span class="kicker">My first step</span>' +
+      '<span class="t">' + esc(pick ? pick.value : "") + (amt ? ": $" + esc(amt) : "") + '</span>' +
+      '<p>This week. Small and steady counts.</p><p class="fine">Copy this onto your paper card, or snap a photo of it.</p></div>';
+    $("card").focus();
+  });
+
+  function start(data) {
+    applyMode();
+    s = fresh();
+    var saved = data && data.s;
+    if (!saved) { try { saved = JSON.parse(localStorage.getItem(KEY) || "null"); } catch (e) { saved = null; } }
+    if (saved && typeof saved.screen === "number" && saved.screen < screens.length) s = Object.assign(fresh(), saved);
+    render(false);
+  }
+  if (window.claude && window.claude.hot && window.claude.hot.snapshot) window.claude.hot.snapshot(function () { return { s: s }; });
+  if (window.claude && window.claude.hot && window.claude.hot.ready) window.claude.hot.ready(start);
+  else start(window.claude && window.claude.hot && window.claude.hot.data || {});
+})();
+</script>
+</body>
+</html>

@@ -97,7 +97,7 @@ try {
         for(const frame of ['plain','accent']) {
           await choose(page,'Video frame',frame);const expected={...design,startingPoint:'custom',slides:{...design.slides,video:{...design.slides.video,layout,frame}}};
           assert.deepEqual(await saved(page),expected,'Frame selection only changes its own design choice');
-          await preview(page,width);
+          await preview(page,width);await page.mouse.move(0,0); // Inspect artwork without the editor hover indicator.
           const slide=page.locator('#modelStage [data-kind="video"]'),frameNode=slide.locator('.slide-video-frame');
           assert.equal(await slide.locator('video,iframe').count(),0,'Editor sample remains inert');
           const m=await measure(frameNode);check(m,expected,`editor ${width}/${name}/${layout}/${frame}`);

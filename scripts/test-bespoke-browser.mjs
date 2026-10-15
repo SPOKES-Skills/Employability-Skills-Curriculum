@@ -12,7 +12,7 @@ const accessCode = "team-access-code-1234567890";
 const env = {
   BESPOKE_GITHUB_TOKEN: "test-token-not-a-real-secret",
   BESPOKE_DRAFT_KEY: Buffer.alloc(32, 7).toString("base64"),
-  BESPOKE_TEAM_KEYS: JSON.stringify({ "money-management": hashEditCode(accessCode) })
+  BESPOKE_TEAM_KEYS: JSON.stringify({ "money-management": hashEditCode(accessCode), "goal-setting": hashEditCode("K7QX-M3PD") })
 };
 
 function createMemoryGitHub() {
@@ -300,6 +300,16 @@ try {
   assert.equal(await second.locator("#teamName").inputValue(), "First shared version");
   ok("fresh team access opens the latest shared revision automatically");
 
+  const shortContext = await newContext({ reducedMotion:"reduce" });
+  const short = await ready(await shortContext.newPage());
+  await short.locator("#btnOpen").click();
+  await short.locator("#openLesson").selectOption("goal-setting");
+  await short.locator("#openEditCode").fill("k7qx m3pd");
+  await short.locator("#openConfirm").click();
+  await short.locator("#fileStatus").filter({ hasText:"This team has no shared design yet" }).waitFor({ timeout:5000 });
+  await shortContext.close();
+  ok("an 8-character team code opens when typed in lowercase with a space");
+
   const manualContext = await newContext({ reducedMotion:"reduce" });
   const manual = await ready(await manualContext.newPage());
   await manual.locator("#btnOpen").click();
@@ -481,6 +491,19 @@ try {
   ok("backup download and open remain usable when shared setup is unavailable");
   await offlineContext.close();
 
+  const focusContext = await newContext({ reducedMotion:"reduce" });
+  const focusPage = await ready(await focusContext.newPage());
+  await focusPage.locator("#btnSend").click();
+  await focusPage.locator("#openDialog").waitFor({ state:"visible" });
+  await focusPage.keyboard.press("Escape");
+  assert.equal(await focusPage.evaluate(() => document.activeElement && document.activeElement.id), "btnSend", "Escape returns focus to the opening control");
+  await focusPage.locator("#btnSend").click();
+  await focusPage.locator("#openDialog").waitFor({ state:"visible" });
+  await focusPage.locator("#openCancel").click();
+  assert.equal(await focusPage.evaluate(() => document.activeElement && document.activeElement.id), "btnSend", "Cancel returns focus to the opening control");
+  await focusContext.close();
+  ok("closing the access dialog hands focus back to the control that opened it");
+
   const idleContext = await newContext({ reducedMotion:"reduce" }, { idleMs:300, stepMs:60000 });
   const idle = await ready(await idleContext.newPage(), teamUrl);
   await idle.locator("#fileStatus").filter({ hasText:"Opened the latest shared design" }).waitFor();
@@ -608,6 +631,22 @@ try {
       ...["h1", "h2", "h3", ".slide-title", ".slide-section", ".card", ".card h4", ".divider", ".download-btn"].map(stage),
       document.querySelector(".model-content .slide-chip")?.textContent || ""].join("#");
   });
+  // Reduced motion still runs every style change as a 0.01ms transition, and the computed style keeps the
+  // old value until that transition starts. Royal sidebar changes only a compositor-run background color,
+  // which lands on the second frame locally and later on a busy runner, so poll instead of waiting two frames.
+  const SETTLE_MS = 2000;
+  const settled = () => sweep.evaluate(ms => Promise.race([
+    Promise.allSettled(document.getAnimations().map(animation => animation.finished)),
+    new Promise(resolve => setTimeout(resolve, ms))
+  ]), SETTLE_MS);
+  const changesWithin = async (before) => {
+    const deadline = Date.now() + SETTLE_MS;
+    do {
+      await sweep.evaluate(() => new Promise(resolve => requestAnimationFrame(() => resolve())));
+      if (await previewPrint() !== before) return true;
+    } while (Date.now() < deadline);
+    return false;
+  };
   const unchangedOptions = async (grid) => {
     const dead = [];
     for (const id of await sweep.locator(`${grid} .option:not([disabled])`).evaluateAll(els => els.map(e => e.dataset.id))) {
@@ -615,11 +654,12 @@ try {
       if (await option.getAttribute("aria-pressed") === "true") continue;
       // Park the pointer: a tile left under it would be hover-previewed and skew "before".
       await sweep.mouse.move(0, 0);
+      // The poll stops at the first change while the rest of the last choice can still be landing (the
+      // first color lead resizes the frame). Wait it out, or that tail would pass a dead option.
+      await settled();
       const before = await previewPrint();
       await option.click();
-      // Let the frame settle: a reduced-motion transition still holds the old color for one frame.
-      await sweep.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
-      if (await previewPrint() === before) dead.push(id);
+      if (!await changesWithin(before)) dead.push(id);
     }
     return dead;
   };

@@ -6,6 +6,12 @@
       "runtimeExecutable": "python3",
       "runtimeArgs": ["-m", "http.server", "8080"],
       "port": 8080
+    },
+    {
+      "name": "bespoke",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["scripts/bespoke-dev-server.mjs", "--port", "8790"],
+      "port": 8790
     }
   ]
 }

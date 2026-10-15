@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // Synthetic workflow races only. An ephemeral loopback service and isolated browser
 // contexts cannot access the user's preview, remembered team, or browser draft.
-import { builderDestination, recoveryMenu } from './bespoke-test-navigation.mjs';
+import {builderDestination, clickMenuItem, recoveryMenu} from './bespoke-test-navigation.mjs';
 import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
 import { browserType, browserName } from './bespoke-test-browser.mjs';
@@ -61,7 +61,7 @@ async function api(server, action = 'open') {
   assert.equal(response.status, 200); return response.json();
 }
 async function backup(page) {
-  if (!await page.locator('#btnDownloadBackup').isVisible()) await page.locator('.more-menu summary').click();
+  if (!await page.locator('#btnDownloadBackup').isVisible()) await page.locator('.more-menu > summary').click();
   const event = page.waitForEvent('download'); await page.locator('#btnDownloadBackup').click();
   return JSON.parse(await fs.readFile(await (await event).path(), 'utf8'));
 }
@@ -112,14 +112,14 @@ try {
     assert.notDeepEqual(firstDesign, secondDesign);
     assert.deepEqual(await design(first), secondDesign, 'The first tab must not overwrite newer browser storage.');
     await save(second);
-    await first.locator('#btnOpen').click();
+    await clickMenuItem(first, '#btnOpen');
     await first.locator('#fileStatus').filter({ hasText: 'A newer shared version exists' }).waitFor();
     await first.locator('#btnLoadLatest').click();
     await first.locator('#fileStatus').filter({ hasText: 'Opened the latest shared design.' }).waitFor();
     const recovery = await first.evaluate(() => JSON.parse(localStorage.getItem('bespoke-previous-draft-v2')));
     assert.deepEqual(recovery.design, firstDesign, 'Recovery must retain the design being replaced in this tab, not a different tab’s storage.');
     assert.deepEqual(await design(first), (await api(server)).selection.design);
-    if (!await first.locator('#btnRecoverDraft').isVisible()) await first.locator('.more-menu summary').click();
+    if (!await first.locator('#btnRecoverDraft').isVisible()) await first.locator('.more-menu > summary').click();
     await first.locator('#btnRecoverDraft').click(); await ready(first);
     assert.deepEqual(await design(first), firstDesign, 'The saved recovery remains usable through the actual Restore action and reload.');
   });
@@ -134,7 +134,7 @@ try {
     await paint(page, 'mauve'); await page.locator('#btnSave').click(); await pending.promise;
     const saved = await api(server);
     if (replacement === 'new draft') {
-      await page.locator('.more-menu summary').click(); await page.locator('#btnClear').click();
+      await page.locator('.more-menu > summary').click(); await page.locator('#btnClear').click();
     } else {
       const payload = await backup(page); payload.design.roles.sidebar = 'accent'; payload.design.samples.title = 'Synthetic imported review';
       await page.locator('#teamFileInput').setInputFiles({ name: 'synthetic-race-backup.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(payload)) });
@@ -155,7 +155,7 @@ try {
   await scenario('a delayed Load latest response cannot replace a newer browser draft', async ({ makePage, server }) => {
     const page = await makePage(); await team(page); await save(page);
     const other = await makePage(); await paint(other, 'mauve'); await save(other);
-    await paint(page, 'accent'); await page.locator('#btnOpen').click();
+    await paint(page, 'accent'); await clickMenuItem(page, '#btnOpen');
     await page.locator('#fileStatus').filter({ hasText: 'A newer shared version exists' }).waitFor();
     const pending = deferred(), release = deferred(); let intercepted = false;
     await page.route('**/api/bespoke', async route => {
@@ -163,7 +163,7 @@ try {
       intercepted = true; const response = await route.fetch(); pending.resolve(); await release.promise; await route.fulfill({ response });
     });
     await page.locator('#btnLoadLatest').click(); await pending.promise;
-    await page.locator('.more-menu summary').click(); await page.locator('#btnClear').click();
+    await page.locator('.more-menu > summary').click(); await page.locator('#btnClear').click();
     const current = await draft(page);
     const reply = page.waitForResponse(response => response.url().endsWith('/api/bespoke') && response.request().postDataJSON()?.action === 'open');
     release.resolve(); await reply; await page.waitForTimeout(50);
@@ -180,7 +180,7 @@ try {
       assert.equal(await page.locator('#btnHistory').textContent(), 'Previous versions');
     };
     const newDraft = async () => {
-      if (!await page.locator('#btnClear').isVisible()) await page.locator('.more-menu summary').click();
+      if (!await page.locator('#btnClear').isVisible()) await page.locator('.more-menu > summary').click();
       await page.locator('#btnClear').click();
       await recoveryMenu(page, false);
     };
@@ -190,13 +190,13 @@ try {
       if (route.request().postDataJSON()?.action !== 'history' || held) return route.fallback();
       held = true; const response = await route.fetch(); pending.resolve(); await release.promise; await route.fulfill({ response });
     });
-    await page.locator('#btnHistory').click(); await pending.promise;
+    await clickMenuItem(page, '#btnHistory'); await pending.promise;
     await newDraft(); release.resolve(); await assertClosed();
     // Previously rendered revision buttons also become stale after replacement.
-    await page.locator('#btnHistory').click(); await page.locator('#historyPanel button').first().waitFor();
+    await clickMenuItem(page, '#btnHistory'); await page.locator('#historyPanel button').first().waitFor();
     await newDraft(); await page.locator('#historyPanel button').first().click(); await assertClosed();
     // A revision response arriving after replacement preserves the new draft too.
-    await page.locator('#btnHistory').click(); await page.locator('#historyPanel button').first().waitFor();
+    await clickMenuItem(page, '#btnHistory'); await page.locator('#historyPanel button').first().waitFor();
     const revisionPending = deferred(), revisionRelease = deferred();
     await page.route('**/api/bespoke', async route => {
       if (route.request().postDataJSON()?.action !== 'openRevision') return route.fallback();

@@ -1,0 +1,6 @@
+{
+  "model_id": "music_v1",
+  "music_length_ms": 62000,
+  "force_instrumental": true,
+  "prompt": "Calm, warm, hopeful instrumental background music for a one-minute adult education video about budgeting. Soft acoustic guitar, light piano and gentle brushed percussion at about 90 BPM. Steady, even energy the whole way through, no big builds or drops, no vocals. It sits quietly under a spoken narrator and ends on a soft resolved chord."
+}

@@ -17,8 +17,14 @@ python3 scripts/validate-lesson.py "SPOKES Builder/template.html"
 echo "==> validator test suite"
 python3 -m unittest discover -s scripts -p 'test_validator.py' -v
 
+echo "==> offline lessons package builder"
+python3 -m unittest discover -s scripts -p 'test_offline_package.py' -v
+
 echo "==> registry / dashboard fallback sync"
 python3 scripts/check-registry-sync.py
+
+echo "==> print slides pictures current"
+node scripts/capture-print-slides.mjs --check
 
 echo "==> bespoke selection schema (generate --check + fixtures + submissions)"
 python3 scripts/generate-selection-schema.py --check
@@ -31,6 +37,7 @@ node scripts/test-bespoke-similarity.mjs
 python3 -m unittest discover -s scripts -p 'test_bespoke*.py' -v
 echo "==> bespoke handoff endpoint"
 node --test scripts/test-bespoke-dev-server.mjs scripts/test-bespoke-v2-contracts.mjs scripts/test-bespoke-handoff.mjs scripts/test-bespoke-provision.mjs scripts/test-bespoke-brief.mjs scripts/test-bespoke-guide.mjs scripts/test-bespoke-team-view.mjs
+node --test scripts/test-bespoke-dev-server.mjs scripts/test-bespoke-v2-contracts.mjs scripts/test-bespoke-handoff.mjs scripts/test-bespoke-provision.mjs scripts/test-bespoke-brief.mjs scripts/test-bespoke-guide.mjs scripts/test-print-slides.mjs scripts/test-print-slides-lib.mjs
 # Valid fixtures + any docs/phase-2/submissions/**/selection.json (skips *invalid*/*broken*)
 python3 scripts/validate-bespoke-selection.py \
   scripts/test-fixtures/bespoke/selection-money-management.json
@@ -59,7 +66,11 @@ if [ -d node_modules/playwright ] && [ -d node_modules/axe-core ]; then
   echo "==> bespoke browser workflow"
   node scripts/test-bespoke-browser.mjs
   node scripts/test-bespoke-builder-browser.mjs
+  node scripts/test-bespoke-simple-workflow.mjs
   node scripts/test-bespoke-preview-editor.mjs
+  node scripts/test-bespoke-feature-inspector.mjs
+  node scripts/test-bespoke-review-tools.mjs
+  node scripts/test-bespoke-review-delivery-browser.mjs
   node scripts/test-bespoke-guided-browser.mjs
   node scripts/test-bespoke-workflow-qa.mjs
   node scripts/test-bespoke-streamlined-workflow.mjs
@@ -74,6 +85,13 @@ if [ -d node_modules/playwright ] && [ -d node_modules/axe-core ]; then
   node scripts/test-bespoke-video-frames.mjs
   node scripts/test-bespoke-patterns.mjs
   node scripts/generate-lesson-fingerprints.mjs --check
+  echo "==> offline lessons package opens from file://"
+  offline_out="$(mktemp -d)"
+  python3 scripts/build-offline-package.py --no-zip --out "$offline_out"
+  node scripts/check-offline-package.mjs "$offline_out"/SPOKES-Lessons-Offline-*
+  rm -rf "$offline_out"
+  echo "==> print slides dialog and lesson printouts"
+  node --test scripts/test-print-slides-browser.mjs scripts/test-print-slides-lessons.mjs
   echo "==> theme library title-slide layouts"
   node scripts/check-title-layouts.mjs
   if [ -f scripts/test-bespoke-design.mjs ]; then

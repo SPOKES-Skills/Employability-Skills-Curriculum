@@ -51,6 +51,7 @@ export function selectionErrors(selection, lessonId, forSend = true) {
   if (Number(selection.date.slice(0, 4)) < 1 || !Number.isFinite(date.getTime()) || date.toISOString().slice(0, 10) !== selection.date) errors.push('The saved date is invalid.');
   if (isV2) {
     errors.push(...validateDesign(builderCatalog, selection.design).map(error => `design: ${error}`));
+    if (selection.alternatives) errors.push(...validateDesign(builderCatalog, selection.alternatives.otherDesign).map(error => `alternatives: ${error}`));
     if (selection.legacySelection) {
       if (selection.legacySelection.schema !== 'bespoke-selection/v1') errors.push('legacySelection: only an original v1 selection is allowed.');
       else errors.push(...selectionErrors(selection.legacySelection, selection.legacySelection.lesson?.id, false).map(error => `legacySelection: ${error}`));

@@ -134,6 +134,7 @@ export async function createDevServer({ port = 0, runtimeDir } = {}) {
     BESPOKE_DRAFT_KEY: store.draftKey,
     BESPOKE_TEAM_KEYS: JSON.stringify(Object.fromEntries(LESSON_IDS.map(id => [id, hashEditCode(LOCAL_PREVIEW_CODE)]))),
     BESPOKE_VIEW_KEYS: JSON.stringify(Object.fromEntries(LESSON_IDS.map(id => [id, hashViewCode(LOCAL_PREVIEW_VIEW_CODE)]))),
+    BESPOKE_VIEW_KEYS: JSON.stringify(Object.fromEntries(LESSON_IDS.map(id => [id, hashEditCode(LOCAL_PREVIEW_VIEW_CODE)]))),
   };
   let baseUrl;
   const server = http.createServer(async (req, res) => {

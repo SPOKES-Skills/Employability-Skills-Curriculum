@@ -1,0 +1,33 @@
+/* ==========================================================================
+   SPOKES — Spacing Tokens
+   The lesson canvas breathes. Slides pad 4rem × 5rem; component gaps sit on a
+   loose 0.4rem-based rhythm rather than a strict 4/8px grid.
+   ========================================================================== */
+
+:root {
+  /* ---- Spacing scale ---- */
+  --space-0: 0;
+  --space-1: 0.25rem;
+  --space-2: 0.4rem; /* tight component gap (smart-stack) */
+  --space-3: 0.5rem;
+  --space-4: 0.75rem; /* takeaways gap */
+  --space-5: 1rem;
+  --space-6: 1.5rem; /* card grid gap / matrix gap */
+  --space-7: 2rem; /* cards-grid gap, standard block gap */
+  --space-8: 2.5rem; /* heading bottom margin */
+  --space-9: 3rem;
+  --space-10: 4rem; /* split-layout gap, slide vertical pad */
+  --space-11: 5rem; /* slide horizontal pad */
+
+  /* ---- Semantic layout ---- */
+  --slide-pad-y: 4rem;
+  --slide-pad-x: 5rem;
+  --sidebar-width: 280px;
+  --sidebar-width-collapsed: 52px;
+  --heading-gap: 2.5rem; /* space below slide h2 */
+  --grid-gap: 2rem; /* cards-grid */
+  --grid-gap-tight: 1.5rem; /* matrix-grid, dangers-grid */
+  --stack-gap: 0.75rem; /* takeaways */
+  --stack-gap-tight: 0.4rem; /* smart-stack */
+  --content-max: 900px; /* big-statement / centered text max width */
+}

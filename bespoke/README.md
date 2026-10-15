@@ -48,7 +48,7 @@ Start a new browser draft, or a fresh tab after closing this one. It uses only
 `sessionStorage`; it never enters designs, backups, history, or shared records.
 If tab storage is unavailable, the preference lasts only until the page reloads.
 
-**Shared theme** is an optional disclosure available in every stage. It contains
+**Shared theme** is an optional disclosure in More options and Review & save. It contains
 the shared colors, heading/body fonts and texture, including Sidebar, Accent and
 Buttons colors. These three colors have no local slide replacement; shared body
 typography also supplies navigation and buttons. Shared content background still
@@ -140,7 +140,7 @@ guarantee.
 
 ## Guide me
 
-The Start stage also offers **Guide me step by step**. The guide asks one question per
+**Choose a layout → Other ways to start** offers **Guide me step by step**. The guide asks one question per
 screen, slide by slide: a starting look, a shared look (fonts, pattern, sidebar, accent and
 button colors), then the title slide, chapter divider, text boxes, video slide and activity.
 Each question shows its choices as small pictures drawn from the real slide styles, and
@@ -194,15 +194,18 @@ request. Local preview disables Send and receipt-status requests completely.
 
 ## Local review
 
+For this simplified-workflow worktree, use port **8778** and runtime directory
+`~/Library/Application Support/Codex/local-previews/bespoke-simple-layouts`.
+
 Use HTTP so catalogs and fonts load. A `file://` preview cannot load the wizard's
 catalogs. From this isolated worktree:
 
 ```sh
-node scripts/bespoke-dev-server.mjs --port 8766 \
-  --runtime-dir "/Users/brittlegg/Library/Application Support/Codex/local-previews/bespoke-guided-builder"
+node scripts/bespoke-dev-server.mjs --port 8778 \
+  --runtime-dir "/Users/brittlegg/Library/Application Support/Codex/local-previews/bespoke-simple-layouts"
 ```
 
-Open [the local builder](http://127.0.0.1:8766/bespoke/). The server binds only to
+Open [the local builder](http://127.0.0.1:8778/bespoke/). The server binds only to
 loopback and overrides the handoff configuration with its own synthetic draft
 service. **Save test design**, Open and history use only local test data, with the
 same revision and retry handler. No real team code or hosted-service connection is
@@ -210,8 +213,8 @@ needed. The external runtime directory keeps these drafts across server restarts
 omitting `--runtime-dir` keeps them only in memory. Do not place runtime data in
 MacDev or another Git checkout. Stop the foreground server with Ctrl-C.
 
-Port 8766 is a different browser origin from the older saved-checkout preview at
-port 8765. Keep the older server and its Safari draft intact while reviewing v2.
+Port 8778 is separate from the earlier previews at 8765, 8766 and 8767.
+Keep those servers and browser drafts intact while reviewing this workflow.
 Local testing does not establish online multi-device or hosted delivery acceptance.
 
 ## Sources and integration
@@ -249,6 +252,7 @@ a deployment or change production configuration.
 ## Checks and historical references
 
 ```sh
+node scripts/test-bespoke-simple-workflow.mjs
 node scripts/generate-selection-v2-schema.mjs --check
 python3 -m unittest discover -s scripts -p 'test_bespoke*.py' -v
 node --test scripts/test-bespoke-handoff.mjs scripts/test-bespoke-v2-contracts.mjs scripts/test-bespoke-dev-server.mjs
@@ -260,6 +264,6 @@ current implementation's evidence belongs in its dated verification report.
 Read [decisions](../docs/bespoke/decisions.md) for the September 24 overrides. The
 September 23 slide-builder specification and color mockup remain historical design
 records; their restricted palette, fixed pairing and no-preset constraints are
-superseded. The [team meeting guide](team-guide.html) describes the three-stage
+superseded. The [team meeting guide](team-guide.html) describes the four-stage
 builder, optional editors, shared defaults and recovery. The original wizard is
 preserved separately; its historical sequence is not the current builder's flow.

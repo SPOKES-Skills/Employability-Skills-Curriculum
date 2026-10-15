@@ -1,0 +1,71 @@
+/* ==========================================================================
+   SPOKES — Color Tokens
+   The canonical 11-color palette. No color outside this set is permitted in
+   any SPOKES lesson. Opacity variations of these colors ARE allowed.
+   Source of truth: SPOKES Builder/brand-palette.md
+   ========================================================================== */
+
+:root {
+  /* ---- Core palette (7) ---- */
+  --primary: #007baf; /* headings, primary buttons, links */
+  --accent: #37b550; /* download buttons, positive emphasis (large text only on white) */
+  --dark: #004071; /* sidebar, dark backgrounds */
+  --light: #ffffff; /* text on dark, page backgrounds */
+  --muted: #edf3f7; /* card backgrounds, subtle fills */
+  --gray: #60636b; /* body text, subtitles */
+  --gold: #d3b257; /* gold accents, dividers, badges (NOT for text on white) */
+
+  /* ---- Extended palette (4) ---- */
+  --royal: #00133f; /* deep navy backgrounds, premium feel */
+  --mauve: #a7253f; /* warm accent, caution/emphasis, card borders */
+  --offwhite: #d1d3d4; /* subtle backgrounds, soft borders, dividers */
+  --muted-gold: #ad8806; /* darker gold — safe for text on light */
+
+  /* ---- Accessibility helper (proposed in brand-palette.md) ---- */
+  /* --accent (#37b550) fails WCAG AA on white (2.66:1). Use this darker green
+     for any GREEN TEXT or interactive label on a light background (~5.4:1). */
+  --accent-text: #1e7a2e;
+
+  /* ======================================================================
+     SEMANTIC ALIASES
+     Reference these in product UI so intent survives palette tweaks.
+     ====================================================================== */
+
+  /* Text */
+  --text-heading: var(--primary); /* slide h2 / section headings */
+  --text-title: var(--dark); /* h3, dark titles */
+  --text-body: var(--gray); /* paragraph / body copy */
+  --text-on-dark: var(--light); /* copy over dark/royal/primary surfaces */
+  --text-muted-on-dark: rgba(255, 255, 255, 0.7);
+  --text-emphasis: var(--primary); /* .highlight inline emphasis */
+  --text-positive: var(--accent-text); /* green emphasis, AA-safe */
+  --text-caution: var(--mauve); /* warm caution emphasis */
+  --text-gold: var(--muted-gold); /* gold emphasis, AA-safe */
+
+  /* Surfaces */
+  --surface-page: var(--light);
+  --surface-card: var(--muted);
+  --surface-subtle: var(--offwhite);
+  --surface-sidebar: var(--dark);
+  --surface-sidebar-royal: var(--royal);
+  --surface-inverse: var(--dark);
+  --surface-inverse-deep: var(--royal);
+
+  /* Lines & borders */
+  --border-soft: var(--offwhite);
+  --border-card-accent: var(--accent); /* default green card left border */
+  --border-card-gold: var(--gold);
+  --border-focus: var(--gold); /* focus ring color */
+
+  /* Interactive */
+  --action-primary: var(--primary);
+  --action-download: var(--accent);
+  --action-video: var(--gold);
+  --link: var(--primary);
+
+  /* Brand accents */
+  --brand-gold: var(--gold);
+  --brand-badge-warm: var(--gold);
+  --brand-badge-cool: var(--primary);
+  --brand-badge-positive: var(--accent);
+}

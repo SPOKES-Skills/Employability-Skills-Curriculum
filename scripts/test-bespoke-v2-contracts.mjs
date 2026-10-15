@@ -7,10 +7,11 @@ import { createHash, randomUUID } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import catalog from '../bespoke/builder-catalog.json' with { type: 'json' };
-import { defaultDesign, applyPreset, setSidebarText } from '../bespoke/builder-model.mjs';
+import { defaultDesign, applyPreset, setFeatureStyle, setRoleStyle, setSidebarText } from '../bespoke/builder-model.mjs';
 import { selectionErrors, digest, canonicalJson } from '../netlify/functions/_shared/selection.mjs';
 import { handleAction, hashEditCode, hashViewCode, LESSON_IDS, seal, VIEW_ONLY } from '../netlify/functions/bespoke-handoff.mjs';
 import { createDevServer, LOCAL_PREVIEW_VIEW_CODE } from './bespoke-dev-server.mjs';
+import { handleAction, hashEditCode, LESSON_IDS, seal, VIEW_ONLY } from '../netlify/functions/bespoke-handoff.mjs';
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const legacy = JSON.parse(fs.readFileSync(path.join(root, 'scripts/test-fixtures/bespoke/selection-money-management.json')));
 const payload = () => ({ schema: 'bespoke-selection/v2', date: '2026-09-24', submittedAt: '2026-09-24T16:30:00.000Z', lesson: structuredClone(legacy.lesson), team: structuredClone(legacy.team), design: defaultDesign(catalog) });
@@ -24,9 +25,9 @@ test('committed v2 schema is current and v1 remains accepted', () => {
   }
 });
 
-test('all nine preset ids are accepted as a starting point', () => {
-  assert.equal(catalog.presets.length, 9);
-  for (const id of ['open-air', 'gold-standard', 'slate']) {
+test('all twelve preset ids are accepted as a starting point', () => {
+  assert.equal(catalog.presets.length, 12);
+  for (const id of ['sidebar', 'horizon', 'corner', 'masthead', 'columns', 'plaque']) {
     const selection = payload();
     selection.design = applyPreset(catalog, id);
     assert.equal(selection.design.startingPoint, id);
@@ -111,7 +112,7 @@ const viewerCopy = ({ unspoken, legacySelection, ...shared }) => {
   return { ...shared, team: { ...shared.team, spokesperson: leader } };
 };
 function memoryService(existingSelection) {
-  let current = null, writes = 0, dispatched = 0, proposal = null, run = null;
+  let current = null, writes = 0, dispatched = 0, dispatchedPayload = null, proposal = null, run = null;
   const revisions = new Map();
   const api = {
     async readDraft() { return structuredClone(current); },
@@ -124,10 +125,11 @@ function memoryService(existingSelection) {
     async listDraftHistory() { return [...revisions.values()].reverse(); },
     async findProposal() { return proposal; },
     async findRun() { return run; },
-    async dispatchSpokeSignal(raw) { dispatched++; assert.equal(JSON.parse(raw).schema, 'bespoke-selection/v2'); run = { id: 1, status: 'queued' }; return run; },
+    async dispatchSpokeSignal(raw) { dispatchedPayload=JSON.parse(raw); dispatched++; assert.equal(JSON.parse(raw).schema, 'bespoke-selection/v2'); run = { id: 1, status: 'queued' }; return run; },
   };
   const code = 'synthetic-v2-team-access-code';
   const context = { github: api, token: 'synthetic', draftKey: Buffer.alloc(32, 4).toString('base64'), teamKeys: Object.fromEntries(LESSON_IDS.map(id => [id, hashEditCode(code)])), viewKeys: JSON.stringify({ [legacy.lesson.id]: hashViewCode(VIEW_CODE) }) };
+  const context = { github: api, token: 'synthetic', draftKey: Buffer.alloc(32, 4).toString('base64'), teamKeys: Object.fromEntries(LESSON_IDS.map(id => [id, hashEditCode(code)])), viewKeys: JSON.stringify({ [legacy.lesson.id]: hashEditCode(VIEW_CODE) }) };
   if (existingSelection) {
     const envelope = seal(context.draftKey, { selection: existingSelection, receipts: [] }, existingSelection.lesson.id);
     current = { sha: 'a'.repeat(40), envelope }; revisions.set(current.sha, structuredClone(current));
@@ -135,6 +137,7 @@ function memoryService(existingSelection) {
   const request = (action, fields = {}) => handleAction({ action, lessonId: legacy.lesson.id, editCode: code, ...fields }, context);
   const view = (action, fields = {}) => handleAction({ action, lessonId: legacy.lesson.id, editCode: VIEW_CODE, ...fields }, context);
   return { request, view, context, code, get writes() { return writes; }, get dispatched() { return dispatched; }, received() { proposal = { url: 'https://example.invalid/synthetic-review' }; } };
+  return { request, view, context, code, get writes() { return writes; }, get dispatched() { return dispatched; }, get dispatchedPayload() { return dispatchedPayload; }, received() { proposal = { url: 'https://example.invalid/synthetic-review' }; } };
 }
 
 test('v2 synthetic save/open/revision conflict/retry and receipt remain lossless', async () => {
@@ -170,6 +173,7 @@ test('a view code opens the latest design and can do nothing else', async () => 
   const opened = await service.view('open');
   assert.equal(opened.body.access, 'view');
   assert.deepEqual(opened.body.selection, viewerCopy(selection));
+  assert.deepEqual(opened.body.selection, selection);
   assert.equal(opened.body.revision, saved.body.revision);
   assert.equal((await service.request('open')).body.access, 'edit');
   const attempts = [
@@ -272,6 +276,16 @@ test('view codes are optional, and a broken view table disables only the view li
   } finally { console.warn = original; }
   const brokenTeamKeys = await handleAction({ action: 'open', lessonId: legacy.lesson.id, editCode: VIEW_CODE }, { ...service.context, teamKeys: 'not json' });
   assert.equal(brokenTeamKeys.status, 503, 'a broken team table still stops the service');
+  assert.equal((await handleAction({ action: 'open', lessonId: otherLesson, editCode: VIEW_CODE }, service.context)).status, 403, 'a view code opens only its own lesson');
+});
+
+test('view codes are optional, and a malformed table stops the service', async () => {
+  const service = memoryService();
+  const open = (viewKeys, editCode = service.code) => handleAction({ action: 'open', lessonId: legacy.lesson.id, editCode }, { ...service.context, viewKeys });
+  assert.equal((await open(undefined)).status, 200, 'an edit code works with no view table');
+  assert.equal((await open(undefined, VIEW_CODE)).status, 403, 'a view code is unknown when no view table is set');
+  assert.equal((await open('{"not-a-lesson":"x"}')).status, 503);
+  assert.equal((await open('not json')).status, 503);
 });
 
 test('low-contrast choices save and reopen unchanged while stale writes remain blocked', async () => {
@@ -297,4 +311,38 @@ test('staged service includes every v2 model authority dependency', async () => 
     const selection = payload(); assert.deepEqual(authority.selectionErrors(selection, selection.lesson.id), []);
     assert.equal(fs.existsSync(path.join(stage, 'fonts')), false);
   } finally { fs.rmSync(temp, { recursive: true, force: true }); }
+});
+
+
+test('A/B selection survives encrypted save, exact dispatch, immutable visual package and verified review', async () => {
+  const selection=payload();
+  selection.design=applyPreset(catalog,'outspoken');
+  selection.design=setFeatureStyle(catalog,selection.design,'sidebar','font','bitter');
+  selection.design=setFeatureStyle(catalog,selection.design,'sidebar','background','gold');
+  selection.design=setRoleStyle(catalog,selection.design,'title','headingText','Chosen B — <script>never execute</script>');
+  selection.design=setRoleStyle(catalog,selection.design,'title','extraText','A separate note');
+  selection.alternatives={active:'B',otherDesign:applyPreset(catalog,'modern')};
+  selection.alternatives.otherDesign.samples.boxes[3]='A remains recoverable';
+  const service=memoryService(),saved=await service.request('save',{selection,expectedRevision:null,mutationId:randomUUID()});
+  assert.equal(saved.status,200);assert.deepEqual((await service.request('open')).body.selection,selection);
+  await service.request('send',{selection,expectedRevision:saved.body.revision});assert.deepEqual(service.dispatchedPayload,selection);
+  const chosenA=structuredClone(selection);chosenA.design=selection.alternatives.otherDesign;chosenA.alternatives={active:'A',otherDesign:selection.design};
+  const next=await service.request('save',{selection:chosenA,expectedRevision:saved.body.revision,mutationId:randomUUID()});assert.equal(next.status,200);
+  assert.deepEqual((await service.request('open')).body.selection,chosenA);
+  assert.deepEqual((await service.request('openRevision',{revision:saved.body.revision})).body.selection,selection);
+  const tmp=fs.mkdtempSync(path.join(os.tmpdir(),'bespoke-review-package-'));
+  try {
+    const file=path.join(tmp,'payload.json');fs.writeFileSync(file,JSON.stringify(service.dispatchedPayload));
+    const out=execFileSync('python3',['scripts/bespoke-write-submission.py',file,'--repo-root',tmp],{cwd:root,encoding:'utf8'});
+    const folder=out.trim().slice('Wrote '.length);
+    const verified=JSON.parse(execFileSync('python3',['scripts/bespoke-review-package.py',folder],{cwd:root,encoding:'utf8'}));
+    assert.equal(verified.selectionSha256,digest(selection));assert.equal(verified.chosenOption,'B');
+    const contract=JSON.parse(fs.readFileSync(path.join(folder,'build-contract.json')));assert.deepEqual(contract.design,selection.design);
+    const visual=fs.readFileSync(path.join(folder,'review.html'),'utf8');assert.match(visual,/data:font\/woff2;base64,/);assert.match(visual,/data:image\/png;base64,/);assert(!visual.includes('<base '));assert(!visual.includes('<script>'));
+    assert.deepEqual(JSON.parse(fs.readFileSync(path.join(folder,'selection.json'))).alternatives,selection.alternatives);
+    fs.appendFileSync(path.join(folder,'review.html'),'tampered');
+    assert.throws(()=>execFileSync('python3',['scripts/bespoke-write-submission.py',file,'--repo-root',tmp],{cwd:root,stdio:'pipe'}),/Command failed/,'Retry does not overwrite tampered review artifacts');
+    assert.throws(()=>execFileSync('python3',['scripts/bespoke-review-package.py',folder],{cwd:root,stdio:'pipe'}),/Command failed/);
+    const malformed=structuredClone(selection);malformed.alternatives.otherDesign.roles.sidebar='malicious';assert(selectionErrors(malformed,selection.lesson.id).length);
+  }finally{fs.rmSync(tmp,{recursive:true,force:true});}
 });

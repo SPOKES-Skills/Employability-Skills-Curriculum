@@ -29,6 +29,7 @@ node scripts/capture-print-slides.mjs --check
 echo "==> bespoke selection schema (generate --check + fixtures + submissions)"
 python3 scripts/generate-selection-schema.py --check
 node scripts/generate-selection-v2-schema.mjs --check
+node scripts/build-bespoke-presets.mjs --check
 node scripts/test-bespoke-builder-model.mjs
 node scripts/test-bespoke-role-model.mjs
 node scripts/test-bespoke-role-contracts.mjs

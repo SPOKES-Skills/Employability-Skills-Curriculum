@@ -7,9 +7,9 @@ import { createHash, randomUUID } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import catalog from '../bespoke/builder-catalog.json' with { type: 'json' };
-import { defaultDesign, applyPreset, setFeatureStyle, setRoleStyle } from '../bespoke/builder-model.mjs';
+import { defaultDesign, applyPreset, setFeatureStyle, setRoleStyle, setSidebarText } from '../bespoke/builder-model.mjs';
 import { selectionErrors, digest, canonicalJson } from '../netlify/functions/_shared/selection.mjs';
-import { handleAction, hashEditCode, LESSON_IDS, seal } from '../netlify/functions/bespoke-handoff.mjs';
+import { handleAction, hashEditCode, LESSON_IDS, seal, VIEW_ONLY } from '../netlify/functions/bespoke-handoff.mjs';
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const legacy = JSON.parse(fs.readFileSync(path.join(root, 'scripts/test-fixtures/bespoke/selection-money-management.json')));
 const payload = () => ({ schema: 'bespoke-selection/v2', date: '2026-09-24', submittedAt: '2026-09-24T16:30:00.000Z', lesson: structuredClone(legacy.lesson), team: structuredClone(legacy.team), design: defaultDesign(catalog) });
@@ -21,6 +21,28 @@ test('committed v2 schema is current and v1 remains accepted', () => {
     const selection = payload(); selection.design = applyPreset(catalog, preset.id);
     assert.deepEqual(selectionErrors(selection, selection.lesson.id), [], preset.id);
   }
+});
+
+test('all twelve preset ids are accepted as a starting point', () => {
+  assert.equal(catalog.presets.length, 12);
+  for (const id of ['sidebar', 'horizon', 'corner', 'masthead', 'columns', 'plaque']) {
+    const selection = payload();
+    selection.design = applyPreset(catalog, id);
+    assert.equal(selection.design.startingPoint, id);
+    assert.deepEqual(selectionErrors(selection, selection.lesson.id), [], id);
+  }
+});
+
+test('the service accepts a design with or without a sidebar text color and rejects an unknown one', () => {
+  const old = payload();
+  assert.equal(Object.hasOwn(old.design.roles, 'sidebarText'), false);
+  assert.deepEqual(selectionErrors(old, old.lesson.id), [], 'a design saved before this field stays valid');
+  const chosen = payload();
+  chosen.design = setSidebarText(catalog, chosen.design, 'gold');
+  assert.deepEqual(selectionErrors(chosen, chosen.lesson.id), []);
+  const unknown = payload();
+  unknown.design.roles.sidebarText = 'teal';
+  assert.notDeepEqual(selectionErrors(unknown, unknown.lesson.id), []);
 });
 
 test('closed v2 authority rejects malformed arrays, unknown colors, fonts, styles and injected CSS', () => {
@@ -64,6 +86,7 @@ test('incomplete current draft stays unsendable, while original incomplete v1 re
   assert.equal(selection.legacySelection.team.spokesperson.name, '');
 });
 
+const VIEW_CODE = 'synthetic-team-view-code-000001';
 function memoryService(existingSelection) {
   let current = null, writes = 0, dispatched = 0, dispatchedPayload = null, proposal = null, run = null;
   const revisions = new Map();
@@ -81,13 +104,14 @@ function memoryService(existingSelection) {
     async dispatchSpokeSignal(raw) { dispatchedPayload=JSON.parse(raw); dispatched++; assert.equal(JSON.parse(raw).schema, 'bespoke-selection/v2'); run = { id: 1, status: 'queued' }; return run; },
   };
   const code = 'synthetic-v2-team-access-code';
-  const context = { github: api, token: 'synthetic', draftKey: Buffer.alloc(32, 4).toString('base64'), teamKeys: Object.fromEntries(LESSON_IDS.map(id => [id, hashEditCode(code)])) };
+  const context = { github: api, token: 'synthetic', draftKey: Buffer.alloc(32, 4).toString('base64'), teamKeys: Object.fromEntries(LESSON_IDS.map(id => [id, hashEditCode(code)])), viewKeys: JSON.stringify({ [legacy.lesson.id]: hashEditCode(VIEW_CODE) }) };
   if (existingSelection) {
     const envelope = seal(context.draftKey, { selection: existingSelection, receipts: [] }, existingSelection.lesson.id);
     current = { sha: 'a'.repeat(40), envelope }; revisions.set(current.sha, structuredClone(current));
   }
   const request = (action, fields = {}) => handleAction({ action, lessonId: legacy.lesson.id, editCode: code, ...fields }, context);
-  return { request, get writes() { return writes; }, get dispatched() { return dispatched; }, get dispatchedPayload() { return dispatchedPayload; }, received() { proposal = { url: 'https://example.invalid/synthetic-review' }; } };
+  const view = (action, fields = {}) => handleAction({ action, lessonId: legacy.lesson.id, editCode: VIEW_CODE, ...fields }, context);
+  return { request, view, context, code, get writes() { return writes; }, get dispatched() { return dispatched; }, get dispatchedPayload() { return dispatchedPayload; }, received() { proposal = { url: 'https://example.invalid/synthetic-review' }; } };
 }
 
 test('v2 synthetic save/open/revision conflict/retry and receipt remain lossless', async () => {
@@ -111,6 +135,46 @@ test('v2 synthetic save/open/revision conflict/retry and receipt remain lossless
   await service.request('send', { selection: revised, expectedRevision: updated.body.revision }); assert.equal(service.dispatched, 1);
   service.received();
   assert.equal((await service.request('status', { submissionId: sent.body.submissionId })).body.status, 'received');
+});
+
+test('a view code opens the latest design and can do nothing else', async () => {
+  const service = memoryService(), selection = payload();
+  const empty = await service.view('open');
+  assert.equal(empty.status, 200);
+  assert.equal(empty.body.access, 'view');
+  assert.equal(empty.body.selection, null, 'opening before the first save works');
+  const saved = await service.request('save', { selection, expectedRevision: null, mutationId: randomUUID() });
+  const opened = await service.view('open');
+  assert.equal(opened.body.access, 'view');
+  assert.deepEqual(opened.body.selection, selection);
+  assert.equal(opened.body.revision, saved.body.revision);
+  assert.equal((await service.request('open')).body.access, 'edit');
+  const attempts = [
+    ['save', { selection, expectedRevision: saved.body.revision, mutationId: randomUUID() }],
+    ['send', { selection, expectedRevision: saved.body.revision }],
+    ['history', {}],
+    ['openRevision', { revision: saved.body.revision }],
+    ['status', { submissionId: 'anything' }]
+  ];
+  for (const [action, fields] of attempts) {
+    const refused = await service.view(action, fields);
+    assert.equal(refused.status, 403, action);
+    assert.equal(refused.body.error, 'view', action);
+    assert.equal(refused.body.message, VIEW_ONLY, action);
+  }
+  assert.equal(service.writes, 1, 'a view code never writes');
+  assert.equal(service.dispatched, 0, 'a view code never sends');
+  const otherLesson = LESSON_IDS.find(id => id !== legacy.lesson.id);
+  assert.equal((await handleAction({ action: 'open', lessonId: otherLesson, editCode: VIEW_CODE }, service.context)).status, 403, 'a view code opens only its own lesson');
+});
+
+test('view codes are optional, and a malformed table stops the service', async () => {
+  const service = memoryService();
+  const open = (viewKeys, editCode = service.code) => handleAction({ action: 'open', lessonId: legacy.lesson.id, editCode }, { ...service.context, viewKeys });
+  assert.equal((await open(undefined)).status, 200, 'an edit code works with no view table');
+  assert.equal((await open(undefined, VIEW_CODE)).status, 403, 'a view code is unknown when no view table is set');
+  assert.equal((await open('{"not-a-lesson":"x"}')).status, 503);
+  assert.equal((await open('not json')).status, 503);
 });
 
 test('low-contrast choices save and reopen unchanged while stale writes remain blocked', async () => {

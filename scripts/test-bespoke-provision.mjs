@@ -6,7 +6,7 @@ import test from 'node:test';
 import { createHash } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
 import { pathToFileURL } from 'node:url';
-import { provision, reissue } from './bespoke-provision.mjs';
+import { provision, provisionViewLinks, reissue } from './bespoke-provision.mjs';
 import { CODE_ALPHABET, hashAccessCode, newAccessCode } from '../netlify/functions/_shared/access-code.mjs';
 
 const wizardUrl = 'https://example.test/bespoke/';
@@ -57,6 +57,36 @@ test('provisioned links have independent credentials, matching hashes, and priva
     if (process.platform !== 'win32') assert.equal(fs.statSync(path.join(output, 'server-env.json')).mode & 0o777, 0o600);
     assert.throws(() => provision({ output, wizardUrl: 'https://example.test/bespoke/' }), /already exists/);
     assert.equal(JSON.parse(fs.readFileSync(path.join(output, 'server-env.json'))).BESPOKE_DRAFT_KEY, env.BESPOKE_DRAFT_KEY);
+  } finally { fs.rmSync(tmp, { recursive: true, force: true }); }
+});
+
+test('view links are added beside existing team links without touching them', () => {
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'bespoke-provision-'));
+  const wizardUrl = 'https://example.test/bespoke/';
+  try {
+    const output = provision({ output: path.join(tmp, 'private'), wizardUrl });
+    const names = ['server-env.json', 'team-access.json', 'team-links.html'];
+    const before = Object.fromEntries(names.map(name => [name, fs.readFileSync(path.join(output, name), 'utf8')]));
+    provisionViewLinks({ output, wizardUrl });
+    for (const name of names) assert.equal(fs.readFileSync(path.join(output, name), 'utf8'), before[name], `${name} is unchanged`);
+    const team = JSON.parse(before['team-access.json']);
+    const access = JSON.parse(fs.readFileSync(path.join(output, 'view-access.json')));
+    const env = JSON.parse(fs.readFileSync(path.join(output, 'view-env.json')));
+    const hashes = JSON.parse(env.BESPOKE_VIEW_KEYS);
+    assert.deepEqual(Object.keys(env), ['BESPOKE_VIEW_KEYS']);
+    assert.equal(new Set(Object.values(access).map(item => item.code)).size, 6);
+    for (const [lesson, item] of Object.entries(access)) {
+      assert.equal(item.code.length, 32);
+      assert.notEqual(item.code, team[lesson].code, 'a view code is never the edit code');
+      assert.equal(hashes[lesson], createHash('sha256').update(item.code).digest('base64url'));
+      assert.equal(new URL(item.url).hash, `#view=${lesson}.${item.code}`);
+      assert.equal(JSON.stringify(env).includes(item.code), false);
+    }
+    assert.match(fs.readFileSync(path.join(output, 'view-links.html'), 'utf8'), /#view=/);
+    if (process.platform !== 'win32') assert.equal(fs.statSync(path.join(output, 'view-access.json')).mode & 0o777, 0o600);
+    assert.throws(() => provisionViewLinks({ output, wizardUrl }), /already exist/);
+    assert.throws(() => provisionViewLinks({ output: path.join(tmp, 'empty'), wizardUrl }), /existing private provisioning directory/);
+    assert.throws(() => provisionViewLinks({ output, wizardUrl: 'http://example.test/bespoke/' }), /HTTPS/);
   } finally { fs.rmSync(tmp, { recursive: true, force: true }); }
 });
 
@@ -142,6 +172,16 @@ test('the reissue command prints no codes', () => withTmp(tmp => {
   const stdout = execFileSync(process.execPath, ['scripts/bespoke-provision.mjs', '--reissue', 'all', '--output', output, '--wizard-url', wizardUrl], { encoding: 'utf8' });
   for (const item of Object.values(readJson(output, 'team-access.json'))) assert.equal(stdout.includes(item.code), false);
   assert.match(stdout, /team-env\.json/);
+}));
+
+test('the view-link command prints no codes and will not run together with a reissue', () => withTmp(tmp => {
+  const output = path.join(tmp, 'private');
+  const run = (...args) => execFileSync(process.execPath, ['scripts/bespoke-provision.mjs', ...args, '--output', output, '--wizard-url', wizardUrl], { encoding: 'utf8', stdio: 'pipe' });
+  run('--reissue', 'all');
+  const stdout = run('--add-view-links');
+  for (const item of Object.values(readJson(output, 'view-access.json'))) assert.equal(stdout.includes(item.code), false);
+  assert.match(stdout, /view links/);
+  assert.throws(() => run('--reissue', 'all', '--add-view-links'), /Usage/);
 }));
 
 test('minimal deployment package loads the real function and its validation catalogs', async () => {

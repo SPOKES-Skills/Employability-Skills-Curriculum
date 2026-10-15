@@ -115,7 +115,7 @@ test('missing or malformed independent keys fail closed without repository acces
 
 test('new lesson opens empty; first save returns durable revision and encrypted draft', async () => {
   const { api, files } = memoryGitHub();
-  assert.deepEqual((await handleAction(request('open'), context(api))).body, { ok: true, revision: null, savedAt: null, selection: null });
+  assert.deepEqual((await handleAction(request('open'), context(api))).body, { ok: true, revision: null, savedAt: null, selection: null, access: 'edit' });
   const { result } = await initial(api);
   assert.match(result.body.revision, /^[a-f0-9]{40}$/);
   const stored = files.get(lessonId);

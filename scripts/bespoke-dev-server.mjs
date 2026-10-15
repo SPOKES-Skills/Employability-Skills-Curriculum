@@ -11,6 +11,7 @@ import { handleRequest, hashEditCode, LESSON_IDS, openBox } from '../netlify/fun
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const BODY_LIMIT = 80000;
 export const LOCAL_PREVIEW_CODE = 'bespoke-local-preview-synthetic';
+export const LOCAL_PREVIEW_VIEW_CODE = 'bespoke-local-preview-view-only';
 const MIME = { '.html': 'text/html', '.css': 'text/css', '.js': 'text/javascript', '.mjs': 'text/javascript', '.json': 'application/json', '.png': 'image/png', '.svg': 'image/svg+xml', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.webp': 'image/webp', '.ico': 'image/x-icon', '.woff': 'font/woff', '.woff2': 'font/woff2' };
 const inside = (base, target) => target === base || target.startsWith(base + path.sep);
 const clone = value => structuredClone(value);
@@ -132,6 +133,7 @@ export async function createDevServer({ port = 0, runtimeDir } = {}) {
     BESPOKE_GITHUB_TOKEN: 'local-preview-synthetic-token-no-network',
     BESPOKE_DRAFT_KEY: store.draftKey,
     BESPOKE_TEAM_KEYS: JSON.stringify(Object.fromEntries(LESSON_IDS.map(id => [id, hashEditCode(LOCAL_PREVIEW_CODE)]))),
+    BESPOKE_VIEW_KEYS: JSON.stringify(Object.fromEntries(LESSON_IDS.map(id => [id, hashEditCode(LOCAL_PREVIEW_VIEW_CODE)]))),
   };
   let baseUrl;
   const server = http.createServer(async (req, res) => {

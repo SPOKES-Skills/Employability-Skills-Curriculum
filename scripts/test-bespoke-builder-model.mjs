@@ -4,10 +4,12 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { applyPreset, colorAvailability, contrast, contrastIssues, cssForDesign, defaultDesign, designSchema, inkFor, migrateV1, patternFor, renderSlide, roleOptions, structuralErrors, validateDesign } from '../bespoke/builder-model.mjs';
+import { applyPreset, colorAvailability, contrast, contrastIssues, cssForDesign, defaultDesign, designSchema, inkFor, migrateV1, patternFor, renderSlide, roleOptions, setSidebarText, sidebarInk, structuralErrors, validateDesign } from '../bespoke/builder-model.mjs';
+import { compareDesign } from '../bespoke/similarity.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const catalog = JSON.parse(fs.readFileSync(path.join(root, 'bespoke/builder-catalog.json'), 'utf8'));
+const fingerprints = JSON.parse(fs.readFileSync(path.join(root, 'bespoke/lesson-fingerprints.json'), 'utf8'));
 const oldCatalog = JSON.parse(fs.readFileSync(path.join(root, 'bespoke/catalog.json'), 'utf8'));
 const clone = value => JSON.parse(JSON.stringify(value));
 let checked = 0;
@@ -31,6 +33,18 @@ check('default and twelve editable layout presets are valid and independent copi
     design.roles.sidebar = 'mauve';
     design.slides.cards.count = '1';
     assert.deepEqual(item.design, applyPreset(catalog, item.id));
+  }
+});
+
+check('twelve presets each have their own title layout and palette, and none copies a released lesson', () => {
+  assert.deepEqual(catalog.presets.map(item => item.id), ['professional', 'modern', 'serious', 'light-hearted', 'fun', 'outspoken', 'sidebar', 'horizon', 'corner', 'masthead', 'columns', 'plaque']);
+  assert.equal(new Set(catalog.presets.map(item => item.design.slides.title.layout)).size, 12, 'title layouts are unique');
+  assert.equal(new Set(catalog.presets.map(item => item.colorLabel)).size, 12, 'palette names are unique');
+  for (const item of catalog.presets) {
+    assert.deepEqual(contrastIssues(catalog, item.design), [], item.id);
+    const near = compareDesign(fingerprints, item.design, catalog)[0];
+    assert(near.shared < near.total, `${item.id} is an exact match for ${near.title}`);
+    console.log(`  ${item.id}: closest lesson ${near.title}, ${near.shared} of ${near.total}`);
   }
 });
 
@@ -207,6 +221,35 @@ check('v1 migration preserves independent fonts and sample copy and discloses ap
   assert(warnings.some(warning => warning.includes('approximated')));
   assert.equal(JSON.stringify(old), original);
   assert.deepEqual(structuralErrors(catalog, design), []);
+});
+
+check('sidebar text is optional, automatic by default and advisory when hard to read', () => {
+  const design = defaultDesign(catalog);
+  const auto = inkFor(catalog, design.roles.sidebar);
+  assert.equal(Object.hasOwn(design.roles, 'sidebarText'), false);
+  assert.equal(sidebarInk(catalog, design), auto);
+  assert(cssForDesign(catalog, design).includes(`--role-sidebar-ink: var(--${auto});`));
+
+  const gold = setSidebarText(catalog, design, 'gold');
+  assert.equal(Object.hasOwn(design.roles, 'sidebarText'), false, 'the input design is not changed');
+  assert.deepEqual(validateDesign(catalog, gold), []);
+  assert.equal(sidebarInk(catalog, gold), 'gold');
+  assert(cssForDesign(catalog, gold).includes('--role-sidebar-ink: var(--gold);'));
+  assert.deepEqual(contrastIssues(catalog, gold).filter(issue => issue.role === 'sidebarText'), []);
+
+  const invisible = setSidebarText(catalog, design, design.roles.sidebar);
+  assert.deepEqual(validateDesign(catalog, invisible), [], 'a hard-to-read choice stays valid');
+  const issue = contrastIssues(catalog, invisible).find(item => item.role === 'sidebarText');
+  assert.equal(issue.minimum, 4.5);
+  assert(issue.ratio < 4.5);
+  assert.deepEqual(issue.related, ['sidebarText', 'sidebar']);
+
+  assert.deepEqual(setSidebarText(catalog, gold, 'auto'), design, 'Automatic removes the field');
+  assert.throws(() => setSidebarText(catalog, design, 'teal'), /Unknown brand color/);
+  assert.match(structuralErrors(catalog, { ...design, roles: { ...design.roles, sidebarText: 'teal' } }).join(' '), /Sidebar text: choose a brand color/);
+  const roles = designSchema(catalog).properties.roles;
+  assert.equal(roles.required.includes('sidebarText'), false);
+  assert.deepEqual(roles.properties.sidebarText.enum, catalog.palette.map(color => color.id));
 });
 
 console.log(`BeSpoke builder model: ${checked} checks passed.`);

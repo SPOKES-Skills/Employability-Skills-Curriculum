@@ -99,6 +99,33 @@ All lesson releases must pass:
 
 See `SPOKES-Agent-Execution-Spec.md` for full gate criteria and severity/SLA policy.
 
+## Offline copy for teachers
+
+Teachers can run the released lessons with no internet, from a flash drive or a
+folder on their computer. Build the copy:
+
+```bash
+python3 scripts/build-offline-package.py
+```
+
+It writes `dist/SPOKES-Lessons-Offline-<date>/` and a zip of that folder, about
+550 MB. Only lessons marked `ready` in `lesson-registry.json` go in, with their
+Handouts, Teacher-Resources and print pictures. Source Material, BeSpoke and the
+build tools stay out. Chrome and Edge won't load caption files from a local
+folder, so the build embeds each caption file in its lesson page. It stops if
+any link in the copy points at a file the copy doesn't have.
+
+Open the copy in a browser before you share the zip:
+
+```bash
+node scripts/check-offline-package.mjs dist/SPOKES-Lessons-Offline-<date>
+```
+
+Teachers unzip it and open `START HERE.html`, which carries their instructions.
+A copy never updates itself. Build and share a new one after lessons change.
+`scripts/quality.sh` runs the build tests and the browser check, so a lesson
+change that would break the offline copy fails the gate.
+
 ## Current Status (high level)
 
 - Phase 1: 6 lessons, all out of QA and ready for teaching (September 23, 2026)

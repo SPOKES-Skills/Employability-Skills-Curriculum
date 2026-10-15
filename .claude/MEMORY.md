@@ -24,6 +24,14 @@
 - Quality gate green on PR #36 head `8fa1e5b`, locally and in CI (2026-10-01).
 
 ## Last Session
+- **Date**: 2026-10-15
+- **What we worked on**: Offline lessons package, a teacher request to run all lessons from a flash drive with no internet. Branch `claude/offline-lessons-package` (in the main checkout; the sandbox blocks new worktrees because git cannot write `.claude/settings*.json` there). `scripts/build-offline-package.py` copies the `ready` lessons (git-tracked files only; no `Source Material`, no dot files) plus Dashboard, logo, `fonts/` and the two print scripts into `dist/SPOKES-Lessons-Offline-<date>/` (`START HERE.html` + `lesson-files/`), embeds every caption track as a `data:text/vtt` URI, strips the Dashboard's BeSpoke links, fails on any link or print picture missing from the copy or any zip path over 190 characters, and zips it (media stored, 553 MB). START HERE text comes from `scripts/offline-start-here.html`. `scripts/check-offline-package.mjs` opens the copy over file:// and fails on failed requests, console errors, fonts, images, videos, caption tracks, Dashboard links and axe on START HERE. 14 unit tests in `scripts/test_offline_package.py`, red then green. Browser check: real copy 8/8 pages in Chromium and WebKit; a copy with Time Management captions un-embedded and one font deleted failed (38 problems in Chromium). `quality.sh` runs both; full gate exit 0 on 2026-10-15. README has an "Offline copy for teachers" section.
+- **What we decided**: see the 2026-10-15 offline row in the decision log.
+- **Where we left off**: PR open from `claude/offline-lessons-package` (opened 2026-10-15; Britt merges). Old 2026-10-09 BeSpoke edits (`bespoke/app.js`, `bespoke/styles.css`, `scripts/test-bespoke-browser.mjs`) remain uncommitted in the main checkout and are not in this PR. Built zip at `dist/SPOKES-Lessons-Offline-2026-10-15.zip` (gitignored). Britt picks where teachers download it. Not tested: real Chrome or Edge on Windows, Windows Extract All, Print slides clicked from the copy, the Employee Accountability PDF preview, Chromebooks.
+
+## Open Items
+- [ ] **Offline lessons package**: PR open from `claude/offline-lessons-package` (see Last Session). Britt merges, then picks the download location (GitHub Release on the publisher repo needs the publisher brought up to date first; or Teams/OneDrive). Try the zip on a Windows laptop: Extract All, START HERE, a video with captions on.
+- [ ] **Print slides**: PR #50 open. Britt and the teacher approve the sample PDFs and do the paper check, then Britt squash-merges. After any lesson edit run `node scripts/capture-print-slides.mjs <lesson-folder>`; `quality.sh` fails until you do.
 - **Date**: 2026-10-14
 - **What we worked on**: How BeSpoke team access codes are made, and a recovery path. Found codes come from `scripts/bespoke-provision.mjs` (one per lesson, hashed into `BESPOKE_TEAM_KEYS`), teams were never meant to type them, and no tool could reset one team. Built 8-character codes, the `--reissue` command, dialog and guide text, and admin docs (PR #51). A security-specialist review found no critical or high issues; its in-scope fixes are in `e10f4c4`. 2026-10-14: PR #51 conflicted with PR #50 in this file only; merged `main` in.
 - **What we decided**: see the 2026-10-13 rows in the decision log.
@@ -90,6 +98,7 @@
 ## Key Decisions Log
 | Date | Decision | Rationale |
 |------|----------|-----------|
+| 2026-10-15 | Offline package embeds captions in its copy of each lesson; the released lessons keep their .vtt links | Chrome and Edge block caption files on file:// pages; the hosted site loads them, and the released lessons stay untouched |
 | 2026-10-13 | Team codes become 8 characters (`K7QX-M3PD`), case, spaces and dash ignored | Britt: 32 characters is extreme; teams must be able to read and type a code. About 39.6 bits is enough for online guessing behind the per-address limit, and the code guards a design suggestion |
 | 2026-10-13 | Recovery is admin-only: Britt resends the link or reissues the code (`--reissue`) | Britt's pick over email self-service, which needed an email provider, a new secret and stored contact emails |
 | 2026-10-13 | Build access-code work on `main`, not the view-link branch | Britt's pick; lands on its own; the view-link branch's rotate mode gets folded in later |

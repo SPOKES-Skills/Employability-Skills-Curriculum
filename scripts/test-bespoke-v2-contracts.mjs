@@ -7,8 +7,7 @@ import { createHash, randomUUID } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import catalog from '../bespoke/builder-catalog.json' with { type: 'json' };
-import { defaultDesign, applyPreset, setSidebarText } from '../bespoke/builder-model.mjs';
-import { defaultDesign, applyPreset, setFeatureStyle, setRoleStyle } from '../bespoke/builder-model.mjs';
+import { defaultDesign, applyPreset, setFeatureStyle, setRoleStyle, setSidebarText } from '../bespoke/builder-model.mjs';
 import { selectionErrors, digest, canonicalJson } from '../netlify/functions/_shared/selection.mjs';
 import { handleAction, hashEditCode, LESSON_IDS, seal, VIEW_ONLY } from '../netlify/functions/bespoke-handoff.mjs';
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -24,9 +23,9 @@ test('committed v2 schema is current and v1 remains accepted', () => {
   }
 });
 
-test('all nine preset ids are accepted as a starting point', () => {
-  assert.equal(catalog.presets.length, 9);
-  for (const id of ['open-air', 'gold-standard', 'slate']) {
+test('all twelve preset ids are accepted as a starting point', () => {
+  assert.equal(catalog.presets.length, 12);
+  for (const id of ['sidebar', 'horizon', 'corner', 'masthead', 'columns', 'plaque']) {
     const selection = payload();
     selection.design = applyPreset(catalog, id);
     assert.equal(selection.design.startingPoint, id);
@@ -112,8 +111,7 @@ function memoryService(existingSelection) {
   }
   const request = (action, fields = {}) => handleAction({ action, lessonId: legacy.lesson.id, editCode: code, ...fields }, context);
   const view = (action, fields = {}) => handleAction({ action, lessonId: legacy.lesson.id, editCode: VIEW_CODE, ...fields }, context);
-  return { request, view, context, code, get writes() { return writes; }, get dispatched() { return dispatched; }, received() { proposal = { url: 'https://example.invalid/synthetic-review' }; } };
-  return { request, get writes() { return writes; }, get dispatched() { return dispatched; }, get dispatchedPayload() { return dispatchedPayload; }, received() { proposal = { url: 'https://example.invalid/synthetic-review' }; } };
+  return { request, view, context, code, get writes() { return writes; }, get dispatched() { return dispatched; }, get dispatchedPayload() { return dispatchedPayload; }, received() { proposal = { url: 'https://example.invalid/synthetic-review' }; } };
 }
 
 test('v2 synthetic save/open/revision conflict/retry and receipt remain lossless', async () => {

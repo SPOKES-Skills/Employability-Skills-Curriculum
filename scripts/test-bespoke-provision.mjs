@@ -6,8 +6,7 @@ import test from 'node:test';
 import { createHash } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
 import { pathToFileURL } from 'node:url';
-import { provision, provisionViewLinks } from './bespoke-provision.mjs';
-import { provision, reissue } from './bespoke-provision.mjs';
+import { provision, provisionViewLinks, reissue } from './bespoke-provision.mjs';
 import { CODE_ALPHABET, hashAccessCode, newAccessCode } from '../netlify/functions/_shared/access-code.mjs';
 
 const wizardUrl = 'https://example.test/bespoke/';
@@ -173,6 +172,16 @@ test('the reissue command prints no codes', () => withTmp(tmp => {
   const stdout = execFileSync(process.execPath, ['scripts/bespoke-provision.mjs', '--reissue', 'all', '--output', output, '--wizard-url', wizardUrl], { encoding: 'utf8' });
   for (const item of Object.values(readJson(output, 'team-access.json'))) assert.equal(stdout.includes(item.code), false);
   assert.match(stdout, /team-env\.json/);
+}));
+
+test('the view-link command prints no codes and will not run together with a reissue', () => withTmp(tmp => {
+  const output = path.join(tmp, 'private');
+  const run = (...args) => execFileSync(process.execPath, ['scripts/bespoke-provision.mjs', ...args, '--output', output, '--wizard-url', wizardUrl], { encoding: 'utf8', stdio: 'pipe' });
+  run('--reissue', 'all');
+  const stdout = run('--add-view-links');
+  for (const item of Object.values(readJson(output, 'view-access.json'))) assert.equal(stdout.includes(item.code), false);
+  assert.match(stdout, /view links/);
+  assert.throws(() => run('--reissue', 'all', '--add-view-links'), /Usage/);
 }));
 
 test('minimal deployment package loads the real function and its validation catalogs', async () => {

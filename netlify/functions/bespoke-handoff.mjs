@@ -110,7 +110,7 @@ export async function handleAction(body, { github, token, draftKey, teamKeys, vi
   if (!['save', 'open', 'history', 'openRevision', 'send', 'status'].includes(action)) return fail(400, 'action', 'Choose Save, Open, History or Send to Britt.');
   if (!LESSON_IDS.includes(lessonId)) return fail(400, 'lesson', 'Choose one of the six lessons.');
   const code = typeof body.editCode === 'string' ? body.editCode.trim() : '';
-  if (code.length < 20 || code.length > 128) return fail(403, 'code', WRONG_CODE);
+  if (code.length < CODE_MIN_LENGTH || code.length > 128) return fail(403, 'code', WRONG_CODE);
   const holds = table => {
     const expected = table[lessonId];
     if (!expected) return false;
@@ -123,10 +123,6 @@ export async function handleAction(body, { github, token, draftKey, teamKeys, vi
   // A view code reads the latest design and nothing else: no history, no status, no writes.
   if (!mayEdit && action !== 'open') return fail(403, 'view', VIEW_ONLY);
   const access = mayEdit ? 'edit' : 'view';
-  if (code.length < CODE_MIN_LENGTH || code.length > 128) return fail(403, 'code', WRONG_CODE);
-  const expected = keys[lessonId];
-  const actual = expected?.length === 64 ? createHash('sha256').update(code, 'utf8').digest('hex') : hashEditCode(code);
-  if (!expected || !hashesMatch(actual, expected.length === 64 ? expected.toLowerCase() : expected)) return fail(403, 'code', WRONG_CODE);
   // Authorization has succeeded before the first repository read or write.
   try {
     if (action === 'history') {

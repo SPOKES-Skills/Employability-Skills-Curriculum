@@ -208,8 +208,6 @@ try {
   await scenario('cumulative colors, independent fonts, editable presets, history and v2 file recovery', async ({ makePage }) => {
     const page = await makePage();
     await go(page, 'Starting look');
-    assert.equal(await page.locator('[data-preset]').count(), 9);
-    await page.locator('[data-preset="professional"]').click();
     assert.equal(await page.locator('[data-preset]').count(), 12);
     await go(page, 'Starting look');await page.locator('[data-preset="professional"]').click();
     await go(page, 'Text boxes');

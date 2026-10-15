@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/** The nine starting looks, as one table. Writes them into the builder catalog; --check only compares. */
+/** The twelve starting looks, as one table. Writes them into the builder catalog; --check only compares. */
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -16,35 +16,56 @@ const slides = (title, divider, cards, video, activity) => ({
   activity: { layout: activity[0], labelStyle: activity[1] }
 });
 
+// The title-slide style every preset ships with. Only the gradient direction differs between rows.
+// A frozen copy, not roleStyleDefaults(): saved designs must not change when the defaults grow.
+const TITLE_STYLE = {
+  backgroundMode: 'inherit', primary: 'inherit', secondary: 'inherit', direction: 'diagonal', pattern: 'inherit', patternStrength: 'normal',
+  headingColor: 'inherit', bodyColor: 'inherit', headingFont: 'inherit', bodyFont: 'inherit', headingSize: 'default', bodySize: 'default',
+  headingAlignment: 'layout', bodyAlignment: 'layout', headingPlacement: 'layout', bodyPlacement: 'layout',
+  extraText: null, extraColor: 'inherit', extraSize: 'default', extraAlignment: 'left', extraPlacement: 'bottom', boxHeadings: null,
+  headingVisible: true, bodyVisible: true, headingText: null, bodyText: null, labelText: null, labelVisible: true,
+  watermarkMode: 'inherit', watermarkText: 'SPOKES', watermarkColor: 'inherit', watermarkSize: 'medium', watermarkPlacement: 'bottom-right', watermarkOpacity: 'low'
+};
+
 // roles(): sidebar, title background, second color, title text, subtitle, content background, heading, body, accent, button, divider background.
+// A row may add sidebarText to fix the sidebar text color; without it the color is Automatic.
 export const PRESETS = [
-  { id: 'professional', label: 'Professional', blurb: 'Navy and serif headings with a quiet gold accent.',
-    roles: roles('dark', 'dark', 'primary', 'light', 'light', 'light', 'dark', 'royal', 'muted-gold', 'dark', 'dark'), fonts: ['merriweather', 'inter'], background: 'plain',
-    slides: slides(['left', 'corner', 'gradient'], ['left', 'show', 'solid'], ['3', true, 'paragraph', 'rail', 'columns'], ['stacked', 'accent', 'regular'], ['callout', 'caps']) },
-  { id: 'modern', label: 'Modern', blurb: 'Bright blue, clean type and a split title.',
-    roles: roles('royal', 'primary', 'royal', 'light', 'light', 'light', 'primary', 'royal', 'primary', 'primary', 'royal'), fonts: ['outfit', 'source-sans-3'], background: 'diagonal',
-    slides: slides(['split', 'corner', 'gradient'], ['left', 'hide', 'gradient'], ['2', false, 'bullets', 'outline', 'columns'], ['side', 'plain', 'large'], ['banner', 'pill']) },
-  { id: 'serious', label: 'Serious', blurb: 'Royal and gray with numbered chapters.',
-    roles: roles('gray', 'royal', 'gray', 'light', 'light', 'light', 'royal', 'royal', 'gray', 'royal', 'gray'), fonts: ['bitter', 'fira-sans'], background: 'plain',
-    slides: slides(['center', 'above', 'solid'], ['number', 'show', 'solid'], ['3', true, 'numbered', 'band', 'rows'], ['stacked', 'plain', 'caps'], ['box', 'heading']) },
-  { id: 'light-hearted', label: 'Light-hearted', blurb: 'Green and friendly, with four boxes in a grid.',
-    roles: roles('accent', 'accent', 'dark', 'royal', 'royal', 'light', 'dark', 'royal', 'accent', 'dark', 'accent'), fonts: ['crimson-pro', 'outfit'], background: 'dot-grid',
-    slides: slides(['center', 'corner', 'solid'], ['center', 'show', 'solid'], ['4', false, 'paragraph', 'filled', 'grid'], ['stacked', 'accent', 'regular'], ['callout', 'pill']) },
-  { id: 'fun', label: 'Fun', blurb: 'Gold up front with mauve accents.',
-    roles: roles('mauve', 'gold', 'muted-gold', 'royal', 'royal', 'light', 'mauve', 'royal', 'mauve', 'mauve', 'gold'), fonts: ['raleway', 'work-sans'], background: 'crosshatch',
-    slides: slides(['bottom', 'corner', 'gradient'], ['band', 'show', 'solid'], ['2', true, 'bullets', 'band', 'rows'], ['side', 'accent', 'large'], ['side', 'pill']) },
-  { id: 'outspoken', label: 'Outspoken', blurb: 'Bold mauve with strong bands.',
-    roles: roles('royal', 'mauve', 'royal', 'light', 'light', 'light', 'mauve', 'royal', 'royal', 'mauve', 'mauve'), fonts: ['work-sans', 'merriweather'], background: 'diagonal',
-    slides: slides(['split', 'above', 'gradient'], ['band', 'show', 'solid'], ['3', false, 'numbered', 'band', 'columns'], ['banner', 'accent', 'caps'], ['banner', 'caps']) },
-  { id: 'open-air', label: 'Open Air', blurb: 'Light and open, with navy text on white.',
-    roles: roles('muted', 'light', 'muted', 'dark', 'gray', 'light', 'primary', 'royal', 'primary', 'primary', 'muted'), fonts: ['dm-serif-display', 'outfit'], background: 'soft-gradient',
-    slides: slides(['center', 'above', 'gradient'], ['center', 'hide', 'solid'], ['3', true, 'paragraph', 'outline', 'grid'], ['banner', 'plain', 'regular'], ['box', 'caps']) },
-  { id: 'gold-standard', label: 'Gold Standard', blurb: 'Royal with gold lettering and a classic serif.', sidebarText: 'gold',
-    roles: roles('royal', 'royal', 'dark', 'gold', 'light', 'light', 'royal', 'royal', 'muted-gold', 'royal', 'royal'), fonts: ['playfair-display', 'inter'], background: 'plain',
-    slides: slides(['center', 'above', 'gradient'], ['center', 'show', 'gradient'], ['2', true, 'paragraph', 'rail', 'columns'], ['stacked', 'accent', 'large'], ['callout', 'heading']) },
-  { id: 'slate', label: 'Slate', blurb: 'Cool gray with green accents.',
-    roles: roles('gray', 'gray', 'royal', 'light', 'light', 'muted', 'gray', 'royal', 'accent', 'gray', 'gray'), fonts: ['vollkorn', 'fira-sans'], background: 'dot-grid',
-    slides: slides(['bottom', 'corner', 'solid'], ['band', 'hide', 'solid'], ['4', false, 'bullets', 'band', 'columns'], ['side', 'plain', 'caps'], ['side', 'heading']) }
+  { id: 'professional', label: 'Editorial', blurb: 'A generous left-aligned title.', colorLabel: 'Paper & berry',
+    roles: roles('light', 'light', 'muted', 'mauve', 'royal', 'light', 'mauve', 'royal', 'mauve', 'mauve', 'light'), fonts: ['merriweather', 'inter'], background: 'plain', direction: 'diagonal',
+    slides: slides(['left', 'corner', 'solid'], ['left', 'show', 'solid'], ['3', true, 'paragraph', 'rail', 'columns'], ['stacked', 'accent', 'regular'], ['callout', 'caps']) },
+  { id: 'modern', label: 'Split stage', blurb: 'Text beside a broad open panel.', colorLabel: 'Fresh green',
+    roles: roles('accent', 'accent', 'muted', 'royal', 'royal', 'light', 'royal', 'royal', 'royal', 'royal', 'accent'), fonts: ['outfit', 'source-sans-3'], background: 'plain', direction: 'right',
+    slides: slides(['split', 'corner', 'gradient'], ['band', 'show', 'solid'], ['3', true, 'paragraph', 'outline', 'columns'], ['stacked', 'accent', 'regular'], ['callout', 'caps']) },
+  { id: 'serious', label: 'Centered', blurb: 'A balanced title at the center.', colorLabel: 'Warm gold',
+    roles: roles('gold', 'gold', 'light', 'royal', 'royal', 'light', 'royal', 'royal', 'royal', 'royal', 'gold'), fonts: ['bitter', 'fira-sans'], background: 'plain', direction: 'down',
+    slides: slides(['center', 'corner', 'solid'], ['number', 'show', 'solid'], ['3', true, 'paragraph', 'band', 'columns'], ['stacked', 'accent', 'regular'], ['callout', 'caps']) },
+  { id: 'light-hearted', label: 'Grounded', blurb: 'A low title with room above.', colorLabel: 'Soft silver',
+    roles: roles('offwhite', 'offwhite', 'light', 'royal', 'royal', 'light', 'royal', 'royal', 'gray', 'gray', 'offwhite'), fonts: ['crimson-pro', 'outfit'], background: 'plain', direction: 'diagonal',
+    slides: slides(['bottom', 'corner', 'gradient'], ['center', 'show', 'solid'], ['3', true, 'paragraph', 'filled', 'columns'], ['stacked', 'accent', 'regular'], ['callout', 'caps']) },
+  { id: 'fun', label: 'Framed', blurb: 'A fine frame around the message.', colorLabel: 'Midnight & gold',
+    roles: roles('royal', 'royal', 'dark', 'gold', 'light', 'light', 'royal', 'royal', 'gold', 'gold', 'royal'), fonts: ['raleway', 'work-sans'], background: 'plain', direction: 'right',
+    slides: slides(['frame', 'corner', 'solid'], ['band', 'show', 'solid'], ['3', true, 'paragraph', 'band', 'columns'], ['stacked', 'accent', 'regular'], ['callout', 'caps']) },
+  { id: 'outspoken', label: 'Headline', blurb: 'An oversized, compact headline.', colorLabel: 'Bold berry',
+    roles: roles('mauve', 'mauve', 'royal', 'light', 'light', 'light', 'mauve', 'royal', 'gold', 'gold', 'mauve'), fonts: ['work-sans', 'merriweather'], background: 'plain', direction: 'down',
+    slides: slides(['headline', 'corner', 'solid'], ['left', 'show', 'solid'], ['3', true, 'paragraph', 'outline', 'columns'], ['stacked', 'accent', 'regular'], ['callout', 'caps']) },
+  { id: 'sidebar', label: 'Side rule', blurb: 'A vertical rule anchors the title.', colorLabel: 'Botanical light',
+    roles: roles('muted', 'muted', 'light', 'dark', 'royal', 'light', 'dark', 'royal', 'accent', 'accent', 'muted'), fonts: ['merriweather', 'inter'], background: 'plain', direction: 'diagonal',
+    slides: slides(['sidebar', 'corner', 'solid'], ['left', 'show', 'solid'], ['3', true, 'paragraph', 'rail', 'columns'], ['stacked', 'accent', 'regular'], ['callout', 'caps']) },
+  { id: 'horizon', label: 'Horizon', blurb: 'Title above a full-width dividing line.', colorLabel: 'Ocean blue',
+    roles: roles('dark', 'dark', 'primary', 'light', 'light', 'light', 'royal', 'royal', 'gold', 'gold', 'dark'), fonts: ['outfit', 'source-sans-3'], background: 'plain', direction: 'right',
+    slides: slides(['horizon', 'corner', 'gradient'], ['band', 'show', 'solid'], ['3', true, 'paragraph', 'outline', 'columns'], ['stacked', 'accent', 'regular'], ['callout', 'caps']) },
+  { id: 'corner', label: 'Corner', blurb: 'A compact title in the upper corner.', colorLabel: 'Graphite',
+    roles: roles('gray', 'gray', 'royal', 'light', 'light', 'light', 'royal', 'royal', 'gold', 'gold', 'gray'), fonts: ['bitter', 'fira-sans'], background: 'plain', direction: 'down',
+    slides: slides(['corner', 'corner', 'solid'], ['number', 'show', 'solid'], ['3', true, 'paragraph', 'band', 'columns'], ['stacked', 'accent', 'regular'], ['callout', 'caps']) },
+  { id: 'masthead', label: 'Masthead', blurb: 'A long top rule and a broad title.', colorLabel: 'Berry on white',
+    roles: roles('light', 'light', 'offwhite', 'mauve', 'royal', 'light', 'mauve', 'royal', 'mauve', 'mauve', 'light'), fonts: ['crimson-pro', 'outfit'], background: 'plain', direction: 'diagonal',
+    slides: slides(['masthead', 'corner', 'solid'], ['center', 'show', 'solid'], ['3', true, 'paragraph', 'filled', 'columns'], ['stacked', 'accent', 'regular'], ['callout', 'caps']) },
+  { id: 'columns', label: 'Two columns', blurb: 'Title and supporting text side by side.', colorLabel: 'Golden light',
+    roles: roles('gold', 'gold', 'light', 'royal', 'royal', 'light', 'royal', 'royal', 'muted-gold', 'muted-gold', 'gold'), fonts: ['raleway', 'work-sans'], background: 'plain', direction: 'right',
+    slides: slides(['columns', 'corner', 'gradient'], ['band', 'show', 'solid'], ['3', true, 'paragraph', 'band', 'columns'], ['stacked', 'accent', 'regular'], ['callout', 'caps']) },
+  { id: 'plaque', label: 'Inset', blurb: 'A bordered inset around the text.', colorLabel: 'Green & ink',
+    roles: roles('accent', 'accent', 'muted', 'royal', 'royal', 'light', 'royal', 'royal', 'royal', 'royal', 'accent'), fonts: ['work-sans', 'merriweather'], background: 'plain', direction: 'down',
+    slides: slides(['plaque', 'corner', 'solid'], ['left', 'show', 'solid'], ['3', true, 'paragraph', 'outline', 'columns'], ['stacked', 'accent', 'regular'], ['callout', 'caps']) }
 ];
 
 export function buildPresets(catalog) {
@@ -56,8 +77,10 @@ export function buildPresets(catalog) {
       fonts: { heading: item.fonts[0], body: item.fonts[1] },
       slides: item.slides, background: item.background,
       samples: structuredClone(catalog.defaults.samples),
-      startingPoint: item.id
-    }
+      startingPoint: item.id,
+      roleStyles: { title: { ...TITLE_STYLE, direction: item.direction } }
+    },
+    colorLabel: item.colorLabel
   }));
 }
 

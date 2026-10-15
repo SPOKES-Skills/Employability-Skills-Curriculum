@@ -12,7 +12,7 @@ const accessCode = "team-access-code-1234567890";
 const env = {
   BESPOKE_GITHUB_TOKEN: "test-token-not-a-real-secret",
   BESPOKE_DRAFT_KEY: Buffer.alloc(32, 7).toString("base64"),
-  BESPOKE_TEAM_KEYS: JSON.stringify({ "money-management": hashEditCode(accessCode) })
+  BESPOKE_TEAM_KEYS: JSON.stringify({ "money-management": hashEditCode(accessCode), "goal-setting": hashEditCode("K7QX-M3PD") })
 };
 
 function createMemoryGitHub() {
@@ -300,6 +300,16 @@ try {
   assert.equal(await second.locator("#teamName").inputValue(), "First shared version");
   ok("fresh team access opens the latest shared revision automatically");
 
+  const shortContext = await newContext({ reducedMotion:"reduce" });
+  const short = await ready(await shortContext.newPage());
+  await short.locator("#btnOpen").click();
+  await short.locator("#openLesson").selectOption("goal-setting");
+  await short.locator("#openEditCode").fill("k7qx m3pd");
+  await short.locator("#openConfirm").click();
+  await short.locator("#fileStatus").filter({ hasText:"This team has no shared design yet" }).waitFor({ timeout:5000 });
+  await shortContext.close();
+  ok("an 8-character team code opens when typed in lowercase with a space");
+
   const manualContext = await newContext({ reducedMotion:"reduce" });
   const manual = await ready(await manualContext.newPage());
   await manual.locator("#btnOpen").click();
@@ -480,6 +490,19 @@ try {
   await offline.locator("#openDialog").waitFor({ state:"visible" });
   ok("backup download and open remain usable when shared setup is unavailable");
   await offlineContext.close();
+
+  const focusContext = await newContext({ reducedMotion:"reduce" });
+  const focusPage = await ready(await focusContext.newPage());
+  await focusPage.locator("#btnSend").click();
+  await focusPage.locator("#openDialog").waitFor({ state:"visible" });
+  await focusPage.keyboard.press("Escape");
+  assert.equal(await focusPage.evaluate(() => document.activeElement && document.activeElement.id), "btnSend", "Escape returns focus to the opening control");
+  await focusPage.locator("#btnSend").click();
+  await focusPage.locator("#openDialog").waitFor({ state:"visible" });
+  await focusPage.locator("#openCancel").click();
+  assert.equal(await focusPage.evaluate(() => document.activeElement && document.activeElement.id), "btnSend", "Cancel returns focus to the opening control");
+  await focusContext.close();
+  ok("closing the access dialog hands focus back to the control that opened it");
 
   const idleContext = await newContext({ reducedMotion:"reduce" }, { idleMs:300, stepMs:60000 });
   const idle = await ready(await idleContext.newPage(), teamUrl);

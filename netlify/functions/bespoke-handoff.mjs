@@ -1,6 +1,7 @@
 /** Durable, team-authorized Bespoke drafts. No writes to main and no lesson builds. */
 import { createCipheriv, createDecipheriv, createHash, randomBytes, timingSafeEqual } from 'node:crypto';
 import { LESSON_IDS, selectionErrors, semanticDigest, digest, submissionId } from './_shared/selection.mjs';
+import { CODE_MIN_LENGTH, hashAccessCode } from './_shared/access-code.mjs';
 export { LESSON_IDS, submissionId };
 export const DRAFT_BRANCH = 'bespoke-drafts';
 export const WORKFLOW_FILE = 'spoke-signals.yml';
@@ -17,7 +18,7 @@ const fail = (status, error, message, details = {}) => ({ status, body: { ok: fa
 const ok = body => ({ status: 200, body: { ok: true, ...body } });
 const object = value => value && typeof value === 'object' && !Array.isArray(value);
 
-export function hashEditCode(code) { return createHash('sha256').update(String(code).trim(), 'utf8').digest('base64url'); }
+export function hashEditCode(code) { return hashAccessCode(code); }
 export function hashesMatch(a, b) {
   if (typeof a !== 'string' || typeof b !== 'string') return false;
   const left = Buffer.from(a), right = Buffer.from(b);
@@ -108,7 +109,7 @@ export async function handleAction(body, { github, token, draftKey, teamKeys }) 
   if (!['save', 'open', 'history', 'openRevision', 'send', 'status'].includes(action)) return fail(400, 'action', 'Choose Save, Open, History or Send to Britt.');
   if (!LESSON_IDS.includes(lessonId)) return fail(400, 'lesson', 'Choose one of the six lessons.');
   const code = typeof body.editCode === 'string' ? body.editCode.trim() : '';
-  if (code.length < 20 || code.length > 128) return fail(403, 'code', WRONG_CODE);
+  if (code.length < CODE_MIN_LENGTH || code.length > 128) return fail(403, 'code', WRONG_CODE);
   const expected = keys[lessonId];
   const actual = expected?.length === 64 ? createHash('sha256').update(code, 'utf8').digest('hex') : hashEditCode(code);
   if (!expected || !hashesMatch(actual, expected.length === 64 ? expected.toLowerCase() : expected)) return fail(403, 'code', WRONG_CODE);

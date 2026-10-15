@@ -291,6 +291,8 @@ textarea:focus-visible,
   border-radius: 12px;
   padding: 1.25rem;
   max-width: 28rem;
+  max-height: min(85dvh, 30rem);
+  overflow: auto;
   width: calc(100% - 2rem);
   color: var(--dark);
 }

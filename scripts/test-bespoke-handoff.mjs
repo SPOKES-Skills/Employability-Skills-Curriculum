@@ -96,6 +96,15 @@ test('all actions authorize provisioned team access before any store read or wri
   assert.equal(api.reads, 0); assert.equal(api.writes.length, 0);
 });
 
+test('8-character team codes open whatever their case, spacing or dash', async () => {
+  const { api } = memoryGitHub();
+  const keys = { ...teamKeys, [lessonId]: hashEditCode('K7QX-M3PD') };
+  for (const typed of ['K7QX-M3PD', 'k7qxm3pd', ' k7qx m3pd ']) {
+    assert.equal((await handleAction(request('open', { editCode: typed }), context(api, { teamKeys: keys }))).status, 200, typed);
+  }
+  assert.equal((await handleAction(request('open', { editCode: 'K7QX-M3PE' }), context(api, { teamKeys: keys }))).status, 403);
+});
+
 test('missing or malformed independent keys fail closed without repository access', async () => {
   const { api } = memoryGitHub();
   for (const settings of [{ token: '' }, { draftKey: token }, { draftKey: '' }, { teamKeys: {} }, { teamKeys: '{broken' }, { teamKeys: { [lessonId]: 'weak' } }]) {

@@ -26,3 +26,7 @@ node_modules
 
 # Offline lessons package (scripts/build-offline-package.py output)
 dist/
+
+# Original module files (pptx, pdf, docx) kept on disk for reference; too large for git
+/Employability Modules/
+/lesson-*/Old */

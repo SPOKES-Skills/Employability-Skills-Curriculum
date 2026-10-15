@@ -346,6 +346,8 @@ try {
     await preview(page, 'divider');
     assert.equal(await page.locator('.bespoke-slide').evaluate(el => getComputedStyle(el).backgroundColor), rgb('primary'), 'the divider preview shows the pick');
     await preview(page, 'cards');
+    // On wide screens the switch lives in the Slide options drawer.
+    if (!await page.locator('#context-only-slide').isVisible()) await page.locator('#btnMoreOptions').click();
     await page.locator('#context-only-slide').check();
     await page.locator('#context-background').selectOption('dark');
     current = await design(page);

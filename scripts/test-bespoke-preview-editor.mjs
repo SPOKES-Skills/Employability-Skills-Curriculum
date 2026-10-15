@@ -30,15 +30,15 @@ try{
   assert.equal(await page.locator('#workspace').getAttribute('data-editor'),'true');
   assert.equal(await page.locator('#detailControls').isVisible(),false);
   assert.match(await page.locator('#editScope').textContent(),/Color picks apply to every slide that shares that color/);
-  await page.locator('#context-only-slide').check();
-  assert.match(await page.locator('#editScope').textContent(),/Title slide only/, 'Only this slide restores the single-slide wording');
-  await page.locator('#context-only-slide').uncheck();
   for(const control of await page.locator('#contextToolbar select, #contextToolbar button').all())assert((await control.boundingBox()).height>=44,'Contextual controls have a 44px target on every engine');
   await page.addScriptTag({content:axeSource});
   const accessibility=await page.evaluate(()=>axe.run({include:[['#contextToolbar'],['#modelStage']]},{runOnly:{type:'tag',values:['wcag2a','wcag2aa','wcag21aa']},rules:{'color-contrast':{enabled:false}}}));
   assert.deepEqual(accessibility.violations.map(v=>({id:v.id,targets:v.nodes.map(n=>n.target)})),[],'Editor selection semantics at '+width);
-  // Wide screens keep font in the options drawer; open it to reach the control.
+  // Wide screens keep font and Only this slide in the options drawer; open it to reach them.
   if(width>=1101)await page.locator('#btnMoreOptions').click();
+  await page.locator('#context-only-slide').check();
+  assert.match(await page.locator('#editScope').textContent(),/Title slide only/, 'Only this slide restores the single-slide wording');
+  await page.locator('#context-only-slide').uncheck();
   await page.locator('#context-font').selectOption('inter');
   assert.equal((await current(page)).roleStyles.title.headingFont,'inter');
   assert.deepEqual((await current(page)).roles,before.roles);

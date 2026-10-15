@@ -16,12 +16,12 @@ export function computeToolbarPosition({anchor, canvas, toolbar, gap = 10, margi
   return {left, top: margin, placement: 'top'};
 }
 
-const TEXT_FIELDS = ['element', 'text', 'color', 'only-slide', 'size', 'align', 'placement'];
+const TEXT_FIELDS = ['element', 'text', 'color', 'size', 'align', 'placement'];
 
 // Field ids match the ids preview-editor.mjs gives each control. Everything not
 // listed here lives in the Slide options drawer.
 const QUICK_FIELDS = {
-  background: ['element', 'finish', 'background', 'second', 'only-slide'],
+  background: ['element', 'finish', 'background', 'second'],
   box: ['element', 'background'],
   sidebar: ['element', 'background', 'color'],
   button: ['element', 'background', 'color'],

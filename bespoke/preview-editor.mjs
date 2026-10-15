@@ -28,8 +28,15 @@ export function createPreviewEditor(host) {
  }
  function scope(kind,id){
   const target=label(id);
-  if(id.startsWith('sidebar'))return `${target} selected · The sidebar is shared by every content slide.`;
-  if(id.startsWith('box'))return `${target} selected · Fill/border treatment and arrangement affect ALL boxes on Text boxes slides.`;
+  if(id==='sidebar')return 'Navigation sidebar selected · Shared across Text boxes, Video and Activity. Its fill, text color and font are independent of slide content.';
+  if(id==='button')return 'Action button selected · Shared across Video and Activity buttons. Text and fill changes stay on buttons.';
+  if(id==='accent')return 'Accent rule selected · Shared accent color also supplies inherited borders and navigation markers.';
+  if(id==='logo')return 'SPOKES logo selected · Title slide only. Choose its position; the brand artwork stays intact.';
+  if(id==='titlebar')return 'Title bar selected · Text boxes slides only. Click its heading to edit the words and type.';
+  if(id==='video')return 'Video frame selected · Video slides only. The sample stands in for your video.';
+  if(id==='activity')return 'Activity panel selected · Activity slides only. Click its text to format the words.';
+
+  if(id.startsWith('box'))return `${target} selected · Fill, border and arrangement affect ALL boxes on Text boxes slides.`;
   if(kind==='cards'&&id.startsWith('heading'))return `${target} selected · Formatting affects the title bar and ALL box headings on Text boxes slides.`;
   if(kind==='cards'&&id.startsWith('body'))return `${target} selected · Formatting affects ALL box text on Text boxes slides. Sample words remain independent.`;
   if(kind==='divider'&&id.startsWith('body'))return `${target} selected · Formatting affects the chapter label and supporting text on Chapter divider slides.`;
@@ -85,16 +92,68 @@ export function createPreviewEditor(host) {
   const saved={...host.model.roleStyleDefaults(host.catalog,design,kind),...design.roleStyles?.[kind]};
   const effective=host.model.effectiveRoleStyle(host.catalog,design,kind);
   const apply=(key,value)=>host.change(`${names[kind]}: ${key.replace(/([A-Z])/g,' $1').toLowerCase()}`,d=>Object.assign(d,host.model.setRoleStyle(host.catalog,d,kind,key,value)));
-  const colors=key=>[{id:'inherit',label:'Use shared theme'},...host.catalog.palette.map(c=>({id:c.id,label:c.name}))];
-  if(selected.startsWith('sidebar')){
-   const palette=host.catalog.palette.map(c=>({id:c.id,label:c.name}));
-   field('sidebar-color','Sidebar color',design.roles.sidebar,palette,v=>host.change('Sidebar color',d=>{d.roles.sidebar=v;}));
-   field('sidebar-text','Sidebar text color',design.roles.sidebarText||'auto',[{id:'auto',label:'Automatic'},...palette],v=>host.change('Sidebar text color',d=>Object.assign(d,host.model.setSidebarText(host.catalog,d,v))));
-  }else if(selected.startsWith('heading')||selected.startsWith('body')){
-   const type=selected.startsWith('heading')?'heading':'body';
-   field('font','Font',saved[type+'Font'],[{id:'inherit',label:'Use shared font'},...host.catalog.fonts.map(f=>({id:f.id,label:f.label}))],v=>apply(type+'Font',v));
-   field('size','Size',saved[type+'Size'],[{id:'small',label:'Smaller'},{id:'default',label:'Match arrangement'},{id:'large',label:'Larger'}],v=>apply(type+'Size',v));
-   field('color','Text color',saved[type+'Color'],colors(type+'Color'),v=>apply(type+'Color',v));
+  const colors=()=>host.catalog.palette.map(c=>({id:c.id,label:c.name}));
+  const colorField=(id,title,value,callback)=>{field(id,title,value,colors(),callback,{color:true});const input=document.getElementById('context-'+id);input.style.borderLeft='12px solid '+host.catalog.palette.find(c=>c.id===value).hex;};
+  const feature=(id,key,value)=>host.change(label(selected)+': '+key,d=>Object.assign(d,host.model.setFeatureStyle(host.catalog,d,id,key,value)));
+  const featureColors=(id,{text=false,border=false}={})=>{
+   const values=host.model.effectiveFeatureStyle(host.catalog,design,id);
+   colorField('background',id==='video'?'Placeholder color':'Background color',values.background,v=>feature(id,'background',v));
+   if(text){colorField('color','Text color',values.color,v=>feature(id,'color',v));field('font','Font',values.font,host.catalog.fonts.map(f=>({id:f.id,label:f.label})),v=>feature(id,'font',v));}
+   if(border)colorField('border','Border color',values.border,v=>feature(id,'border',v));
+  };
+  const decision=(group,key,title)=>{
+   const item=host.catalog.slideGroups.find(g=>g.id===group).decisions.find(d=>d.id===key);
+   field(key,title||item.label,design.slides[group][key],item.options,v=>host.change(names[group]+': '+item.label,d=>{d.slides[group][key]=item.type==='boolean'?v==='true':v;}));
+  };
+  const textField=(id,title,value,maxLength,callback)=>{
+   const wrapper=document.createElement('label');wrapper.className='toolbar-copy';wrapper.textContent=title;
+   const input=document.createElement('input');input.id='context-'+id;input.value=value;input.maxLength=maxLength;input.disabled=!editable;input.onchange=()=>{if(editable)callback(input.value);};wrapper.append(input);place(id).append(wrapper);
+  };
+  if(['sidebar','button'].includes(selected)){
+   featureColors(selected,{text:true});
+  }else if(selected==='accent'){
+   colorField('color','Accent color',design.roles.accent,v=>host.change('Shared accent color',d=>{d.roles.accent=v;}));
+  }else if(selected==='logo'){
+   decision('title','logo');
+  }else if(selected==='video'){
+   decision('video','frame');featureColors('video',{border:design.slides.video.frame==='accent'});decision('video','layout');
+  }else if(selected==='activity'){
+   featureColors('activity',{border:true});decision('activity','layout');decision('activity','labelStyle');
+  }else if(selected==='titlebar'){
+   featureColors('titlebar',{border:true});decision('cards','titleBar');
+  }else if(selected==='watermark'){
+   const mark=(key,value)=>host.change('Watermark: '+key,d=>{Object.assign(d,host.model.setRoleStyle(host.catalog,d,kind,'watermarkMode','text'));Object.assign(d,host.model.setRoleStyle(host.catalog,d,kind,key,value));});
+   textField('watermark-text','Watermark text',saved.watermarkText,40,v=>mark('watermarkText',v));
+   field('font','Font',effective.watermarkFont,host.catalog.fonts.map(f=>({id:f.id,label:f.label})),v=>mark('watermarkFont',v));
+   colorField('color','Watermark color',effective.watermarkColor,v=>mark('watermarkColor',v));
+   field('size','Size',saved.watermarkSize,['small','medium','large'].map(id=>({id,label:id[0].toUpperCase()+id.slice(1)})),v=>mark('watermarkSize',v));
+   field('placement','Position',saved.watermarkPlacement,['top-left','top-right','bottom-left','bottom-right'].map(id=>({id,label:id.replace('-',' ')})),v=>mark('watermarkPlacement',v));
+   field('opacity','Opacity',saved.watermarkOpacity,[{id:'low',label:'Subtle'},{id:'medium',label:'Medium'},{id:'high',label:'Strong'}],v=>mark('watermarkOpacity',v));
+   field('watermark-visible','Visibility','text',[{id:'text',label:'Show'},{id:'off',label:'Hide'}],v=>apply('watermarkMode',v));
+  }else if(selected.startsWith('heading')||selected.startsWith('body')||selected==='extra'){
+   const type=selected==='extra'?'extra':selected.startsWith('heading')?'heading':'body';
+   field('font','Font',effective[type+'Font'],host.catalog.fonts.map(f=>({id:f.id,label:f.label})),v=>apply(type+'Font',v));
+   field('size','Size',saved[type+'Size'],[{id:'small',label:'Smaller'},{id:'default',label:'Medium'},{id:'large',label:'Larger'}],v=>apply(type+'Size',v));
+   colorField('color','Text color',effective[type+'Color'],v=>apply(type+'Color',v));
+   field('align','Align',effective[type+'Alignment'],['left','center','right'].map(id=>({id,label:id[0].toUpperCase()+id.slice(1)})),v=>apply(type+'Alignment',v));
+   field('placement','Place in text area',saved[type+'Placement']==='layout'?(kind==='title'&&design.slides.title.layout==='bottom'?'bottom':kind==='title'&&['corner','headline','masthead'].includes(design.slides.title.layout)?'top':'middle'):saved[type+'Placement'],['top','middle','bottom'].map(id=>({id,label:id[0].toUpperCase()+id.slice(1)})),v=>apply(type+'Placement',v));
+   const target=targets.find(t=>t.id===selected)?.node;
+   const box=target?.closest('.slide-card'),boxIndex=box?[...stage.querySelectorAll('.slide-card')].indexOf(box):-1;
+   const isLabel=kind==='activity'&&target?.classList.contains('slide-activity-label')||kind==='divider'&&target?.matches('.slide-body:first-of-type');
+   const copyKey=isLabel?'labelText':type+'Text';
+   const wrapper=document.createElement('label');wrapper.className='toolbar-copy';wrapper.textContent='Sample text';
+   const input=document.createElement('textarea');input.id='context-text';input.rows=2;
+   input.maxLength=boxIndex>=0?(type==='heading'?100:host.catalog.sampleLimits.box):isLabel?80:kind==='title'&&type!=='extra'?host.catalog.sampleLimits[type==='heading'?'title':'subtitle']:type==='heading'?200:type==='extra'?500:1200;
+   input.value=boxIndex>=0?(type==='heading'?(saved.boxHeadings?.[boxIndex]??`Step ${boxIndex+1}`):design.samples.boxes[boxIndex]):effective[copyKey]??'';
+   input.disabled=!editable;let checkpoint=true;
+   input.onfocus=()=>{editingText=true;checkpoint=true;};input.onblur=()=>{editingText=false;};
+   input.oninput=()=>{if(!editable)return;host.textChange('Edit sample text',d=>{
+    if(boxIndex>=0&&type==='body')d.samples.boxes[boxIndex]=input.value;
+    else if(boxIndex>=0){const headings=saved.boxHeadings?.slice()??['Step 1','Step 2','Step 3','Step 4'];headings[boxIndex]=input.value;Object.assign(d,host.model.setRoleStyle(host.catalog,d,kind,'boxHeadings',headings));}
+    else Object.assign(d,host.model.setRoleStyle(host.catalog,d,kind,copyKey,input.value));
+   },checkpoint);checkpoint=false;};wrapper.append(input);place('text').append(wrapper);
+   if(type==='extra'){const remove=document.createElement('button');remove.type='button';remove.className='text-link';remove.textContent='Remove added text';remove.disabled=!editable;remove.onclick=()=>{selected='background';apply('extraText',null);};place('text').append(remove);}
+
   }else if(selected.startsWith('box')){
    featureColors('box',{border:true});
    for(const key of ['look','layout','count','treatment'])decision('cards',key);
@@ -130,7 +189,7 @@ export function createPreviewEditor(host) {
   targets=[];
   const editing=host.context().mode==='edit';
   // Text keeps its visible words as its name; the background and boxes are labeled groups.
-  const add=(id,label,node)=>{if(!node||getComputedStyle(node).display==='none'||!node.getClientRects().length)return;targets.push({id,label,node});if(!editing)return;node.dataset.editTarget=id;node.tabIndex=0;if(node.matches('.bespoke-slide,.slide-card,.slide-sidebar')){node.setAttribute('role','group');node.setAttribute('aria-label',label);}};
+  const add=(id,label,node)=>{if(!node||getComputedStyle(node).display==='none'||!node.getClientRects().length)return;targets.push({id,label,node});if(!editing)return;node.classList.remove('editor-selected');node.removeAttribute('data-edit-target');const paint=getComputedStyle(node);node.style.setProperty('--editor-art-shadow',paint.boxShadow==='none'?'0 0 0 0 transparent':paint.boxShadow);if(id==='video'){node.style.setProperty('--editor-frame-outline',paint.outline);node.style.setProperty('--editor-frame-offset',paint.outlineOffset);}if(id==='accent'&&getComputedStyle(node).position==='static')node.style.position='relative';node.dataset.editTarget=id;node.tabIndex=0;if(!id.startsWith('heading')&&!id.startsWith('body')&&id!=='extra'){node.removeAttribute('aria-hidden');if(!node.matches('button,summary,img'))node.setAttribute('role','group');node.setAttribute('aria-label',node.matches('button,summary')?label+': '+node.textContent.trim():label);if(id==='watermark'){const text=node.textContent;const artwork=document.createElement('span');artwork.setAttribute('aria-hidden','true');artwork.textContent=text;node.replaceChildren(artwork);node.setAttribute('role','img');node.setAttribute('aria-label','Decorative watermark: '+text);}}};
   add('background','Background',stage.querySelector('.bespoke-slide'));
   const visible=selector=>[...stage.querySelectorAll(selector)].find(node=>getComputedStyle(node).display!=='none'&&node.getClientRects().length&&(node.matches('summary')||!node.closest('details:not([open])')));
   add('sidebar','Navigation sidebar',visible('.slide-sidebar,.slide-sidebar-drawer')||visible('.slide-sidebar-disclosure > summary'));
@@ -145,8 +204,6 @@ export function createPreviewEditor(host) {
   stage.querySelectorAll('.slide-title-text,.slide-heading,.slide-card h3,.slide-activity-label').forEach((node,i)=>add('heading-'+i,node.closest('.slide-card')?'Box '+(Array.from(stage.querySelectorAll('.slide-card')).indexOf(node.closest('.slide-card'))+1)+' heading':node.classList.contains('slide-activity-label')?'Activity label':'Heading',node));
   stage.querySelectorAll('.slide-subtitle,.slide-body').forEach((node,i)=>add('body-'+i,node.closest('.slide-card')?'Box '+(Array.from(stage.querySelectorAll('.slide-card')).indexOf(node.closest('.slide-card'))+1)+' text':'Supporting text',node));
   stage.querySelectorAll('.slide-card').forEach((node,i)=>add('box-'+i,'Box '+(i+1),node));
-  add('sidebar','Sidebar',stage.querySelector('.slide-sidebar'));
-  add('sidebar-text','Sidebar text',stage.querySelector('.slide-sidebar .sample-sidebar-title'));
   if(!targets.some(t=>t.id===selected))selected='background';
   refreshSelection();
   if(!thumbnails)return;

@@ -5,32 +5,39 @@ choices and a cumulative preview. It configures reusable title, chapter-divider,
 text-box, video and activity designs with sample copy. It does not write curriculum,
 build a complete deck, or publish lessons.
 
-**September 24, 2026 status:** the v2 guided builder is implemented for local
-review. Shared-service integration has synthetic local tests; this revision has
-not been deployed or accepted on the hosted service. The
-[September 22 hosted acceptance](../docs/bespoke/verification-2026-09-22.md) records
-the earlier v1 flow and does not establish hosted v2 readiness.
-The [workflow implementation report](../docs/bespoke/workflow-fixes-2026-09-24.md)
-records the three-stage changes, compatibility and verification.
+**October 7, 2026 status:** the simplified workflow is implemented for local
+review in an isolated worktree. Synthetic local saving is separate from hosted
+acceptance; this revision has not been merged or deployed.
 
-## Choose a design
+## Name the team, choose, customize, review
 
-The builder has three stages, with no mandatory walkthrough:
+BeSpoke opens on **Lesson & team**. Choose the lesson, name the team and enter the
+spokesperson's name and email. The stage pill stays marked until the team is
+identified. Nothing blocks you from moving on, but Send to Britt needs the
+spokesperson's name.
 
-1. **Start:** check Lesson & team, then choose **Build my own** or one of nine
-   editable presets: Professional, Modern, Serious, Light-hearted, Fun,
-   Outspoken, Open Air, Gold Standard and Slate. Both paths use the same model
-   and begin with usable defaults.
-2. **Slide designs:** open **Title**, **Chapter divider**, **Text boxes**, **Video**
-   or **Activity** directly. All five editors are optional. **Next slide type** is
-   a navigation aid, not a completion requirement.
-3. **Review & save:** review the effective choices and Shared/Custom state for all
-   five slide types, advice and notes, then save the agreed design.
+1. **Choose a layout:** choose one of exactly twelve slide thumbnails: Editorial,
+   Split stage, Centered, Grounded, Framed, Headline, Side rule, Horizon, Corner,
+   Masthead, Two columns and Inset. These use twelve different title compositions,
+   rendered with the same model as the live slide. **Other ways to start** retains the detailed guide and current-design path.
+2. **Customize:** select visible text in the large preview, or use Selected element.
+   Edit the words in the nearby Sample text field. Choose a text color, one of three
+   sizes, Left/Center/Right alignment, and Top/Middle/Bottom placement within the
+   text area. A continuous typing session is one Undo action. **Add text** adds one
+   additional editable text area per slide type; select it again to edit or remove it.
+   Existing box headings and bodies can be edited separately. Formatting scope is
+   stated above the preview; matching box text still shares formatting.
+3. **Review & save:** inspect the five reusable slide types, then use existing
+   Save/Open and Files & recovery. Saving remains a visual-design review workflow.
 
-A preset can go directly to Review & save, or through just one editor for a tweak.
-Build my own can use the optional Shared theme and whichever editors are useful.
-Returning teams can **Continue editing** or **Review & save** their existing look;
-**Change starting look** opens the starting choices deliberately.
+Select Background for **Solid** (one brand-color picker) or **Gradient**
+(independent start and end brand-color pickers). Changes appear immediately.
+The preset supplies the direction; no direction choice is shown. Solid retains
+its second color for later use. The eleven established brand colors remain available.
+
+Undo and Redo remain beside the four stages. **More options** retains the detailed
+slide choices and shared theme, without requiring a team to work through them.
+The original v1 wizard remains separate at `legacy.html`.
 
 A preset fills the same controls as individual editing. Changing a field keeps
 the other choices. Applying another preset replaces the visual choices, preserves
@@ -178,9 +185,9 @@ may have no exact equivalent; chapter-specific styling remains in that original
 backup. Review conversion and readability notes before saving the new design. The
 original wizard remains at `bespoke/legacy.html`; its storage keys are separate.
 
-For the deployed workflow, each team has two private links. The builder link grants
-real edit access; the Team Leader passes it only to the one builder. The team view
-link is pinned in the team's channel and always opens the latest saved design
+For the deployed workflow, each team has a private team code and a team view link.
+The code, kept in the team's OneDrive folder, grants real edit access; the one
+builder types it in **Open your team design**. The team view link is pinned in the team's channel and always opens the latest saved design
 read-only. It leaves out the Team Leader's email, the review notes and any older
 wizard design kept for recovery. **Leave session** removes
 remembered access and local drafts, not shared work. A snapshot link made by the

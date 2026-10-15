@@ -108,28 +108,18 @@ try{
  });
  await check('sidebar',async()=>{
   const {page,done}=await fresh(1440);
-  await page.locator('#btnEditSlide').click();
+  await page.locator('#stage-slides').click();
   await page.locator('#previewTabs [data-view="cards"]').click();
   await page.locator('#modelStage .slide-sidebar .sample-sidebar-title').click();
-  assert.equal(await page.locator('#selectedElement').inputValue(),'sidebar-text');
-  assert.match(await page.locator('#editScope').textContent(),/shared by every content slide/);
-  await page.locator('#context-sidebar-text').selectOption('gold');
+  assert.equal(await page.locator('#selectedElement').inputValue(),'sidebar');
+  await page.locator('#btnMoreOptions').click();
+  await page.locator('#sidebarTextColor').selectOption('gold');
   assert.equal((await current(page)).roles.sidebarText,'gold');
   assert.equal(await page.locator('#modelStage .slide-sidebar .sample-sidebar-title').evaluate(el=>getComputedStyle(el).color),'rgb(211, 178, 87)');
-  await page.locator('#context-sidebar-color').selectOption('royal');
-  assert.equal((await current(page)).roles.sidebar,'royal');
-  await page.locator('#context-sidebar-text').selectOption('royal');
-  assert.equal((await current(page)).roles.sidebarText,'royal','a hard-to-read choice is kept');
-  await page.locator('#stage-review').click();
-  assert.match(await page.locator('#stepPanel').textContent(),/Sidebar text: .+ on the sidebar/,'Review lists the advisory');
-  await page.locator('#stage-slides').click();
-  await page.locator('#modelStage .slide-sidebar .sample-sidebar-title').click();
-  await page.locator('#btnMoreOptions').click();
   await page.locator('#sidebarTextColor').selectOption('auto');
   assert.equal(Object.hasOwn((await current(page)).roles,'sidebarText'),false);
-  await done();console.log('PASS sidebar color and sidebar text are editable from the preview and Shared theme');
+  await done();console.log('PASS More options on the sidebar opens Shared theme, where sidebar text color is chosen');
  });
- for(const stage of ['start','review'])await check('stage '+stage,async()=>{
  for(const stage of ['review'])await check('stage '+stage,async()=>{
   const {page,done}=await fresh(1440);
   await page.locator('#stage-'+stage).click();

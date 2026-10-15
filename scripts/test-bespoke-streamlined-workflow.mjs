@@ -162,7 +162,7 @@ async function skipLink(page) {
   return page.evaluate(() => window.__serviceCalls);
 }
 async function openDialog(page, code) {
-  await page.locator('#btnOpen').click();
+  await clickMenuItem(page, '#btnOpen');
   await page.locator('#openLesson').selectOption(legacy.lesson.id);
   await page.locator('#openEditCode').fill(code);
   await page.locator('#openConfirm').click();
@@ -207,12 +207,13 @@ try {
   await scenario('builder name', async ({ makePage }) => {
     const page = await makePage();
     await team(page);
+    await stage(page, 'team');
     assert.equal((await draft(page)).builderName, '');
     await page.locator('#builderName').fill('Dana Builder');
     assert.equal((await draft(page)).builderName, 'Dana Builder');
     await page.reload();
     await page.locator('#stepList button').first().waitFor();
-    await stage(page, 'start');
+    await stage(page, 'team');
     assert.equal(await page.locator('#builderName').inputValue(), 'Dana Builder', 'the builder name survives a reload');
   });
   await scenario('team view link', async ({ makePage, server }) => {
@@ -234,9 +235,9 @@ try {
       await view.locator('#btnViewRefresh').waitFor();
       assert.equal(new URL(view.url()).hash, '', 'the code is removed from the address bar');
       assert.match(await view.locator('#accessBanner').innerText(), /team · View only · Saved .+ · Built by Sample Instructor/);
-      assert.equal((await view.locator('#designStyle').textContent()).includes('--role-title-background: var(--gold)'), true, 'the viewer sees the saved Fun preset, not the seeded draft');
+      assert.equal((await view.locator('#designStyle').textContent()).includes('--role-title-background: var(--royal)'), true, 'the viewer sees the saved Fun preset, not the seeded draft');
       assert.equal(await draftNow(view), seeded, 'viewing leaves the browser draft byte-identical');
-      await stage(builder, 'start');
+      await stage(builder, 'team');
       await builder.locator('#builderName').fill('Dana Builder');
       await save(builder);
       await view.locator('#btnViewRefresh').click();
@@ -294,7 +295,7 @@ try {
     await view.locator('#btnViewRefresh').waitFor();
     assert.equal(await view.locator('#stage-review').getAttribute('aria-current'), 'step', 'the first open lands on Review');
     await stage(view, 'start');
-    await builder.locator('#builderName').fill('Dana Builder'); await save(builder);
+    await stage(builder, 'team'); await builder.locator('#builderName').fill('Dana Builder'); await save(builder);
     await view.locator('#btnViewRefresh').click();
     await view.locator('#accessBanner').filter({ hasText: 'Built by Dana Builder' }).waitFor();
     assert.equal(await view.locator('#stage-start').getAttribute('aria-current'), 'step', 'Refresh leaves the viewer on the stage they chose');

@@ -33,12 +33,10 @@ const STEPS = [
  {id:'review',label:'Review & save',view:'title'}
 ];
 const LEGACY_STEPS = ['welcome','team','colors','fonts','title','divider','cards','video','activity','review'];
-const state = {step:0,stepId:'start',meta:null,library:null,lessonId:'money-management',teamName:'',spokespersonName:'',spokespersonEmail:'',builderName:'',lessonTitle:'',lessonSubtitle:'',unspoken:'',editCode:'',previewView:'title',design:null,legacySelection:null,changes:[],redo:[]};
-const ui = {onlySlide:false,mode:'view',renderedStep:null,previewPinned:false,teamSession:null,cloudConflict:null,cloudBusy:false,autosavePaused:false,allowUnload:false,skipNextLocalSave:false,restoreNote:'',restoredFromLink:false,editCodeHash:'',activeRole:'sidebar',paintScope:'slide',themeScope:'slide',localPreview:false,editorRole:'title',sharedThemeOpen:false,startingLooksOpen:false,meaningfulDesign:false};
 const onStage = id => STEPS[state.step].id === id;
 const teamIdentified = () => Boolean(state.teamName.trim() && state.spokespersonName.trim());
-const state = {step:0,stepId:'start',meta:null,library:null,lessonId:'money-management',teamName:'',spokespersonName:'',spokespersonEmail:'',lessonTitle:'',lessonSubtitle:'',unspoken:'',editCode:'',previewView:'title',design:null,legacySelection:null,alternatives:null,changes:[],redo:[]};
-const ui = {mode:'view',renderedStep:null,previewPinned:false,teamSession:null,cloudConflict:null,cloudBusy:false,autosavePaused:false,allowUnload:false,skipNextLocalSave:false,restoreNote:'',restoredFromLink:false,editCodeHash:'',activeRole:'sidebar',paintScope:'slide',themeScope:'slide',localPreview:false,editorRole:'title',sharedThemeOpen:false,startingLooksOpen:false,meaningfulDesign:false};
+const state = {step:0,stepId:'start',meta:null,library:null,lessonId:'money-management',teamName:'',spokespersonName:'',spokespersonEmail:'',builderName:'',lessonTitle:'',lessonSubtitle:'',unspoken:'',editCode:'',previewView:'title',design:null,legacySelection:null,alternatives:null,changes:[],redo:[]};
+const ui = {onlySlide:false,mode:'view',renderedStep:null,previewPinned:false,teamSession:null,cloudConflict:null,cloudBusy:false,autosavePaused:false,allowUnload:false,skipNextLocalSave:false,restoreNote:'',restoredFromLink:false,editCodeHash:'',activeRole:'sidebar',paintScope:'slide',themeScope:'slide',localPreview:false,editorRole:'title',sharedThemeOpen:false,startingLooksOpen:false,meaningfulDesign:false};
 ui.guide = null;
 let guide = null;
 let previewEditor = null;
@@ -1269,8 +1267,7 @@ function validateSelectionPayload(payload,{draft=false}={}){
 }
 function buildSelectionPayload(){
  const lesson=findMeta(state.meta.lessons,state.lessonId);
- return {schema:'bespoke-selection/v2',submittedAt:new Date().toISOString(),date:new Date().toISOString().slice(0,10),lesson:{id:state.lessonId,title:lesson.title,displayTitle:state.design.samples.title||lesson.title,subtitle:state.design.samples.subtitle},team:{name:state.teamName.trim(),spokesperson:{name:state.spokespersonName.trim(),email:state.spokespersonEmail.trim()},...(state.builderName.trim()?{builder:{name:state.builderName.trim()}}:{})},design:clone(state.design),unspoken:state.unspoken,...(state.legacySelection?{legacySelection:clone(state.legacySelection)}:{})};
- return {schema:'bespoke-selection/v2',submittedAt:new Date().toISOString(),date:new Date().toISOString().slice(0,10),lesson:{id:state.lessonId,title:lesson.title,displayTitle:state.design.samples.title||lesson.title,subtitle:state.design.samples.subtitle},team:{name:state.teamName.trim(),spokesperson:{name:state.spokespersonName.trim(),email:state.spokespersonEmail.trim()}},design:clone(state.design),...(state.alternatives?{alternatives:clone(state.alternatives)}:{}),unspoken:state.unspoken,...(state.legacySelection?{legacySelection:clone(state.legacySelection)}:{})};
+ return {schema:'bespoke-selection/v2',submittedAt:new Date().toISOString(),date:new Date().toISOString().slice(0,10),lesson:{id:state.lessonId,title:lesson.title,displayTitle:state.design.samples.title||lesson.title,subtitle:state.design.samples.subtitle},team:{name:state.teamName.trim(),spokesperson:{name:state.spokespersonName.trim(),email:state.spokespersonEmail.trim()},...(state.builderName.trim()?{builder:{name:state.builderName.trim()}}:{})},design:clone(state.design),...(state.alternatives?{alternatives:clone(state.alternatives)}:{}),unspoken:state.unspoken,...(state.legacySelection?{legacySelection:clone(state.legacySelection)}:{})};
 }
 function restoreStep(saved){
  const legacyId=saved.stepId||(Number.isInteger(saved.step)?LEGACY_STEPS[saved.step]:null)||'start';
@@ -1297,8 +1294,7 @@ function loadDraft(){
   if(!saved||typeof saved!=='object'||Array.isArray(saved)||!saved.design)throw new Error('Invalid draft');
   const before={...state};
   try{
-   for(const key of ['design','legacySelection','lessonId','teamName','spokespersonName','spokespersonEmail','builderName','unspoken','changes','redo'])if(Object.hasOwn(saved,key))state[key]=saved[key];
-   for(const key of ['design','alternatives','legacySelection','lessonId','teamName','spokespersonName','spokespersonEmail','unspoken','changes','redo'])if(Object.hasOwn(saved,key))state[key]=saved[key];
+   for(const key of ['design','alternatives','legacySelection','lessonId','teamName','spokespersonName','spokespersonEmail','builderName','unspoken','changes','redo'])if(Object.hasOwn(saved,key))state[key]=saved[key];
    validateSelectionPayload(buildSelectionPayload(),{draft:true});
    if(!Array.isArray(state.changes)||!Array.isArray(state.redo))throw new Error('Invalid history');
    // Undo snapshots are data boundaries too; reject corrupted history before it can reach preview.
@@ -1323,8 +1319,7 @@ function saveDraft(){
 }
 function resetDesignForLesson(lessonId){
  draftGeneration++;resetPresetConfirmation();ui.meaningfulDesign=false;ui.startingLooksOpen=false;ui.editorRole='title';const nextDesign=Model.defaultDesign(catalog);if(!keepsGuide({fromLesson:state.lessonId,toLesson:lessonId,fromDesign:state.design,toDesign:nextDesign}))ui.guide=null;ui.sharedThemeOpen=false;ui.paintScope='slide';ui.themeScope='slide';
- Object.assign(state,{step:0,lessonId,teamName:'',spokespersonName:'',spokespersonEmail:'',builderName:'',unspoken:'',design:nextDesign,legacySelection:null,changes:[],redo:[]});
- Object.assign(state,{step:0,lessonId,teamName:'',spokespersonName:'',spokespersonEmail:'',unspoken:'',design:nextDesign,legacySelection:null,alternatives:null,changes:[],redo:[]});
+ Object.assign(state,{step:0,lessonId,teamName:'',spokespersonName:'',spokespersonEmail:'',builderName:'',unspoken:'',design:nextDesign,legacySelection:null,alternatives:null,changes:[],redo:[]});
 }
 function applySelectionPayload(payload){
  validateSelectionPayload(payload,{draft:true});
@@ -1336,8 +1331,7 @@ function applySelectionPayload(payload){
  ui.meaningfulDesign=true;ui.startingLooksOpen=false;
  if(!keepsGuide({fromLesson:state.lessonId,toLesson:payload.lesson.id,fromDesign:state.design,toDesign:nextDesign}))ui.guide=null;
  draftGeneration++;
- Object.assign(state,{lessonId:payload.lesson.id,teamName:team.name||'',spokespersonName:team.spokesperson?.name||'',spokespersonEmail:team.spokesperson?.email||'',builderName:team.builder?.name||'',unspoken:payload.unspoken||'',changes:[],redo:[]});
- Object.assign(state,{lessonId:payload.lesson.id,teamName:team.name||'',spokespersonName:team.spokesperson?.name||'',spokespersonEmail:team.spokesperson?.email||'',unspoken:payload.unspoken||'',changes:[],redo:[],alternatives:payload.alternatives?clone(payload.alternatives):null});
+ Object.assign(state,{lessonId:payload.lesson.id,teamName:team.name||'',spokespersonName:team.spokesperson?.name||'',spokespersonEmail:team.spokesperson?.email||'',builderName:team.builder?.name||'',unspoken:payload.unspoken||'',changes:[],redo:[],alternatives:payload.alternatives?clone(payload.alternatives):null});
  if(payload.schema==='bespoke-selection/v1'){
   state.design=migrated.design;state.legacySelection=clone(payload);ui.autosavePaused=true;
   ui.restoreNote='Converted a copy of the older design. '+migrated.warnings.join(' ')+' The original is included in every backup and can be downloaded on Review. Review this conversion before saving.';
@@ -1904,10 +1898,9 @@ async function init(){
   context:()=>({design:state.design,kind:state.previewView,editable:isLeadSession(),optionsOpen:ui.moreOptions,mode:ui.guide?.on?'guide':onStage('slides')?'edit':'browse'}),
   activate:()=>{if(ui.guide)ui.guide={...ui.guide,on:false};ui.editorRole=state.previewView;state.step=stepIndex('slides');ui.sharedThemeOpen=false;render(false);},
   change:(label,edit)=>changeDesign(label,edit),
+  textChange:(label,edit,checkpoint)=>changeDesign(label,edit,{redraw:false,checkpoint}),
   onlySlide:()=>ui.onlySlide,setOnlySlide:value=>{ui.onlySlide=value;render(false);},
   more:target=>{ui.moreOptions=!ui.moreOptions;if(!ui.moreOptions){render(false);byId('btnMoreOptions').focus();return;}if(target.startsWith('sidebar')){/* render() reads the open state back from the live panel */if(byId('sharedTheme'))byId('sharedTheme').open=true;ui.sharedThemeOpen=true;ui.activeRole='sidebar';ui.paintScope='shared';render(false);byId('colorRole')?.focus({preventScroll:true});return;}showRoleEditor(state.previewView,target==='background'?'background':target.startsWith('box')?'arrangement':'text',target.startsWith('body')?'bodyFont':target==='background'?'primary':'headingFont');},
-  textChange:(label,edit,checkpoint)=>changeDesign(label,edit,{redraw:false,checkpoint}),
-  more:target=>{ui.moreOptions=!ui.moreOptions;if(ui.moreOptions)showRoleEditor(state.previewView,target==='background'?'background':target.startsWith('box')?'arrangement':'text',target.startsWith('body')?'bodyFont':target==='background'?'primary':'headingFont');else{render(false);byId('btnMoreOptions').focus();}},
   thumbnail:kind=>Model.renderSlide(catalog,state.design,kind,{title:state.design.samples.title,subtitle:state.design.samples.subtitle,logoUrl:'../SPOKES-Logo.png'})
  });
  const closeOptions=()=>{ui.moreOptions=false;render(false);byId('btnMoreOptions').focus();};

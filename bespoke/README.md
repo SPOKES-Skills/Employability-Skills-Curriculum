@@ -5,33 +5,6 @@ choices and a cumulative preview. It configures reusable title, chapter-divider,
 text-box, video and activity designs with sample copy. It does not write curriculum,
 build a complete deck, or publish lessons.
 
-**September 24, 2026 status:** the v2 guided builder is implemented for local
-review. Shared-service integration has synthetic local tests; this revision has
-not been deployed or accepted on the hosted service. The
-[September 22 hosted acceptance](../docs/bespoke/verification-2026-09-22.md) records
-the earlier v1 flow and does not establish hosted v2 readiness.
-The [workflow implementation report](../docs/bespoke/workflow-fixes-2026-09-24.md)
-records the three-stage changes, compatibility and verification.
-
-## Choose a design
-
-The builder has three stages, with no mandatory walkthrough:
-
-1. **Start:** check Lesson & team, then choose **Build my own** or one of twelve
-   editable presets: Professional, Modern, Serious, Light-hearted, Fun,
-   Outspoken, Open Air, Gold Standard, Slate, Harvest, Bold Statement and Fresh
-   Start. Both paths use the same model
-   and begin with usable defaults.
-2. **Slide designs:** open **Title**, **Chapter divider**, **Text boxes**, **Video**
-   or **Activity** directly. All five editors are optional. **Next slide type** is
-   a navigation aid, not a completion requirement.
-3. **Review & save:** review the effective choices and Shared/Custom state for all
-   five slide types, advice and notes, then save the agreed design.
-
-A preset can go directly to Review & save, or through just one editor for a tweak.
-Build my own can use the optional Shared theme and whichever editors are useful.
-Returning teams can **Continue editing** or **Review & save** their existing look;
-**Change starting look** opens the starting choices deliberately.
 **October 7, 2026 status:** the simplified workflow is implemented for local
 review in an isolated worktree. Synthetic local saving is separate from hosted
 acceptance; this revision has not been merged or deployed.
@@ -212,8 +185,8 @@ may have no exact equivalent; chapter-specific styling remains in that original
 backup. Review conversion and readability notes before saving the new design. The
 original wizard remains at `bespoke/legacy.html`; its storage keys are separate.
 
-For the deployed workflow, each team has two private links. The builder link grants
-real edit access; the Team Leader passes it only to the one builder. The team view
+For the deployed workflow, each team has two private links. The team link and its
+code grant real edit access and stay in the team's private OneDrive folder. The team view
 link is pinned in the team's channel and always opens the latest saved design
 read-only. It leaves out the Team Leader's email, the review notes and any older
 wizard design kept for recovery. **Leave session** removes

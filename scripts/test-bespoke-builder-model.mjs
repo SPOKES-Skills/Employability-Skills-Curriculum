@@ -5,7 +5,6 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { applyPreset, colorAvailability, contrast, contrastIssues, cssForDesign, defaultDesign, designSchema, effectiveRoleStyle, inkFor, migrateV1, patternFor, renderSlide, roleOptions, setRoleStyle, setSharedColor, setSidebarText, sidebarInk, structuralErrors, validateDesign } from '../bespoke/builder-model.mjs';
-import { applyPreset, colorAvailability, contrast, contrastIssues, cssForDesign, defaultDesign, designSchema, inkFor, migrateV1, patternFor, renderSlide, roleOptions, setSidebarText, sidebarInk, structuralErrors, validateDesign } from '../bespoke/builder-model.mjs';
 import { compareDesign } from '../bespoke/similarity.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -24,49 +23,29 @@ check('all 11 original palette colors and 12 existing families have local font a
   for (const color of catalog.palette) assert(contrast(color.hex, catalog.palette.find(c => c.id === inkFor(catalog, color.id)).hex) >= 4.5);
 });
 
-// The nine October 2 presets keep the no-advisory guarantee. The three added later are advisory input and exempt.
-const NINE = ['professional', 'modern', 'serious', 'light-hearted', 'fun', 'outspoken', 'open-air', 'gold-standard', 'slate'];
-check('default and twelve editable brand presets are valid and independent copies', () => {
+check('default and twelve editable layout presets are valid and independent copies', () => {
   assert.deepEqual(validateDesign(catalog, defaultDesign(catalog)), []);
   assert.deepEqual(contrastIssues(catalog, defaultDesign(catalog)), []);
   for (const item of catalog.presets) {
     const design = applyPreset(catalog, item.id);
     assert.deepEqual(validateDesign(catalog, design), [], item.id);
-    if (NINE.includes(item.id)) assert.deepEqual(contrastIssues(catalog, design), [], item.id);
+    assert.deepEqual(contrastIssues(catalog, design), [], item.id);
     design.roles.sidebar = 'mauve';
     design.slides.cards.count = '1';
     assert.deepEqual(item.design, applyPreset(catalog, item.id));
   }
 });
 
-check('twelve presets differ from each other and from the released lessons', () => {
-  assert.deepEqual(catalog.presets.map(item => item.id), [...NINE, 'harvest', 'bold-statement', 'fresh-start']);
-  const fields = d => [d.roles.titleBackground, d.roles.sidebar, d.roles.heading, d.fonts.heading, d.fonts.body, d.background, d.slides.title.layout, d.slides.divider.layout, d.slides.cards.count, d.slides.cards.look, d.slides.cards.layout, d.slides.video.layout, d.slides.activity.layout];
-  const designs = catalog.presets.map(item => item.design);
-  for (const [i, a] of designs.entries()) for (const b of designs.slice(i + 1)) {
-    const different = fields(a).filter((value, k) => value !== fields(b)[k]).length;
-    assert(different >= 7, `${a.startingPoint} and ${b.startingPoint} differ on only ${different} of 13 fields`);
-  }
-  assert.equal(new Set(designs.map(d => `${d.roles.titleBackground}+${d.roles.titleText}`)).size, 12, 'title background and title text pairs are unique');
-  assert.equal(new Set(designs.map(d => d.fonts.heading)).size, 12, 'every preset has its own heading font');
-  const sidebars = designs.map(d => d.roles.sidebar);
-  // The nine October 2 presets already put Royal on three sidebars, so three is the cap and the new presets add none to it.
-  for (const color of new Set(sidebars)) assert(sidebars.filter(c => c === color).length <= 3, `${color} is the sidebar of more than three presets`);
-  console.log('  sidebar colors:', JSON.stringify(Object.fromEntries([...new Set(sidebars)].map(c => [c, sidebars.filter(x => x === c).length]))));
-  for (const item of catalog.presets) {
-    if (NINE.includes(item.id)) assert.deepEqual(contrastIssues(catalog, item.design), [], item.id);
-    const ranked = compareDesign(fingerprints, item.design, catalog);
-    const near = ranked[0];
-    const exact = ranked.find(result => result.shared === result.total);
-    assert.equal(exact, undefined, `${item.id} is an exact match for ${exact?.title}`);
 check('twelve presets each have their own title layout and palette, and none copies a released lesson', () => {
   assert.deepEqual(catalog.presets.map(item => item.id), ['professional', 'modern', 'serious', 'light-hearted', 'fun', 'outspoken', 'sidebar', 'horizon', 'corner', 'masthead', 'columns', 'plaque']);
   assert.equal(new Set(catalog.presets.map(item => item.design.slides.title.layout)).size, 12, 'title layouts are unique');
   assert.equal(new Set(catalog.presets.map(item => item.colorLabel)).size, 12, 'palette names are unique');
   for (const item of catalog.presets) {
     assert.deepEqual(contrastIssues(catalog, item.design), [], item.id);
-    const near = compareDesign(fingerprints, item.design, catalog)[0];
-    assert(near.shared < near.total, `${item.id} is an exact match for ${near.title}`);
+    const ranked = compareDesign(fingerprints, item.design, catalog);
+    const near = ranked[0];
+    const exact = ranked.find(result => result.shared === result.total);
+    assert.equal(exact, undefined, `${item.id} is an exact match for ${exact?.title}`);
     console.log(`  ${item.id}: closest lesson ${near.title}, ${near.shared} of ${near.total}`);
   }
 });
@@ -87,30 +66,30 @@ check('independent edits and preset changes preserve sample text and unrelated c
 });
 
 check('a shared color pick reaches every slide that uses it and clears matching per-slide overrides', () => {
-  const harvest = applyPreset(catalog, 'harvest');
-  const title = setSharedColor(catalog, harvest, 'title', 'primary', 'primary');
+  const horizon = applyPreset(catalog, 'horizon');
+  const title = setSharedColor(catalog, horizon, 'title', 'primary', 'primary');
   assert.equal(title.roles.titleBackground, 'primary');
   assert.equal(title.roles.dividerBackground, 'primary', 'the divider follows the title background');
   assert.equal(effectiveRoleStyle(catalog, title, 'divider').primary, 'primary');
-  assert.equal(title.roles.contentBackground, harvest.roles.contentBackground, 'content slides keep their own tint');
+  assert.equal(title.roles.contentBackground, horizon.roles.contentBackground, 'content slides keep their own tint');
   assert.equal(title.startingPoint, 'custom');
   // An old per-slide override must not hide the shared pick.
-  const overridden = setRoleStyle(catalog, harvest, 'divider', 'primary', 'mauve');
+  const overridden = setRoleStyle(catalog, horizon, 'divider', 'primary', 'mauve');
   assert.equal(effectiveRoleStyle(catalog, overridden, 'divider').primary, 'mauve');
   const repicked = setSharedColor(catalog, overridden, 'title', 'primary', 'dark');
   assert.equal(effectiveRoleStyle(catalog, repicked, 'divider').primary, 'dark', 'the divider override was cleared');
   // Text colors reach both title and divider; content slides share one heading and one body color.
-  const text = setSharedColor(catalog, harvest, 'title', 'headingColor', 'gold');
+  const text = setSharedColor(catalog, horizon, 'title', 'headingColor', 'gold');
   assert.equal(text.roles.titleText, 'gold');
   assert.equal(effectiveRoleStyle(catalog, text, 'divider').headingColor, 'gold');
-  const cards = setSharedColor(catalog, harvest, 'cards', 'bodyColor', 'mauve');
+  const cards = setSharedColor(catalog, horizon, 'cards', 'bodyColor', 'mauve');
   for (const kind of ['cards', 'video', 'activity']) assert.equal(effectiveRoleStyle(catalog, cards, kind).bodyColor, 'mauve', kind);
-  assert.equal(cards.roles.subtitle, harvest.roles.subtitle, 'title and divider supporting text are untouched');
+  assert.equal(cards.roles.subtitle, horizon.roles.subtitle, 'title and divider supporting text are untouched');
   // Content slides have no gradient end color, so that pick stays on the slide.
-  const content = setSharedColor(catalog, harvest, 'cards', 'secondary', 'mauve');
+  const content = setSharedColor(catalog, horizon, 'cards', 'secondary', 'mauve');
   assert.equal(content.roleStyles.cards.secondary, 'mauve');
-  assert.deepEqual(content.roles, harvest.roles);
-  assert.deepEqual(harvest, applyPreset(catalog, 'harvest'), 'the input design is never mutated');
+  assert.deepEqual(content.roles, horizon.roles);
+  assert.deepEqual(horizon, applyPreset(catalog, 'horizon'), 'the input design is never mutated');
 });
 
 check('every role offers the full palette; a surface change warns without mutating other choices', () => {

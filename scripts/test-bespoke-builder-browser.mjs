@@ -209,7 +209,7 @@ try {
     const page = await makePage();
     await go(page, 'Starting look');
     assert.equal(await page.locator('[data-preset]').count(), 12);
-    await page.locator('[data-preset="professional"]').click();
+    await go(page, 'Starting look');await page.locator('[data-preset="professional"]').click();
     await go(page, 'Text boxes');
     if(!await page.locator('#section-cards-text').evaluate(el=>el.open))await page.locator('#section-cards-text > summary').click();
     await page.getByText('Try your own sample text', { exact: true }).click();

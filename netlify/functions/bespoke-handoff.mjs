@@ -19,7 +19,7 @@ const fail = (status, error, message, details = {}) => ({ status, body: { ok: fa
 const ok = body => ({ status: 200, body: { ok: true, ...body } });
 const object = value => value && typeof value === 'object' && !Array.isArray(value);
 
-export function hashEditCode(code) { return createHash('sha256').update(String(code).trim(), 'utf8').digest('base64url'); }
+export function hashEditCode(code) { return hashAccessCode(code); }
 // A distinct prefix keeps the tables apart: a view table pasted into BESPOKE_TEAM_KEYS grants nothing.
 export function hashViewCode(code) { return createHash('sha256').update('view:' + String(code).trim(), 'utf8').digest('base64url'); }
 export function hashesMatch(a, b) {
@@ -135,30 +135,16 @@ async function receiptStatus(github, lessonId, receipt, runId) {
 export async function handleAction(body, { github, token, draftKey, teamKeys, viewKeys }) {
   let key, keys, views;
   try { if (!token || !github) throw new Error('Not configured'); key = keyBytes(draftKey); keys = accessKeys(teamKeys); views = viewTable(viewKeys); }
-  try { if (!token || !github) throw new Error('Not configured'); key = keyBytes(draftKey); keys = accessKeys(teamKeys); views = viewKeys ? accessKeys(viewKeys) : {}; }
   catch { return fail(503, 'setup', SETUP_MESSAGE); }
   if (!object(body)) return fail(400, 'body', 'The request could not be read.');
   const { action, lessonId } = body;
   if (!['save', 'open', 'history', 'openRevision', 'send', 'status'].includes(action)) return fail(400, 'action', 'Choose Save, Open, History or Send to Britt.');
   if (!LESSON_IDS.includes(lessonId)) return fail(400, 'lesson', 'Choose one of the six lessons.');
   const code = typeof body.editCode === 'string' ? body.editCode.trim() : '';
-  if (code.length < 20 || code.length > 128) return fail(403, 'code', WRONG_CODE);
+  if (code.length < CODE_MIN_LENGTH || code.length > 128) return fail(403, 'code', WRONG_CODE);
   const mayEdit = holdsEdit(keys, lessonId, code), mayView = holdsView(views, lessonId, code);
   if (!mayEdit && !mayView) return fail(403, 'code', WRONG_CODE);
   if (!mayEdit && action !== 'open') return fail(403, 'view', VIEW_ONLY); // A view code opens the latest design: no history, status or writes.
-  if (code.length < CODE_MIN_LENGTH || code.length > 128) return fail(403, 'code', WRONG_CODE);
-  const holds = table => {
-    const expected = table[lessonId];
-    if (!expected) return false;
-    const actual = expected.length === 64 ? createHash('sha256').update(code, 'utf8').digest('hex') : hashEditCode(code);
-    return hashesMatch(actual, expected.length === 64 ? expected.toLowerCase() : expected);
-  };
-  // Both tables are checked on every request, so either kind of code costs the same work.
-  const mayEdit = holds(keys), mayView = holds(views);
-  if (!mayEdit && !mayView) return fail(403, 'code', WRONG_CODE);
-  // A view code reads the latest design and nothing else: no history, no status, no writes.
-  if (!mayEdit && action !== 'open') return fail(403, 'view', VIEW_ONLY);
-  const access = mayEdit ? 'edit' : 'view';
   // Authorization has succeeded before the first repository read or write.
   try {
     if (action === 'history') {
@@ -177,7 +163,6 @@ export async function handleAction(body, { github, token, draftKey, teamKeys, vi
     }
     const current = openedDraft(await github.readDraft(lessonId), lessonId, key);
     if (action === 'open') return ok(mayEdit ? { ...view(current), access: 'edit' } : { ...viewerView(current), access: 'view' });
-    if (action === 'open') return ok({ ...view(current), access });
     if (!validRevision(body)) return fail(400, 'revision', 'Open the latest design before saving or sending.');
     const problem = checkSelection(body.selection, lessonId, action === 'send');
     if (problem) return problem;

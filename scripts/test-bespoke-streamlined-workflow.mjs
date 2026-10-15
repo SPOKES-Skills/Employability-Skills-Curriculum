@@ -145,6 +145,7 @@ async function save(page, status = 200) {
   if (status === 200) await page.locator('#fileStatus').filter({ hasText: /Local test design saved|already up to date/ }).waitFor();
   return response;
 }
+const FUN_TITLE = catalog.presets.find(item => item.id === 'fun').design.roles.titleBackground;
 const viewHash = (lessonId = legacy.lesson.id) => `#view=${lessonId}.${LOCAL_PREVIEW_VIEW_CODE}`;
 const snapshotHash = () => '#s=' + Buffer.from(JSON.stringify(payload(defaultDesign(catalog)))).toString('base64');
 const viewSession = page => page.evaluate(() => sessionStorage.getItem('bespoke-view-session'));
@@ -162,7 +163,7 @@ async function skipLink(page) {
   return page.evaluate(() => window.__serviceCalls);
 }
 async function openDialog(page, code) {
-  await page.locator('#btnOpen').click();
+  await clickMenuItem(page, '#btnOpen');
   await page.locator('#openLesson').selectOption(legacy.lesson.id);
   await page.locator('#openEditCode').fill(code);
   await page.locator('#openConfirm').click();
@@ -207,12 +208,13 @@ try {
   await scenario('builder name', async ({ makePage }) => {
     const page = await makePage();
     await team(page);
+    await stage(page, 'team');
     assert.equal((await draft(page)).builderName, '');
     await page.locator('#builderName').fill('Dana Builder');
     assert.equal((await draft(page)).builderName, 'Dana Builder');
     await page.reload();
     await page.locator('#stepList button').first().waitFor();
-    await stage(page, 'start');
+    await stage(page, 'team');
     assert.equal(await page.locator('#builderName').inputValue(), 'Dana Builder', 'the builder name survives a reload');
   });
   await scenario('team view link', async ({ makePage, server }) => {
@@ -234,9 +236,9 @@ try {
       await view.locator('#btnViewRefresh').waitFor();
       assert.equal(new URL(view.url()).hash, '', 'the code is removed from the address bar');
       assert.match(await view.locator('#accessBanner').innerText(), /team · View only · Saved .+ · Built by Sample Instructor/);
-      assert.equal((await view.locator('#designStyle').textContent()).includes('--role-title-background: var(--gold)'), true, 'the viewer sees the saved Fun preset, not the seeded draft');
+      assert.equal((await view.locator('#designStyle').textContent()).includes(`--role-title-background: var(--${FUN_TITLE})`), true, 'the viewer sees the saved Fun preset, not the seeded draft');
       assert.equal(await draftNow(view), seeded, 'viewing leaves the browser draft byte-identical');
-      await stage(builder, 'start');
+      await stage(builder, 'team');
       await builder.locator('#builderName').fill('Dana Builder');
       await save(builder);
       await view.locator('#btnViewRefresh').click();
@@ -280,7 +282,7 @@ try {
     await builder.waitForLoadState('networkidle');
     assert.doesNotMatch(await builder.locator('#fileStatus').innerText(), /newer shared version/, 'the draft equals the shared design, so there is no conflict');
     await save(builder);
-    assert.equal((await design(builder)).roles.titleBackground, 'gold', 'the saved Fun design is still the open design');
+    assert.equal((await design(builder)).roles.titleBackground, FUN_TITLE, 'the saved Fun design is still the open design');
   });
   await scenario('a view code in a builder link opens the read-only view', async ({ makePage }) => {
     const builder = await makePage();
@@ -309,7 +311,7 @@ try {
     await view.reload();
     await view.locator('#stepList button').first().waitFor();
     assert.notEqual(await view.locator('body').getAttribute('data-access'), 'view', 'a reload does not flip the tab back to View only');
-    assert.equal((await design(view)).roles.titleBackground, 'gold', 'the backup design is still open');
+    assert.equal((await design(view)).roles.titleBackground, FUN_TITLE, 'the backup design is still open');
   });
   await scenario('a view tab refuses a backup for another lesson than the edit session stored in the browser', async ({ makePage, server }) => {
     const lead = await makePage();
@@ -332,21 +334,22 @@ try {
   await scenario('a color picked on one slide follows every slide unless Only this slide is on', async ({ makePage }) => {
     const page = await makePage();
     await team(page);
-    await page.locator('#preset-harvest').click();
+    // Corner's divider fills the slide with its own color; a band divider shows the content tint.
+    await page.locator('#preset-corner').click();
     await stage(page, 'slides');
     await preview(page, 'title');
     await page.locator('#context-background').selectOption('primary');
     let current = await design(page);
     assert.equal(current.roles.titleBackground, 'primary');
     assert.equal(current.roles.dividerBackground, 'primary', 'the divider follows the title background');
-    assert.equal(current.roleStyles?.title, undefined, 'a shared pick leaves no per-slide override');
+    assert.equal(current.roleStyles?.title?.primary ?? 'inherit', 'inherit', 'a shared pick leaves no per-slide override');
     await preview(page, 'divider');
     assert.equal(await page.locator('.bespoke-slide').evaluate(el => getComputedStyle(el).backgroundColor), rgb('primary'), 'the divider preview shows the pick');
     await preview(page, 'cards');
     await page.locator('#context-only-slide').check();
     await page.locator('#context-background').selectOption('dark');
     current = await design(page);
-    assert.equal(current.roles.contentBackground, 'muted', 'Only this slide leaves the shared look alone');
+    assert.equal(current.roles.contentBackground, 'light', 'Only this slide leaves the shared look alone');
     assert.equal(current.roleStyles.cards.primary, 'dark', 'the pick is kept on the Text boxes slide only');
     await stage(page, 'review');
     await stage(page, 'slides');
@@ -391,6 +394,7 @@ try {
     await view.locator('#btnViewRefresh').waitFor();
     assert.equal(await view.locator('#stage-review').getAttribute('aria-current'), 'step', 'the first open lands on Review');
     await stage(view, 'start');
+    await stage(builder, 'team');
     await builder.locator('#builderName').fill('Dana Builder'); await save(builder);
     await view.locator('#btnViewRefresh').click();
     await view.locator('#accessBanner').filter({ hasText: 'Built by Dana Builder' }).waitFor();

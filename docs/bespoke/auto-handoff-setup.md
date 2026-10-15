@@ -53,23 +53,18 @@ the review proposal private; never include credentials in selection content.
 ## Provision private team access
 
 Access is assigned by Britt or an administrator before teams begin. Each of the
-six planned lessons gets two private links, each with its own random code:
+six planned lessons gets its own random access code and private link. A code is
+8 characters in two groups of four, like `K7QX-M3PD`, with no 0, O, 1, I or L. There is no
+public first-come claim of a lesson and no teacher-chosen four-character code.
+Anyone with a team's code or link can use that team's design, so share it only in
+that team's private OneDrive folder or another approved private location.
 
-- The builder link opens, changes, saves and sends the team's design. Send it
-  privately to the Team Leader only. The Team Leader passes it to the one person
-  who builds the design.
-- The team view link opens the team's latest saved design read-only. Pin this
-  link in the team's private Teams channel.
-
-There is no public first-come claim of a lesson and no teacher-chosen
-four-character code. Anyone with a builder link can change that team's design, so
-never pin it or share it beyond the builder and the Team Leader.
+Each team can also have a team view link. It opens the team's latest saved design
+read-only. Pin this link in the team's private Teams channel.
 
 Run the first provisioning command once. It creates the access files and the six
-builder links. A second command adds the view links, as
-[Add team view links](#add-team-view-links) describes. The `--add-view-links` and
-`--rotate-team-codes` modes exist from this release on, so run the provisioner from
-a checkout that has it.
+team links. A second command adds the view links, as
+[Add team view links](#add-team-view-links) describes.
 
 ```sh
 node scripts/bespoke-provision.mjs \
@@ -82,20 +77,24 @@ The command creates `server-env.json`, `team-access.json`, and `team-links.html`
 with owner-only file permissions in an owner-only directory. It refuses an existing
 output directory or a directory inside a git repository. It does not create a PAT
 or rotate an existing service's keys. Store the resulting material in approved
-private storage. Do not paste access codes, private links, encryption keys, or tokens into an issue,
-pull request, repository file, public channel, or diagnostic log.
+private storage. Do not paste access codes, private links, encryption keys, tokens,
+the `BESPOKE_TEAM_KEYS` value, or `team-env.json` into an issue, pull request,
+repository file, public channel, or diagnostic log. The team-key table holds only
+hashes, but an 8-character code can be recovered from its hash in minutes.
 
-A builder link ends with `#team=<lesson-id>.<random-access-code>`. The browser removes
+A team link ends with `#team=<lesson-id>.<access-code>`. A team without its link
+can type the code in **Open your team design**; case, spaces and the dash do not
+matter. The browser removes
 that credential from the address bar when it reads the link and remembers the
 team session locally when browser storage permits. The fragment is not part of
 the initial page request. The credential is still used to authenticate service
 requests; it is a real access secret, not a visual-preview lock. Treat remembered
 access on shared computers with the same care as the original link.
 
-Pin the team view link, not the builder link, in each team's Teams channel. A
-builder returning on another computer uses the original builder link. Ask teams to
-keep one person, the builder, operating BeSpoke during each meeting.
-
+Put each team's code in that team's private OneDrive folder, and only that team's
+code. Never put `team-links.html` or `team-access.json` there: they hold all six
+codes. A teacher on another computer types the code in Open team design. Ask teams
+to keep one person operating BeSpoke during each meeting.
 ### Add team view links
 
 Run this once, against the private directory that already holds `team-access.json`:
@@ -120,12 +119,10 @@ Then:
    next deployed.
 2. Pin each link from `view-links.html` in that team's channel. Each link is for
    one team only.
-3. Send each builder link privately to that team's Team Leader, who passes it to
-   the builder.
 
-Pinning a view link does not switch off a builder link that was already pinned or
-shared. Unpin the builder link. If it reached people who should not edit, see
-[Replace the edit codes](#replace-the-edit-codes).
+Pinning a view link does not switch off a team link that was already pinned or
+shared. Unpin the team link. If it reached people who should not edit, see
+[Reissue team codes](#reissue-team-codes).
 
 A team view link ends with `#view=<lesson-id>.<random-view-code>`. The browser
 removes it from the address bar and keeps it only for that tab, so a reload stays
@@ -175,14 +172,11 @@ Service variables. The first three are required.
 | `BESPOKE_VIEW_KEYS` | Optional. A JSON object mapping each lesson ID to the SHA-256 base64url digest of its team view code, hashed with a `view:` prefix. A view code can open the latest saved design and nothing else. A missing or empty value means no view links. A malformed value switches view links off and logs a warning with no values, and edit codes keep working |
 
 The provisioner supplies the encryption key and team-key map in `server-env.json`,
-and the view-key map in `view-env.json`. After a rotation, the newest
-`team-env-<stamp>.json` holds the current team-key map instead, as
-[Replace the edit codes](#replace-the-edit-codes) explains. The builder links are in
-`team-links.html` and the team view links are in `view-links.html`. After a
-rotation, the dated `team-links-<stamp>.html` and `team-access-<stamp>.json` are the
-current ones.
-`team-access.json` and `view-access.json` are private administrator recovery
-material. Only access-code hashes go into `BESPOKE_TEAM_KEYS`; keep the original private links outside the
+and the view-key map in `view-env.json`. After a reissue, the current team-key map
+is in `team-env.json` instead; see [Reissue team codes](#reissue-team-codes).
+The teacher links are in `team-links.html` and the team view links are in
+`view-links.html`. `team-access.json` and `view-access.json` are private
+administrator recovery material. Only access-code hashes go into `BESPOKE_TEAM_KEYS`; keep the original private links outside the
 service configuration. Keep a secure backup of `BESPOKE_DRAFT_KEY`: losing it
 makes the stored designs unreadable.
 
@@ -222,7 +216,7 @@ visible to the teacher, with a downloadable backup available. Browser storage is
 a convenience copy and may be cleared or unavailable.
 
 **Open team design** loads the latest shared revision after access is verified.
-Opening a builder link can restore the shared design automatically when the
+Opening a private team link can restore the shared design automatically when the
 browser has no unsaved changes. Unsaved browser work must be preserved until the
 teacher chooses which version to keep. History offers older saved looks; saving
 an older look creates a new revision rather than deleting newer history.
@@ -249,8 +243,8 @@ successful save or receipt.
 - **PAT rotation:** replace `BESPOKE_GITHUB_TOKEN` while retaining the draft key and
   team-key map. The stored designs remain decryptable because encryption does not
   depend on the token. Verify Open and Save after the replacement.
-- **Team access reset:** follow [Replace the edit codes](#replace-the-edit-codes)
-  below. Only an administrator runs it.
+- **Team access reset:** follow [Reissue team codes](#reissue-team-codes) below.
+  Only an administrator runs it.
 - **Team view code rotation:** move the three `view-*` files aside and run
   `--add-view-links` again. Delete the old files once the new run has succeeded. That replaces all six view codes at once. Update
   `BESPOKE_VIEW_KEYS` from the new `view-env.json` and deploy the service. The old
@@ -258,50 +252,53 @@ successful save or receipt.
 - **Draft-key rotation:** requires a deliberate data migration. Do not simply
   replace the key or rerun setup with a new key over an existing service. Preserve
   the previous key securely until all retained revisions are migrated and tested.
-- **Browser loss:** reopen the original builder link to recover the latest confirmed
+- **Browser loss:** reopen the original team link to recover the latest confirmed
   shared revision. Use a downloaded backup for work that never reached the service.
 - **Submission failure:** check the matching Spoke Signals workflow and proposal
   receipt. Do not tell a team its design was received merely because dispatch
   returned successfully.
 
-### Replace the edit codes
+## Reissue team codes
 
-Do this when a builder link was pinned, forwarded or shared beyond the builder and
-the Team Leader. It replaces all six edit codes at once.
+Reissue a code when a team has lost both its link and its code, or when a link
+reached someone outside the team. If the team only lost the link, open
+`team-links.html` in the current private folder and send the same link or code
+again. Nothing changes on the service.
 
-Do it as its own service deploy, after the page change is live. In the same
-sitting, hand out the new builder links, unpin the old ones and pin the view
-links, because the old builder links stop working at that deploy.
+To replace one team's code:
 
 ```sh
 node scripts/bespoke-provision.mjs \
-  --output "<the existing private directory>" \
-  --wizard-url "<the BeSpoke page URL>" \
-  --rotate-team-codes
+  --output "<the current private folder>" \
+  --wizard-url "https://YOUR-PAGES-HOST/YOUR-PROJECT/bespoke/" \
+  --reissue money-management
 ```
 
-The command needs the private directory that holds `server-env.json`. It writes
-three new files there, with owner-only file permissions. Each name carries a stamp
-of the UTC date and time.
+`--reissue all` replaces all six codes. It also works with a new, empty folder
+path, so use it if the private folder is lost. A one-lesson reissue needs the
+current `team-access.json`, because it keeps the other five codes.
 
-- `team-env-<stamp>.json` holds the new `BESPOKE_TEAM_KEYS` value.
-- `team-access-<stamp>.json` holds the new codes and links, for administrator recovery.
-- `team-links-<stamp>.html` lists the six new builder links.
+Each run writes `team-env.json`, `team-access.json` and `team-links.html`. It
+first moves the files it replaces into a `previous-<UTC date and time>` folder.
+The old codes stay live until the service is redeployed, so keep that folder
+until the deploy is done. The command never reads or writes `server-env.json`
+or `BESPOKE_DRAFT_KEY`, so every saved design stays readable.
 
-Set `BESPOKE_TEAM_KEYS` from the new `team-env-<stamp>.json`, then deploy the
-service. The old builder links, and browsers that remembered them, stop working
-once the service is redeployed with the new value. Send each new builder link
-privately to that team's Team Leader, and unpin any old builder link from the team
-channels.
+Then:
 
-The command never opens or changes `server-env.json`, `team-access.json` or the
-encryption key. Every saved design stays readable. Team view links keep working.
+1. Set `BESPOKE_TEAM_KEYS` in Netlify to the value in the new `team-env.json`.
+2. Stage the service and deploy it. Netlify gives the function the new value only
+   on a new deploy.
+3. Open the old link. It must be refused. If it still opens, the deploy did not
+   pick up the new value.
+4. Put the new code in the team's OneDrive folder and delete the old one.
+5. Delete the `previous-*` folder. After a one-lesson reissue it still holds the
+   other five live codes, so it needs the same care as `team-access.json` until
+   it is gone.
 
-A rotation never changes `server-env.json`, so after one it still holds the old
-team table. The newest `team-env-<stamp>.json` is the current source for
-`BESPOKE_TEAM_KEYS`. Never restore `server-env.json` wholesale into Netlify after a
-rotation, because that would bring the replaced edit codes back.
-`BESPOKE_DRAFT_KEY` in `server-env.json` stays current.
+After a reissue, `team-env.json` holds the current `BESPOKE_TEAM_KEYS`. The copy
+inside `server-env.json` is the original table. Never restore it into Netlify
+after a reissue, because it would bring back the replaced codes.
 
 ## Deployment acceptance
 

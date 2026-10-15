@@ -1,5 +1,33 @@
 # BeSpoke decisions
 
+## PR #56 merged with main: October 15, 2026
+
+Britt chose main's twelve layout presets (Editorial, Split stage, Centered, Grounded,
+Framed, Headline, Side rule, Horizon, Corner, Masthead, Two columns and Inset) over the
+twelve brand presets on this branch. Open Air, Gold Standard, Slate, Harvest, Bold
+Statement and Fresh Start are not shipped, so the preset rows in the October 2 table
+below no longer apply. Team edit codes are main's 8-character codes, and
+`--reissue all|<lesson-id>` replaces `--rotate-team-codes`. View codes keep this
+branch's hardening: a separate `view:` hash, a broken view table turns off only view
+links, and a view never shows the Team Leader's email, the review notes or the archived
+original. The flow is main's four stages; Quick pick and the step path stay specs.
+
+## Lesson & team stage, October 9, 2026
+
+Britt chose a separate first stage for Lesson & team, over a top-bar chip or a
+highlighted card on the starting-looks page. The flow is now Lesson & team, Color
+& layout, Customize, then Review & save. This supersedes the September 24 decision
+that Start combines Lesson & team with the starting looks. The other three stages
+are unchanged.
+
+Lesson & team is its own page with the lesson, team name, spokesperson name and
+spokesperson email, and a Continue to starting looks button. A new visit opens on
+it. Its stage pill carries an outline and a dot until a team name and spokesperson
+name are entered, then names the lesson and team in its tooltip. The stage never
+blocks navigation or Save. Send to Britt still needs the spokesperson name and
+returns people to this page when it is missing. A saved draft reopens on the stage
+it was left on. Earlier drafts that were saved on the starting looks still open there.
+
 ## Colors follow every slide: October 7, 2026
 
 Britt found that a color picked on one slide, or in one Guide me question, did not carry
@@ -23,6 +51,18 @@ combination for readability, and the September 24 line that defaults and presets
 the contrast guidance, for the three new presets only. The full builder keeps its
 advisory notes. Spec: `docs/superpowers/specs/2026-10-06-bespoke-quick-pick-design.md`.
 
+## Current simplification — October 7, 2026
+
+Britt authorized implementation in an isolated worktree: twelve distinct layout
+presets with real slide thumbnails, one live preview with nearby text editing,
+three text sizes, text color, Left/Center/Right alignment and Top/Middle/Bottom
+placement. Solid exposes one brand-color picker; Gradient exposes independently
+selectable start and end colors. The preset determines direction. Choose a layout,
+Customize, Review & save replaces the earlier primary path; the detailed guide and
+editors remain optional. Orientation does not mean rotation. New values must
+survive existing Save/Open/recovery and generated design handoff. No merge,
+deployment or curriculum construction is authorized by this implementation.
+
 ## Start flow, step path and presets: October 2, 2026
 
 Britt approved the design in `docs/superpowers/specs/2026-10-02-bespoke-start-path-presets-design.md`. It replaces these earlier rows. Everything not listed here stands.
@@ -41,7 +81,7 @@ Britt approved the design in `docs/superpowers/specs/2026-10-02-bespoke-start-pa
 
 The saved format stays `bespoke-selection/v2`. The service is redeployed before the first pull request merges, because it bundles the schema and the catalog.
 
-## Current direction — September 24, 2026
+## Prior direction — September 24, 2026
 
 Britt authorized implementation of the guided visual-design builder in an
 isolated worktree and a separate local Safari preview. The v2 implementation is

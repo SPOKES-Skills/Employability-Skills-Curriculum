@@ -124,10 +124,10 @@ class V2SubmissionTests(unittest.TestCase):
             self.assertEqual(self.payload, original)
 
     def test_sidebar_text_and_builder_reach_the_build_contract(self):
-        preset = next(item for item in self.catalog["presets"] if item["id"] == "gold-standard")
+        preset = next(item for item in self.catalog["presets"] if item["id"] == "professional")
         self.payload["design"] = deepcopy(preset["design"])
+        self.payload["design"]["roles"]["sidebarText"] = "gold"
         self.payload["team"]["builder"] = {"name": "Dana Builder"}
-        self.assertEqual(self.payload["design"]["roles"]["sidebarText"], "gold")
         require_valid_selection(self.payload)
         css, contract = build_design(self.payload)
         self.assertEqual(contract["design"]["roles"]["sidebarText"], "gold")

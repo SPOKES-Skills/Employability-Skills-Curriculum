@@ -631,6 +631,22 @@ try {
       ...["h1", "h2", "h3", ".slide-title", ".slide-section", ".card", ".card h4", ".divider", ".download-btn"].map(stage),
       document.querySelector(".model-content .slide-chip")?.textContent || ""].join("#");
   });
+  // Reduced motion still runs every style change as a 0.01ms transition, and the computed style keeps the
+  // old value until that transition starts. Royal sidebar changes only a compositor-run background color,
+  // which lands on the second frame locally and later on a busy runner, so poll instead of waiting two frames.
+  const SETTLE_MS = 2000;
+  const settled = () => sweep.evaluate(ms => Promise.race([
+    Promise.allSettled(document.getAnimations().map(animation => animation.finished)),
+    new Promise(resolve => setTimeout(resolve, ms))
+  ]), SETTLE_MS);
+  const changesWithin = async (before) => {
+    const deadline = Date.now() + SETTLE_MS;
+    do {
+      await sweep.evaluate(() => new Promise(resolve => requestAnimationFrame(() => resolve())));
+      if (await previewPrint() !== before) return true;
+    } while (Date.now() < deadline);
+    return false;
+  };
   const unchangedOptions = async (grid) => {
     const dead = [];
     for (const id of await sweep.locator(`${grid} .option:not([disabled])`).evaluateAll(els => els.map(e => e.dataset.id))) {
@@ -638,11 +654,12 @@ try {
       if (await option.getAttribute("aria-pressed") === "true") continue;
       // Park the pointer: a tile left under it would be hover-previewed and skew "before".
       await sweep.mouse.move(0, 0);
+      // The poll stops at the first change while the rest of the last choice can still be landing (the
+      // first color lead resizes the frame). Wait it out, or that tail would pass a dead option.
+      await settled();
       const before = await previewPrint();
       await option.click();
-      // Let the frame settle: a reduced-motion transition still holds the old color for one frame.
-      await sweep.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
-      if (await previewPrint() === before) dead.push(id);
+      if (!await changesWithin(before)) dead.push(id);
     }
     return dead;
   };

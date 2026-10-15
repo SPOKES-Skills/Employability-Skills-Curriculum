@@ -132,7 +132,7 @@
     {
       "id": "titleBackgroundEnd",
       "label": "Title & divider second color",
-      "note": "The second color of title and divider gradients, and the title split layout\u2019s right panel.",
+      "note": "The second color of title and divider gradients, and the title split layout’s right panel.",
       "kind": "surface"
     },
     {
@@ -182,7 +182,7 @@
     {
       "id": "dividerBackground",
       "label": "Chapter divider background",
-      "note": "Behind each chapter\u2019s opening slide. Heading color uses Title & divider headings; chapter labels and supporting text use Subtitle & divider supporting text.",
+      "note": "Behind each chapter’s opening slide. Heading color uses Title & divider headings; chapter labels and supporting text use Subtitle & divider supporting text.",
       "kind": "surface"
     }
   ],

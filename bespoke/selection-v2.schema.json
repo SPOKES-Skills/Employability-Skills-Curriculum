@@ -3029,6 +3029,22 @@
                     "muted",
                     "light"
                   ]
+                },
+                "sidebarText": {
+                  "type": "string",
+                  "enum": [
+                    "primary",
+                    "dark",
+                    "royal",
+                    "accent",
+                    "gold",
+                    "muted-gold",
+                    "mauve",
+                    "gray",
+                    "offwhite",
+                    "muted",
+                    "light"
+                  ]
                 }
               }
             },

@@ -5,6 +5,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { applyPreset, colorAvailability, contrast, contrastIssues, cssForDesign, defaultDesign, designSchema, effectiveRoleStyle, inkFor, migrateV1, patternFor, renderSlide, roleOptions, setRoleStyle, setSharedColor, setSidebarText, sidebarInk, structuralErrors, validateDesign } from '../bespoke/builder-model.mjs';
+import { applyPreset, colorAvailability, contrast, contrastIssues, cssForDesign, defaultDesign, designSchema, inkFor, migrateV1, patternFor, renderSlide, roleOptions, setSidebarText, sidebarInk, structuralErrors, validateDesign } from '../bespoke/builder-model.mjs';
 import { compareDesign } from '../bespoke/similarity.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -58,6 +59,14 @@ check('twelve presets differ from each other and from the released lessons', () 
     const near = ranked[0];
     const exact = ranked.find(result => result.shared === result.total);
     assert.equal(exact, undefined, `${item.id} is an exact match for ${exact?.title}`);
+check('twelve presets each have their own title layout and palette, and none copies a released lesson', () => {
+  assert.deepEqual(catalog.presets.map(item => item.id), ['professional', 'modern', 'serious', 'light-hearted', 'fun', 'outspoken', 'sidebar', 'horizon', 'corner', 'masthead', 'columns', 'plaque']);
+  assert.equal(new Set(catalog.presets.map(item => item.design.slides.title.layout)).size, 12, 'title layouts are unique');
+  assert.equal(new Set(catalog.presets.map(item => item.colorLabel)).size, 12, 'palette names are unique');
+  for (const item of catalog.presets) {
+    assert.deepEqual(contrastIssues(catalog, item.design), [], item.id);
+    const near = compareDesign(fingerprints, item.design, catalog)[0];
+    assert(near.shared < near.total, `${item.id} is an exact match for ${near.title}`);
     console.log(`  ${item.id}: closest lesson ${near.title}, ${near.shared} of ${near.total}`);
   }
 });

@@ -8,6 +8,9 @@ import { execFileSync } from 'node:child_process';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { provision, provisionViewLinks, rotateTeamCodes } from './bespoke-provision.mjs';
 import { hashEditCode, hashViewCode } from '../netlify/functions/bespoke-handoff.mjs';
+import { pathToFileURL } from 'node:url';
+import { provision, provisionViewLinks, reissue } from './bespoke-provision.mjs';
+import { CODE_ALPHABET, hashAccessCode, newAccessCode } from '../netlify/functions/_shared/access-code.mjs';
 
 function assertTeamLinksWording(page) {
   assert.match(page, /For Britt only\./);
@@ -75,10 +78,23 @@ test('view links are added beside existing team links without touching them', ()
     assert.match(page, /Each link is for one team only\./);
     assert.match(page, /This is the link to pin in that team's channel\./);
     if (process.platform !== 'win32') for (const name of VIEW_FILES) assert.equal(fs.statSync(path.join(output, name)).mode & 0o777, 0o600, name);
+      assert.equal(hashes[lesson], createHash('sha256').update(item.code).digest('base64url'));
+      assert.equal(new URL(item.url).hash, `#view=${lesson}.${item.code}`);
+      assert.equal(JSON.stringify(env).includes(item.code), false);
+    }
+    assert.match(fs.readFileSync(path.join(output, 'view-links.html'), 'utf8'), /#view=/);
+    if (process.platform !== 'win32') assert.equal(fs.statSync(path.join(output, 'view-access.json')).mode & 0o777, 0o600);
     assert.throws(() => provisionViewLinks({ output, wizardUrl }), /already exist/);
     assert.throws(() => provisionViewLinks({ output: path.join(tmp, 'empty'), wizardUrl }), /existing private provisioning directory/);
     assert.throws(() => provisionViewLinks({ output, wizardUrl: 'http://example.test/bespoke/' }), /HTTPS/);
   } finally { fs.rmSync(tmp, { recursive: true, force: true }); }
+});
+
+test('provisioning refuses repository paths and insecure or credential-bearing URLs', () => {
+  assert.throws(() => provision({ output: path.resolve('.private-test'), wizardUrl: 'https://example.test/bespoke/' }), /outside this repository/);
+  for (const wizardUrl of ['http://example.test/', 'https://a:b@example.test/', 'https://example.test/#secret', 'https://example.test/?code=secret']) {
+    assert.throws(() => provision({ output: '/unused', wizardUrl }), /HTTPS/);
+  }
 });
 
 test('adding view links checks that team-access.json exists without reading it', () => {
@@ -224,6 +240,16 @@ test('every provisioning function refuses an output directory inside the reposit
   ]) assert.throws(run, /outside this repository/);
   assert.equal(fs.existsSync(inside), false, 'a refused run creates nothing, so no secret lands in the repository');
 });
+
+test('the view-link command prints no codes and will not run together with a reissue', () => withTmp(tmp => {
+  const output = path.join(tmp, 'private');
+  const run = (...args) => execFileSync(process.execPath, ['scripts/bespoke-provision.mjs', ...args, '--output', output, '--wizard-url', wizardUrl], { encoding: 'utf8', stdio: 'pipe' });
+  run('--reissue', 'all');
+  const stdout = run('--add-view-links');
+  for (const item of Object.values(readJson(output, 'view-access.json'))) assert.equal(stdout.includes(item.code), false);
+  assert.match(stdout, /view links/);
+  assert.throws(() => run('--reissue', 'all', '--add-view-links'), /Usage/);
+}));
 
 test('minimal deployment package loads the real function and its validation catalogs', async () => {
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'bespoke-stage-'));

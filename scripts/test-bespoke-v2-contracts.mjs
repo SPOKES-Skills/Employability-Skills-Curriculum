@@ -11,6 +11,9 @@ import { defaultDesign, applyPreset, setSidebarText } from '../bespoke/builder-m
 import { selectionErrors, digest, canonicalJson } from '../netlify/functions/_shared/selection.mjs';
 import { handleAction, hashEditCode, hashViewCode, LESSON_IDS, seal, VIEW_ONLY } from '../netlify/functions/bespoke-handoff.mjs';
 import { createDevServer, LOCAL_PREVIEW_VIEW_CODE } from './bespoke-dev-server.mjs';
+import { defaultDesign, applyPreset, setFeatureStyle, setRoleStyle, setSidebarText } from '../bespoke/builder-model.mjs';
+import { selectionErrors, digest, canonicalJson } from '../netlify/functions/_shared/selection.mjs';
+import { handleAction, hashEditCode, LESSON_IDS, seal, VIEW_ONLY } from '../netlify/functions/bespoke-handoff.mjs';
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const legacy = JSON.parse(fs.readFileSync(path.join(root, 'scripts/test-fixtures/bespoke/selection-money-management.json')));
 const payload = () => ({ schema: 'bespoke-selection/v2', date: '2026-09-24', submittedAt: '2026-09-24T16:30:00.000Z', lesson: structuredClone(legacy.lesson), team: structuredClone(legacy.team), design: defaultDesign(catalog) });
@@ -27,6 +30,7 @@ test('committed v2 schema is current and v1 remains accepted', () => {
 test('all twelve preset ids are accepted as a starting point', () => {
   assert.equal(catalog.presets.length, 12);
   for (const id of ['open-air', 'gold-standard', 'slate', 'harvest', 'bold-statement', 'fresh-start']) {
+  for (const id of ['sidebar', 'horizon', 'corner', 'masthead', 'columns', 'plaque']) {
     const selection = payload();
     selection.design = applyPreset(catalog, id);
     assert.equal(selection.design.startingPoint, id);
@@ -128,6 +132,7 @@ function memoryService(existingSelection) {
   };
   const code = 'synthetic-v2-team-access-code';
   const context = { github: api, token: 'synthetic', draftKey: Buffer.alloc(32, 4).toString('base64'), teamKeys: Object.fromEntries(LESSON_IDS.map(id => [id, hashEditCode(code)])), viewKeys: JSON.stringify({ [legacy.lesson.id]: hashViewCode(VIEW_CODE) }) };
+  const context = { github: api, token: 'synthetic', draftKey: Buffer.alloc(32, 4).toString('base64'), teamKeys: Object.fromEntries(LESSON_IDS.map(id => [id, hashEditCode(code)])), viewKeys: JSON.stringify({ [legacy.lesson.id]: hashEditCode(VIEW_CODE) }) };
   if (existingSelection) {
     const envelope = seal(context.draftKey, { selection: existingSelection, receipts: [] }, existingSelection.lesson.id);
     current = { sha: 'a'.repeat(40), envelope }; revisions.set(current.sha, structuredClone(current));
@@ -135,6 +140,7 @@ function memoryService(existingSelection) {
   const request = (action, fields = {}) => handleAction({ action, lessonId: legacy.lesson.id, editCode: code, ...fields }, context);
   const view = (action, fields = {}) => handleAction({ action, lessonId: legacy.lesson.id, editCode: VIEW_CODE, ...fields }, context);
   return { request, view, context, code, get writes() { return writes; }, get dispatched() { return dispatched; }, received() { proposal = { url: 'https://example.invalid/synthetic-review' }; } };
+  return { request, view, context, code, get writes() { return writes; }, get dispatched() { return dispatched; }, get dispatchedPayload() { return dispatchedPayload; }, received() { proposal = { url: 'https://example.invalid/synthetic-review' }; } };
 }
 
 test('v2 synthetic save/open/revision conflict/retry and receipt remain lossless', async () => {
@@ -170,6 +176,7 @@ test('a view code opens the latest design and can do nothing else', async () => 
   const opened = await service.view('open');
   assert.equal(opened.body.access, 'view');
   assert.deepEqual(opened.body.selection, viewerCopy(selection));
+  assert.deepEqual(opened.body.selection, selection);
   assert.equal(opened.body.revision, saved.body.revision);
   assert.equal((await service.request('open')).body.access, 'edit');
   const attempts = [
@@ -272,6 +279,16 @@ test('view codes are optional, and a broken view table disables only the view li
   } finally { console.warn = original; }
   const brokenTeamKeys = await handleAction({ action: 'open', lessonId: legacy.lesson.id, editCode: VIEW_CODE }, { ...service.context, teamKeys: 'not json' });
   assert.equal(brokenTeamKeys.status, 503, 'a broken team table still stops the service');
+  assert.equal((await handleAction({ action: 'open', lessonId: otherLesson, editCode: VIEW_CODE }, service.context)).status, 403, 'a view code opens only its own lesson');
+});
+
+test('view codes are optional, and a malformed table stops the service', async () => {
+  const service = memoryService();
+  const open = (viewKeys, editCode = service.code) => handleAction({ action: 'open', lessonId: legacy.lesson.id, editCode }, { ...service.context, viewKeys });
+  assert.equal((await open(undefined)).status, 200, 'an edit code works with no view table');
+  assert.equal((await open(undefined, VIEW_CODE)).status, 403, 'a view code is unknown when no view table is set');
+  assert.equal((await open('{"not-a-lesson":"x"}')).status, 503);
+  assert.equal((await open('not json')).status, 503);
 });
 
 test('low-contrast choices save and reopen unchanged while stale writes remain blocked', async () => {

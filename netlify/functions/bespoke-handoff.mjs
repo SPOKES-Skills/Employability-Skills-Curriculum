@@ -135,6 +135,7 @@ async function receiptStatus(github, lessonId, receipt, runId) {
 export async function handleAction(body, { github, token, draftKey, teamKeys, viewKeys }) {
   let key, keys, views;
   try { if (!token || !github) throw new Error('Not configured'); key = keyBytes(draftKey); keys = accessKeys(teamKeys); views = viewTable(viewKeys); }
+  try { if (!token || !github) throw new Error('Not configured'); key = keyBytes(draftKey); keys = accessKeys(teamKeys); views = viewKeys ? accessKeys(viewKeys) : {}; }
   catch { return fail(503, 'setup', SETUP_MESSAGE); }
   if (!object(body)) return fail(400, 'body', 'The request could not be read.');
   const { action, lessonId } = body;
@@ -145,6 +146,19 @@ export async function handleAction(body, { github, token, draftKey, teamKeys, vi
   const mayEdit = holdsEdit(keys, lessonId, code), mayView = holdsView(views, lessonId, code);
   if (!mayEdit && !mayView) return fail(403, 'code', WRONG_CODE);
   if (!mayEdit && action !== 'open') return fail(403, 'view', VIEW_ONLY); // A view code opens the latest design: no history, status or writes.
+  if (code.length < CODE_MIN_LENGTH || code.length > 128) return fail(403, 'code', WRONG_CODE);
+  const holds = table => {
+    const expected = table[lessonId];
+    if (!expected) return false;
+    const actual = expected.length === 64 ? createHash('sha256').update(code, 'utf8').digest('hex') : hashEditCode(code);
+    return hashesMatch(actual, expected.length === 64 ? expected.toLowerCase() : expected);
+  };
+  // Both tables are checked on every request, so either kind of code costs the same work.
+  const mayEdit = holds(keys), mayView = holds(views);
+  if (!mayEdit && !mayView) return fail(403, 'code', WRONG_CODE);
+  // A view code reads the latest design and nothing else: no history, no status, no writes.
+  if (!mayEdit && action !== 'open') return fail(403, 'view', VIEW_ONLY);
+  const access = mayEdit ? 'edit' : 'view';
   // Authorization has succeeded before the first repository read or write.
   try {
     if (action === 'history') {
@@ -163,6 +177,7 @@ export async function handleAction(body, { github, token, draftKey, teamKeys, vi
     }
     const current = openedDraft(await github.readDraft(lessonId), lessonId, key);
     if (action === 'open') return ok(mayEdit ? { ...view(current), access: 'edit' } : { ...viewerView(current), access: 'view' });
+    if (action === 'open') return ok({ ...view(current), access });
     if (!validRevision(body)) return fail(400, 'revision', 'Open the latest design before saving or sending.');
     const problem = checkSelection(body.selection, lessonId, action === 'send');
     if (problem) return problem;

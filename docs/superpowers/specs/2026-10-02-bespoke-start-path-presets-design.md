@@ -1,6 +1,7 @@
 # BeSpoke start flow, step path and presets
 
 Status: PR 2 (flow) superseded by `2026-10-06-bespoke-quick-pick-design.md`. PR 1 carries forward. Approved by Britt, 2026-10-02, with the color steps reordered so sidebar color and sidebar text color are steps 5 and 6. Extended the same day with the intake wizard, the builder name and the team view link. Nothing here is built. Baseline is `origin/main` at `13a808d`, the preview editor merge.
+Status: approved by Britt, 2026-10-02, with the color steps reordered so sidebar color and sidebar text color are steps 5 and 6. Extended the same day with the intake wizard, the builder name and the team view link. Nothing here is built. Baseline is `origin/main` at `13a808d`, the preview editor merge.
 
 ## Problem
 
@@ -323,6 +324,8 @@ These stay as they are: advisory contrast with no disabled swatches, all eleven 
 - The live view link and builder link both work.
   - Check: Britt opens one builder link after the deploy, and one team view link after the merge, because the live page is served from main.
     Expected: the builder link still edits, and the view link shows "View only" with a saved time.
+  - Check: Britt opens one team view link and one builder link after the deploy.
+    Expected: the view link shows "View only" with a saved time, and the builder link still edits.
 - The nine presets look good and look different.
   - Check: Britt reviews the nine rendered presets in the local preview.
     Expected: approved.

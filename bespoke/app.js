@@ -18,7 +18,7 @@
    * A normal design view link is about 1,000 characters.
    */
   const SHARE_URL_MAX = 8000;
-  const EDIT_CODE_MIN = 20;
+  const EDIT_CODE_MIN = 8;
   const EDIT_CODE_MAX = 128;
   const HANDOFF_TIMEOUT_MS = 20000;
   const UNLOCK_HASH_KEY = "bespoke-lead-ok";
@@ -111,6 +111,8 @@
     builderNote: "",
     /** Legacy snapshot hash. New view links never grant editing. */
     editCodeHash: "",
+    /** Control that opened #openDialog, so focus can return there on close. */
+    dialogOpener: null,
     /** "view" until init grants a lead session, or the lead unlocks a view link. */
     mode: "view",
     teamSession: null,
@@ -710,7 +712,7 @@
 
   function renderTeam(panel) {
     panel.innerHTML = `
-      <h1>Lesson &amp; spokesperson</h1>
+      <h1>Lesson &amp; team</h1>
       <p class="panel-lead">One spokesperson saves the team’s decisions and prepares the file for Britt. Choose the lesson this file belongs to.</p>
       <div class="field-grid two">
         <label class="field">Lesson
@@ -2664,6 +2666,7 @@
     const input = byId("openEditCode");
     if (input) input.value = "";
     const dialog = byId("openDialog");
+    ui.dialogOpener = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     if (typeof dialog.showModal === "function" && !dialog.open) dialog.showModal();
     input?.focus();
   }
@@ -2674,7 +2677,7 @@
     const editCode = (byId("openEditCode")?.value || "").trim();
     const err = byId("openError");
     if (editCode.length < EDIT_CODE_MIN) {
-      if (err) err.textContent = "Enter the administrator-provided private access code. It needs at least " + EDIT_CODE_MIN + " characters.";
+      if (err) err.textContent = "Enter the 8-character team code from your team's OneDrive folder.";
       return;
     }
     handoffBusy = true;
@@ -2906,6 +2909,12 @@
       location.reload();
     });
     byId("openCancel").addEventListener("click", () => byId("openDialog").close());
+    byId("openDialog").addEventListener("close", () => {
+      const opener = ui.dialogOpener;
+      ui.dialogOpener = null;
+      if (opener && opener.isConnected) opener.focus();
+      else byId("btnOpen")?.focus();
+    });
     byId("openForm").addEventListener("submit", (event) => {
       event.preventDefault();
       cloudOpen();

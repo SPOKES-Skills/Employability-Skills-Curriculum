@@ -284,7 +284,7 @@ test('the forbidden-words rule catches what it should', () => {
 
 test('a view-only session disables every guide control and never saves guide state', () => {
   const source = fs.readFileSync(new URL('../bespoke/builder-app.mjs', import.meta.url), 'utf8');
-  const lock = source.slice(source.indexOf('function lockViewControls()'), source.indexOf('function renderTeam(panel)'));
+  const lock = source.slice(source.indexOf('function lockViewControls()'), source.indexOf('function renderTeam('));
   assert.match(lock, /if \(isLeadSession\(\)\) return;/);
   assert.doesNotMatch(lock, /btnGuide|guide-choice|guide-section/, 'guide controls are not exempt from the lock');
   assert.match(source, /setGuide:next=>\{ui\.guide=next;if\(isLeadSession\(\)\)saveDraft\(\);\}/, 'guide state is only saved by an editing session');

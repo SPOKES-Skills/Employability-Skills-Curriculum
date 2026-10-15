@@ -1,0 +1,1198 @@
+{
+  "version": "2.0.0",
+  "description": "Guided visual design. All 11 approved brand colors are independent per-role choices; all 12 existing selectable font families can be used for headings or body. Presets populate this same model.",
+  "palette": [
+    {
+      "id": "primary",
+      "name": "Blue",
+      "hex": "#007baf"
+    },
+    {
+      "id": "dark",
+      "name": "Navy",
+      "hex": "#004071"
+    },
+    {
+      "id": "royal",
+      "name": "Royal",
+      "hex": "#00133f"
+    },
+    {
+      "id": "accent",
+      "name": "Green",
+      "hex": "#37b550"
+    },
+    {
+      "id": "gold",
+      "name": "Gold",
+      "hex": "#d3b257"
+    },
+    {
+      "id": "muted-gold",
+      "name": "Deep gold",
+      "hex": "#ad8806"
+    },
+    {
+      "id": "mauve",
+      "name": "Mauve",
+      "hex": "#a7253f"
+    },
+    {
+      "id": "gray",
+      "name": "Gray",
+      "hex": "#60636b"
+    },
+    {
+      "id": "offwhite",
+      "name": "Silver",
+      "hex": "#d1d3d4"
+    },
+    {
+      "id": "muted",
+      "name": "Mist",
+      "hex": "#edf3f7"
+    },
+    {
+      "id": "light",
+      "name": "White",
+      "hex": "#ffffff"
+    }
+  ],
+  "colors": [
+    {
+      "id": "primary",
+      "name": "Blue",
+      "hex": "#007baf"
+    },
+    {
+      "id": "dark",
+      "name": "Navy",
+      "hex": "#004071"
+    },
+    {
+      "id": "royal",
+      "name": "Royal",
+      "hex": "#00133f"
+    },
+    {
+      "id": "accent",
+      "name": "Green",
+      "hex": "#37b550"
+    },
+    {
+      "id": "gold",
+      "name": "Gold",
+      "hex": "#d3b257"
+    },
+    {
+      "id": "muted-gold",
+      "name": "Deep gold",
+      "hex": "#ad8806"
+    },
+    {
+      "id": "mauve",
+      "name": "Mauve",
+      "hex": "#a7253f"
+    },
+    {
+      "id": "gray",
+      "name": "Gray",
+      "hex": "#60636b"
+    },
+    {
+      "id": "offwhite",
+      "name": "Silver",
+      "hex": "#d1d3d4"
+    },
+    {
+      "id": "muted",
+      "name": "Mist",
+      "hex": "#edf3f7"
+    },
+    {
+      "id": "light",
+      "name": "White",
+      "hex": "#ffffff"
+    }
+  ],
+  "roles": [
+    {
+      "id": "sidebar",
+      "label": "Sidebar",
+      "note": "The vertical chapter navigation beside lesson content. Open the Sidebar sample menu in narrow previews. Its text color is chosen for you.",
+      "kind": "surface",
+      "ink": true
+    },
+    {
+      "id": "titleBackground",
+      "label": "Title slide background",
+      "note": "The first thing learners see.",
+      "kind": "surface"
+    },
+    {
+      "id": "titleBackgroundEnd",
+      "label": "Title & divider second color",
+      "note": "The second color of title and divider gradients, and the title split layout’s right panel.",
+      "kind": "surface"
+    },
+    {
+      "id": "titleText",
+      "label": "Title & divider headings",
+      "note": "Large lettering on the title slide and chapter dividers. This shared choice never changes when you paint a background.",
+      "kind": "text"
+    },
+    {
+      "id": "subtitle",
+      "label": "Subtitle & divider supporting text",
+      "note": "The title subtitle and copyright line, plus divider chapter labels and supporting text. Content body text has its own color.",
+      "kind": "text"
+    },
+    {
+      "id": "contentBackground",
+      "label": "Content slide background",
+      "note": "The surface behind text boxes, video and activity slides.",
+      "kind": "surface"
+    },
+    {
+      "id": "heading",
+      "label": "Slide headings",
+      "note": "Headings on content slides and cards.",
+      "kind": "text"
+    },
+    {
+      "id": "body",
+      "label": "Body text",
+      "note": "Paragraphs and lists, independent of the heading color.",
+      "kind": "text"
+    },
+    {
+      "id": "accent",
+      "label": "Accent",
+      "note": "Decorative rules, box edges and highlights. List text keeps its own readable color.",
+      "kind": "shape",
+      "ink": true
+    },
+    {
+      "id": "button",
+      "label": "Buttons",
+      "note": "Handout and video buttons. Their text color is chosen for you.",
+      "kind": "surface",
+      "ink": true
+    },
+    {
+      "id": "dividerBackground",
+      "label": "Chapter divider background",
+      "note": "Behind each chapter’s opening slide. Heading color uses Title & divider headings; chapter labels and supporting text use Subtitle & divider supporting text.",
+      "kind": "surface"
+    }
+  ],
+  "fonts": [
+    {
+      "id": "dm-serif-display",
+      "label": "DM Serif Display",
+      "family": "DM Serif Display",
+      "fallback": "serif",
+      "sources": [
+        {
+          "file": "dm-serif-display-latin.woff2",
+          "weight": "400"
+        }
+      ]
+    },
+    {
+      "id": "outfit",
+      "label": "Outfit",
+      "family": "Outfit",
+      "fallback": "sans-serif",
+      "sources": [
+        {
+          "file": "outfit-latin.woff2",
+          "weight": "300 800"
+        }
+      ]
+    },
+    {
+      "id": "playfair-display",
+      "label": "Playfair Display",
+      "family": "Playfair Display",
+      "fallback": "serif",
+      "sources": [
+        {
+          "file": "playfair-display-latin.woff2",
+          "weight": "400 700"
+        }
+      ]
+    },
+    {
+      "id": "inter",
+      "label": "Inter",
+      "family": "Inter",
+      "fallback": "sans-serif",
+      "sources": [
+        {
+          "file": "inter-latin.woff2",
+          "weight": "400 600"
+        }
+      ]
+    },
+    {
+      "id": "merriweather",
+      "label": "Merriweather",
+      "family": "Merriweather",
+      "fallback": "serif",
+      "sources": [
+        {
+          "file": "merriweather-latin.woff2",
+          "weight": "400 700"
+        }
+      ]
+    },
+    {
+      "id": "source-sans-3",
+      "label": "Source Sans 3",
+      "family": "Source Sans 3",
+      "fallback": "sans-serif",
+      "sources": [
+        {
+          "file": "source-sans-3-latin.woff2",
+          "weight": "400 600"
+        }
+      ]
+    },
+    {
+      "id": "vollkorn",
+      "label": "Vollkorn",
+      "family": "Vollkorn",
+      "fallback": "serif",
+      "sources": [
+        {
+          "file": "vollkorn-latin.woff2",
+          "weight": "400 700"
+        }
+      ]
+    },
+    {
+      "id": "fira-sans",
+      "label": "Fira Sans",
+      "family": "Fira Sans",
+      "fallback": "sans-serif",
+      "sources": [
+        {
+          "file": "fira-sans-400-latin.woff2",
+          "weight": "400"
+        },
+        {
+          "file": "fira-sans-500-latin.woff2",
+          "weight": "500"
+        },
+        {
+          "file": "fira-sans-600-latin.woff2",
+          "weight": "600"
+        }
+      ]
+    },
+    {
+      "id": "crimson-pro",
+      "label": "Crimson Pro",
+      "family": "Crimson Pro",
+      "fallback": "serif",
+      "sources": [
+        {
+          "file": "crimson-pro-latin.woff2",
+          "weight": "400 700"
+        }
+      ]
+    },
+    {
+      "id": "work-sans",
+      "label": "Work Sans",
+      "family": "Work Sans",
+      "fallback": "sans-serif",
+      "sources": [
+        {
+          "file": "work-sans-latin.woff2",
+          "weight": "400 600"
+        }
+      ]
+    },
+    {
+      "id": "bitter",
+      "label": "Bitter",
+      "family": "Bitter",
+      "fallback": "serif",
+      "sources": [
+        {
+          "file": "bitter-latin.woff2",
+          "weight": "400 700"
+        }
+      ]
+    },
+    {
+      "id": "raleway",
+      "label": "Raleway",
+      "family": "Raleway",
+      "fallback": "sans-serif",
+      "sources": [
+        {
+          "file": "raleway-latin.woff2",
+          "weight": "400 600"
+        }
+      ]
+    }
+  ],
+  "fontPairings": [
+    {
+      "id": "dm-serif-display-outfit",
+      "label": "DM Serif Display + Outfit",
+      "heading": "DM Serif Display",
+      "body": "Outfit",
+      "mood": "Clean, modern, professional"
+    },
+    {
+      "id": "playfair-display-inter",
+      "label": "Playfair Display + Inter",
+      "heading": "Playfair Display",
+      "body": "Inter",
+      "mood": "Elegant, boardroom"
+    },
+    {
+      "id": "merriweather-source-sans-3",
+      "label": "Merriweather + Source Sans 3",
+      "heading": "Merriweather",
+      "body": "Source Sans 3",
+      "mood": "Trustworthy, warm"
+    },
+    {
+      "id": "vollkorn-fira-sans",
+      "label": "Vollkorn + Fira Sans",
+      "heading": "Vollkorn",
+      "body": "Fira Sans",
+      "mood": "Serious, grounded"
+    },
+    {
+      "id": "crimson-pro-work-sans",
+      "label": "Crimson Pro + Work Sans",
+      "heading": "Crimson Pro",
+      "body": "Work Sans",
+      "mood": "Approachable, lively"
+    },
+    {
+      "id": "bitter-raleway",
+      "label": "Bitter + Raleway",
+      "heading": "Bitter",
+      "body": "Raleway",
+      "mood": "Bold, outspoken"
+    }
+  ],
+  "backgrounds": [
+    {
+      "id": "plain",
+      "label": "Plain"
+    },
+    {
+      "id": "dot-grid",
+      "label": "Dot grid"
+    },
+    {
+      "id": "diagonal",
+      "label": "Diagonal"
+    },
+    {
+      "id": "crosshatch",
+      "label": "Crosshatch"
+    },
+    {
+      "id": "soft-gradient",
+      "label": "Soft wash"
+    }
+  ],
+  "slideGroups": [
+    {
+      "id": "title",
+      "label": "Title slide",
+      "decisions": [
+        {
+          "id": "layout",
+          "label": "Arrangement",
+          "type": "enum",
+          "options": [
+            {
+              "id": "center",
+              "label": "Centered"
+            },
+            {
+              "id": "left",
+              "label": "Left aligned"
+            },
+            {
+              "id": "bottom",
+              "label": "Bottom left"
+            },
+            {
+              "id": "split",
+              "label": "Split panels"
+            }
+          ]
+        },
+        {
+          "id": "logo",
+          "label": "Logo position",
+          "type": "enum",
+          "options": [
+            {
+              "id": "above",
+              "label": "Above the title"
+            },
+            {
+              "id": "corner",
+              "label": "Top corner"
+            }
+          ]
+        },
+        {
+          "id": "colors",
+          "label": "Background finish",
+          "type": "enum",
+          "options": [
+            {
+              "id": "solid",
+              "label": "One color"
+            },
+            {
+              "id": "gradient",
+              "label": "Two color gradient"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "divider",
+      "label": "Chapter divider",
+      "decisions": [
+        {
+          "id": "layout",
+          "label": "Arrangement",
+          "type": "enum",
+          "options": [
+            {
+              "id": "center",
+              "label": "Centered"
+            },
+            {
+              "id": "left",
+              "label": "Left aligned"
+            },
+            {
+              "id": "band",
+              "label": "Horizontal band"
+            },
+            {
+              "id": "number",
+              "label": "Large chapter number"
+            }
+          ]
+        },
+        {
+          "id": "watermark",
+          "label": "Chapter watermark",
+          "type": "enum",
+          "options": [
+            {
+              "id": "show",
+              "label": "Show"
+            },
+            {
+              "id": "hide",
+              "label": "Hide"
+            }
+          ]
+        },
+        {
+          "id": "colors",
+          "label": "Background finish",
+          "type": "enum",
+          "options": [
+            {
+              "id": "solid",
+              "label": "One color"
+            },
+            {
+              "id": "gradient",
+              "label": "Two color gradient"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "cards",
+      "label": "Text boxes",
+      "decisions": [
+        {
+          "id": "count",
+          "label": "Number of text boxes",
+          "type": "enum",
+          "options": [
+            {
+              "id": "1",
+              "label": "1"
+            },
+            {
+              "id": "2",
+              "label": "2"
+            },
+            {
+              "id": "3",
+              "label": "3"
+            },
+            {
+              "id": "4",
+              "label": "4"
+            }
+          ]
+        },
+        {
+          "id": "titleBar",
+          "label": "One shared title bar",
+          "type": "boolean",
+          "options": [
+            {
+              "id": true,
+              "label": "Show title bar"
+            },
+            {
+              "id": false,
+              "label": "Hide title bar"
+            }
+          ]
+        },
+        {
+          "id": "treatment",
+          "label": "Text treatment",
+          "type": "enum",
+          "options": [
+            {
+              "id": "paragraph",
+              "label": "Paragraphs"
+            },
+            {
+              "id": "bullets",
+              "label": "Bullet list"
+            },
+            {
+              "id": "numbered",
+              "label": "Numbered list"
+            }
+          ]
+        },
+        {
+          "id": "look",
+          "label": "Box style",
+          "type": "enum",
+          "options": [
+            {
+              "id": "rail",
+              "label": "Accent rail"
+            },
+            {
+              "id": "outline",
+              "label": "Outline"
+            },
+            {
+              "id": "filled",
+              "label": "Filled"
+            },
+            {
+              "id": "band",
+              "label": "Top band"
+            }
+          ]
+        },
+        {
+          "id": "layout",
+          "label": "Arrangement",
+          "type": "enum",
+          "options": [
+            {
+              "id": "columns",
+              "label": "Across"
+            },
+            {
+              "id": "grid",
+              "label": "Balanced grid"
+            },
+            {
+              "id": "rows",
+              "label": "Stacked rows"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "video",
+      "label": "Video slide",
+      "decisions": [
+        {
+          "id": "layout",
+          "label": "Arrangement",
+          "type": "enum",
+          "options": [
+            {
+              "id": "stacked",
+              "label": "Title above"
+            },
+            {
+              "id": "side",
+              "label": "Side by side"
+            },
+            {
+              "id": "banner",
+              "label": "Title banner"
+            }
+          ]
+        },
+        {
+          "id": "frame",
+          "label": "Video frame",
+          "type": "enum",
+          "options": [
+            {
+              "id": "plain",
+              "label": "Plain"
+            },
+            {
+              "id": "accent",
+              "label": "Accent frame"
+            }
+          ]
+        },
+        {
+          "id": "titleStyle",
+          "label": "Heading style",
+          "type": "enum",
+          "options": [
+            {
+              "id": "regular",
+              "label": "Regular"
+            },
+            {
+              "id": "large",
+              "label": "Large"
+            },
+            {
+              "id": "caps",
+              "label": "Small caps"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "activity",
+      "label": "Activity",
+      "decisions": [
+        {
+          "id": "layout",
+          "label": "Arrangement",
+          "type": "enum",
+          "options": [
+            {
+              "id": "box",
+              "label": "Box"
+            },
+            {
+              "id": "callout",
+              "label": "Accent callout"
+            },
+            {
+              "id": "banner",
+              "label": "Label banner"
+            },
+            {
+              "id": "side",
+              "label": "Side label"
+            }
+          ]
+        },
+        {
+          "id": "labelStyle",
+          "label": "Label style",
+          "type": "enum",
+          "options": [
+            {
+              "id": "caps",
+              "label": "Small caps"
+            },
+            {
+              "id": "heading",
+              "label": "Heading font"
+            },
+            {
+              "id": "pill",
+              "label": "Pill"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "defaults": {
+    "version": "2",
+    "roles": {
+      "sidebar": "dark",
+      "titleBackground": "dark",
+      "titleBackgroundEnd": "mauve",
+      "titleText": "light",
+      "subtitle": "light",
+      "contentBackground": "light",
+      "heading": "mauve",
+      "body": "royal",
+      "accent": "mauve",
+      "button": "mauve",
+      "dividerBackground": "mauve"
+    },
+    "fonts": {
+      "heading": "dm-serif-display",
+      "body": "outfit"
+    },
+    "slides": {
+      "title": {
+        "layout": "left",
+        "logo": "corner",
+        "colors": "gradient"
+      },
+      "divider": {
+        "layout": "left",
+        "watermark": "show",
+        "colors": "solid"
+      },
+      "cards": {
+        "count": "3",
+        "titleBar": true,
+        "treatment": "paragraph",
+        "look": "rail",
+        "layout": "columns"
+      },
+      "video": {
+        "layout": "stacked",
+        "frame": "accent",
+        "titleStyle": "regular"
+      },
+      "activity": {
+        "layout": "callout",
+        "labelStyle": "caps"
+      }
+    },
+    "background": "plain",
+    "samples": {
+      "title": "Make room for your next step",
+      "subtitle": "A sample lesson for a confident start",
+      "boxes": [
+        "Notice what matters. Pick one practical goal for the week.",
+        "Break it into steps. Make a plan you can explain to a partner.",
+        "Try one action today. Reflect on what worked and adjust.",
+        "Keep the progress going. Celebrate a useful lesson learned."
+      ]
+    },
+    "startingPoint": "custom"
+  },
+  "presets": [
+    {
+      "id": "professional",
+      "label": "Professional",
+      "blurb": "Clear structure with a warm accent.",
+      "design": {
+        "version": "2",
+        "roles": {
+          "sidebar": "dark",
+          "titleBackground": "dark",
+          "titleBackgroundEnd": "mauve",
+          "titleText": "light",
+          "subtitle": "light",
+          "contentBackground": "light",
+          "heading": "mauve",
+          "body": "royal",
+          "accent": "mauve",
+          "button": "mauve",
+          "dividerBackground": "dark"
+        },
+        "fonts": {
+          "heading": "merriweather",
+          "body": "inter"
+        },
+        "slides": {
+          "title": {
+            "layout": "left",
+            "logo": "corner",
+            "colors": "gradient"
+          },
+          "divider": {
+            "layout": "left",
+            "watermark": "show",
+            "colors": "solid"
+          },
+          "cards": {
+            "count": "3",
+            "titleBar": true,
+            "treatment": "paragraph",
+            "look": "rail",
+            "layout": "columns"
+          },
+          "video": {
+            "layout": "stacked",
+            "frame": "accent",
+            "titleStyle": "regular"
+          },
+          "activity": {
+            "layout": "callout",
+            "labelStyle": "caps"
+          }
+        },
+        "background": "plain",
+        "samples": {
+          "title": "Make room for your next step",
+          "subtitle": "A sample lesson for a confident start",
+          "boxes": [
+            "Notice what matters. Pick one practical goal for the week.",
+            "Break it into steps. Make a plan you can explain to a partner.",
+            "Try one action today. Reflect on what worked and adjust.",
+            "Keep the progress going. Celebrate a useful lesson learned."
+          ]
+        },
+        "startingPoint": "professional"
+      }
+    },
+    {
+      "id": "modern",
+      "label": "Modern",
+      "blurb": "Crisp type and confident blue.",
+      "design": {
+        "version": "2",
+        "roles": {
+          "sidebar": "royal",
+          "titleBackground": "royal",
+          "titleBackgroundEnd": "primary",
+          "titleText": "light",
+          "subtitle": "light",
+          "contentBackground": "light",
+          "heading": "primary",
+          "body": "royal",
+          "accent": "primary",
+          "button": "primary",
+          "dividerBackground": "royal"
+        },
+        "fonts": {
+          "heading": "outfit",
+          "body": "source-sans-3"
+        },
+        "slides": {
+          "title": {
+            "layout": "split",
+            "logo": "corner",
+            "colors": "gradient"
+          },
+          "divider": {
+            "layout": "band",
+            "watermark": "show",
+            "colors": "solid"
+          },
+          "cards": {
+            "count": "3",
+            "titleBar": true,
+            "treatment": "paragraph",
+            "look": "outline",
+            "layout": "columns"
+          },
+          "video": {
+            "layout": "stacked",
+            "frame": "accent",
+            "titleStyle": "regular"
+          },
+          "activity": {
+            "layout": "callout",
+            "labelStyle": "caps"
+          }
+        },
+        "background": "diagonal",
+        "samples": {
+          "title": "Make room for your next step",
+          "subtitle": "A sample lesson for a confident start",
+          "boxes": [
+            "Notice what matters. Pick one practical goal for the week.",
+            "Break it into steps. Make a plan you can explain to a partner.",
+            "Try one action today. Reflect on what worked and adjust.",
+            "Keep the progress going. Celebrate a useful lesson learned."
+          ]
+        },
+        "startingPoint": "modern"
+      }
+    },
+    {
+      "id": "serious",
+      "label": "Serious",
+      "blurb": "Grounded navy with measured detail.",
+      "design": {
+        "version": "2",
+        "roles": {
+          "sidebar": "dark",
+          "titleBackground": "dark",
+          "titleBackgroundEnd": "gray",
+          "titleText": "light",
+          "subtitle": "light",
+          "contentBackground": "light",
+          "heading": "gray",
+          "body": "royal",
+          "accent": "gray",
+          "button": "gray",
+          "dividerBackground": "dark"
+        },
+        "fonts": {
+          "heading": "bitter",
+          "body": "fira-sans"
+        },
+        "slides": {
+          "title": {
+            "layout": "center",
+            "logo": "corner",
+            "colors": "gradient"
+          },
+          "divider": {
+            "layout": "number",
+            "watermark": "show",
+            "colors": "solid"
+          },
+          "cards": {
+            "count": "3",
+            "titleBar": true,
+            "treatment": "paragraph",
+            "look": "band",
+            "layout": "columns"
+          },
+          "video": {
+            "layout": "stacked",
+            "frame": "accent",
+            "titleStyle": "regular"
+          },
+          "activity": {
+            "layout": "callout",
+            "labelStyle": "caps"
+          }
+        },
+        "background": "plain",
+        "samples": {
+          "title": "Make room for your next step",
+          "subtitle": "A sample lesson for a confident start",
+          "boxes": [
+            "Notice what matters. Pick one practical goal for the week.",
+            "Break it into steps. Make a plan you can explain to a partner.",
+            "Try one action today. Reflect on what worked and adjust.",
+            "Keep the progress going. Celebrate a useful lesson learned."
+          ]
+        },
+        "startingPoint": "serious"
+      }
+    },
+    {
+      "id": "light-hearted",
+      "label": "Light-hearted",
+      "blurb": "An open canvas and welcoming type.",
+      "design": {
+        "version": "2",
+        "roles": {
+          "sidebar": "mauve",
+          "titleBackground": "mauve",
+          "titleBackgroundEnd": "dark",
+          "titleText": "light",
+          "subtitle": "light",
+          "contentBackground": "light",
+          "heading": "dark",
+          "body": "royal",
+          "accent": "accent",
+          "button": "dark",
+          "dividerBackground": "mauve"
+        },
+        "fonts": {
+          "heading": "crimson-pro",
+          "body": "outfit"
+        },
+        "slides": {
+          "title": {
+            "layout": "bottom",
+            "logo": "corner",
+            "colors": "gradient"
+          },
+          "divider": {
+            "layout": "center",
+            "watermark": "show",
+            "colors": "solid"
+          },
+          "cards": {
+            "count": "3",
+            "titleBar": true,
+            "treatment": "paragraph",
+            "look": "filled",
+            "layout": "columns"
+          },
+          "video": {
+            "layout": "stacked",
+            "frame": "accent",
+            "titleStyle": "regular"
+          },
+          "activity": {
+            "layout": "callout",
+            "labelStyle": "caps"
+          }
+        },
+        "background": "dot-grid",
+        "samples": {
+          "title": "Make room for your next step",
+          "subtitle": "A sample lesson for a confident start",
+          "boxes": [
+            "Notice what matters. Pick one practical goal for the week.",
+            "Break it into steps. Make a plan you can explain to a partner.",
+            "Try one action today. Reflect on what worked and adjust.",
+            "Keep the progress going. Celebrate a useful lesson learned."
+          ]
+        },
+        "startingPoint": "light-hearted"
+      }
+    },
+    {
+      "id": "fun",
+      "label": "Fun",
+      "blurb": "Bright accents with a calm reading surface.",
+      "design": {
+        "version": "2",
+        "roles": {
+          "sidebar": "royal",
+          "titleBackground": "royal",
+          "titleBackgroundEnd": "mauve",
+          "titleText": "light",
+          "subtitle": "light",
+          "contentBackground": "light",
+          "heading": "mauve",
+          "body": "royal",
+          "accent": "gold",
+          "button": "mauve",
+          "dividerBackground": "royal"
+        },
+        "fonts": {
+          "heading": "raleway",
+          "body": "work-sans"
+        },
+        "slides": {
+          "title": {
+            "layout": "left",
+            "logo": "corner",
+            "colors": "gradient"
+          },
+          "divider": {
+            "layout": "band",
+            "watermark": "show",
+            "colors": "solid"
+          },
+          "cards": {
+            "count": "3",
+            "titleBar": true,
+            "treatment": "paragraph",
+            "look": "band",
+            "layout": "columns"
+          },
+          "video": {
+            "layout": "stacked",
+            "frame": "accent",
+            "titleStyle": "regular"
+          },
+          "activity": {
+            "layout": "callout",
+            "labelStyle": "caps"
+          }
+        },
+        "background": "crosshatch",
+        "samples": {
+          "title": "Make room for your next step",
+          "subtitle": "A sample lesson for a confident start",
+          "boxes": [
+            "Notice what matters. Pick one practical goal for the week.",
+            "Break it into steps. Make a plan you can explain to a partner.",
+            "Try one action today. Reflect on what worked and adjust.",
+            "Keep the progress going. Celebrate a useful lesson learned."
+          ]
+        },
+        "startingPoint": "fun"
+      }
+    },
+    {
+      "id": "outspoken",
+      "label": "Outspoken",
+      "blurb": "A bold title and direct, readable content.",
+      "design": {
+        "version": "2",
+        "roles": {
+          "sidebar": "mauve",
+          "titleBackground": "mauve",
+          "titleBackgroundEnd": "royal",
+          "titleText": "light",
+          "subtitle": "light",
+          "contentBackground": "light",
+          "heading": "royal",
+          "body": "royal",
+          "accent": "royal",
+          "button": "royal",
+          "dividerBackground": "mauve"
+        },
+        "fonts": {
+          "heading": "work-sans",
+          "body": "merriweather"
+        },
+        "slides": {
+          "title": {
+            "layout": "split",
+            "logo": "corner",
+            "colors": "gradient"
+          },
+          "divider": {
+            "layout": "left",
+            "watermark": "show",
+            "colors": "solid"
+          },
+          "cards": {
+            "count": "3",
+            "titleBar": true,
+            "treatment": "paragraph",
+            "look": "outline",
+            "layout": "columns"
+          },
+          "video": {
+            "layout": "stacked",
+            "frame": "accent",
+            "titleStyle": "regular"
+          },
+          "activity": {
+            "layout": "callout",
+            "labelStyle": "caps"
+          }
+        },
+        "background": "plain",
+        "samples": {
+          "title": "Make room for your next step",
+          "subtitle": "A sample lesson for a confident start",
+          "boxes": [
+            "Notice what matters. Pick one practical goal for the week.",
+            "Break it into steps. Make a plan you can explain to a partner.",
+            "Try one action today. Reflect on what worked and adjust.",
+            "Keep the progress going. Celebrate a useful lesson learned."
+          ]
+        },
+        "startingPoint": "outspoken"
+      }
+    }
+  ],
+  "sampleLimits": {
+    "title": 200,
+    "subtitle": 500,
+    "box": 1200
+  }
+}

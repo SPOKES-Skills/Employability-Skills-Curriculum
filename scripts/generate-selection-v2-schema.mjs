@@ -5,7 +5,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import catalog from '../bespoke/builder-catalog.json' with { type: 'json' };
 import original from '../bespoke/selection.schema.json' with { type: 'json' };
-import { roleStylesSchema } from '../bespoke/builder-model.mjs';
+import { roleStylesSchema, featureStylesSchema } from '../bespoke/builder-model.mjs';
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const object = properties => ({ type: 'object', additionalProperties: false, required: Object.keys(properties), properties });
 const choice = values => ({ type: 'string', enum: values });
@@ -24,6 +24,7 @@ const design = object({
 // Optional extension: old v2 payloads retain their exact appearance. A present
 // role style is closed and complete, using the shared renderer's field contract.
 design.properties.roleStyles = roleStylesSchema(catalog);
+design.properties.featureStyles = featureStylesSchema(catalog);
 const lesson = structuredClone(original.properties.lesson);
 const team = structuredClone(original.properties.team);
 lesson.properties.title.maxLength = lesson.properties.displayTitle.maxLength = 200;
@@ -38,6 +39,8 @@ const schema = {
   ...object({ schema: { type: 'string', const: 'bespoke-selection/v2' }, date: structuredClone(original.properties.date), lesson, team, design }),
 };
 schema.properties.submittedAt = { type: 'string', maxLength: 40, pattern: '^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d{1,3})?Z$' };
+// The main design is the selected option; the other is retained without recursion.
+schema.properties.alternatives = object({active:choice(['A','B']),otherDesign:structuredClone(design)});
 schema.properties.unspoken = boundedText(8000);
 schema.properties.legacySelection = structuredClone(original);
 schema['x-bespoke'] = { catalogVersion: catalog.version, authority: 'bespoke/builder-model.mjs', samplesAreCurriculum: false };

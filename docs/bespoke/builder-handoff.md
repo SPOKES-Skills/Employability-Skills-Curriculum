@@ -2,9 +2,26 @@
 
 BeSpoke v2 configures reusable visual slide roles with sample copy. It is not
 curriculum authoring, unrestricted drag-and-drop deck editing, or automatic lesson
-construction. Teachers can choose Build my own or editable presets; both write the
-same cumulative design. Independent role colors, heading/body fonts and component
+construction. Teachers can choose a layout preset or continue their current look;
+both write the same cumulative design. Independent role colors, heading/body fonts and component
 choices must survive every save and artifact boundary.
+
+**October 7, 2026 update:** the primary flow is Choose a layout → Customize →
+Review & save. Twelve actual layout thumbnails replace the six starting swatches.
+The compact toolbar edits sample text, size, color, horizontal alignment and
+vertical placement, with one additional text area per role. The preset supplies
+gradient direction. Detailed controls and the guide remain optional. This is local
+implementation; the hosted acceptance boundary below remains in force.
+
+The optional role fields `headingPlacement`, `bodyPlacement`, `extraText`,
+`extraColor`, `extraSize`, `extraAlignment`, `extraPlacement` and `boxHeadings`
+are validated by the same model/schema at every boundary. Missing fields in older
+v2 saves use renderer defaults without rewriting the source. Original title and
+box-body strings remain in their existing sample fields. The Python-generated
+`build-contract.json` retains the entire design; its `componentMarkup` contains
+the escaped additional text and individual box headings, and `design.css` contains
+alignment and placement rules. Deploy the compatible catalog, schema and model
+with the service before accepting these new designs on a hosted installation.
 
 **September 24, 2026:** this implementation is prepared for local review. Service
 behavior has synthetic tests; the revised wizard/service have not been deployed
@@ -20,15 +37,15 @@ local webfont package was found.
 
 ## Instructor workflow
 
-The current builder uses **Start → Slide designs → Review & save**. Start combines
-Lesson & team with a preset or **Build my own**. A preset can go straight to review
-or through one editor for a tweak. Title, Chapter divider, Text boxes, Video and
+The current builder uses **Choose a layout → Customize → Review & save**.
+The layout gallery offers twelve presets and a Lesson & team disclosure. A preset
+opens Customize and can then go directly to review or receive a small edit. Title, Chapter divider, Text boxes, Video and
 Activity are direct, optional editors; there is no requirement to visit them all.
 Returning teams resume the current look with Continue editing or Review & save.
-Change starting look is a separate deliberate action, with replacement confirmation
-for an existing design even after a fresh load.
+The gallery remains available; applying another preset asks for replacement
+confirmation for an existing design, even after a fresh load.
 
-The optional **Shared theme** disclosure stays available in every stage and groups
+The optional **Shared theme** disclosure in More options and Review & save groups
 shared colors, fonts and texture. Preserve Sidebar, Accent and Buttons colors,
 navigation/button typography, and the shared canvas/Band exterior bindings. A
 color element starts in **This slide** scope: its selected swatch and paint action
@@ -65,12 +82,17 @@ submission timestamp, plus a complete `design`:
 - Title/subtitle and all four sample-box strings, including currently hidden boxes.
 - The optional preset origin represented by `design.startingPoint` (`custom` after
   individual visual edits).
+- Optional `design.featureStyles` records for sidebar, button, box, titlebar, video
+  and activity preserve independent component fills, borders and navigation/button
+  text color and font. These closed records use `inherit` for defaults, and are
+  applied consistently to preview, component markup and generated CSS.
 - Optional `design.roleStyles` records for title, divider, cards, video and activity:
   independent background/gradient, texture strength, heading/body typography and
   visibility, sample words, chapter/activity labels and decorative watermarks.
   Explicit inherit values follow shared defaults. Hidden choices retain their values.
 
-Each present role record is closed and complete. Designs without the extension
+Each present role record is closed and includes the original required fields;
+the October 7 additions are optional for backward compatibility. Designs without the extension
 retain their earlier CSS and sample markup exactly; there is no eager migration of
 stored drafts. Older strict consumers reject the extension instead of discarding
 it. Use the updated schema, model, service and Python bridge together. Presets reset

@@ -1,0 +1,60 @@
+/* ==========================================================================
+   SPOKES — Effects Tokens
+   Radii, shadows, gradients, motion. The base template uses generous 12–16px
+   radii and soft navy-tinted shadows; the two-layer theme system rotates
+   through 8 card treatments (left-border, shadow-float, sharp, glass, pill,
+   layered, outlined, gradient-fill) — the primitives here cover them all.
+   ========================================================================== */
+
+:root {
+  /* ---- Radii ---- */
+  --radius-none: 0; /* sharp-border card style */
+  --radius-sm: 6px; /* layered cards, small chips */
+  --radius-md: 8px; /* buttons, badges */
+  --radius-lg: 12px; /* default card */
+  --radius-xl: 16px; /* matrix cells, area cards */
+  --radius-2xl: 20px; /* closing box, pill danger cards */
+  --radius-pill: 24px; /* pill card style */
+  --radius-round: 50%; /* takeaway numbers, visual circles */
+
+  /* ---- Shadows ---- */
+  --shadow-xs: 0 2px 6px rgba(0, 0, 0, 0.08);
+  --shadow-sm: 0 2px 8px rgba(0, 64, 113, 0.08);
+  --shadow-md: 0 4px 15px rgba(0, 64, 113, 0.08);
+  --shadow-lg: 0 8px 32px rgba(0, 64, 113, 0.08);
+  --shadow-hover: 0 10px 30px rgba(0, 0, 0, 0.15); /* card hover lift */
+  --shadow-pop: 0 16px 40px rgba(0, 0, 0, 0.35); /* matrix cell hover */
+  --shadow-hard: 4px 4px 0 rgba(0, 123, 175, 0.15); /* layered card style */
+  --shadow-hard-gold: 4px 4px 0 rgba(211, 178, 87, 0.2);
+
+  /* ---- Signature gradients ---- */
+  --grad-title: linear-gradient(135deg, var(--primary) 0%, var(--dark) 100%); /* @kind other */
+  --grad-royal: linear-gradient(135deg, var(--royal), var(--dark)); /* @kind other */
+  --grad-gold: linear-gradient(135deg, var(--gold), var(--muted-gold)); /* @kind other */
+  --grad-accent: linear-gradient(135deg, var(--accent), var(--primary)); /* @kind other */
+  --grad-divider: linear-gradient(90deg, var(--primary), var(--gold)); /* @kind other */
+  --grad-progress: linear-gradient(90deg, var(--primary) 0%, var(--gold) 100%); /* @kind other */
+  --grad-slide-bg: linear-gradient(170deg, var(--muted) 0%, var(--light) 50%, var(--offwhite) 100%); /* @kind other */
+  --grad-statement-bg: radial-gradient(ellipse at 50% 40%, var(--muted) 0%, #ffffff 60%); /* @kind other */
+
+  /* ---- Background textures (content-area patterns) ---- */
+  --tex-dot-grid: radial-gradient(rgba(0, 123, 175, 0.08) 1px, transparent 1px); /* @kind other */
+  --tex-dot-grid-size: 16px 16px; /* @kind other */
+
+  /* ---- Glassmorphism (glass card style) ---- */
+  --glass-fill: rgba(237, 243, 247, 0.6); /* @kind color */
+  --glass-blur: blur(16px) saturate(1.8); /* @kind other */
+  --glass-border: 1px solid rgba(255, 255, 255, 0.3); /* @kind other */
+
+  /* ---- Motion ---- */
+  --ease-out: cubic-bezier(0.25, 0.46, 0.45, 0.94); /* @kind other */
+  --ease-spring: cubic-bezier(0.68, -0.55, 0.265, 1.55); /* @kind other */
+  --dur-fast: 0.2s; /* @kind other */
+  --dur-base: 0.3s; /* @kind other */
+  --dur-slow: 0.5s; /* @kind other */
+  --dur-slower: 0.8s; /* @kind other */
+
+  /* ---- Focus ---- */
+  --focus-ring: 3px solid var(--gold); /* @kind other */
+  --focus-offset: 3px; /* @kind spacing */
+}

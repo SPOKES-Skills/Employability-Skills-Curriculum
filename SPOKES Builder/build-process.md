@@ -92,7 +92,7 @@ Additional Presentation chapters (P4, P5, etc.) may be added with sequential dat
 
 #### Step B: Copy Template & Apply Theme
 
-1. Copy `template.html` to the new project directory as `index.html`
+1. Copy `template.html` to the new project directory as `index.html`, and copy `SPOKES Builder/print/manifest.js` to `print/manifest.js` in the new project. The template loads that placeholder, and the validator's REF-01 rule blocks every edit to `index.html` while it is missing.
 2. Add lesson-specific Google Font `<link>` tags in `<head>` (look up import URL in `font-pairings.md`)
 3. Generate a `<style id="theme-override">` block AFTER the main CSS block by assembling snippets from `theme-library.css`:
    - Font family overrides
@@ -170,6 +170,12 @@ Is there a simple list?
 7. **Set the closing slide:**
    - Choose an inspirational quote related to the lesson topic
    - Set the closing statement
+8. **Take the print pictures (after the deck is final):**
+   - Register the lesson in `lesson-registry.json` so the picture script finds it
+   - Write `print/print-settings.json`: `{}` by default; list slide numbers in `keepVideoSlides` to keep a video slide's text, and answer tab panel ids in `teacherOnlyTabs`
+   - Run `node scripts/capture-print-slides.mjs lesson-<slug>`
+   - Print the lesson to PDF in all three layouts, both versions, and check that the Student workbook shows no answers
+   - Retake the pictures after any later edit to `index.html`; `scripts/quality.sh` fails until you do
 
 ### Phase 6: Brand Compliance Check
 
@@ -201,6 +207,10 @@ New-Lesson-Project/
   videos/                 <-- All local video files (.mp4)
     video_file_name.mp4
     ...
+  print/                  <-- Print slides pictures (generated, see Phase 5 step 8)
+    print-settings.json
+    manifest.js
+    s01.jpg ...
   .claude/
     launch.json           <-- Preview server config (see below)
   .gitignore              <-- Standard ignore file (see below)
@@ -245,6 +255,7 @@ Run through this checklist before delivering:
 - [ ] **Video placeholder slides** display styled placeholder box, or **Local video slides** play successfully from the `videos/` folder (no broken iframes)
 - [ ] **All download buttons** link to correct PDFs
 - [ ] **Resources sidebar** links work
+- [ ] **Print slides** button prints both versions in all three layouts, and `node scripts/capture-print-slides.mjs --check` passes
 - [ ] **Keyboard navigation** works (ArrowRight, ArrowLeft, Space)
 - [ ] **Closing slide** triggers confetti and success sound
 - [ ] **No console errors** in browser dev tools

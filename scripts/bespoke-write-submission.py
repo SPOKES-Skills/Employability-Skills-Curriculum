@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import html
+import hashlib
 import json
 import os
 from pathlib import Path
@@ -61,6 +62,10 @@ def build_intake_markdown(payload: dict, date: str) -> str:
             **{f"{role.capitalize()} design": json.dumps(choices, ensure_ascii=False) for role, choices in design["slides"].items()},
             "Recovery": "Original v1 selection preserved verbatim in selection.json" if "legacySelection" in payload else "Native v2 selection",
         })
+        if "featureStyles" in design:
+            rows["Feature styles"] = json.dumps(design["featureStyles"], ensure_ascii=False)
+        if payload.get("alternatives"):
+            rows["Chosen version"] = "Option " + payload["alternatives"]["active"] + "; other option retained in selection.json"
         if "roleStyles" in design:
             rows["Role-specific styles and sample copy"] = json.dumps(design["roleStyles"], ensure_ascii=False)
     else:
@@ -121,6 +126,17 @@ def write_submission(payload: dict, repo_root: Path) -> Path:
             required_files.append("component-samples.html")
         if any(not (dest / name).is_file() for name in required_files):
             raise ValueError("Existing submission is incomplete; review it before retrying")
+        manifest_path = dest / "review-package.json"
+        if manifest_path.exists():
+            manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+            immutable_files = ["selection.json", "design.css", "build-contract.json"]
+            if payload.get("schema") == "bespoke-selection/v2":
+                immutable_files += ["component-samples.html", "review.html"]
+            if not isinstance(manifest, dict) or manifest.get("selectionSha256") != selection_digest(payload) or any(
+                not (dest / name).is_file() or hashlib.sha256((dest / name).read_bytes()).hexdigest() != manifest.get("files", {}).get(name)
+                for name in immutable_files
+            ):
+                raise ValueError("Existing review package was changed or is incomplete; refusing to overwrite it")
         return dest  # Retry preserves instructor edits to intake and proposal history.
     intake = build_intake_markdown(payload, date)
     css, contract = build_design(payload)
@@ -133,6 +149,16 @@ def write_submission(payload: dict, repo_root: Path) -> Path:
         (staging / "build-contract.json").write_text(json.dumps(contract, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
         if payload.get("schema") == "bespoke-selection/v2":
             (staging / "component-samples.html").write_text(component_sample_html(css, contract), encoding="utf-8")
+            (staging / "review.html").write_text(component_sample_html(css, contract, standalone=True), encoding="utf-8")
+        files = ["selection.json", "design.css", "build-contract.json"]
+        if payload.get("schema") == "bespoke-selection/v2":
+            files.extend(["component-samples.html", "review.html"])
+        manifest = {"schema": "bespoke-review-package/v1", "submissionId": submission_id,
+                    "selectionSha256": selection_digest(payload),
+                    "chosenOption": payload.get("alternatives", {}).get("active"),
+                    "files": {name: hashlib.sha256((staging / name).read_bytes()).hexdigest() for name in files},
+                    "reviewStatus": "Ready for review on request."}
+        (staging / "review-package.json").write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
         os.rename(staging, dest)
     finally:
         if staging.exists():

@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import test from 'node:test';
+import { digest } from '../netlify/functions/_shared/selection.mjs';
 import { createHash, randomUUID } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
@@ -93,6 +94,15 @@ test('all actions authorize provisioned team access before any store read or wri
   assert.equal((await handleAction(request('save', { editCode: 'short' }), context(api))).status, 403);
   assert.equal((await handleAction(request('open'), context(api, { teamKeys: { 'goal-setting': teamKeys['goal-setting'] } }))).status, 403);
   assert.equal(api.reads, 0); assert.equal(api.writes.length, 0);
+});
+
+test('8-character team codes open whatever their case, spacing or dash', async () => {
+  const { api } = memoryGitHub();
+  const keys = { ...teamKeys, [lessonId]: hashEditCode('K7QX-M3PD') };
+  for (const typed of ['K7QX-M3PD', 'k7qxm3pd', ' k7qx m3pd ']) {
+    assert.equal((await handleAction(request('open', { editCode: typed }), context(api, { teamKeys: keys }))).status, 200, typed);
+  }
+  assert.equal((await handleAction(request('open', { editCode: 'K7QX-M3PE' }), context(api, { teamKeys: keys }))).status, 403);
 });
 
 test('missing or malformed independent keys fail closed without repository access', async () => {
@@ -276,7 +286,7 @@ test('HTTP injection path validates native requests, hides setup details and nev
 // responses, encoded refs, branch CAS and proposal/run identity filtering.
 function fakeGitHubFetch() {
   const calls = [], files = new Map(), blobs = new Map(), commits = [];
-  let branch = false, proposals = [], runs = [];
+  let branch = false, proposals = [], runs = [], artifacts = {"selection.json":JSON.stringify(fixture),"build-contract.json":JSON.stringify({selectionSha256:digest(fixture)})};
   const response = (status, data) => new Response(data === undefined ? null : JSON.stringify(data), { status });
   const fetchImpl = async (url, options) => {
     const parsed = new URL(url), route = parsed.pathname, body = options.body ? JSON.parse(options.body) : null;
@@ -300,6 +310,7 @@ function fakeGitHubFetch() {
     }
     if (route.includes('/git/blobs/')) return blobs.has(route.split('/').at(-1)) ? response(200, blobs.get(route.split('/').at(-1))) : response(404, {});
     if (route.endsWith('/commits')) return response(200, commits.slice(0, Number(parsed.searchParams.get('per_page'))).map(({ sha }) => ({ sha })));
+    if (route.includes('/contents/docs/phase-2/submissions/')) { const value=artifacts[route.split('/').at(-1)]; return value===undefined?response(404,{}):response(200,{content:Buffer.from(value).toString('base64'),encoding:'base64'}); }
     if (route.endsWith('/pulls')) return response(200, proposals);
     if (route.endsWith('/dispatches')) {
       assert.equal(body.ref, 'main');
@@ -310,7 +321,7 @@ function fakeGitHubFetch() {
     if (route.endsWith('/runs')) return response(200, { workflow_runs: runs });
     throw new Error('Unexpected test route: ' + route);
   };
-  return { calls, fetchImpl, setProposals(value) { proposals = value; }, setRuns(value) { runs = value; } };
+  return { calls, fetchImpl, setArtifacts(value) { artifacts=value; }, setProposals(value) { proposals = value; }, setRuns(value) { runs = value; } };
 }
 
 test('real adapter uses draft branch only, blob revisions/history, 2026 dispatch receipt and exact PR identity', async () => {
@@ -325,8 +336,10 @@ test('real adapter uses draft branch only, blob revisions/history, 2026 dispatch
   const receipt = sent.body.submissionId, branch = `bespoke-signal/${lessonId}/${receipt}`;
   fake.setProposals([{ head: { ref: 'another-branch', repo: { full_name: REPO } }, base: { ref: 'main' }, html_url: 'wrong' }]);
   assert.equal((await handleAction(request('status', { submissionId: receipt, runId: 501 }), context(github))).body.status, 'processing');
-  fake.setProposals([{ head: { ref: branch, repo: { full_name: REPO } }, base: { ref: 'main' }, html_url: `https://github.com/${REPO}/pull/321`, number: 321 }]);
+  fake.setProposals([{ head: { ref: branch, sha:'b'.repeat(40), repo: { full_name: REPO } }, base: { ref: 'main' }, html_url: `https://github.com/${REPO}/pull/321`, number: 321 }]);
   const received = await handleAction(request('status', { submissionId: receipt }), context(github)); assert.equal(received.body.status, 'received'); assert.match(received.body.url, /pull\/321$/);
+  fake.setArtifacts({'selection.json':JSON.stringify({...fixture,unspoken:'tampered'})});
+  assert.notEqual((await handleAction(request('status',{submissionId:receipt}),context(github))).body.status,'received','Matching branch alone cannot certify altered selection');
   assert.equal(fake.calls.some(call => call.method === 'PUT' && call.body.branch !== DRAFT_BRANCH), false);
   assert.equal(fake.calls.filter(call => call.route.endsWith('/dispatches')).length, 1);
 });
@@ -343,4 +356,18 @@ test('status prefers newest matching run over a stale failed run ID', async () =
   ]);
   const status = await handleAction(request('status', { submissionId: receipt, runId: 501 }), context(github));
   assert.equal(status.body.runId, 502); assert.equal(status.body.status, 'processing');
+});
+
+test('v2 receipt verifies all artifact hashes at the exact PR commit', async () => {
+  const catalog=JSON.parse(fs.readFileSync(path.join(root,'bespoke/builder-catalog.json')));
+  const selection={schema:'bespoke-selection/v2',date:'2026-10-07',lesson:fixture.lesson,team:fixture.team,design:catalog.defaults};
+  const receipt=submissionId(selection),branch=`bespoke-signal/${lessonId}/${receipt}`,fake=fakeGitHubFetch();
+  const contents={'selection.json':JSON.stringify(selection),'design.css':'/* synthetic */','build-contract.json':JSON.stringify({selectionSha256:digest(selection),design:selection.design}),'component-samples.html':'<p>sample</p>','review.html':'<p>self-contained sample</p>'};
+  contents['review-package.json']=JSON.stringify({schema:'bespoke-review-package/v1',submissionId:receipt,selectionSha256:digest(selection),files:Object.fromEntries(Object.entries(contents).map(([name,text])=>[name,createHash('sha256').update(text).digest('hex')]))});
+  fake.setArtifacts(contents);fake.setProposals([{head:{ref:branch,sha:'c'.repeat(40),repo:{full_name:REPO}},base:{ref:'main'},html_url:`https://github.com/${REPO}/pull/654`,number:654}]);
+  const github=createGitHub(token,REPO,fake.fetchImpl),received=await github.findProposal(lessonId,receipt);
+  assert.equal(received.selectionSha256,digest(selection));assert.match(received.artifactUrl,/\/cccccccccccccccccccccccccccccccccccccccc\//);
+  assert(fake.calls.filter(c=>c.route.includes('/contents/docs/')).every(c=>c.query.get('ref')==='c'.repeat(40)));
+  fake.setArtifacts({...contents,'review.html':'altered artifact'});assert.equal(await github.findProposal(lessonId,receipt),null);
+  const stripped={...contents};delete stripped['review-package.json'];fake.setArtifacts(stripped);assert.equal(await github.findProposal(lessonId,receipt),null,'v2 requires its complete package');
 });

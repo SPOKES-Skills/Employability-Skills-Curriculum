@@ -481,6 +481,19 @@ try {
   ok("backup download and open remain usable when shared setup is unavailable");
   await offlineContext.close();
 
+  const focusContext = await newContext({ reducedMotion:"reduce" });
+  const focusPage = await ready(await focusContext.newPage());
+  await focusPage.locator("#btnSend").click();
+  await focusPage.locator("#openDialog").waitFor({ state:"visible" });
+  await focusPage.keyboard.press("Escape");
+  assert.equal(await focusPage.evaluate(() => document.activeElement && document.activeElement.id), "btnSend", "Escape returns focus to the opening control");
+  await focusPage.locator("#btnSend").click();
+  await focusPage.locator("#openDialog").waitFor({ state:"visible" });
+  await focusPage.locator("#openCancel").click();
+  assert.equal(await focusPage.evaluate(() => document.activeElement && document.activeElement.id), "btnSend", "Cancel returns focus to the opening control");
+  await focusContext.close();
+  ok("closing the access dialog hands focus back to the control that opened it");
+
   const idleContext = await newContext({ reducedMotion:"reduce" }, { idleMs:300, stepMs:60000 });
   const idle = await ready(await idleContext.newPage(), teamUrl);
   await idle.locator("#fileStatus").filter({ hasText:"Opened the latest shared design" }).waitFor();

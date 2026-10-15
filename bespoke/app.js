@@ -111,6 +111,8 @@
     builderNote: "",
     /** Legacy snapshot hash. New view links never grant editing. */
     editCodeHash: "",
+    /** Control that opened #openDialog, so focus can return there on close. */
+    dialogOpener: null,
     /** "view" until init grants a lead session, or the lead unlocks a view link. */
     mode: "view",
     teamSession: null,
@@ -710,7 +712,7 @@
 
   function renderTeam(panel) {
     panel.innerHTML = `
-      <h1>Lesson &amp; spokesperson</h1>
+      <h1>Lesson &amp; team</h1>
       <p class="panel-lead">One spokesperson saves the team’s decisions and prepares the file for Britt. Choose the lesson this file belongs to.</p>
       <div class="field-grid two">
         <label class="field">Lesson
@@ -2664,6 +2666,7 @@
     const input = byId("openEditCode");
     if (input) input.value = "";
     const dialog = byId("openDialog");
+    ui.dialogOpener = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     if (typeof dialog.showModal === "function" && !dialog.open) dialog.showModal();
     input?.focus();
   }
@@ -2906,6 +2909,12 @@
       location.reload();
     });
     byId("openCancel").addEventListener("click", () => byId("openDialog").close());
+    byId("openDialog").addEventListener("close", () => {
+      const opener = ui.dialogOpener;
+      ui.dialogOpener = null;
+      if (opener && opener.isConnected) opener.focus();
+      else byId("btnOpen")?.focus();
+    });
     byId("openForm").addEventListener("submit", (event) => {
       event.preventDefault();
       cloudOpen();

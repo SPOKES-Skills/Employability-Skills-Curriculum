@@ -59,12 +59,12 @@
   <dialog id="openDialog" class="open-dialog" aria-labelledby="openDialogTitle">
     <form id="openForm">
       <h2 id="openDialogTitle">Open your team design</h2>
-      <p>Use the lesson and private access code Britt or your administrator gave your team.</p>
+      <p>Type the 8-character team code from your team's OneDrive folder. Lost it? Ask Britt for a new code.</p>
       <label class="field" for="openLesson">Lesson
         <select id="openLesson" required></select>
       </label>
-      <label class="field" for="openEditCode">Private access code
-        <input id="openEditCode" type="password" autocomplete="off" minlength="20" maxlength="128" required>
+      <label class="field" for="openEditCode">Team code
+        <input id="openEditCode" type="password" autocomplete="off" minlength="8" maxlength="128" required>
       </label>
       <p id="openError" class="share-status" role="status" aria-live="polite"></p>
       <div class="share-actions">

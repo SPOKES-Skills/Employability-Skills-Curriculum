@@ -12,7 +12,7 @@ const accessCode = "team-access-code-1234567890";
 const env = {
   BESPOKE_GITHUB_TOKEN: "test-token-not-a-real-secret",
   BESPOKE_DRAFT_KEY: Buffer.alloc(32, 7).toString("base64"),
-  BESPOKE_TEAM_KEYS: JSON.stringify({ "money-management": hashEditCode(accessCode) })
+  BESPOKE_TEAM_KEYS: JSON.stringify({ "money-management": hashEditCode(accessCode), "goal-setting": hashEditCode("K7QX-M3PD") })
 };
 
 function createMemoryGitHub() {
@@ -299,6 +299,16 @@ try {
   await gotoTeam(second);
   assert.equal(await second.locator("#teamName").inputValue(), "First shared version");
   ok("fresh team access opens the latest shared revision automatically");
+
+  const shortContext = await newContext({ reducedMotion:"reduce" });
+  const short = await ready(await shortContext.newPage());
+  await short.locator("#btnOpen").click();
+  await short.locator("#openLesson").selectOption("goal-setting");
+  await short.locator("#openEditCode").fill("k7qx m3pd");
+  await short.locator("#openConfirm").click();
+  await short.locator("#fileStatus").filter({ hasText:"This team has no shared design yet" }).waitFor({ timeout:5000 });
+  await shortContext.close();
+  ok("an 8-character team code opens when typed in lowercase with a space");
 
   const manualContext = await newContext({ reducedMotion:"reduce" });
   const manual = await ready(await manualContext.newPage());

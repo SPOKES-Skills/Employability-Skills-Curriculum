@@ -17,6 +17,9 @@ python3 scripts/validate-lesson.py "SPOKES Builder/template.html"
 echo "==> validator test suite"
 python3 -m unittest discover -s scripts -p 'test_validator.py' -v
 
+echo "==> offline lessons package builder"
+python3 -m unittest discover -s scripts -p 'test_offline_package.py' -v
+
 echo "==> registry / dashboard fallback sync"
 python3 scripts/check-registry-sync.py
 
@@ -80,6 +83,11 @@ if [ -d node_modules/playwright ] && [ -d node_modules/axe-core ]; then
   node scripts/test-bespoke-video-frames.mjs
   node scripts/test-bespoke-patterns.mjs
   node scripts/generate-lesson-fingerprints.mjs --check
+  echo "==> offline lessons package opens from file://"
+  offline_out="$(mktemp -d)"
+  python3 scripts/build-offline-package.py --no-zip --out "$offline_out"
+  node scripts/check-offline-package.mjs "$offline_out"/SPOKES-Lessons-Offline-*
+  rm -rf "$offline_out"
   echo "==> print slides dialog and lesson printouts"
   node --test scripts/test-print-slides-browser.mjs scripts/test-print-slides-lessons.mjs
   echo "==> theme library title-slide layouts"

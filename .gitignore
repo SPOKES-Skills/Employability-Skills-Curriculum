@@ -23,3 +23,6 @@ node_modules
 
 # Netlify local state (the handoff token is a site secret, never a file here)
 .netlify
+
+# Offline lessons package (scripts/build-offline-package.py output)
+dist/

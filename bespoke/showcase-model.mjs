@@ -47,8 +47,7 @@ const FEATURE_NAMES = { sidebar: 'Sidebar', button: 'Button', box: 'Text box', t
 const words = key => key.replace(/[A-Z]/g, letter => ` ${letter.toLowerCase()}`);
 
 function partName(kind, key) {
-  if (key.startsWith('watermark')) return `${KIND_SHORT[kind]} watermark`;
-  if (key.startsWith('extra')) return `${KIND_SHORT[kind]} extra text`;
+  if (FOLLOWERS.includes(key)) return `${KIND_SHORT[kind]} ${key.startsWith('watermark') ? 'watermark' : 'extra text'}`;
   const part = { primary: 'background', headingColor: 'heading', headingFont: 'heading', bodyColor: 'text', bodyFont: 'text' }[key];
   if (kind !== 'title') return part && `${KIND_SHORT[kind]} ${part}`;
   return { background: 'Title background', heading: 'Title text', text: 'Subtitle' }[part];

@@ -66,6 +66,11 @@ test('designChanges counts a watermark or extra text color only when the team se
   only(Model.setRoleStyle(catalog, d, 'divider', 'watermarkFont', 'outfit'), 'Divider watermark font Outfit');
   only(Model.setRoleStyle(catalog, d, 'cards', 'extraColor', 'gold'), 'Text boxes extra text in Gold');
   only(Model.setRoleStyle(catalog, d, 'activity', 'extraFont', 'outfit'), 'Activity extra text font Outfit');
+  // Other watermark and extra text settings read as plain "changed" labels, not as colors.
+  only(Model.setRoleStyle(catalog, d, 'title', 'watermarkMode', 'text'), 'Title watermark mode changed');
+  only(Model.setRoleStyle(catalog, d, 'title', 'extraSize', 'large'), 'Title extra size changed');
+  only(Model.setRoleStyle(catalog, d, 'title', 'watermarkOpacity', 'high'), 'Title watermark opacity changed');
+  only(Model.setRoleStyle(catalog, d, 'title', 'extraPlacement', 'top'), 'Title extra placement changed');
   // A heading color change moves the watermark that follows it, and is still one label per slide.
   only(Model.setRoleStyle(catalog, d, 'title', 'headingColor', 'gold'), 'Title text in Gold');
 });

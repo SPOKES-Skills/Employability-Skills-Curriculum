@@ -34,6 +34,7 @@ node scripts/test-bespoke-builder-model.mjs
 node scripts/test-bespoke-role-model.mjs
 node scripts/test-bespoke-role-contracts.mjs
 node scripts/test-bespoke-similarity.mjs
+node scripts/test-bespoke-showcase-model.mjs
 python3 -m unittest discover -s scripts -p 'test_bespoke*.py' -v
 echo "==> bespoke handoff endpoint"
 node --test scripts/test-bespoke-dev-server.mjs scripts/test-bespoke-v2-contracts.mjs scripts/test-bespoke-handoff.mjs scripts/test-bespoke-provision.mjs scripts/test-bespoke-brief.mjs scripts/test-bespoke-guide.mjs scripts/test-print-slides.mjs scripts/test-print-slides-lib.mjs scripts/test-bespoke-team-view.mjs

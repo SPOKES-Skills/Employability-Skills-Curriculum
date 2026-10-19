@@ -14,6 +14,7 @@
 .app-bar #stepList{display:flex;gap:2px;margin:0;padding:0;list-style:none}
 .app-bar #stepList li{margin:0}
 .app-bar #stepList button{position:relative;display:flex;align-items:center;gap:6px;width:auto;min-width:0;min-height:44px;padding:6px 12px;border:0;border-radius:999px;background:transparent;color:var(--muted);font-size:.875rem;line-height:1.2;white-space:nowrap}
+.app-bar .step-num{min-width:0;height:auto;border:0;border-radius:0;font-size:inherit;font-weight:600}
 .app-bar #stepList button:after{content:"";position:absolute;inset:-4px 0}
 .app-bar #stepList button:hover{background:var(--mist)}
 .app-bar #stepList button[aria-current]{background:var(--mist);color:var(--blue);font-weight:600}
@@ -142,7 +143,6 @@ body:has(.workspace[data-editor=true]) #btnMenuOptions{display:flex}
 /* Four stage pills share the bar, so tighten them on narrower desktops. */
 @media(min-width:1101px) and (max-width:1330px){
  .app-bar #stepList button{padding:6px 8px;font-size:.8125rem}
- .app-bar .step-num{display:none}
 }
 
 /* Two-row toolbar below 1440px: the gutter above the slide grows to hold it. */
@@ -150,6 +150,8 @@ body:has(.workspace[data-editor=true]) #btnMenuOptions{display:flex}
 
 @media(max-width:760px){
  .app-bar{position:relative;padding:6px 12px}
+ /* The stage number and check are hidden only at 760px and narrower; wider windows always show them. */
+ .app-bar .step-num{display:none}
  .app-bar .stepper{order:3;flex:1 0 100%;margin:0;overflow-x:auto}
  .bar-end{flex:1 0 100%;flex-wrap:wrap;justify-content:flex-end;margin-left:0}
  .save-chip{flex:1 1 100%;order:-1;max-width:none}

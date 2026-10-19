@@ -1757,7 +1757,7 @@ function renderReview(panel){
 // Update it in place: rebuilding the pills while the pointer is down would swallow the click.
 function updateTeamPill(){
  const b=byId('stage-team');if(!b)return;
- const at=STEPS.findIndex(step=>step.id==='team'),base=`Stage ${at+1} of ${STEPS.length}: ${STEPS[at].label}`;
+ const at=STEPS.findIndex(step=>step.id==='team'),base=b.dataset.stageName||`Stage ${at+1} of ${STEPS.length}: ${STEPS[at].label}`;
  if(teamIdentified()){
   const lesson=state.meta?.lessons.find(l=>l.id===state.lessonId)?.title;
   delete b.dataset.attention;b.title=[lesson,state.teamName.trim()].filter(Boolean).join(' · ');b.setAttribute('aria-label',base);
@@ -1767,8 +1767,17 @@ function updateTeamPill(){
 }
 function buildStepper(){
  const list=byId('stepList');list.replaceChildren();
- STEPS.forEach((step,i)=>{const li=document.createElement('li'),b=document.createElement('button');b.type='button';b.id='stage-'+step.id;b.dataset.stage=step.id;b.innerHTML='<span class="step-num" aria-hidden="true">'+(i+1)+'</span><span>'+escapeHtml(step.label)+'</span>';b.setAttribute('aria-label',`Stage ${i+1} of ${STEPS.length}: ${step.label}`);if(i===state.step)b.setAttribute('aria-current','step');
-  b.onclick=()=>goStage(step.id);li.append(b);list.append(li);});
+ STEPS.forEach((step,i)=>{
+  const li=document.createElement('li'),b=document.createElement('button'),passed=i<state.step;
+  b.type='button';b.id='stage-'+step.id;b.dataset.stage=step.id;if(passed)b.dataset.passed='true';
+  // A passed stage swaps its number for a check mark; the text node keeps the visible text "2 · Name".
+  const num=document.createElement('span'),name=document.createElement('span');
+  num.className='step-num';num.setAttribute('aria-hidden','true');num.textContent=passed?'\u2713':(i+1)+' \u00b7';name.textContent=step.label;
+  b.append(num,document.createTextNode(' '),name);
+  b.dataset.stageName=`Stage ${i+1} of ${STEPS.length}: ${step.label}`+(passed?', completed':'');
+  b.setAttribute('aria-label',b.dataset.stageName);if(i===state.step)b.setAttribute('aria-current','step');
+  b.onclick=()=>goStage(step.id);li.append(b);list.append(li);
+ });
  byId('stepCount').textContent='Stage '+(state.step+1)+' of '+STEPS.length;
  updateTeamPill();
 }

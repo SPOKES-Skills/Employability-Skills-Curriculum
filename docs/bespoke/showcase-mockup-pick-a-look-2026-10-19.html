@@ -1,0 +1,267 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BeSpoke showcase: the preset moment</title>
+<style>
+@font-face{font-family:Outfit;src:url("../../fonts/outfit-latin.woff2") format("woff2");font-weight:100 900}
+@font-face{font-family:"DM Serif Display";src:url("../../fonts/dm-serif-display-latin.woff2") format("woff2")}
+@font-face{font-family:"Playfair Display";src:url("../../fonts/playfair-display-latin.woff2") format("woff2");font-weight:400 900}
+@font-face{font-family:"Work Sans";src:url("../../fonts/work-sans-latin.woff2") format("woff2");font-weight:100 900}
+@font-face{font-family:Vollkorn;src:url("../../fonts/vollkorn-latin.woff2") format("woff2");font-weight:400 900}
+@font-face{font-family:Raleway;src:url("../../fonts/raleway-latin.woff2") format("woff2");font-weight:100 900}
+@font-face{font-family:Bitter;src:url("../../fonts/bitter-latin.woff2") format("woff2");font-weight:100 900}
+@font-face{font-family:Merriweather;src:url("../../fonts/merriweather-latin.woff2") format("woff2")}
+
+:root{
+  --royal:#00133f;--dark:#004071;--primary:#007baf;--green:#37b550;--gold:#d3b257;--dgold:#ad8806;
+  --mauve:#a7253f;--gray:#60636b;--silver:#d1d3d4;--mist:#edf3f7;--white:#fff;
+  --ink:#00133f;--muted:#526273;--line:#cad5df;--canvas:#e9eef2;
+}
+*{box-sizing:border-box;margin:0}
+body{font-family:Outfit,system-ui,sans-serif;background:#f4f6f8;color:var(--ink);padding:32px 28px 80px}
+.intro{max-width:1180px;margin:0 auto 28px}
+.intro h1{font-size:1.9rem;font-weight:600;letter-spacing:-.03em}
+.intro p{color:var(--muted);font-size:1.02rem;line-height:1.5;margin-top:8px;max-width:72ch}
+.option{max-width:1180px;margin:0 auto 56px}
+.option-head{display:flex;align-items:baseline;gap:14px;margin-bottom:12px}
+.letter{flex:none;width:38px;height:38px;border-radius:50%;background:var(--royal);color:#fff;display:grid;place-items:center;font-weight:600;font-size:1.1rem}
+.option-head h2{font-size:1.35rem;font-weight:600}
+.option-head p{color:var(--muted);font-size:.95rem}
+.rec{background:var(--green);color:#fff;font-size:.75rem;font-weight:600;padding:3px 9px;border-radius:99px;letter-spacing:.02em}
+.notes{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:14px;font-size:.92rem;line-height:1.45}
+.notes div{background:#fff;border:1px solid var(--line);border-radius:8px;padding:12px 14px}
+.notes h4{font-size:.78rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:6px}
+.notes ul{padding-left:18px}
+
+/* Screen frame */
+.screen{background:var(--canvas);border:1px solid #c2ccd6;border-radius:12px;overflow:hidden;box-shadow:0 18px 40px #00133f1f;min-height:640px;display:flex;flex-direction:column}
+.bar{flex:none;height:46px;background:#fff;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:18px;padding:0 18px}
+.brand{font-weight:700;font-size:1.05rem;letter-spacing:-.02em}
+.brand span{color:var(--green)}
+.pills{display:flex;gap:6px;margin-left:8px}
+.pill{font-size:.72rem;padding:5px 11px;border-radius:99px;border:1px solid var(--line);color:var(--muted)}
+.pill.on{background:var(--royal);border-color:var(--royal);color:#fff}
+.pill.done{color:var(--ink)}
+.bar .sp{flex:1}
+.ghost{font-size:.72rem;color:var(--muted)}
+.btn{font-family:inherit;font-size:.8rem;font-weight:600;border-radius:8px;padding:9px 16px;border:0;background:var(--dark);color:#fff;white-space:nowrap}
+.btn.big{font-size:.95rem;padding:12px 22px}
+.btn.light{background:#fff;color:var(--ink);border:1px solid var(--line)}
+.lesson-tag{font-size:.72rem;color:var(--muted)}
+.lesson-tag b{color:var(--ink)}
+
+/* Mini slide renderer */
+.slide{aspect-ratio:16/9;position:relative;overflow:hidden;border-radius:4px;container-type:inline-size;box-shadow:0 2px 8px #00133f26}
+.slide .txt{position:absolute;left:8%;right:8%;top:50%;transform:translateY(-50%);display:flex;flex-direction:column;gap:2.2cqw}
+.slide .t{font-size:8cqw;line-height:1.04;letter-spacing:-.01em}
+.slide .s{font-size:3.2cqw;opacity:.9}
+.slide .rule{width:14%;height:1.2cqw}
+.slide .logo{position:absolute;right:5%;top:7%;width:9%;aspect-ratio:1;border-radius:50%;opacity:.85}
+.slide.framed::after{content:"";position:absolute;inset:5%;border:.7cqw solid var(--fr);border-radius:1cqw}
+.slide.split .pane{position:absolute;right:0;top:0;bottom:0;width:38%}
+.slide.split .txt{right:44%}
+.slide.split .t{font-size:6.6cqw}
+.slide.centered .txt{align-items:center;text-align:center}
+.slide.side::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4%;background:var(--sb)}
+.slide.side .txt{left:11%}
+.slide.horizon::before{content:"";position:absolute;left:0;right:0;bottom:0;height:24%;background:var(--hz)}
+.slide.horizon .txt{top:40%}
+.slide.head .t{font-size:9cqw;font-weight:800;text-transform:uppercase;line-height:.98}
+/* other slide types for contact sheets */
+.slide.div .t{top:40%;font-size:8cqw}
+.slide.div .num{position:absolute;right:6%;bottom:-6%;font-size:42cqw;opacity:.14;line-height:1}
+.slide.boxes{background:#fff}
+.slide.boxes .h{position:absolute;left:7%;top:10%;font-size:6cqw}
+.slide.boxes .row{position:absolute;left:7%;right:7%;top:36%;bottom:12%;display:grid;grid-template-columns:repeat(3,1fr);gap:3cqw}
+.slide.boxes .row i{border-radius:1.4cqw;border-top:2.4cqw solid var(--ac);background:#f3f5f7}
+.slide.vid .frame{position:absolute;left:12%;right:12%;top:22%;bottom:12%;border:1.2cqw solid var(--ac);border-radius:1.5cqw;background:#1b2433}
+.slide.vid .frame::after{content:"";position:absolute;left:46%;top:38%;border-left:6cqw solid #fff;border-top:3.6cqw solid transparent;border-bottom:3.6cqw solid transparent}
+.slide.vid .h{position:absolute;left:12%;top:7%;font-size:5.5cqw}
+.slide.act .band{position:absolute;left:0;right:0;top:0;height:28%;background:var(--ac)}
+.slide.act .h{position:absolute;left:7%;top:8%;font-size:6cqw;color:#fff}
+.slide.act .card{position:absolute;left:7%;right:7%;top:38%;bottom:12%;background:#fff;border-radius:1.6cqw;box-shadow:0 1cqw 3cqw #0002}
+
+/* Option A */
+.a-body{flex:1;display:grid;grid-template-rows:1fr auto;min-height:0}
+.a-stage{display:grid;grid-template-columns:1.6fr 1fr;gap:26px;padding:24px 26px 16px;min-height:0;align-items:center}
+.a-stage .hero{width:100%}
+.a-stage .hero .slide{border-radius:8px;box-shadow:0 14px 34px #00133f40}
+.a-side .kicker{font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.a-side h3{font-family:"DM Serif Display",serif;font-weight:400;font-size:2.3rem;line-height:1.02;margin:6px 0 6px}
+.a-side .meta{font-size:.82rem;color:var(--muted);line-height:1.5}
+.chips{display:flex;gap:5px;margin:12px 0}
+.chips i{width:22px;height:22px;border-radius:50%;border:2px solid #fff;box-shadow:0 0 0 1px var(--line)}
+.deck{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin:4px 0 16px}
+.a-side .actions{display:flex;gap:8px;align-items:center}
+.a-side .undo{font-size:.78rem;color:var(--dark);text-decoration:underline}
+.strip{background:#fff;border-top:1px solid var(--line);padding:10px 26px 14px}
+.moods{display:flex;gap:6px;margin-bottom:8px;align-items:center}
+.moods span{font-size:.7rem;padding:4px 10px;border-radius:99px;background:var(--mist);color:var(--ink)}
+.moods span.on{background:var(--royal);color:#fff}
+.moods em{font-style:normal;font-size:.7rem;color:var(--muted);margin-left:auto}
+.film{display:grid;grid-template-columns:repeat(8,1fr);gap:10px}
+.film figure{margin:0}
+.film figcaption{font-size:.66rem;margin-top:4px;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.film .sel .slide{outline:3px solid var(--gold);outline-offset:3px}
+.film .yours .slide{outline:2px dashed var(--dark);outline-offset:3px}
+
+/* Option B */
+.b-body{flex:1;padding:22px 26px;overflow:hidden}
+.b-title{display:flex;align-items:baseline;gap:12px;margin-bottom:14px}
+.b-title h3{font-size:1.25rem;font-weight:600}
+.b-title p{font-size:.8rem;color:var(--muted)}
+.wall{display:grid;grid-template-columns:repeat(4,1fr);grid-auto-rows:auto;gap:14px}
+.wall figure{margin:0;background:#fff;border-radius:8px;padding:6px 6px 8px;border:1px solid var(--line)}
+.wall figcaption{font-size:.72rem;margin-top:6px;font-weight:500}
+.wall .open{grid-column:span 2;grid-row:span 2;padding:12px;border:2px solid var(--gold);box-shadow:0 12px 30px #00133f2a;display:flex;flex-direction:column;gap:10px}
+.wall .open .row{display:flex;align-items:center;gap:10px}
+.wall .open h4{font-family:"DM Serif Display",serif;font-weight:400;font-size:1.6rem;line-height:1}
+.wall .open .row .sp{flex:1}
+
+/* Option C */
+.c-body{flex:1;display:grid;grid-template-columns:230px 1fr;min-height:0}
+.c-list{background:#fff;border-right:1px solid var(--line);padding:14px 10px;overflow:hidden}
+.c-list h5{font-size:.66rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:10px 8px 4px}
+.c-item{display:flex;align-items:center;gap:8px;padding:7px 8px;border-radius:6px;font-size:.8rem}
+.c-item.on{background:var(--royal);color:#fff}
+.c-item i{display:flex}
+.c-item i b{width:12px;height:12px;border-radius:50%;margin-right:-3px;border:1.5px solid #fff}
+.c-main{padding:22px 28px;display:flex;flex-direction:column;gap:14px;min-height:0}
+.c-main .row{display:flex;align-items:end;gap:14px}
+.c-main h3{font-family:"DM Serif Display",serif;font-weight:400;font-size:2.1rem;line-height:1}
+.c-main .row .sp{flex:1}
+.sheet{display:grid;grid-template-columns:1.6fr 1fr 1fr;grid-template-rows:auto auto;gap:12px}
+.sheet .slide:first-child{grid-row:span 2}
+</style>
+</head>
+<body>
+
+<div class="intro">
+  <h1>The preset moment, bolder</h1>
+  <p>These show the Color &amp; layout stage at a school-laptop size, for the Money Management team. In every option the slides carry the lesson's own name, the chosen look stays on screen with its name, and nothing jumps to Customize until the team presses <b>Make it ours</b>. The difference is how the twelve looks and the chosen one share the screen. Which feels right for a team watching on a call?</p>
+</div>
+
+<!-- ============ A ============ -->
+<section class="option">
+  <div class="option-head"><div class="letter">A</div><div><h2>Stage and filmstrip <span class="rec">My pick</span></h2><p>The chosen look fills a big stage. The twelve looks sit in a strip along the bottom, grouped by mood. Hover any of them and the stage previews it.</p></div></div>
+  <div class="screen">
+    <div class="bar">
+      <div class="brand">Be<span>Spoke</span></div>
+      <div class="pills"><span class="pill done">✓ Lesson &amp; team</span><span class="pill on">2 · Pick a look</span><span class="pill">3 · Make it yours</span><span class="pill">4 · Send</span></div>
+      <div class="sp"></div><span class="lesson-tag">Money Management · <b>Team Ridgeview</b></span>
+    </div>
+    <div class="a-body">
+      <div class="a-stage">
+        <div class="hero" data-slide="fun-title-lg"></div>
+        <div class="a-side">
+          <div class="kicker">Your starting look</div>
+          <h3>Midnight &amp; gold</h3>
+          <div class="meta">Framed layout · DM Serif Display headings with Outfit text</div>
+          <div class="chips"><i style="background:#00133f"></i><i style="background:#d3b257"></i><i style="background:#fff"></i><i style="background:#007baf"></i></div>
+          <div class="deck" data-deck="fun"></div>
+          <div class="actions"><button class="btn big">Make it ours →</button><span class="undo">Undo</span></div>
+        </div>
+      </div>
+      <div class="strip">
+        <div class="moods"><span class="on">All 12</span><span>Calm</span><span>Bold</span><span>Bright</span><span>Classic</span><em>Hover to preview · click to choose</em></div>
+        <div class="film" data-film="8"></div>
+      </div>
+    </div>
+  </div>
+  <div class="notes">
+    <div><h4>Good for</h4><ul><li>The slide is the biggest thing on screen, so it reads on a shrunken Teams share.</li><li>The same strip can come along into Customize as a quick swap bar.</li><li>Fits 1280×800 without scrolling.</li></ul></div>
+    <div><h4>Watch out for</h4><ul><li>Only eight looks show at once; the rest scroll sideways or sit behind a mood chip.</li><li>Biggest change to the current page.</li></ul></div>
+  </div>
+</section>
+
+<!-- ============ B ============ -->
+<section class="option">
+  <div class="option-head"><div class="letter">B</div><div><h2>Gallery wall that opens in place</h2><p>All twelve looks stay on screen as large slides. Choosing one grows it in place to show its name, its colors and the Make it ours button.</p></div></div>
+  <div class="screen">
+    <div class="bar">
+      <div class="brand">Be<span>Spoke</span></div>
+      <div class="pills"><span class="pill done">✓ Lesson &amp; team</span><span class="pill on">2 · Pick a look</span><span class="pill">3 · Make it yours</span><span class="pill">4 · Send</span></div>
+      <div class="sp"></div><span class="lesson-tag">Money Management · <b>Team Ridgeview</b></span>
+    </div>
+    <div class="b-body">
+      <div class="b-title"><h3>Twelve ways Money Management could look</h3><p>Pick one to start. You can change anything after.</p></div>
+      <div class="wall" data-wall></div>
+    </div>
+  </div>
+  <div class="notes">
+    <div><h4>Good for</h4><ul><li>Closest to today's page, so the smallest change for teams who have seen it.</li><li>Every look stays visible while the team compares.</li></ul></div>
+    <div><h4>Watch out for</h4><ul><li>The chosen slide is smaller than in A.</li><li>The grid reshuffles when a card opens, which can disorient people watching.</li><li>Needs scrolling at 1280×800.</li></ul></div>
+  </div>
+</section>
+
+<!-- ============ C ============ -->
+<section class="option">
+  <div class="option-head"><div class="letter">C</div><div><h2>Deck first</h2><p>The chosen look is shown as the whole deck: title, divider, text boxes, video and activity. The twelve looks become a named list with color dots.</p></div></div>
+  <div class="screen">
+    <div class="bar">
+      <div class="brand">Be<span>Spoke</span></div>
+      <div class="pills"><span class="pill done">✓ Lesson &amp; team</span><span class="pill on">2 · Pick a look</span><span class="pill">3 · Make it yours</span><span class="pill">4 · Send</span></div>
+      <div class="sp"></div><span class="lesson-tag">Money Management · <b>Team Ridgeview</b></span>
+    </div>
+    <div class="c-body">
+      <div class="c-list" data-list></div>
+      <div class="c-main">
+        <div class="row"><div><div class="kicker" style="font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)">Your starting look</div><h3>Midnight &amp; gold</h3></div><div class="sp"></div><span class="undo" style="font-size:.78rem;color:var(--dark);text-decoration:underline">Undo</span><button class="btn big">Make it ours →</button></div>
+        <div class="sheet" data-sheet="fun"></div>
+      </div>
+    </div>
+  </div>
+  <div class="notes">
+    <div><h4>Good for</h4><ul><li>Teams judge the whole deck, not just a title slide.</li><li>The list reads well aloud ("try Ocean blue").</li></ul></div>
+    <div><h4>Watch out for</h4><ul><li>The twelve looks become words and dots, losing the colorful first impression.</li><li>Five slides at once is busier on a small share.</li></ul></div>
+  </div>
+</section>
+
+<script>
+// Twelve presets, colors from the BeSpoke palette, names from builder-catalog.json.
+const P=[
+ {id:'fun',name:'Midnight & gold',lay:'Framed',bg:'#00133f',fg:'#ffffff',ac:'#d3b257',font:"'DM Serif Display',serif",cls:'framed',mood:'Bold'},
+ {id:'outspoken',name:'Bold berry',lay:'Headline',bg:'#a7253f',fg:'#ffffff',ac:'#d3b257',font:"'Work Sans',sans-serif",cls:'head',mood:'Bold'},
+ {id:'modern',name:'Fresh green',lay:'Split stage',bg:'#ffffff',fg:'#00133f',ac:'#37b550',font:'Raleway,sans-serif',cls:'split',mood:'Bright'},
+ {id:'horizon',name:'Ocean blue',lay:'Horizon',bg:'#007baf',fg:'#ffffff',ac:'#00133f',font:'Outfit,sans-serif',cls:'horizon',mood:'Bright'},
+ {id:'professional',name:'Paper & berry',lay:'Editorial',bg:'#edf3f7',fg:'#a7253f',ac:'#a7253f',font:"'Playfair Display',serif",cls:'',mood:'Classic'},
+ {id:'serious',name:'Warm gold',lay:'Centered',bg:'#ffffff',fg:'#00133f',ac:'#ad8806',font:'Vollkorn,serif',cls:'centered',mood:'Classic'},
+ {id:'corner',name:'Graphite',lay:'Corner',bg:'#60636b',fg:'#ffffff',ac:'#37b550',font:'Bitter,serif',cls:'',mood:'Calm'},
+ {id:'plaque',name:'Green & ink',lay:'Inset',bg:'#004071',fg:'#ffffff',ac:'#37b550',font:'Merriweather,serif',cls:'framed',mood:'Calm'},
+ {id:'light-hearted',name:'Soft silver',lay:'Grounded',bg:'#d1d3d4',fg:'#00133f',ac:'#007baf',font:'Outfit,sans-serif',cls:'horizon',mood:'Calm'},
+ {id:'sidebar',name:'Botanical light',lay:'Side rule',bg:'#ffffff',fg:'#004071',ac:'#37b550',font:"'Work Sans',sans-serif",cls:'side',mood:'Bright'},
+ {id:'masthead',name:'Berry on white',lay:'Masthead',bg:'#ffffff',fg:'#a7253f',ac:'#a7253f',font:"'Playfair Display',serif",cls:'head',mood:'Classic'},
+ {id:'columns',name:'Golden light',lay:'Two columns',bg:'#fff8e6',fg:'#00133f',ac:'#d3b257',font:'Vollkorn,serif',cls:'split',mood:'Classic'}
+];
+const by=id=>P.find(p=>p.id===id);
+function title(p,big){
+  const pane=p.cls==='split'?`<div class="pane" style="background:${p.ac}"></div>`:'';
+  return `<div class="slide ${p.cls}" style="background:${p.bg};color:${p.fg};--fr:${p.ac};--sb:${p.ac};--hz:${p.ac}">${pane}<div class="txt"><div class="rule" style="background:${p.ac}"></div><div class="t" style="font-family:${p.font}">Money Management</div><div class="s">Budgeting for real life</div></div><div class="logo" style="background:${p.ac}"></div></div>`;
+}
+function divider(p){return `<div class="slide div" style="background:${p.bg};color:${p.fg}"><div class="t" style="font-family:${p.font}">Needs and wants</div><div class="num" style="font-family:${p.font}">2</div></div>`}
+function boxes(p){return `<div class="slide boxes" style="--ac:${p.ac};color:#00133f"><div class="h" style="font-family:${p.font}">Three budget habits</div><div class="row"><i></i><i></i><i></i></div></div>`}
+function vid(p){return `<div class="slide vid" style="background:${p.bg==='#ffffff'?'#f3f5f7':p.bg};color:${p.fg==='#ffffff'?'#fff':p.fg};--ac:${p.ac}"><div class="h" style="font-family:${p.font}">Watch: the cushion fund</div><div class="frame"></div></div>`}
+function act(p){return `<div class="slide act" style="background:#fff;--ac:${p.bg==='#ffffff'||p.bg==='#fff8e6'||p.bg==='#edf3f7'?p.ac:p.bg}"><div class="band"></div><div class="h" style="font-family:${p.font}">Try it: build a budget</div><div class="card"></div></div>`}
+
+document.querySelectorAll('[data-slide]').forEach(el=>{el.innerHTML=title(by('fun'),true)});
+document.querySelectorAll('[data-deck]').forEach(el=>{const p=by(el.dataset.deck);el.innerHTML=divider(p)+boxes(p)+vid(p)+act(p)});
+document.querySelectorAll('[data-film]').forEach(el=>{
+  const yours=`<figure class="yours">${title(by('fun'))}<figcaption><b>Your design</b> (saved)</figcaption></figure>`;
+  el.innerHTML=yours+P.slice(0,7).map(p=>`<figure class="${p.id==='fun'?'sel':''}">${title(p)}<figcaption>${p.name}</figcaption></figure>`).join('');
+});
+document.querySelectorAll('[data-wall]').forEach(el=>{
+  const items=P.slice(0,10);
+  el.innerHTML=items.map(p=>p.id==='fun'
+    ?`<figure class="open">${title(p)}<div class="row"><h4>${p.name}</h4><div class="chips" style="margin:0"><i style="background:#00133f"></i><i style="background:#d3b257"></i><i style="background:#fff"></i></div><div class="sp"></div><button class="btn">Make it ours →</button></div></figure>`
+    :`<figure>${title(p)}<figcaption>${p.name}</figcaption></figure>`).join('');
+});
+document.querySelectorAll('[data-list]').forEach(el=>{
+  const moods=['Bold','Bright','Calm','Classic'];
+  el.innerHTML=moods.map(m=>`<h5>${m}</h5>`+P.filter(p=>p.mood===m).map(p=>`<div class="c-item ${p.id==='fun'?'on':''}"><i><b style="background:${p.bg}"></b><b style="background:${p.ac}"></b></i>${p.name}</div>`).join('')).join('');
+});
+document.querySelectorAll('[data-sheet]').forEach(el=>{const p=by(el.dataset.sheet);el.innerHTML=title(p)+divider(p)+boxes(p)+vid(p)+act(p)});
+</script>
+</body>
+</html>

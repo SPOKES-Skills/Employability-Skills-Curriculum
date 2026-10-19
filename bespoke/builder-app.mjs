@@ -5,6 +5,7 @@ import { compareDesign } from './similarity.mjs';
 import { createPreviewEditor } from './preview-editor.mjs';
 import { syncStageChrome } from './canvas-shell.mjs';
 import { createGuide } from './guide/guide.mjs';
+import { createTeamView, isShareHash, isSnapshotHash, viewLinkToOpen } from './team-view.mjs';
 import { guideMark, indexForMark, keepsGuide } from './guide/questions.mjs';
 import { buildQuestions, normalizeGuide } from './guide/questions.mjs';
 
@@ -34,7 +35,7 @@ const STEPS = [
 const LEGACY_STEPS = ['welcome','team','colors','fonts','title','divider','cards','video','activity','review'];
 const onStage = id => STEPS[state.step].id === id;
 const teamIdentified = () => Boolean(state.teamName.trim() && state.spokespersonName.trim());
-const state = {step:0,stepId:'start',meta:null,library:null,lessonId:'money-management',teamName:'',spokespersonName:'',spokespersonEmail:'',lessonTitle:'',lessonSubtitle:'',unspoken:'',editCode:'',previewView:'title',design:null,legacySelection:null,alternatives:null,changes:[],redo:[]};
+const state = {step:0,stepId:'start',meta:null,library:null,lessonId:'money-management',teamName:'',spokespersonName:'',spokespersonEmail:'',builderName:'',lessonTitle:'',lessonSubtitle:'',unspoken:'',editCode:'',previewView:'title',design:null,legacySelection:null,alternatives:null,changes:[],redo:[]};
 const ui = {mode:'view',renderedStep:null,previewPinned:false,teamSession:null,cloudConflict:null,cloudBusy:false,autosavePaused:false,allowUnload:false,skipNextLocalSave:false,restoreNote:'',restoredFromLink:false,editCodeHash:'',activeRole:'sidebar',paintScope:'slide',themeScope:'slide',localPreview:false,editorRole:'title',sharedThemeOpen:false,startingLooksOpen:false,meaningfulDesign:false};
 ui.guide = null;
 let guide = null;
@@ -47,6 +48,9 @@ let draftGeneration=0;
 let autosaveTimer=null, autosaveReady=false, saveAnnounceTimer=null, saveAnnounceReady=false, submissionPollTimer=null;
 const AUTOSAVE=Object.freeze({enabled:true,idleMs:30000,stepMs:1500,...(window.__bespokeAutosave||{})});
 let startupTeamLink=(()=>{const v=location.hash.startsWith('#team=')?location.hash.slice(6):'';if(v)history.replaceState(null,'',location.pathname+location.search);return v;})();
+let startupViewLink=(()=>{const v=location.hash.startsWith('#view=')?location.hash.slice(6):'';if(v)history.replaceState(null,'',location.pathname+location.search);return v;})();
+const teamView=createTeamView({request:(action,fields)=>handoffRequest(action,fields),apply:selection=>applySelectionPayload(selection),parseLink:value=>parseTeamLink(value),generation:()=>draftGeneration,get storage(){return sessionStorage;},render:()=>render(),
+ lessonTitle:id=>findMeta(state.meta.lessons,id)?.title||'',builder:()=>state.builderName.trim()||state.spokespersonName.trim()||'the Team Leader',land:()=>{state.step=stepIndex('review');},note:text=>{ui.restoreNote=text;},enter:lessonId=>{ui.mode='view';if(lessonId)state.lessonId=lessonId;}});
 const clone = value => structuredClone(value);
 const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const findOption=(family,slug)=>state.library?.families?.[family]?.options.find(o=>o.slug===slug);
@@ -135,6 +139,7 @@ const findOption=(family,slug)=>state.library?.families?.[family]?.options.find(
   }
 
   function installTeamSession(lessonId, editCode) {
+    teamView.end();
     const same = ui.teamSession && ui.teamSession.lessonId === lessonId && ui.teamSession.editCode === editCode;
     if (!same) { draftGeneration++; resetPresetConfirmation(); }
     ui.teamSession = same ? ui.teamSession : {
@@ -248,8 +253,10 @@ const findOption=(family,slug)=>state.library?.families?.[family]?.options.find(
     document.body.dataset.access = locked ? "view" : "edit";
     const banner = byId("accessBanner");
     if (banner) {
-      if (locked && banner.hidden) {
+      if (locked && teamView.active()) teamView.draw(banner);
+      else if (locked && (banner.hidden || banner.dataset.kind !== "snapshot")) {
         banner.textContent = "This snapshot opens for viewing. The team lead can unlock an editing copy.";
+        banner.dataset.kind = "snapshot";
         banner.hidden = false;
       } else if (!locked) {
         banner.hidden = true;
@@ -315,6 +322,9 @@ const findOption=(family,slug)=>state.library?.families?.[family]?.options.find(
         <label class="field">Spokesperson email
           <input id="spokespersonEmail" type="email" autocomplete="email" placeholder="you@example.org">
         </label>
+        <label class="field">Who is building the design?
+          <input id="builderName" type="text" autocomplete="off" maxlength="200" placeholder="Leave blank if it is you">
+        </label>
       </div>
     `;
     const select = byId("lessonSelect");
@@ -357,6 +367,7 @@ const findOption=(family,slug)=>state.library?.families?.[family]?.options.find(
     bind("teamName", "teamName");
     bind("spokespersonName", "spokespersonName");
     bind("spokespersonEmail", "spokespersonEmail");
+    bind("builderName", "builderName");
   }
 
   function fileNotice(message) {
@@ -485,11 +496,11 @@ const findOption=(family,slug)=>state.library?.families?.[family]?.options.find(
     const kind = body.slice(0, eq);
     const value = body.slice(eq + 1);
     if (!value) return { kind: "none" };
-    if (kind === "v" || kind === "s" || kind === "c") {
+    if (kind === "e") return { kind: "retired" };
+    if (isSnapshotHash(body)) {
       const payload = kind === "s" ? decodeLegacyBase64(value) : await decodeViewPayload(value);
       return { kind: "view", payload };
     }
-    if (kind === "e") return { kind: "retired" };
     return { kind: "none" };
   }
 
@@ -516,6 +527,10 @@ const findOption=(family,slug)=>state.library?.families?.[family]?.options.find(
   }
 
   async function openShareLink() {
+    const viewValue = viewLinkToOpen({ hash: hashBody(), startupTeam: startupTeamLink, startupView: startupViewLink, stored: teamView.stored() });
+    startupViewLink = "";
+    if (viewValue) { await teamView.open(viewValue); return { team: false, snapshot: true }; }
+    teamView.end();
     if (startupTeamLink) {
       loadDraft();
       const teamValue = startupTeamLink;
@@ -1011,6 +1026,8 @@ const findOption=(family,slug)=>state.library?.families?.[family]?.options.find(
         byId("openEditCode")?.focus();
         return;
       }
+      // A view code opens a team view; an editing session with it could never save.
+      if (result.access === "view") { if (err) err.textContent = ""; byId("openDialog").close(); await teamView.open(lessonId + "." + encodeURIComponent(editCode), result); render(); return; }
       if (result.selection) {
         try { validateSelectionPayload(result.selection,{draft:true}); }
         catch (error) {
@@ -1187,7 +1204,7 @@ const findOption=(family,slug)=>state.library?.families?.[family]?.options.find(
       const same = (a,b) => typeof a === 'string' ? a === b : object(a) && object(b) && Object.keys(a).length === Object.keys(b).length && Object.keys(a).every(key=>Object.hasOwn(b,key)&&same(a[key],b[key]));
       for (const [field,value] of Object.entries(theme.catalogIds)) if (!Object.hasOwn(expected,field)||!same(value,expected[field])) throw new Error(`catalogIds.${field}: reference differs from the selected design.`);
     }
-    for (const value of [payload.lesson.title, payload.lesson.displayTitle, payload.lesson.subtitle, payload.team.name, payload.team.spokesperson.name, payload.team.spokesperson.email, payload.unspoken, payload.sampleContent?.bullets, payload.sampleContent?.mythReality]) {
+    for (const value of [payload.lesson.title, payload.lesson.displayTitle, payload.lesson.subtitle, payload.team.name, payload.team.spokesperson.name, payload.team.spokesperson.email, payload.team.builder?.name, payload.unspoken, payload.sampleContent?.bullets, payload.sampleContent?.mythReality]) {
       if (value !== undefined && typeof value !== "string") throw new Error("This file has invalid text fields. Your current draft has not changed.");
     }
     if (payload.sampleContent !== undefined && !object(payload.sampleContent)) throw new Error("The sample text is invalid.");
@@ -1244,7 +1261,7 @@ function validateSelectionPayload(payload,{draft=false}={}){
 }
 function buildSelectionPayload(){
  const lesson=findMeta(state.meta.lessons,state.lessonId);
- return {schema:'bespoke-selection/v2',submittedAt:new Date().toISOString(),date:new Date().toISOString().slice(0,10),lesson:{id:state.lessonId,title:lesson.title,displayTitle:state.design.samples.title||lesson.title,subtitle:state.design.samples.subtitle},team:{name:state.teamName.trim(),spokesperson:{name:state.spokespersonName.trim(),email:state.spokespersonEmail.trim()}},design:clone(state.design),...(state.alternatives?{alternatives:clone(state.alternatives)}:{}),unspoken:state.unspoken,...(state.legacySelection?{legacySelection:clone(state.legacySelection)}:{})};
+ return {schema:'bespoke-selection/v2',submittedAt:new Date().toISOString(),date:new Date().toISOString().slice(0,10),lesson:{id:state.lessonId,title:lesson.title,displayTitle:state.design.samples.title||lesson.title,subtitle:state.design.samples.subtitle},team:{name:state.teamName.trim(),spokesperson:{name:state.spokespersonName.trim(),email:state.spokespersonEmail.trim()},...(state.builderName.trim()?{builder:{name:state.builderName.trim()}}:{})},design:clone(state.design),...(state.alternatives?{alternatives:clone(state.alternatives)}:{}),unspoken:state.unspoken,...(state.legacySelection?{legacySelection:clone(state.legacySelection)}:{})};
 }
 function restoreStep(saved){
  const legacyId=saved.stepId||(Number.isInteger(saved.step)?LEGACY_STEPS[saved.step]:null)||'start';
@@ -1271,7 +1288,7 @@ function loadDraft(){
   if(!saved||typeof saved!=='object'||Array.isArray(saved)||!saved.design)throw new Error('Invalid draft');
   const before={...state};
   try{
-   for(const key of ['design','alternatives','legacySelection','lessonId','teamName','spokespersonName','spokespersonEmail','unspoken','changes','redo'])if(Object.hasOwn(saved,key))state[key]=saved[key];
+   for(const key of ['design','alternatives','legacySelection','lessonId','teamName','spokespersonName','spokespersonEmail','builderName','unspoken','changes','redo'])if(Object.hasOwn(saved,key))state[key]=saved[key];
    validateSelectionPayload(buildSelectionPayload(),{draft:true});
    if(!Array.isArray(state.changes)||!Array.isArray(state.redo))throw new Error('Invalid history');
    // Undo snapshots are data boundaries too; reject corrupted history before it can reach preview.
@@ -1296,7 +1313,7 @@ function saveDraft(){
 }
 function resetDesignForLesson(lessonId){
  draftGeneration++;resetPresetConfirmation();ui.meaningfulDesign=false;ui.startingLooksOpen=false;ui.editorRole='title';const nextDesign=Model.defaultDesign(catalog);if(!keepsGuide({fromLesson:state.lessonId,toLesson:lessonId,fromDesign:state.design,toDesign:nextDesign}))ui.guide=null;ui.sharedThemeOpen=false;ui.paintScope='slide';ui.themeScope='slide';
- Object.assign(state,{step:0,lessonId,teamName:'',spokespersonName:'',spokespersonEmail:'',unspoken:'',design:nextDesign,legacySelection:null,alternatives:null,changes:[],redo:[]});
+ Object.assign(state,{step:0,lessonId,teamName:'',spokespersonName:'',spokespersonEmail:'',builderName:'',unspoken:'',design:nextDesign,legacySelection:null,alternatives:null,changes:[],redo:[]});
 }
 function applySelectionPayload(payload){
  validateSelectionPayload(payload,{draft:true});
@@ -1308,7 +1325,7 @@ function applySelectionPayload(payload){
  ui.meaningfulDesign=true;ui.startingLooksOpen=false;
  if(!keepsGuide({fromLesson:state.lessonId,toLesson:payload.lesson.id,fromDesign:state.design,toDesign:nextDesign}))ui.guide=null;
  draftGeneration++;
- Object.assign(state,{lessonId:payload.lesson.id,teamName:team.name||'',spokespersonName:team.spokesperson?.name||'',spokespersonEmail:team.spokesperson?.email||'',unspoken:payload.unspoken||'',changes:[],redo:[],alternatives:payload.alternatives?clone(payload.alternatives):null});
+ Object.assign(state,{lessonId:payload.lesson.id,teamName:team.name||'',spokespersonName:team.spokesperson?.name||'',spokespersonEmail:team.spokesperson?.email||'',builderName:team.builder?.name||'',unspoken:payload.unspoken||'',changes:[],redo:[],alternatives:payload.alternatives?clone(payload.alternatives):null});
  if(payload.schema==='bespoke-selection/v1'){
   state.design=migrated.design;state.legacySelection=clone(payload);ui.autosavePaused=true;
   ui.restoreNote='Converted a copy of the older design. '+migrated.warnings.join(' ')+' The original is included in every backup and can be downloaded on Review. Review this conversion before saving.';
@@ -1531,6 +1548,15 @@ function addColorControls(panel,roleIds){
   b.onclick=()=>{if(!available.ok){byId('colorHelp').textContent=available.reason;return;}changeDesign(target+': '+color.name,d=>{if(local)Object.assign(d,Model.setRoleStyle(catalog,d,kind,field,color.id));else d.roles[role.id]=color.id;});};palette.append(b);
  }
  panel.append(palette);
+ // After the chips, so Tab from the element picker still reaches the colors first.
+ if(role.id==='sidebar'){
+  const textField=document.createElement('label');textField.className='field';textField.textContent='Sidebar text color';
+  const select=document.createElement('select');select.id='sidebarTextColor';
+  const auto=catalog.palette.find(c=>c.id===Model.inkFor(catalog,state.design.roles.sidebar)).name;
+  for(const [id,name] of [['auto','Automatic · '+auto],...catalog.palette.map(c=>[c.id,c.name])]){const o=document.createElement('option');o.value=id;o.textContent=name;o.selected=id===(state.design.roles.sidebarText||'auto');select.append(o);}
+  select.onchange=()=>changeDesign('Sidebar text: '+select.selectedOptions[0].textContent,d=>Object.assign(d,Model.setSidebarText(catalog,d,select.value)));
+  textField.append(select);panel.append(textField);
+ }
  const help=document.createElement('div');help.id='colorHelp';help.className='helper';
  const issues=Model.contrastIssues(catalog,state.design).filter(issue=>local?issue.kind===kind||!state.design.roleStyles?.[kind]&&issue.related.includes(role.id):issue.related.includes(role.id));
  help.innerHTML=issues.length?contrastAdvisory(issues):'All 11 brand colors are selectable. Contrast guidance appears here when a choice may be harder to read.';panel.append(help);
@@ -1867,7 +1893,7 @@ async function init(){
   activate:()=>{if(ui.guide)ui.guide={...ui.guide,on:false};ui.editorRole=state.previewView;state.step=stepIndex('slides');ui.sharedThemeOpen=false;render(false);},
   change:(label,edit)=>changeDesign(label,edit),
   textChange:(label,edit,checkpoint)=>changeDesign(label,edit,{redraw:false,checkpoint}),
-  more:target=>{ui.moreOptions=!ui.moreOptions;if(ui.moreOptions)showRoleEditor(state.previewView,target==='background'?'background':target.startsWith('box')?'arrangement':'text',target.startsWith('body')?'bodyFont':target==='background'?'primary':'headingFont');else{render(false);byId('btnMoreOptions').focus();}},
+  more:target=>{ui.moreOptions=!ui.moreOptions;if(!ui.moreOptions){render(false);byId('btnMoreOptions').focus();return;}if(target.startsWith('sidebar')){/* render() reads the open state back from the live panel */if(byId('sharedTheme'))byId('sharedTheme').open=true;ui.sharedThemeOpen=true;ui.activeRole='sidebar';ui.paintScope='shared';render(false);byId('colorRole')?.focus({preventScroll:true});return;}showRoleEditor(state.previewView,target==='background'?'background':target.startsWith('box')?'arrangement':'text',target.startsWith('body')?'bodyFont':target==='background'?'primary':'headingFont');},
   thumbnail:kind=>Model.renderSlide(catalog,state.design,kind,{title:state.design.samples.title,subtitle:state.design.samples.subtitle,logoUrl:'../SPOKES-Logo.png'})
  });
  const closeOptions=()=>{ui.moreOptions=false;render(false);byId('btnMoreOptions').focus();};
@@ -1912,7 +1938,8 @@ async function init(){
  document.querySelectorAll('#surfaceSwitcher [role=tab]').forEach(tab=>tab.onclick=()=>{surfacePositions[workspace.dataset.activeSurface]=workspace.scrollTop;workspace.dataset.activeSurface=tab.dataset.surface;workspace.scrollTop=surfacePositions[tab.dataset.surface];document.querySelectorAll('#surfaceSwitcher [role=tab]').forEach(t=>t.setAttribute('aria-selected',String(t===tab)));previewEditor.refresh();});bindTablistKeys(byId('surfaceSwitcher'));
  window.addEventListener('storage',event=>{if((event.key===STORAGE_KEY||event.key===null)&&isLeadSession()){storageConflict=true;setSaveStatus('Another tab changed this draft');fileNotice('This tab’s draft is kept. Download a backup before reopening the latest version.');}});
  window.addEventListener('beforeunload',event=>{if(ui.allowUnload||!isLeadSession()||!hasUnsavedTeamWork())return;runAutosave();event.preventDefault();event.returnValue='';});
- window.addEventListener('hashchange',()=>openShareLink().then(()=>render()).catch(e=>fileNotice(e.message)));
+ // Only share links reopen the page; the skip link and other in-page hashes change nothing.
+ window.addEventListener('hashchange',()=>{if(isShareHash(hashBody()))openShareLink().then(()=>render()).catch(e=>fileNotice(e.message));});
  render();saveAnnounceReady=true;
  if(ui.teamSession&&!startup?.snapshot){await fetchSharedDesign({replace:mayReplace});await resumePendingSubmission();}
  autosaveReady=true;scheduleAutosave(AUTOSAVE.idleMs);

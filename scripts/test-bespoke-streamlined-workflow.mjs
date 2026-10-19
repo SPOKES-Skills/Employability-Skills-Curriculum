@@ -7,7 +7,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { browserType, browserName } from './bespoke-test-browser.mjs';
-import { createDevServer, LOCAL_PREVIEW_CODE } from './bespoke-dev-server.mjs';
+import { createDevServer, LOCAL_PREVIEW_CODE, LOCAL_PREVIEW_VIEW_CODE } from './bespoke-dev-server.mjs';
 import { defaultDesign, effectiveRoleStyle, roleStyleDefaults } from '../bespoke/builder-model.mjs';
 import { pixelDifference } from './bespoke-pixel-check.mjs';
 import catalog from '../bespoke/builder-catalog.json' with { type: 'json' };
@@ -33,7 +33,7 @@ async function scenario(name, run) {
   const server = await createDevServer({ port: 0 });
   const contexts = [];
   const pages = [];
-  async function makePage({ width = 1440, height = 1000, storedDraft } = {}) {
+  async function makePage({ width = 1440, height = 1000, storedDraft, hash = '' } = {}) {
     const context = await browser.newContext({ viewport: { width, height }, acceptDownloads: true, reducedMotion: 'reduce' });
     contexts.push(context);
     context.setDefaultTimeout(8000);
@@ -52,7 +52,7 @@ async function scenario(name, run) {
     page.on('request', request => {
       if (request.url().endsWith('/api/bespoke') && request.method() === 'POST') actions.push({ scenario: name, action: request.postDataJSON()?.action });
     });
-    await page.goto(server.baseUrl + '/bespoke/');
+    await page.goto(server.baseUrl + '/bespoke/' + hash);
     await ready(page);
     return page;
   }
@@ -145,6 +145,28 @@ async function save(page, status = 200) {
   if (status === 200) await page.locator('#fileStatus').filter({ hasText: /Local test design saved|already up to date/ }).waitFor();
   return response;
 }
+const viewHash = (lessonId = legacy.lesson.id) => `#view=${lessonId}.${LOCAL_PREVIEW_VIEW_CODE}`;
+const snapshotHash = () => '#s=' + Buffer.from(JSON.stringify(payload(defaultDesign(catalog)))).toString('base64');
+const viewSession = page => page.evaluate(() => sessionStorage.getItem('bespoke-view-session'));
+// Activates the skip link and resolves after the hashchange handlers ran; returns the service calls they started.
+async function skipLink(page) {
+  await page.evaluate(() => {
+    window.__serviceCalls = 0;
+    const original = window.fetch;
+    window.fetch = (...args) => { if (String(args[0]).includes('/api/bespoke')) window.__serviceCalls++; return original(...args); };
+    window.__hashed = new Promise(resolve => addEventListener('hashchange', () => setTimeout(resolve, 0), { once: true }));
+  });
+  await page.locator('.skip-link').focus();
+  await page.keyboard.press('Enter');
+  await page.evaluate(() => window.__hashed);
+  return page.evaluate(() => window.__serviceCalls);
+}
+async function openDialog(page, code) {
+  await clickMenuItem(page, '#btnOpen');
+  await page.locator('#openLesson').selectOption(legacy.lesson.id);
+  await page.locator('#openEditCode').fill(code);
+  await page.locator('#openConfirm').click();
+}
 async function remote(server, action = 'open') {
   const reply = await fetch(server.baseUrl + '/api/bespoke', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action, lessonId: 'money-management', editCode: LOCAL_PREVIEW_CODE }) });
   assert.equal(reply.status, 200); return reply.json();
@@ -182,6 +204,133 @@ async function axe(page, label) {
 }
 
 try {
+  await scenario('builder name', async ({ makePage }) => {
+    const page = await makePage();
+    await team(page);
+    await stage(page, 'team');
+    assert.equal((await draft(page)).builderName, '');
+    await page.locator('#builderName').fill('Dana Builder');
+    assert.equal((await draft(page)).builderName, 'Dana Builder');
+    await page.reload();
+    await page.locator('#stepList button').first().waitFor();
+    await stage(page, 'team');
+    assert.equal(await page.locator('#builderName').inputValue(), 'Dana Builder', 'the builder name survives a reload');
+  });
+  await scenario('team view link', async ({ makePage, server }) => {
+    const builder = await makePage();
+    await team(builder);
+    await builder.locator('#preset-fun').click();
+    await save(builder);
+    const context = await browser.newContext({ viewport: { width: 1440, height: 1000 }, reducedMotion: 'reduce' });
+    try {
+      const view = await context.newPage();
+      view.on('pageerror', error => errors.push(`team view link: ${error.message}`));
+      // A browser draft already on this computer must stay untouched and unseen by the viewer.
+      const seeded = JSON.stringify({ step: 0, lessonId: legacy.lesson.id, teamName: 'Seeded draft team', spokespersonName: 'Seeded Person', design: defaultDesign(catalog), changes: [], redo: [] });
+      const draftNow = page => page.evaluate(() => localStorage.getItem('bespoke-draft-v2'));
+      await view.goto(`${server.baseUrl}/bespoke/catalog.json`);
+      await view.evaluate(value => localStorage.setItem('bespoke-draft-v2', value), seeded);
+      await view.goto(`${server.baseUrl}/bespoke/#view=${legacy.lesson.id}.${LOCAL_PREVIEW_VIEW_CODE}`);
+      await view.locator('body[data-access=view]').waitFor();
+      await view.locator('#btnViewRefresh').waitFor();
+      assert.equal(new URL(view.url()).hash, '', 'the code is removed from the address bar');
+      assert.match(await view.locator('#accessBanner').innerText(), /team · View only · Saved .+ · Built by Sample Instructor/);
+      assert.equal((await view.locator('#designStyle').textContent()).includes('--role-title-background: var(--royal)'), true, 'the viewer sees the saved Fun preset, not the seeded draft');
+      assert.equal(await draftNow(view), seeded, 'viewing leaves the browser draft byte-identical');
+      await stage(builder, 'team');
+      await builder.locator('#builderName').fill('Dana Builder');
+      await save(builder);
+      await view.locator('#btnViewRefresh').click();
+      await view.locator('#accessBanner').filter({ hasText: 'Built by Dana Builder' }).waitFor();
+      assert.equal(await draftNow(view), seeded, 'Refresh leaves the browser draft byte-identical');
+      await view.reload();
+      await view.locator('#accessBanner').filter({ hasText: 'Built by Dana Builder' }).waitFor();
+      assert.equal(await draftNow(view), seeded, 'a reload leaves the browser draft byte-identical');
+      const wrong = await context.newPage();
+      await wrong.goto(`${server.baseUrl}/bespoke/#view=${legacy.lesson.id}.not-the-right-view-code-0000`);
+      await wrong.locator('#restoreNotice').filter({ hasText: 'not right' }).waitFor();
+      assert.equal(await wrong.locator('body').getAttribute('data-access'), 'view', 'a bad view link never opens an editing session');
+      assert.match(await wrong.locator('#accessBanner').innerText(), /^Money Management team · View only/);
+      assert.doesNotMatch(await wrong.locator('#accessBanner').innerText(), /Nothing saved yet|Built by/, 'a wrong code says nothing about saving or the builder');
+      const malformed = await context.newPage();
+      await malformed.goto(`${server.baseUrl}/bespoke/#view=not-a-lesson.xxxxxxxxxxxxxxxxxxxxxxxx`);
+      await malformed.locator('#restoreNotice').filter({ hasText: 'incomplete or out of date' }).waitFor();
+      assert.equal(await malformed.locator('body').getAttribute('data-access'), 'view', 'a malformed view link stays read-only');
+      assert.equal((await malformed.locator('#accessBanner').innerText()).trim(), 'View only');
+      assert.equal(await malformed.evaluate(() => localStorage.getItem('bespoke-team-session-v2')), null, 'a malformed view link installs no editing session');
+      assert.equal(await draftNow(malformed), seeded, 'a malformed view link leaves the browser draft byte-identical');
+      await view.evaluate(hash => { location.hash = hash; }, snapshotHash());
+      await view.locator('#accessBanner').filter({ hasText: 'This snapshot opens for viewing' }).waitFor();
+      assert.equal(await viewSession(view), null, 'a snapshot link ends the view session');
+      await wrong.goto('about:blank');
+      await wrong.goto(`${server.baseUrl}/bespoke/#team=${legacy.lesson.id}.${LOCAL_PREVIEW_CODE}`);
+      await wrong.locator('body[data-access=edit]').waitFor();
+      assert.equal(await viewSession(wrong), null, 'a builder link ends the view session');
+    } finally { await context.close(); }
+  });
+  await scenario('team view before the first save', async ({ makePage }) => {
+    const view = await makePage({ hash: viewHash('goal-setting') });
+    await view.locator('#restoreNotice').filter({ hasText: 'has not saved a design yet' }).waitFor();
+    assert.equal(await view.locator('body').getAttribute('data-access'), 'view');
+    assert.match(await view.locator('#accessBanner').innerText(), /^Goal Setting team · View only · Nothing saved yet/);
+    assert.doesNotMatch(await view.locator('#accessBanner').innerText(), /Built by/, 'with no saved design the builder is unknown');
+  });
+  await scenario('team view banner is written once', async ({ makePage }) => {
+    const builder = await makePage(); await team(builder); await save(builder);
+    const view = await makePage({ hash: viewHash() });
+    await view.locator('#btnViewRefresh').waitFor();
+    await view.evaluate(() => {
+      document.querySelector('#btnViewRefresh').probe = 'kept';
+      window.bannerWrites = 0;
+      new MutationObserver(records => { window.bannerWrites += records.length; }).observe(document.querySelector('#accessBanner'), { childList: true, characterData: true, subtree: true });
+    });
+    await stage(view, 'start'); await stage(view, 'slides');
+    await view.evaluate(() => new Promise(resolve => setTimeout(resolve, 0)));
+    assert.equal(await view.evaluate(() => document.querySelector('#btnViewRefresh').probe), 'kept', 'renders keep the same Refresh button');
+    assert.equal(await view.evaluate(() => window.bannerWrites), 0, 'renders that change nothing leave the live banner alone');
+  });
+  await scenario('team view refresh keeps the stage', async ({ makePage }) => {
+    const builder = await makePage(); await team(builder); await save(builder);
+    const view = await makePage({ hash: viewHash() });
+    await view.locator('#btnViewRefresh').waitFor();
+    assert.equal(await view.locator('#stage-review').getAttribute('aria-current'), 'step', 'the first open lands on Review');
+    await stage(view, 'start');
+    await stage(builder, 'team'); await builder.locator('#builderName').fill('Dana Builder'); await save(builder);
+    await view.locator('#btnViewRefresh').click();
+    await view.locator('#accessBanner').filter({ hasText: 'Built by Dana Builder' }).waitFor();
+    assert.equal(await view.locator('#stage-start').getAttribute('aria-current'), 'step', 'Refresh leaves the viewer on the stage they chose');
+  });
+  await scenario('team view ignores the skip link', async ({ makePage }) => {
+    const builder = await makePage(); await team(builder); await save(builder);
+    const view = await makePage({ hash: viewHash() });
+    await view.locator('#btnViewRefresh').waitFor();
+    await stage(view, 'start');
+    assert.equal(await skipLink(view), 0, 'the skip link sends nothing to the service from a view tab');
+    assert.equal(await view.locator('body').getAttribute('data-access'), 'view');
+    assert.equal(await view.locator('#stage-start').getAttribute('aria-current'), 'step', 'the skip link leaves the stage where it was');
+    const snapshot = await makePage({ hash: snapshotHash() });
+    assert.equal(await snapshot.locator('body').getAttribute('data-access'), 'view');
+    await skipLink(snapshot);
+    assert.equal(await snapshot.locator('body').getAttribute('data-access'), 'view', 'the skip link leaves a snapshot tab read-only');
+  });
+  await scenario('team view from the Open dialog', async ({ makePage }) => {
+    const builder = await makePage(); await team(builder); await builder.locator('#preset-fun').click(); await save(builder);
+    // The local preview gives every editing tab a session, so the dialog opens from a read-only snapshot tab.
+    const tab = await makePage({ hash: snapshotHash() });
+    await openDialog(tab, LOCAL_PREVIEW_VIEW_CODE);
+    await tab.locator('#btnViewRefresh').waitFor();
+    assert.equal(await tab.locator('#openDialog').isVisible(), false, 'the dialog closes');
+    assert.equal(await tab.locator('body').getAttribute('data-access'), 'view', 'a view code opens a team view, not an editing session');
+    assert.match(await tab.locator('#accessBanner').innerText(), /^Money Management team · View only · Saved .+ · Built by Sample Instructor/);
+    assert.equal(await tab.evaluate(() => localStorage.getItem('bespoke-draft-v2')), null, 'no browser draft is written');
+    assert.equal(await tab.evaluate(() => localStorage.getItem('bespoke-team-session-v2')), null, 'no editing session is installed');
+    assert.equal(await tab.locator('#btnSave').isDisabled(), true);
+    assert.equal(await tab.locator('#stepPanel').locator('input:enabled, select:enabled, textarea:enabled').count(), 0, 'no editing controls are enabled');
+    assert.ok(await viewSession(tab), 'the view link is kept for this tab');
+    await openDialog(tab, LOCAL_PREVIEW_CODE);
+    await tab.locator('body[data-access=edit]').waitFor();
+    assert.equal(await viewSession(tab), null, 'an editing session from the dialog ends the view session');
+  });
   await scenario('custom journey and effective review', async ({ makePage, server }) => {
     const page = await makePage(); await team(page);
     assert.equal(await page.locator('#stepList button').count(), 4);

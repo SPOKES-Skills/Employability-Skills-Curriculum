@@ -106,6 +106,20 @@ try{
   assert.equal(await page.locator('#modelStage [data-edit-target][tabindex="0"]').count(),0,'Slide elements are not tab stops while guiding');
   await done();console.log('PASS preview clicks leave Guide me alone');
  });
+ await check('sidebar',async()=>{
+  const {page,done}=await fresh(1440);
+  await page.locator('#stage-slides').click();
+  await page.locator('#previewTabs [data-view="cards"]').click();
+  await page.locator('#modelStage .slide-sidebar .sample-sidebar-title').click();
+  assert.equal(await page.locator('#selectedElement').inputValue(),'sidebar');
+  await page.locator('#btnMoreOptions').click();
+  await page.locator('#sidebarTextColor').selectOption('gold');
+  assert.equal((await current(page)).roles.sidebarText,'gold');
+  assert.equal(await page.locator('#modelStage .slide-sidebar .sample-sidebar-title').evaluate(el=>getComputedStyle(el).color),'rgb(211, 178, 87)');
+  await page.locator('#sidebarTextColor').selectOption('auto');
+  assert.equal(Object.hasOwn((await current(page)).roles,'sidebarText'),false);
+  await done();console.log('PASS More options on the sidebar opens Shared theme, where sidebar text color is chosen');
+ });
  for(const stage of ['review'])await check('stage '+stage,async()=>{
   const {page,done}=await fresh(1440);
   await page.locator('#stage-'+stage).click();

@@ -5,9 +5,17 @@ import path from 'node:path';
 import test from 'node:test';
 import { createHash } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
-import { pathToFileURL } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import { provision, provisionViewLinks, reissue } from './bespoke-provision.mjs';
+import { hashViewCode } from '../netlify/functions/bespoke-handoff.mjs';
 import { CODE_ALPHABET, hashAccessCode, newAccessCode } from '../netlify/functions/_shared/access-code.mjs';
+
+function assertTeamLinksWording(page) {
+  assert.match(page, /Put each code only in its own team's OneDrive folder, never this page\./);
+  assert.match(page, /Each code, and the link that carries it, grants editing access\./);
+  assert.match(page, /Pin the team view link in the channel, not this one\./);
+  assert.doesNotMatch(page, /pin it in their Teams channel/i, 'the old instruction to pin edit links is gone');
+}
 
 const wizardUrl = 'https://example.test/bespoke/';
 const CODE = /^[A-HJKMNP-Z2-9]{4}-[A-HJKMNP-Z2-9]{4}$/;
@@ -55,10 +63,15 @@ test('provisioned links have independent credentials, matching hashes, and priva
     }
     assert.ok(Object.values(access).every(item => fs.readFileSync(path.join(output, 'team-links.html'), 'utf8').includes(item.code)));
     if (process.platform !== 'win32') assert.equal(fs.statSync(path.join(output, 'server-env.json')).mode & 0o777, 0o600);
+    assertTeamLinksWording(fs.readFileSync(path.join(output, 'team-links.html'), 'utf8'));
     assert.throws(() => provision({ output, wizardUrl: 'https://example.test/bespoke/' }), /already exists/);
     assert.equal(JSON.parse(fs.readFileSync(path.join(output, 'server-env.json'))).BESPOKE_DRAFT_KEY, env.BESPOKE_DRAFT_KEY);
   } finally { fs.rmSync(tmp, { recursive: true, force: true }); }
 });
+
+const VIEW_FILES = ['view-env.json', 'view-access.json', 'view-links.html'];
+const TEAM_FILES = ['server-env.json', 'team-access.json', 'team-links.html'];
+const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
 test('view links are added beside existing team links without touching them', () => {
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'bespoke-provision-'));
@@ -78,16 +91,65 @@ test('view links are added beside existing team links without touching them', ()
     for (const [lesson, item] of Object.entries(access)) {
       assert.equal(item.code.length, 32);
       assert.notEqual(item.code, team[lesson].code, 'a view code is never the edit code');
-      assert.equal(hashes[lesson], createHash('sha256').update(item.code).digest('base64url'));
+      assert.equal(hashes[lesson], hashViewCode(item.code), 'the provisioner and the service hash view codes the same way');
       assert.equal(new URL(item.url).hash, `#view=${lesson}.${item.code}`);
       assert.equal(JSON.stringify(env).includes(item.code), false);
     }
-    assert.match(fs.readFileSync(path.join(output, 'view-links.html'), 'utf8'), /#view=/);
-    if (process.platform !== 'win32') assert.equal(fs.statSync(path.join(output, 'view-access.json')).mode & 0o777, 0o600);
+    const page = fs.readFileSync(path.join(output, 'view-links.html'), 'utf8');
+    assert.match(page, /#view=/);
+    assert.match(page, /For Britt only\. Do not publish, forward or commit this page\./);
+    assert.match(page, /Each link is for one team only\./);
+    assert.match(page, /This is the link to pin in that team's channel\./);
+    if (process.platform !== 'win32') for (const name of VIEW_FILES) assert.equal(fs.statSync(path.join(output, name)).mode & 0o777, 0o600, name);
     assert.throws(() => provisionViewLinks({ output, wizardUrl }), /already exist/);
     assert.throws(() => provisionViewLinks({ output: path.join(tmp, 'empty'), wizardUrl }), /existing private provisioning directory/);
     assert.throws(() => provisionViewLinks({ output, wizardUrl: 'http://example.test/bespoke/' }), /HTTPS/);
   } finally { fs.rmSync(tmp, { recursive: true, force: true }); }
+});
+
+test('adding view links checks that team-access.json exists without reading it', () => {
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'bespoke-provision-'));
+  const marker = 'Not JSON. Adding view links must not open this file.\n';
+  try {
+    const output = path.join(tmp, 'private');
+    fs.mkdirSync(output, { mode: 0o700 });
+    fs.writeFileSync(path.join(output, 'team-access.json'), marker);
+    provisionViewLinks({ output, wizardUrl: 'https://example.test/bespoke/' });
+    for (const name of VIEW_FILES) assert.ok(fs.existsSync(path.join(output, name)), name);
+    assert.equal(fs.readFileSync(path.join(output, 'team-access.json'), 'utf8'), marker);
+  } finally { fs.rmSync(tmp, { recursive: true, force: true }); }
+});
+
+test('adding view links refuses, and names the file, when any view file already exists', () => {
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'bespoke-provision-'));
+  const wizardUrl = 'https://example.test/bespoke/';
+  const leftover = '{"note":"synthetic leftover file"}\n';
+  try {
+    for (const name of VIEW_FILES) {
+      const output = provision({ output: path.join(tmp, `private-${name}`), wizardUrl });
+      fs.writeFileSync(path.join(output, name), leftover, { mode: 0o600 });
+      assert.throws(() => provisionViewLinks({ output, wizardUrl }), new RegExp(`View links already exist here.*${name.replace('.', '\\.')}`));
+      assert.equal(fs.readFileSync(path.join(output, name), 'utf8'), leftover, `${name} is unchanged`);
+      for (const other of VIEW_FILES.filter(item => item !== name)) assert.equal(fs.existsSync(path.join(output, other)), false, `${other} was not written`);
+    }
+  } finally { fs.rmSync(tmp, { recursive: true, force: true }); }
+});
+
+test('a repository path typed in another case is refused before anything is written', t => {
+  const upper = root.toUpperCase();
+  if (upper === root || !fs.existsSync(upper)) return t.skip('the file system is case-sensitive');
+  const wizardUrl = 'https://example.test/bespoke/';
+  const scripts = path.join(root, 'scripts');
+  const written = () => [root, scripts].flatMap(dir => [...TEAM_FILES, 'team-env.json', ...VIEW_FILES].filter(name => fs.existsSync(path.join(dir, name))).map(name => path.join(dir, name)));
+  assert.deepEqual(written(), [], 'precondition: no provisioning files in the checkout');
+  // Only places where even a build that missed the case change cannot write: two existing directories, and a path under a file.
+  for (const output of [upper, path.join(upper, 'SCRIPTS'), path.join(upper, 'SCRIPTS', 'TEST-BESPOKE-PROVISION.MJS', 'private')]) {
+    assert.throws(() => provision({ output, wizardUrl }), /outside this repository/, output);
+    assert.throws(() => provisionViewLinks({ output, wizardUrl }), /outside this repository/, output);
+    assert.throws(() => reissue({ output, wizardUrl, lesson: 'all' }), /outside this repository/, output);
+  }
+  assert.deepEqual(written(), [], 'no file was created');
+  assert.equal(fs.existsSync(path.join(scripts, 'test-bespoke-provision.mjs', 'private')), false);
 });
 
 test('provisioning refuses repository paths and insecure or credential-bearing URLs', () => {
@@ -109,6 +171,7 @@ test('reissuing all six writes a fresh team table and never the encryption key',
     assert.equal(hashes[lesson], hashAccessCode(item.code));
     assert.equal(new URL(item.url).hash, `#team=${lesson}.${item.code}`);
   }
+  assertTeamLinksWording(fs.readFileSync(path.join(output, 'team-links.html'), 'utf8'));
   assert.equal(fs.existsSync(path.join(output, 'server-env.json')), false);
   if (process.platform !== 'win32') {
     assert.equal(mode(output), 0o700);

@@ -6,7 +6,7 @@ import http from 'node:http';
 import path from 'node:path';
 import { createHash, randomBytes, randomUUID } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
-import { handleRequest, hashEditCode, LESSON_IDS, openBox } from '../netlify/functions/bespoke-handoff.mjs';
+import { handleRequest, hashEditCode, hashViewCode, LESSON_IDS, openBox } from '../netlify/functions/bespoke-handoff.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const BODY_LIMIT = 80000;
@@ -133,7 +133,7 @@ export async function createDevServer({ port = 0, runtimeDir } = {}) {
     BESPOKE_GITHUB_TOKEN: 'local-preview-synthetic-token-no-network',
     BESPOKE_DRAFT_KEY: store.draftKey,
     BESPOKE_TEAM_KEYS: JSON.stringify(Object.fromEntries(LESSON_IDS.map(id => [id, hashEditCode(LOCAL_PREVIEW_CODE)]))),
-    BESPOKE_VIEW_KEYS: JSON.stringify(Object.fromEntries(LESSON_IDS.map(id => [id, hashEditCode(LOCAL_PREVIEW_VIEW_CODE)]))),
+    BESPOKE_VIEW_KEYS: JSON.stringify(Object.fromEntries(LESSON_IDS.map(id => [id, hashViewCode(LOCAL_PREVIEW_VIEW_CODE)]))),
   };
   let baseUrl;
   const server = http.createServer(async (req, res) => {

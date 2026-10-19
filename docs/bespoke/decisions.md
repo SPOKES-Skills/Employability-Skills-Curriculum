@@ -1,5 +1,17 @@
 # BeSpoke decisions
 
+## Merge of main into the presets branch, October 15, 2026
+
+Britt directed how pull request #55 combines with main. Where the October 2 rows
+below disagree, this entry wins.
+
+| October 2 row | Now |
+|---|---|
+| Nine presets | Main's twelve layout presets (October 7) stand. |
+| The builder link goes privately to the Team Leader, and `--rotate-team-codes` replaces edit codes | Edit access uses main's 8-character team codes, kept in each team's OneDrive folder (October 13 and 14). `--reissue all` or `--reissue <lesson-id>` replaces codes. `--rotate-team-codes` is withdrawn. |
+| Team view links | Unchanged: hashed with a `view:` prefix, a broken view table turns off only view links, and the viewer copy leaves out contact details, review notes and the archived original. |
+| Sidebar color and text from the preview | The preview's feature inspector (October 7) edits the sidebar. More options on the sidebar opens Shared theme, which keeps the Sidebar text color choice. |
+
 ## Lesson & team stage, October 9, 2026
 
 Britt chose a separate first stage for Lesson & team, over a top-bar chip or a
@@ -27,6 +39,24 @@ Customize, Review & save replaces the earlier primary path; the detailed guide a
 editors remain optional. Orientation does not mean rotation. New values must
 survive existing Save/Open/recovery and generated design handoff. No merge,
 deployment or curriculum construction is authorized by this implementation.
+
+## Start flow, step path and presets: October 2, 2026
+
+Britt approved the design in `docs/superpowers/specs/2026-10-02-bespoke-start-path-presets-design.md`. It replaces these earlier rows. Everything not listed here stands.
+
+| Earlier decision | Now |
+|---|---|
+| Six presets (September 18) | Nine presets. Open Air, Gold Standard and Slate are new, and every preset is redesigned. `scripts/build-bespoke-presets.mjs` is the source. |
+| Sidebar text color is chosen for you (September 24) | Optional choice saved as `design.roles.sidebarText`. Absent means Automatic. Advisory at 4.5 to 1. |
+| Start is one page with Lesson & team, Build my own and six presets (September 24) | Two short screens, then scratch or preset. Ships in the second pull request. |
+| Guide me walks slide by slide with four suggested colors (September 30) | Step by step walks twelve steps: colors, layout, fonts. Every color screen shows all eleven. Ships in the second pull request. |
+| Guide me owns the preview while it runs (October 1) | A preview click opens the matching step or the preview editor. Ships in the second pull request. |
+| One private link per team, and it edits (September 22) | Two links per team. The builder link edits. The team view link opens the latest saved design read-only. |
+| The spokesperson operates the preview (September 22) | The saved design names a Team Leader and, when different, one builder as `team.builder.name`. The team decides together on a Teams call with the builder sharing their screen. |
+| A private team link is pinned in the team's channel (September 22) | The team view link is pinned. The builder link goes privately to the Team Leader, who passes it to the one builder. Existing edit codes can be replaced with `--rotate-team-codes` without touching the encryption key. |
+| A view of a design is a frozen snapshot link | The team view link always opens the latest saved design. It leaves out the Team Leader's email, the review notes and any old wizard draft. |
+
+The saved format stays `bespoke-selection/v2`. The service is redeployed before the first pull request merges, because it bundles the schema and the catalog.
 
 ## Prior direction — September 24, 2026
 

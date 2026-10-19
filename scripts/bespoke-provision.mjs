@@ -3,7 +3,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { randomBytes } from 'node:crypto';
+import { createHash, randomBytes } from 'node:crypto';
 import { hashAccessCode, newAccessCode } from '../netlify/functions/_shared/access-code.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -16,12 +16,19 @@ const REISSUE_NOTE = 'Set BESPOKE_TEAM_KEYS in Netlify from team-env.json, then 
 const json = value => JSON.stringify(value, null, 2) + '\n';
 const escapeHtml = value => String(value).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 const writer = target => (name, value) => fs.writeFileSync(path.join(target, name), value, { mode: 0o600, flag: 'wx' });
-const teamKeys = access => JSON.stringify(Object.fromEntries(Object.entries(access).map(([id, item]) => [id, hashAccessCode(item.code)])));
+// The same formulas as hashEditCode and hashViewCode in the service. The provisioning tests compare them.
+const viewHash = code => createHash('sha256').update('view:' + code).digest('base64url');
+const hashTable = (access, hash) => JSON.stringify(Object.fromEntries(Object.entries(access).map(([id, item]) => [id, hash(item.code)])));
+const teamKeys = access => hashTable(access, hashAccessCode);
+const VIEW_FILES = ['view-env.json', 'view-access.json', 'view-links.html'];
+const firstExisting = (target, names) => names.find(name => fs.existsSync(path.join(target, name)));
 
 function teamLinksPage(access, note) {
   const items = Object.values(access).map(item => `<li><a href="${escapeHtml(item.url)}">${escapeHtml(item.title)}</a> <code>${escapeHtml(item.code)}</code></li>`).join('');
-  return `<!doctype html><html lang="en"><meta charset="utf-8"><meta name="referrer" content="no-referrer"><title>Private BeSpoke team links</title><style>body{font:18px system-ui;max-width:760px;margin:3rem auto;line-height:1.6}li{margin:1rem 0}code{font-size:1.1em;margin-left:.5rem}</style><h1>Private BeSpoke team links</h1><p>For Britt. Put each code only in its own team's OneDrive folder, never this page. Each code, and the link that carries it, grants editing access. Do not publish this page or commit these files.</p><ul>${items}</ul><p>${note}</p></html>`;
+  return `<!doctype html><html lang="en"><meta charset="utf-8"><meta name="referrer" content="no-referrer"><title>Private BeSpoke team links</title><style>body{font:18px system-ui;max-width:760px;margin:3rem auto;line-height:1.6}li{margin:1rem 0}code{font-size:1.1em;margin-left:.5rem}</style><h1>Private BeSpoke team links</h1><p>For Britt. Put each code only in its own team's OneDrive folder, never this page. Each code, and the link that carries it, grants editing access. Pin the team view link in the channel, not this one. Do not publish, forward or commit this page or these files.</p><ul>${items}</ul><p>${note}</p></html>`;
 }
+
+const viewLinksPage = access => `<!doctype html><html lang="en"><meta charset="utf-8"><meta name="referrer" content="no-referrer"><title>Private BeSpoke team view links</title><style>body{font:18px system-ui;max-width:760px;margin:3rem auto;padding:0 1rem;line-height:1.6}li{margin:1rem 0}</style><h1>Private BeSpoke team view links</h1><p>For Britt only. Do not publish, forward or commit this page.</p><p>Each link is for one team only. It opens that team's latest saved design, read-only. This is the link to pin in that team's channel.</p><ul>${Object.values(access).map(item => `<li><a href="${escapeHtml(item.url)}">${escapeHtml(item.title)}</a></li>`).join('')}</ul></html>\n`;
 
 function pageUrl(wizardUrl) {
   const url = new URL(wizardUrl);
@@ -31,12 +38,15 @@ function pageUrl(wizardUrl) {
   return url;
 }
 
-/** Resolves symlinks through the target itself when it exists, or through its nearest existing parent. */
+/**
+ * Resolves symlinks through the target itself when it exists, or through its nearest existing parent.
+ * The native realpath also returns the on-disk case, so a repository path typed in another case is still recognized.
+ */
 function realLocation(target) {
   const missing = [];
   let existing = target;
   while (!fs.existsSync(existing)) { missing.unshift(path.basename(existing)); existing = path.dirname(existing); }
-  return path.join(fs.realpathSync(existing), ...missing);
+  return path.join(fs.realpathSync.native(existing), ...missing);
 }
 
 function insideGitWorkTree(real) {
@@ -48,7 +58,7 @@ function insideGitWorkTree(real) {
 
 function privateTarget(output) {
   const target = path.resolve(output);
-  const real = realLocation(target), realRoot = fs.realpathSync(root);
+  const real = realLocation(target), realRoot = fs.realpathSync.native(root);
   if (real === realRoot || real.startsWith(realRoot + path.sep)) throw new Error('Choose a private output directory outside this repository.');
   if (insideGitWorkTree(real)) throw new Error('Choose a private output directory outside any git repository.');
   fs.mkdirSync(path.dirname(target), { recursive: true, mode: 0o700 });
@@ -121,27 +131,22 @@ export function reissue({ output, wizardUrl, lesson, now = new Date() }) {
   return target;
 }
 
-/** Adds one read-only link per lesson to an existing private directory. Never touches the team codes or the encryption key. */
+/** Adds one read-only link per lesson to an existing private directory. Never opens the team codes or the encryption key. */
 export function provisionViewLinks({ output, wizardUrl }) {
   const url = pageUrl(wizardUrl);
   const target = privateTarget(output);
   if (!fs.existsSync(path.join(target, 'team-access.json'))) throw new Error('Point --output at the existing private provisioning directory that holds team-access.json.');
-  if (fs.existsSync(path.join(target, 'view-access.json'))) throw new Error('View links already exist here. Reuse them; do not regenerate.');
-  const team = JSON.parse(fs.readFileSync(path.join(target, 'team-access.json'), 'utf8'));
+  const found = firstExisting(target, VIEW_FILES);
+  if (found) throw new Error(`View links already exist here (${found}). Reuse them; do not regenerate.`);
   // View codes keep the long form: they only travel inside links, so nobody types them.
-  const freshCode = lessonId => {
-    const code = randomBytes(24).toString('base64url');
-    return code === team[lessonId]?.code ? freshCode(lessonId) : code;
-  };
   const access = Object.fromEntries(lessons.map(lesson => {
-    const code = freshCode(lesson.id);
+    const code = randomBytes(24).toString('base64url');
     return [lesson.id, { title: lesson.title, code, url: `${url.href}#view=${lesson.id}.${code}` }];
   }));
-  const items = Object.values(access).map(item => `<li><a href="${escapeHtml(item.url)}">${escapeHtml(item.title)}</a></li>`).join('');
   const write = writer(target);
-  write('view-env.json', json({ BESPOKE_VIEW_KEYS: teamKeys(access) }));
+  write('view-env.json', json({ BESPOKE_VIEW_KEYS: hashTable(access, viewHash) }));
   write('view-access.json', json(access));
-  write('view-links.html', `<!doctype html><html lang="en"><meta charset="utf-8"><meta name="referrer" content="no-referrer"><title>BeSpoke team view links</title><style>body{font:18px system-ui;max-width:760px;margin:3rem auto;padding:0 1rem}</style><h1>BeSpoke team view links</h1><p>Each link opens that team's latest saved design, read-only. These are the links to pin in each team's channel.</p><ul>${items}</ul></html>\n`);
+  write('view-links.html', viewLinksPage(access));
   return target;
 }
 

@@ -20,6 +20,8 @@ const ok = body => ({ status: 200, body: { ok: true, ...body } });
 const object = value => value && typeof value === 'object' && !Array.isArray(value);
 
 export function hashEditCode(code) { return hashAccessCode(code); }
+// A distinct prefix keeps the tables apart: a view table pasted into BESPOKE_TEAM_KEYS grants nothing.
+export function hashViewCode(code) { return createHash('sha256').update('view:' + String(code).trim(), 'utf8').digest('base64url'); }
 export function hashesMatch(a, b) {
   if (typeof a !== 'string' || typeof b !== 'string') return false;
   const left = Buffer.from(a), right = Buffer.from(b);
@@ -32,13 +34,34 @@ function keyBytes(key) {
   if (result.length !== 32 || result.toString('base64') !== key) throw new Error('Invalid draft key');
   return result;
 }
-function accessKeys(raw) {
+const TEAM_HASH = /^(?:[A-Za-z0-9_-]{43}|[a-fA-F0-9]{64})$/;
+const VIEW_HASH = /^[A-Za-z0-9_-]{43}$/;
+const VIEW_TABLE_WARNING = 'BESPOKE_VIEW_KEYS is not a valid table; team view links are disabled.';
+function accessKeys(raw, hashFormat = TEAM_HASH) {
   const value = typeof raw === 'string' ? JSON.parse(raw) : raw;
   if (!object(value) || Object.keys(value).length === 0) throw new Error('Missing team configuration');
   for (const [lesson, hash] of Object.entries(value)) {
-    if (!LESSON_IDS.includes(lesson) || typeof hash !== 'string' || !(/^[A-Za-z0-9_-]{43}$/.test(hash) || /^[a-f0-9]{64}$/i.test(hash))) throw new Error('Invalid team configuration');
+    if (!LESSON_IDS.includes(lesson) || typeof hash !== 'string' || !hashFormat.test(hash)) throw new Error('Invalid team configuration');
   }
   return value;
+}
+// The view table never decides edit access, so a broken one turns off view links, not the service.
+function viewTable(raw) {
+  if (!raw) return {};
+  try { return accessKeys(raw, VIEW_HASH); }
+  catch { console.warn(VIEW_TABLE_WARNING); return {}; }
+}
+// Comparisons are constant-time over fixed-length digests, so timing does not show how close a guess is.
+function holdsEdit(table, lessonId, code) {
+  const expected = table[lessonId];
+  if (!expected) return false;
+  // Older team tables hold a hex SHA-256 digest of the bare code.
+  if (expected.length === 64) return hashesMatch(createHash('sha256').update(code, 'utf8').digest('hex'), expected.toLowerCase());
+  return hashesMatch(hashEditCode(code), expected);
+}
+function holdsView(table, lessonId, code) {
+  const expected = table[lessonId];
+  return Boolean(expected) && hashesMatch(hashViewCode(code), expected);
 }
 function aad(envelope) { return Buffer.from(JSON.stringify([envelope.schema, envelope.lessonId, envelope.savedAt]), 'utf8'); }
 export function seal(key, payload, lessonId, savedAt = new Date().toISOString()) {
@@ -73,6 +96,14 @@ function openedDraft(existing, lessonId, key) {
   return { ...existing, inner };
 }
 function view(draft) { return draft ? { revision: draft.sha, savedAt: draft.envelope.savedAt, selection: draft.inner.selection } : { revision: null, savedAt: null, selection: null }; }
+// View links are shared widely and never expire, so they leave out contact details, review notes and the archived original.
+function viewerView(draft) {
+  const answer = view(draft);
+  if (!answer.selection) return answer;
+  const { unspoken, legacySelection, ...shared } = answer.selection;
+  const { email, ...spokesperson } = shared.team.spokesperson;
+  return { ...answer, selection: { ...shared, team: { ...shared.team, spokesperson } } };
+}
 function conflict(draft) { const { revision, savedAt } = view(draft); return fail(409, 'conflict', 'A newer design is saved. Open the latest design before replacing it. Your working copy has not been changed.', { revision, savedAt }); }
 function validRevision(body) { return Object.hasOwn(body, 'expectedRevision') && (body.expectedRevision === null || (typeof body.expectedRevision === 'string' && SHA.test(body.expectedRevision))); }
 function checkSelection(selection, lessonId, forSend = true) {
@@ -103,7 +134,7 @@ async function receiptStatus(github, lessonId, receipt, runId) {
 
 export async function handleAction(body, { github, token, draftKey, teamKeys, viewKeys }) {
   let key, keys, views;
-  try { if (!token || !github) throw new Error('Not configured'); key = keyBytes(draftKey); keys = accessKeys(teamKeys); views = viewKeys ? accessKeys(viewKeys) : {}; }
+  try { if (!token || !github) throw new Error('Not configured'); key = keyBytes(draftKey); keys = accessKeys(teamKeys); views = viewTable(viewKeys); }
   catch { return fail(503, 'setup', SETUP_MESSAGE); }
   if (!object(body)) return fail(400, 'body', 'The request could not be read.');
   const { action, lessonId } = body;
@@ -111,18 +142,9 @@ export async function handleAction(body, { github, token, draftKey, teamKeys, vi
   if (!LESSON_IDS.includes(lessonId)) return fail(400, 'lesson', 'Choose one of the six lessons.');
   const code = typeof body.editCode === 'string' ? body.editCode.trim() : '';
   if (code.length < CODE_MIN_LENGTH || code.length > 128) return fail(403, 'code', WRONG_CODE);
-  const holds = table => {
-    const expected = table[lessonId];
-    if (!expected) return false;
-    const actual = expected.length === 64 ? createHash('sha256').update(code, 'utf8').digest('hex') : hashEditCode(code);
-    return hashesMatch(actual, expected.length === 64 ? expected.toLowerCase() : expected);
-  };
-  // Both tables are checked on every request, so either kind of code costs the same work.
-  const mayEdit = holds(keys), mayView = holds(views);
+  const mayEdit = holdsEdit(keys, lessonId, code), mayView = holdsView(views, lessonId, code);
   if (!mayEdit && !mayView) return fail(403, 'code', WRONG_CODE);
-  // A view code reads the latest design and nothing else: no history, no status, no writes.
-  if (!mayEdit && action !== 'open') return fail(403, 'view', VIEW_ONLY);
-  const access = mayEdit ? 'edit' : 'view';
+  if (!mayEdit && action !== 'open') return fail(403, 'view', VIEW_ONLY); // A view code opens the latest design: no history, status or writes.
   // Authorization has succeeded before the first repository read or write.
   try {
     if (action === 'history') {
@@ -140,7 +162,7 @@ export async function handleAction(body, { github, token, draftKey, teamKeys, vi
       return ok(await receiptStatus(github, lessonId, body.submissionId, body.runId));
     }
     const current = openedDraft(await github.readDraft(lessonId), lessonId, key);
-    if (action === 'open') return ok({ ...view(current), access });
+    if (action === 'open') return ok(mayEdit ? { ...view(current), access: 'edit' } : { ...viewerView(current), access: 'view' });
     if (!validRevision(body)) return fail(400, 'revision', 'Open the latest design before saving or sending.');
     const problem = checkSelection(body.selection, lessonId, action === 'send');
     if (problem) return problem;

@@ -130,7 +130,7 @@ try {
     await page.locator('#btnRedo').click();assert.deepEqual(await saved(page),final);
     await go(page,'Shared typography');await go(page,'Video slide');assert.deepEqual(await saved(page),final);
     const response=page.waitForResponse(r=>r.url().endsWith('/api/bespoke')&&r.request().postDataJSON()?.action==='save');await page.locator('#btnSave').click();assert.equal((await response).status(),200);
-    await page.locator('#fileStatus').filter({hasText:/Local test design saved|already up to date/}).waitFor();
+    await page.locator('#toast').filter({hasText:/Local test design saved|already up to date/}).waitFor();
     await page.reload();await page.locator('#localPreviewNotice').waitFor();await go(page,'Video slide');assert.deepEqual(await saved(page),final);
     const reopened=await editor(width);await go(reopened,'Video slide');assert.deepEqual(await saved(reopened),final);
     await preview(reopened,width);check(await measure(reopened.locator('#modelStage .slide-video-frame')),final,'reopened');

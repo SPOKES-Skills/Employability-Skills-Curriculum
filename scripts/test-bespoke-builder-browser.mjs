@@ -96,7 +96,7 @@ async function save(page) {
   await page.locator('#btnSave').click();
   const result = await response;
   assert.equal(result.status(), 200, await result.text());
-  await page.locator('#fileStatus').filter({ hasText: /Local test design saved|already up to date/ }).waitFor();
+  await page.locator('#toast').filter({ hasText: /Local test design saved|already up to date/ }).waitFor();
 }
 async function download(page, original = false) {
   const control = page.locator(original ? '#stepPanel button' : '#btnDownloadBackup').filter(original ? { hasText: 'Download original v1 design' } : {});

@@ -54,7 +54,7 @@ async function paint(page, color) {
 async function save(page) {
   const reply = page.waitForResponse(response => response.url().endsWith('/api/bespoke') && response.request().postDataJSON()?.action === 'save');
   await page.locator('#btnSave').click(); const response = await reply;
-  assert.equal(response.status(), 200); await page.locator('#fileStatus').filter({ hasText: /Local test design saved|already up to date/ }).waitFor();
+  assert.equal(response.status(), 200); await page.locator('#toast').filter({ hasText: /Local test design saved|already up to date/ }).waitFor();
 }
 async function api(server, action = 'open') {
   const response = await fetch(server.baseUrl + '/api/bespoke', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action, lessonId: 'money-management', editCode: LOCAL_PREVIEW_CODE }) });

@@ -134,7 +134,7 @@ try {
     await go(page,'Shared typography');await go(page,'Title slide');assert.deepEqual(await saved(page),final);
     const response=page.waitForResponse(r=>r.url().endsWith('/api/bespoke')&&r.request().postDataJSON()?.action==='save');
     await page.locator('#btnSave').click();assert.equal((await response).status(),200);
-    await page.locator('#fileStatus').filter({hasText:/Local test design saved|already up to date/}).waitFor();
+    await page.locator('#toast').filter({hasText:/Local test design saved|already up to date/}).waitFor();
     await page.reload();await page.locator('#localPreviewNotice').waitFor();assert.deepEqual(await saved(page),final);
     const reopen=await editor(width);await go(reopen,'Title slide');assert.deepEqual(await saved(reopen),final);
 

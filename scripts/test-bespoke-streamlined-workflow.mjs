@@ -142,7 +142,7 @@ async function save(page, status = 200) {
   const pending = page.waitForResponse(r => r.url().endsWith('/api/bespoke') && r.request().postDataJSON()?.action === 'save');
   await page.locator('#btnSave').click(); const response = await pending;
   assert.equal(response.status(), status, await response.text());
-  if (status === 200) await page.locator('#fileStatus').filter({ hasText: /Local test design saved|already up to date/ }).waitFor();
+  if (status === 200) await page.locator('#toast').filter({ hasText: /Local test design saved|already up to date/ }).waitFor();
   return response;
 }
 const FUN_TITLE = catalog.presets.find(item => item.id === 'fun').design.roles.titleBackground;

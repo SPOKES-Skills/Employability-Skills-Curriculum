@@ -98,7 +98,7 @@ async function checkPaint(page, kind, field, color) {
 }
 async function save(page) {
   const reply = page.waitForResponse(r => r.url().endsWith('/api/bespoke') && r.request().postDataJSON()?.action === 'save'); await page.locator('#btnSave').click(); assert.equal((await reply).status(), 200);
-  await page.locator('#fileStatus').filter({ hasText: /Local test design saved|already up to date/ }).waitFor();
+  await page.locator('#toast').filter({ hasText: /Local test design saved|already up to date/ }).waitFor();
 }
 async function openRemote(server) { const response = await fetch(server.baseUrl + '/api/bespoke', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'open', lessonId: 'money-management', editCode: LOCAL_PREVIEW_CODE }) }); assert.equal(response.status, 200); return response.json(); }
 async function backup(page) {

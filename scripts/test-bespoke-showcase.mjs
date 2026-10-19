@@ -170,6 +170,26 @@ try {
       assert.ok(!guide.includes(gone), `team-guide no longer says ${gone}`);
     pass('the team guide uses the new stage names');
   }
+  {
+    const {context, page} = await open(1440, 900);
+    await page.locator('#stage-slides').click();
+    await page.evaluate(() => window.scrollTo(0, 600));
+    await page.locator('#btnSave').click();
+    const toast = page.locator('#toast');
+    await toast.waitFor({state: 'visible', timeout: 4000});
+    assert.equal(await page.locator('#toast').count(), 1, 'one #toast element is reused');
+    assert.equal(await toast.getAttribute('role'), 'status');
+    assert.equal(await toast.getAttribute('aria-live'), 'polite');
+    assert.match(await toast.textContent(), /Local test design saved|already up to date/, 'the toast carries the success message');
+    const box = await rect(page, '#toast');
+    assert.ok(box.top >= 0 && box.top <= 120, `toast sits near the top of the viewport, top is ${box.top}px`);
+    assert.equal(await toast.evaluate(el => getComputedStyle(el).position), 'fixed', 'the toast is fixed to the viewport');
+    assert.equal(await page.locator('#fileStatus').isVisible(), false, 'the page-top strip stays hidden for a success message');
+    await page.waitForTimeout(5000);
+    assert.equal(await toast.isVisible(), false, 'the toast hides itself after a few seconds');
+    await context.close();
+    pass('success messages are toasts');
+  }
   assert.deepEqual(errors, []);
 } finally {
   await browser.close();

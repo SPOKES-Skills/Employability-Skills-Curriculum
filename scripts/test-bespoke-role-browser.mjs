@@ -80,7 +80,7 @@ async function upload(page,value,name='synthetic-role-design.json'){
 async function save(page){
   const request=page.waitForResponse(r=>r.url().endsWith('/api/bespoke')&&r.request().postDataJSON()?.action==='save');await page.locator('#btnSave').click();
   const response=await request;assert.equal(response.status(),200,await response.text());
-  await page.locator('#fileStatus').filter({hasText:/Local test design saved|already up to date/}).waitFor();
+  await page.locator('#toast').filter({hasText:/Local test design saved|already up to date/}).waitFor();
 }
 async function remote(action='open'){
   const response=await fetch(server.baseUrl+'/api/bespoke',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action,lessonId:'money-management',editCode:LOCAL_PREVIEW_CODE})});
@@ -106,8 +106,8 @@ async function focusedRegressions(){
   const page=await pageFor();await upload(page,payload(defaultDesign(catalog)));
   assert.match(await page.locator('#fileStatus').textContent(),/choose Save test design to save it to the local test service/);
   assert.doesNotMatch(await page.locator('#fileStatus').textContent(),/team access|Save shared design|Save for the team/);
-  await save(page);assert.equal(await page.locator('#fileStatus').textContent(),'Local test design saved.');
-  await save(page);await page.locator('#fileStatus').filter({hasText:'The local test design was already up to date.'}).waitFor();
+  await save(page);assert.equal(await page.locator('#toast').textContent(),'Local test design saved.');
+  await save(page);await page.locator('#toast').filter({hasText:'The local test design was already up to date.'}).waitFor();
   for(const [kind,part,name,selector] of [['activity','heading','Activity label','.slide-activity-label'],['divider','body','Chapter label','.slide-chapter-label']]){
     await go(page,kind);await setStyle(page,kind,'labelText',name+' example');await setStyle(page,kind,part+'Text','Retained main copy');await setStyle(page,kind,part+'Visible',false);
     const label=page.locator('#modelStage '+selector);assert(await label.isVisible());assert(!await page.locator(`#role-${kind}-${part}Text`).isVisible(),'Main sample-copy input stays hidden');

@@ -132,7 +132,7 @@ try {
     const final=await design(page);await surface(page,'design');await page.locator('#btnUndo').click();assert.notEqual((await design(page)).roles.sidebar,final.roles.sidebar);
     await page.locator('#btnRedo').click();assert.deepEqual(await design(page),final);
     const saved=page.waitForResponse(r=>r.url().endsWith('/api/bespoke')&&r.request().postDataJSON()?.action==='save');await page.locator('#btnSave').click();assert.equal((await saved).status(),200);
-    await page.locator('#fileStatus').filter({hasText:/Local test design saved|already up to date/}).waitFor();await page.reload();await page.locator('#btnSave').filter({hasText:'Save test design'}).waitFor();assert.deepEqual(await design(page),final);
+    await page.locator('#toast').filter({hasText:/Local test design saved|already up to date/}).waitFor();await page.reload();await page.locator('#btnSave').filter({hasText:'Save test design'}).waitFor();assert.deepEqual(await design(page),final);
     const reopened=await pageFor(width,height);assert.deepEqual(await design(reopened),final);await preview(reopened,'video');await openDrawer(reopened);await check(reopened,label+'/reopened');
     const generatedPage=await page.context().newPage();
     for(const kind of ['cards','video','activity']) {

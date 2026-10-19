@@ -5,6 +5,7 @@ import { compareDesign } from './similarity.mjs';
 import { createPreviewEditor } from './preview-editor.mjs';
 import { syncStageChrome } from './canvas-shell.mjs';
 import { createGuide } from './guide/guide.mjs';
+import { showToast } from './toast.mjs';
 import { createTeamView, isShareHash, isSnapshotHash, viewLinkToOpen } from './team-view.mjs';
 import { guideMark, indexForMark, keepsGuide } from './guide/questions.mjs';
 import { buildQuestions, normalizeGuide } from './guide/questions.mjs';
@@ -372,6 +373,14 @@ const findOption=(family,slug)=>state.library?.families?.[family]?.options.find(
     const notice = byId("fileStatus");
     notice.hidden = false;
     notice.textContent = message;
+  }
+
+  // Good news shows as a short toast in view. It replaces any pending message in the strip.
+  function successNotice(message) {
+    const notice = byId("fileStatus");
+    notice.hidden = true;
+    notice.textContent = "";
+    showToast(message);
   }
 
   function prepareDraftReplacement() {
@@ -846,9 +855,15 @@ const findOption=(family,slug)=>state.library?.families?.[family]?.options.find(
         ? (changedDuringSave ? "Newer browser changes not saved to the local test service yet" : "Local test design up to date")
         : (changedDuringSave ? "Newer browser changes not shared yet" : (auto ? "Saved to the shared design automatically" : "Shared design up to date")));
       if (!auto) {
-        fileNotice(ui.localPreview
-          ? (changedDuringSave ? "The version that started saving is saved locally. You made newer changes while it saved; choose Save test design again." : (result.unchanged ? "The local test design was already up to date." : "Local test design saved."))
-          : (changedDuringSave ? "The version that started saving is shared. You made newer changes while it saved; choose Save for the team again." : (result.unchanged ? "The shared design was already up to date." : "Shared design saved.")));
+        if (changedDuringSave) {
+          fileNotice(ui.localPreview
+            ? "The version that started saving is saved locally. You made newer changes while it saved; choose Save test design again."
+            : "The version that started saving is shared. You made newer changes while it saved; choose Save for the team again.");
+        } else {
+          successNotice(ui.localPreview
+            ? (result.unchanged ? "The local test design was already up to date." : "Local test design saved.")
+            : (result.unchanged ? "The shared design was already up to date." : "Shared design saved."));
+        }
       }
     } finally {
       handoffBusy = false;
@@ -876,7 +891,7 @@ const findOption=(family,slug)=>state.library?.families?.[family]?.options.find(
       persistTeamSession();
     }
     storePendingSubmission(null);
-    fileNotice(result.url ? "Britt received the review request. " + result.url : "Britt received the review request.");
+    successNotice(result.url ? "Britt received the review request. " + result.url : "Britt received the review request.");
   }
 
   function scheduleSubmissionPoll(receipt, delay = 10000) {
@@ -1393,7 +1408,7 @@ function applyPresetChoice(id){
  const preset=catalog.presets.find(item=>item.id===id);if(!preset)return false;
  ui.meaningfulDesign=true;ui.startingLooksOpen=true;
  const samples=clone(state.design.samples);recordChange('Applied '+presetName(preset),clone(state.design));state.design=Model.applyPreset(catalog,preset.id,state.design);state.design.samples=samples;
- state.step=stepIndex('slides');ui.editorRole='title';state.previewView='title';ui.moreOptions=false;render(false);fileNotice(presetName(preset)+' applied. Every choice remains editable.');byId('selectedElement')?.focus({preventScroll:true});return true;
+ state.step=stepIndex('slides');ui.editorRole='title';state.previewView='title';ui.moreOptions=false;render(false);successNotice(presetName(preset)+' applied. Every choice remains editable.');byId('selectedElement')?.focus({preventScroll:true});return true;
 }
 function requestPreset(id){
  if(!isLeadSession())return;

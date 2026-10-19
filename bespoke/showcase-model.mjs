@@ -37,16 +37,18 @@ export function lookDetail(catalog, presetId) {
 }
 
 const KIND_SHORT = { title: 'Title', divider: 'Divider', cards: 'Text boxes', video: 'Video', activity: 'Activity' };
-// Effective style fields that are not compared: sample words, and fields that only follow another field
-// (watermark and extra text follow the heading and body fields, so they would report the same edit twice).
-const SKIPPED = new Set(['boxHeadings', 'watermarkColor', 'watermarkFont', 'extraColor', 'extraFont']);
-const isTracked = key => !SKIPPED.has(key) && !key.endsWith('Text');
-const FONT_KEYS = ['headingFont', 'bodyFont'];
+// Effective style fields that are not compared: sample words. Watermark and extra-text colors and fonts follow the
+// heading and body fields, so they count only when the team set them directly (see explicitFollowers).
+const FOLLOWERS = ['watermarkColor', 'watermarkFont', 'extraColor', 'extraFont'];
+const isTracked = key => key !== 'boxHeadings' && !FOLLOWERS.includes(key) && !key.endsWith('Text');
+const isFont = key => key.endsWith('Font');
 const SETTING_LABELS = { secondary: 'second background', pattern: 'texture', patternStrength: 'texture strength', direction: 'gradient direction', headingSize: 'heading size', bodySize: 'text size' };
 const FEATURE_NAMES = { sidebar: 'Sidebar', button: 'Button', box: 'Text box', titlebar: 'Title bar', video: 'Video frame', activity: 'Activity box' };
 const words = key => key.replace(/[A-Z]/g, letter => ` ${letter.toLowerCase()}`);
 
 function partName(kind, key) {
+  if (key.startsWith('watermark')) return `${KIND_SHORT[kind]} watermark`;
+  if (key.startsWith('extra')) return `${KIND_SHORT[kind]} extra text`;
   const part = { primary: 'background', headingColor: 'heading', headingFont: 'heading', bodyColor: 'text', bodyFont: 'text' }[key];
   if (kind !== 'title') return part && `${KIND_SHORT[kind]} ${part}`;
   return { background: 'Title background', heading: 'Title text', text: 'Subtitle' }[part];
@@ -55,9 +57,15 @@ function partName(kind, key) {
 function changeLabel(catalog, kind, key, value) {
   const part = partName(kind, key);
   if (!part) return `${KIND_SHORT[kind]} ${SETTING_LABELS[key] ?? words(key)} changed`;
-  if (FONT_KEYS.includes(key)) return `${part} font ${catalog.fonts.find(font => font.id === value)?.label ?? value}`;
+  if (isFont(key)) return `${part} font ${catalog.fonts.find(font => font.id === value)?.label ?? value}`;
   return `${part} in ${catalog.palette.find(color => color.id === value)?.name ?? value}`;
 }
+
+// A follower counts when the saved value on the slide differs from the look's; 'inherit' and absent both mean "follows".
+const explicitFollowers = (design, base, kind) => FOLLOWERS.filter(key => {
+  const saved = source => { const value = source.roleStyles?.[kind]?.[key]; return value === 'inherit' ? undefined : value; };
+  return saved(design) !== saved(base);
+});
 
 const differing = (now = {}, was = {}) => [...new Set([...Object.keys(now), ...Object.keys(was)])].filter(key => JSON.stringify(now[key]) !== JSON.stringify(was[key]));
 
@@ -70,7 +78,8 @@ export function designChanges(catalog, Model, design, presetId) {
     const layout = differing(design.slides?.[kind], base.slides?.[kind]).map(key => `${KIND_SHORT[kind]} ${words(key)} changed`);
     const now = Model.effectiveRoleStyle(catalog, isolated, kind);
     const was = Model.effectiveRoleStyle(catalog, base, kind);
-    return [...layout, ...Object.keys(now).filter(key => isTracked(key) && now[key] !== was[key]).map(key => changeLabel(catalog, kind, key, now[key]))];
+    const changed = [...Object.keys(now).filter(key => isTracked(key) && now[key] !== was[key]), ...explicitFollowers(design, base, kind)];
+    return [...layout, ...changed.map(key => changeLabel(catalog, kind, key, now[key]))];
   });
   const features = Object.keys(FEATURE_NAMES).flatMap(feature => {
     // A saved feature fills its other fields with 'inherit', so a missing field counts as 'inherit'.
@@ -86,7 +95,7 @@ export function designChanges(catalog, Model, design, presetId) {
 export function sharedParts(catalog, Model, design, kind, key) {
   const current = Model.effectiveRoleStyle(catalog, design, kind)[key];
   const probe = catalog.palette.find(color => color.id !== current);
-  if (!probe || FONT_KEYS.includes(key)) return [];
+  if (!probe || isFont(key)) return [];
   const after = Model.setSharedColor(catalog, design, kind, key, probe.id);
   return Model.ROLE_STYLE_KINDS.filter(other => other !== kind
     && Model.effectiveRoleStyle(catalog, design, other)[key] !== Model.effectiveRoleStyle(catalog, after, other)[key]);

@@ -45,6 +45,21 @@ test('designChanges lists a shared title color change on both slides', () => {
   assert.deepEqual(designChanges(catalog, Model, d, 'professional'), []);
 });
 
+test('designChanges sees edits that are not colors or fonts', () => {
+  const same = (design, label) => assert.ok(designChanges(catalog, Model, design, 'professional').some(text => text === label), label);
+  same(Model.setRoleStyle(catalog, d, 'title', 'headingAlignment', 'right'), 'Title heading alignment changed');
+  same(Model.setRoleStyle(catalog, d, 'cards', 'bodyPlacement', 'bottom'), 'Text boxes body placement changed');
+  same(Model.setRoleStyle(catalog, d, 'divider', 'backgroundMode', 'gradient'), 'Divider background mode changed');
+  same(Model.setRoleStyle(catalog, d, 'cards', 'labelVisible', false), 'Text boxes label visible changed');
+  const layout = catalog.slideGroups.find(group => group.id === 'title').decisions.find(item => item.id === 'layout');
+  const other = layout.options.find(option => option.id !== d.slides.title.layout).id;
+  same({ ...d, slides: { ...d.slides, title: { ...d.slides.title, layout: other } } }, 'Title layout changed');
+  same(Model.setFeatureStyle(catalog, d, 'sidebar', 'color', 'gold'), 'Sidebar color changed');
+  // Sample words never count as a change.
+  assert.deepEqual(designChanges(catalog, Model, { ...d, samples: { ...d.samples, title: 'Our budget' } }, 'professional'), []);
+  assert.deepEqual(designChanges(catalog, Model, Model.setRoleStyle(catalog, d, 'divider', 'headingText', 'Next steps'), 'professional'), []);
+});
+
 test('sharedParts matches the model', () => {
   assert.deepEqual(sharedParts(catalog, Model, d, 'title', 'headingColor'), ['divider']);
 });

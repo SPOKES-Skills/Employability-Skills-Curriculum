@@ -37,10 +37,14 @@ export function lookDetail(catalog, presetId) {
 }
 
 const KIND_SHORT = { title: 'Title', divider: 'Divider', cards: 'Text boxes', video: 'Video', activity: 'Activity' };
-// Effective style fields a team can change on a slide. Fields that only follow another field (watermark and extra text) are left out.
-const TRACKED = ['primary', 'secondary', 'headingColor', 'bodyColor', 'headingFont', 'bodyFont', 'pattern', 'direction', 'patternStrength', 'headingSize', 'bodySize'];
+// Effective style fields that are not compared: sample words, and fields that only follow another field
+// (watermark and extra text follow the heading and body fields, so they would report the same edit twice).
+const SKIPPED = new Set(['boxHeadings', 'watermarkColor', 'watermarkFont', 'extraColor', 'extraFont']);
+const isTracked = key => !SKIPPED.has(key) && !key.endsWith('Text');
 const FONT_KEYS = ['headingFont', 'bodyFont'];
 const SETTING_LABELS = { secondary: 'second background', pattern: 'texture', patternStrength: 'texture strength', direction: 'gradient direction', headingSize: 'heading size', bodySize: 'text size' };
+const FEATURE_NAMES = { sidebar: 'Sidebar', button: 'Button', box: 'Text box', titlebar: 'Title bar', video: 'Video frame', activity: 'Activity box' };
+const words = key => key.replace(/[A-Z]/g, letter => ` ${letter.toLowerCase()}`);
 
 function partName(kind, key) {
   const part = { primary: 'background', headingColor: 'heading', headingFont: 'heading', bodyColor: 'text', bodyFont: 'text' }[key];
@@ -50,19 +54,32 @@ function partName(kind, key) {
 
 function changeLabel(catalog, kind, key, value) {
   const part = partName(kind, key);
-  if (!part) return `${KIND_SHORT[kind]} ${SETTING_LABELS[key] ?? key} changed`;
+  if (!part) return `${KIND_SHORT[kind]} ${SETTING_LABELS[key] ?? words(key)} changed`;
   if (FONT_KEYS.includes(key)) return `${part} font ${catalog.fonts.find(font => font.id === value)?.label ?? value}`;
   return `${part} in ${catalog.palette.find(color => color.id === value)?.name ?? value}`;
 }
 
-/** Plain labels for what differs from the named look, in slide order. Sample words are ignored. */
+const differing = (now = {}, was = {}) => [...new Set([...Object.keys(now), ...Object.keys(was)])].filter(key => JSON.stringify(now[key]) !== JSON.stringify(was[key]));
+
+/** Plain labels for what differs from the named look, in slide order, then the shared parts. Sample words are ignored. */
 export function designChanges(catalog, Model, design, presetId) {
   const base = Model.applyPreset(catalog, presetId, design);
-  return Model.ROLE_STYLE_KINDS.flatMap(kind => {
-    const now = Model.effectiveRoleStyle(catalog, design, kind);
+  // Slide layout choices feed some effective fields, so read those with the look's own choices and report layout choices on their own.
+  const isolated = { ...design, slides: base.slides };
+  const slideChanges = Model.ROLE_STYLE_KINDS.flatMap(kind => {
+    const layout = differing(design.slides?.[kind], base.slides?.[kind]).map(key => `${KIND_SHORT[kind]} ${words(key)} changed`);
+    const now = Model.effectiveRoleStyle(catalog, isolated, kind);
     const was = Model.effectiveRoleStyle(catalog, base, kind);
-    return TRACKED.filter(key => now[key] !== was[key]).map(key => changeLabel(catalog, kind, key, now[key]));
+    return [...layout, ...Object.keys(now).filter(key => isTracked(key) && now[key] !== was[key]).map(key => changeLabel(catalog, kind, key, now[key]))];
   });
+  const features = Object.keys(FEATURE_NAMES).flatMap(feature => {
+    // A saved feature fills its other fields with 'inherit', so a missing field counts as 'inherit'.
+    const saved = style => key => style?.[key] ?? 'inherit';
+    const now = saved(design.featureStyles?.[feature]), was = saved(base.featureStyles?.[feature]);
+    const keys = differing(design.featureStyles?.[feature], base.featureStyles?.[feature]).filter(key => now(key) !== was(key));
+    return keys.map(key => `${FEATURE_NAMES[feature]} ${key} changed`);
+  });
+  return [...slideChanges, ...features];
 }
 
 /** The other slide kinds that move when this kind's shared color changes, read from the model itself. */

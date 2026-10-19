@@ -105,7 +105,7 @@ async function axe(page,label){
 async function focusedRegressions(){
   const page=await pageFor();await upload(page,payload(defaultDesign(catalog)));
   assert.match(await page.locator('#fileStatus').textContent(),/choose Save test design to save it to the local test service/);
-  assert.doesNotMatch(await page.locator('#fileStatus').textContent(),/team access|Save shared design/);
+  assert.doesNotMatch(await page.locator('#fileStatus').textContent(),/team access|Save shared design|Save for the team/);
   await save(page);assert.equal(await page.locator('#fileStatus').textContent(),'Local test design saved.');
   await save(page);await page.locator('#fileStatus').filter({hasText:'The local test design was already up to date.'}).waitFor();
   for(const [kind,part,name,selector] of [['activity','heading','Activity label','.slide-activity-label'],['divider','body','Chapter label','.slide-chapter-label']]){
@@ -130,7 +130,7 @@ async function focusedRegressions(){
 try{
   await focusedRegressions();
   if(!focusOnly){
-  const page=await pageFor();await upload(page,payload(defaultDesign(catalog)));await go(page,'Starting look');
+  const page=await pageFor();await upload(page,payload(defaultDesign(catalog)));await go(page,'Pick a look');
   assert(await page.locator('#startingLookChoices').isVisible(),'Beginner introduction is on the first step');
   const beforeHelp=await design(page);await clickMenuItem(page, '#btnHelp');
   const help=await page.locator('#builderHelp').textContent();
@@ -213,7 +213,7 @@ try{
   const reopened=await pageFor();assert.deepEqual(await design(reopened),cumulative);await go(reopened,'activity');await setStyle(reopened,'activity','bodyColor','mauve');await save(reopened);
   await clickMenuItem(reopened, '#btnHistory');await reopened.locator('#historyPanel button').nth(1).click();await reopened.locator('#fileStatus').filter({hasText:'Previous choices loaded'}).waitFor();assert.deepEqual(await design(reopened),cumulative);assert.equal((await draft(reopened)).autosavePaused,true);await save(reopened);
   const recovered=await pageFor();await upload(recovered,exported);assert.deepEqual(await design(recovered),cumulative);
-  await go(recovered,'Starting look');await recovered.locator('[data-preset="professional"]').click();if(await recovered.locator('#presetDialog').isVisible())await recovered.locator('#presetApply').click();
+  await go(recovered,'Pick a look');await recovered.locator('[data-preset="professional"]').click();if(await recovered.locator('#presetDialog').isVisible())await recovered.locator('#presetApply').click();
   const preset=await design(recovered);assert.deepEqual(preset.samples,cumulative.samples);
   for(const kind of Object.keys(labels)){assert.equal(preset.roleStyles[kind].headingText,cumulative.roleStyles[kind].headingText);assert.equal(preset.roleStyles[kind].bodyText,cumulative.roleStyles[kind].bodyText);assert.equal(preset.roleStyles[kind].labelText,cumulative.roleStyles[kind].labelText);assert.equal(preset.roleStyles[kind].watermarkText,cumulative.roleStyles[kind].watermarkText);assert.equal(preset.roleStyles[kind].primary,'inherit');}
   const old=defaultDesign(catalog);delete old.roleStyles;await upload(recovered,payload(old),'old-v2.json');assert.deepEqual(await design(recovered),old,'Old v2 opens without materializing role overrides');

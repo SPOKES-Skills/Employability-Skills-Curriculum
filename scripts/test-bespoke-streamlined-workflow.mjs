@@ -130,7 +130,7 @@ async function team(page) {
   await page.locator('#teamName').fill('Synthetic workflow team');
   await page.locator('#spokespersonName').fill('Sample Instructor');
   await page.locator('#spokespersonEmail').fill('sample@example.org');
-  // Callers carry on with the starting looks, which is the stage after Lesson & team.
+  // Callers carry on with Pick a look, which is the stage after Lesson & team.
   await stage(page, 'start');
 }
 async function startingLooks(page) {
@@ -652,7 +652,7 @@ try {
     for (const [index, oldId] of oldIds.entries()) {
       const saved = { step: index, stepId: oldId, previewView: 'activity', activeRole: 'sidebar', lessonId: 'money-management', teamName: 'Synthetic previous workflow', spokespersonName: 'Sample Instructor', spokespersonEmail: 'sample@example.org', unspoken: '', design: storedDesign, changes: [], redo: [] };
       const page = await makePage({ storedDraft: saved });
-      // The old team step is the new Lesson & team stage; the old welcome step is the starting looks.
+      // The old team step is the new Lesson & team stage; the old welcome step is Pick a look.
       const mapped = [...kinds,'colors','fonts'].includes(oldId) ? 'slides' : oldId === 'review' ? 'review' : oldId === 'team' ? 'team' : 'start';
       assert.equal(await page.locator('#stage-' + mapped).getAttribute('aria-current'), 'step', oldId + ' maps to the right stage');
       if (kinds.includes(oldId)) assert.equal(await page.locator('#editor-' + oldId).getAttribute('aria-selected'), 'true');

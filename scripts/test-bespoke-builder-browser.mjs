@@ -169,7 +169,7 @@ try {
     const beforeRepeat = await draft(page);
     await page.locator('#btnSave').evaluate(el => el.dispatchEvent(new KeyboardEvent('keydown', {key:'z',ctrlKey:true,repeat:true,bubbles:true,cancelable:true})));
     assert.deepEqual(await draft(page), beforeRepeat);
-    await go(page, 'Starting look');await go(page, 'Starting look');await page.locator('[data-preset="modern"]').click();
+    await go(page, 'Pick a look');await go(page, 'Pick a look');await page.locator('[data-preset="modern"]').click();
     await page.locator('#presetDialog').waitFor({state:'visible'});
     await page.keyboard.press('Control+z'); assert.deepEqual(await design(page), painted);
     await page.keyboard.press('Escape'); assert.deepEqual(await design(page), painted);
@@ -207,14 +207,14 @@ try {
 
   await scenario('cumulative colors, independent fonts, editable presets, history and v2 file recovery', async ({ makePage }) => {
     const page = await makePage();
-    await go(page, 'Starting look');
+    await go(page, 'Pick a look');
     assert.equal(await page.locator('[data-preset]').count(), 12);
-    await go(page, 'Starting look');await page.locator('[data-preset="professional"]').click();
+    await go(page, 'Pick a look');await page.locator('[data-preset="professional"]').click();
     await go(page, 'Text boxes');
     if(!await page.locator('#section-cards-text').evaluate(el=>el.open))await page.locator('#section-cards-text > summary').click();
     await page.getByText('Try your own sample text', { exact: true }).click();
     await page.locator('#sample-box-3').fill('Keep this fourth sample even while it is hidden.');
-    await go(page, 'Starting look');await go(page, 'Starting look');await page.locator('[data-preset="modern"]').click();
+    await go(page, 'Pick a look');await go(page, 'Pick a look');await page.locator('[data-preset="modern"]').click();
     await page.locator('#presetApply').click();
     assert.equal((await design(page)).samples.boxes[3], 'Keep this fourth sample even while it is hidden.');
     const beforePaint = await design(page);
@@ -292,45 +292,45 @@ try {
     const preference = page => page.evaluate(key => sessionStorage.getItem(key), key);
     const page = await makePage(); await fillTeam(page);
     const native = []; page.on('dialog', dialog => native.push(dialog.message()));
-    await go(page, 'Starting look');await go(page, 'Starting look');await page.locator('[data-preset="professional"]').click();
+    await go(page, 'Pick a look');await go(page, 'Pick a look');await page.locator('[data-preset="professional"]').click();
     await go(page, 'Text boxes'); if(!await page.locator('#section-cards-text').evaluate(el=>el.open))await page.locator('#section-cards-text > summary').click();
     await page.getByText('Try your own sample text', { exact: true }).click();
     await page.locator('#sample-box-3').fill('Retain my hidden sample after every preset.');
-    await go(page, 'Starting look');
+    await go(page, 'Pick a look');
     const before = await draft(page);
-    await go(page, 'Starting look');await page.locator('[data-preset="modern"]').click();
+    await go(page, 'Pick a look');await page.locator('[data-preset="modern"]').click();
     assert.equal(await page.locator('#presetSkipConfirmation').isChecked(), false);
     await page.locator('#presetSkipConfirmation').check(); await page.locator('#presetCancel').click();
     assert.deepEqual((await draft(page)).design, before.design); assert.deepEqual((await draft(page)).changes, before.changes);
     assert.equal(await preference(page), null);
     assert.equal(await page.evaluate(() => document.activeElement.id), (await draft(page)).stepId==='slides'?'selectedElement':'preset-modern');
-    await go(page, 'Starting look');await page.locator('[data-preset="modern"]').click();
+    await go(page, 'Pick a look');await page.locator('[data-preset="modern"]').click();
     assert.equal(await page.locator('#presetSkipConfirmation').isChecked(), false);
     await page.locator('#presetSkipConfirmation').check(); await page.keyboard.press('Escape');
     assert.deepEqual((await draft(page)).design, before.design); assert.deepEqual((await draft(page)).changes, before.changes);
     assert.equal(await preference(page), null);
     assert.equal(await page.evaluate(() => document.activeElement.id), (await draft(page)).stepId==='slides'?'selectedElement':'preset-modern');
-    await go(page, 'Starting look');await page.locator('[data-preset="modern"]').click(); await page.locator('#presetApply').click();
+    await go(page, 'Pick a look');await page.locator('[data-preset="modern"]').click(); await page.locator('#presetApply').click();
     assert.equal(await preference(page), null); assert.equal((await design(page)).startingPoint, 'modern');
     assert.deepEqual((await design(page)).samples, before.design.samples);
     assert.equal((await draft(page)).changes.length, before.changes.length + 1);
     assert.equal(await page.evaluate(() => document.activeElement.id), (await draft(page)).stepId==='slides'?'selectedElement':'preset-modern');
-    await go(page, 'Starting look');await page.locator('[data-preset="serious"]').click();
+    await go(page, 'Pick a look');await page.locator('[data-preset="serious"]').click();
     assert(await page.locator('#presetDialog').isVisible()); assert.equal(await page.locator('#presetSkipConfirmation').isChecked(), false);
     await page.keyboard.press('Escape'); await page.locator('#btnUndo').click();
     assert.deepEqual(await design(page), before.design);
-    await go(page, 'Starting look');await page.locator('[data-preset="modern"]').click();
+    await go(page, 'Pick a look');await page.locator('[data-preset="modern"]').click();
     await page.locator('#presetSkipConfirmation').check(); await page.locator('#presetApply').click();
     assert.equal(await preference(page), '1');
     const modern = await design(page);
-    await go(page,'Starting look');await go(page, 'Starting look');await page.locator('[data-preset="fun"]').focus(); await page.keyboard.press('Enter');
+    await go(page,'Pick a look');await go(page, 'Pick a look');await page.locator('[data-preset="fun"]').focus(); await page.keyboard.press('Enter');
     assert.equal(await page.locator('#presetDialog').isVisible(), false);
     assert.equal((await design(page)).startingPoint, 'fun');
     assert.equal(await page.evaluate(() => document.activeElement.id), 'selectedElement');
     await page.locator('#btnUndo').click(); assert.deepEqual(await design(page), modern);
-    await go(page, 'Shared typography'); await go(page, 'Starting look');
+    await go(page, 'Shared typography'); await go(page, 'Pick a look');
     await page.reload(); await ready(page); assert.equal(await preference(page), '1');
-    await go(page, 'Starting look');await go(page, 'Starting look');await page.locator('[data-preset="outspoken"]').click();
+    await go(page, 'Pick a look');await go(page, 'Pick a look');await page.locator('[data-preset="outspoken"]').click();
     assert.equal(await page.locator('#presetDialog').isVisible(), false);
     assert.equal((await design(page)).startingPoint, 'outspoken');
     assert.deepEqual((await design(page)).samples, before.design.samples);
@@ -348,7 +348,7 @@ try {
     for(const value of [backup.payload, remote, persistent, actions]) assert(!/skipPresetConfirmation|skip-preset-confirmation|pendingPreset|presetSkipConfirmation/.test(JSON.stringify(value)), 'Preference must not leak into durable records or requests.');
     // A fresh browser session retaining the same durable draft/team record asks again.
     const fresh = await makePage({ storageState: await page.context().storageState() });
-    await go(fresh, 'Starting look');await fresh.locator('[data-preset="serious"]').click();
+    await go(fresh, 'Pick a look');await fresh.locator('[data-preset="serious"]').click();
     assert(await fresh.locator('#presetDialog').isVisible()); assert.equal(await fresh.locator('#presetSkipConfirmation').isChecked(), false);
     await fresh.keyboard.press('Escape');
     // Starting another draft is explicit and its separate native confirmation is not suppressed.
@@ -357,28 +357,28 @@ try {
     await recoveryMenu(page, false);
     assert(native.some(message => message.startsWith('Start a new browser draft?')));
     assert.equal(await preference(page), null);
-    await go(page, 'Starting look');await go(page, 'Starting look');await page.locator('[data-preset="professional"]').click();
-    await go(page, 'Starting look');await page.locator('[data-preset="modern"]').click();
+    await go(page, 'Pick a look');await go(page, 'Pick a look');await page.locator('[data-preset="professional"]').click();
+    await go(page, 'Pick a look');await page.locator('[data-preset="modern"]').click();
     assert.equal(await page.locator('#presetSkipConfirmation').isChecked(), false);
     await page.locator('#presetSkipConfirmation').check(); await page.locator('#presetApply').click();
     await go(page, 'Start'); await page.locator('#lessonSelect').selectOption('goal-setting');
     assert.equal(await preference(page), null, 'Changing teams/lessons starts a new confirmation session.');
-    await go(page, 'Starting look');await go(page, 'Starting look');await page.locator('[data-preset="serious"]').click();
+    await go(page, 'Pick a look');await go(page, 'Pick a look');await page.locator('[data-preset="serious"]').click();
     await page.locator('#presetSkipConfirmation').check(); await page.locator('#presetApply').click();
     await clickMenuItem(page, '#btnLeaveSession'); await ready(page);
     assert(native.some(message => message.startsWith('Leave this session on this browser?')));
     assert.equal(await preference(page), null);
-    await go(page, 'Starting look');await go(page, 'Starting look');await page.locator('[data-preset="professional"]').click();
+    await go(page, 'Pick a look');await go(page, 'Pick a look');await page.locator('[data-preset="professional"]').click();
     assert(await page.locator('#presetDialog').isVisible(), 'Returning saved design is protected even with cleared Undo history.');
     await page.locator('#presetApply').click();
-    await go(page, 'Starting look');await page.locator('[data-preset="modern"]').click();
+    await go(page, 'Pick a look');await page.locator('[data-preset="modern"]').click();
     assert.equal(await page.locator('#presetSkipConfirmation').isChecked(), false);
     await page.locator('#presetSkipConfirmation').check(); await page.locator('#presetApply').click();
     const context = page.context(); await page.close();
     const nextTab = await context.newPage(); nextTab.on('dialog', dialog => dialog.accept());
     await nextTab.goto(server.baseUrl+'/bespoke/'); await ready(nextTab);
     assert.equal(await preference(nextTab), null, 'A fresh tab does not inherit the closed tab’s opt-out.');
-    await go(nextTab, 'Starting look');await nextTab.locator('[data-preset="serious"]').click();
+    await go(nextTab, 'Pick a look');await nextTab.locator('[data-preset="serious"]').click();
     assert(await nextTab.locator('#presetDialog').isVisible()); assert.equal(await nextTab.locator('#presetSkipConfirmation').isChecked(), false);
     assert(!native.some(message => message.startsWith('Apply this preset')), 'Preset confirmation is no longer a native window.confirm.');
   });
@@ -386,9 +386,9 @@ try {
   await scenario('preset dialog is accessible on desktop and phone with safe keyboard dismissal and storage fallback', async ({ makePage }) => {
     for (const mobile of [false, true]) {
       const page = await makePage({ mobile });
-      await go(page, 'Starting look');await page.locator('[data-preset="professional"]').click();
+      await go(page, 'Pick a look');await page.locator('[data-preset="professional"]').click();
       const before = await design(page);
-      await go(page, 'Starting look');await page.locator('[data-preset="modern"]').focus(); await page.keyboard.press('Enter');
+      await go(page, 'Pick a look');await page.locator('[data-preset="modern"]').focus(); await page.keyboard.press('Enter');
       assert.equal(await page.evaluate(() => document.activeElement.id), 'presetCancel');
       await page.keyboard.press(tabKey); assert.equal(await page.evaluate(() => document.activeElement.id), 'presetApply');
       await page.keyboard.press(tabKey);
@@ -410,11 +410,11 @@ try {
       assert.equal(await page.evaluate(() => document.activeElement.id), (await draft(page)).stepId==='slides'?'selectedElement':'preset-modern');
     }
     const blocked = await makePage({ sessionStorageUnavailable: true });
-    await go(blocked, 'Starting look');await blocked.locator('[data-preset="professional"]').click(); await go(blocked, 'Starting look');await blocked.locator('[data-preset="modern"]').click();
+    await go(blocked, 'Pick a look');await blocked.locator('[data-preset="professional"]').click(); await go(blocked, 'Pick a look');await blocked.locator('[data-preset="modern"]').click();
     await blocked.locator('#presetSkipConfirmation').check(); await blocked.locator('#presetApply').click();
-    await go(blocked, 'Starting look');await blocked.locator('[data-preset="fun"]').click(); assert.equal((await design(blocked)).startingPoint,'fun');
+    await go(blocked, 'Pick a look');await blocked.locator('[data-preset="fun"]').click(); assert.equal((await design(blocked)).startingPoint,'fun');
     assert.equal(await blocked.locator('#presetDialog').isVisible(),false);
-    await blocked.reload(); await ready(blocked); await go(blocked, 'Starting look');await blocked.locator('[data-preset="serious"]').click();
+    await blocked.reload(); await ready(blocked); await go(blocked, 'Pick a look');await blocked.locator('[data-preset="serious"]').click();
     assert(await blocked.locator('#presetDialog').isVisible()); assert.equal(await blocked.locator('#presetSkipConfirmation').isChecked(),false);
   });
 
@@ -681,7 +681,7 @@ try {
       for (const [role, color] of [['subtitle','light'], ['dividerBackground','accent'], ['heading','accent'], ['body','gold']]) await paint(page, role, color);
       const chosen = await design(page);
       assert.equal(await page.locator('#modelStage .slide-card .slide-body').first().evaluate(el => getComputedStyle(el).color), 'rgb(211, 178, 87)');
-      await go(page, 'Review & save');
+      await go(page, 'Send');
       assert.match(await page.locator('#stepPanel .readability-warning').textContent(), /team leader can keep/);
       await save(page); assert.deepEqual((await openService(server)).selection.design, chosen);
       const backup = await download(page), savedHistory = (await draft(page)).changes;
@@ -743,7 +743,7 @@ try {
     await upload(page, oldSelection, 'original-v1.json');
     assert.deepEqual((await draft(page)).legacySelection, oldSelection);
     assert.match(await page.locator('#restoreNotice').textContent(), /original.*backup|older design/i);
-    await go(page, 'Review & save');
+    await go(page, 'Send');
     const original = await download(page, true);
     assert.deepEqual(original.payload, oldSelection);
     const converted = await download(page);
@@ -760,9 +760,9 @@ try {
 
   await scenario('all desktop steps and mobile controls pass WCAG checks and keyboard navigation', async ({ makePage }) => {
     const desktop = await makePage();
-    await go(desktop, 'Starting look');await desktop.locator('[data-preset="professional"]').focus();
+    await go(desktop, 'Pick a look');await desktop.locator('[data-preset="professional"]').focus();
     await desktop.keyboard.press('Enter');
-    assert.equal(await desktop.locator('#selectedElement').evaluate(el => el === document.activeElement), true, 'Applying a preset moves focus into Customize.');
+    assert.equal(await desktop.locator('#selectedElement').evaluate(el => el === document.activeElement), true, 'Applying a preset moves focus into Make it yours.');
     await desktop.keyboard.press(tabKey);
     // Background mode is a segmented control on wide screens; its checked segment holds the tab stop.
     assert.equal(await desktop.evaluate(() => document.activeElement.closest('[role=radiogroup]')?.getAttribute('aria-label')), 'Background', 'Tab continues into the contextual controls.');

@@ -84,6 +84,7 @@ if [ -d node_modules/playwright ] && [ -d node_modules/axe-core ]; then
   node scripts/test-bespoke-title-layouts.mjs
   node scripts/test-bespoke-video-frames.mjs
   node scripts/test-bespoke-patterns.mjs
+  node scripts/test-bespoke-showcase.mjs
   node scripts/generate-lesson-fingerprints.mjs --check
   echo "==> offline lessons package opens from file://"
   offline_out="$(mktemp -d)"

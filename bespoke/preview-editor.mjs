@@ -94,7 +94,7 @@ export function createPreviewEditor(host) {
    toolbar.append(edit);return;
   }
   const scopeBadge=document.createElement('strong');scopeBadge.className='scope-badge';scopeBadge.id='formattingScope';scopeBadge.textContent=selected==='sidebar'?'Shared navigation':selected==='button'?'All action buttons':selected==='accent'?'Shared accent':kind==='cards'&&selected.startsWith('heading')?'Title bar & all box headings':kind==='cards'&&selected.startsWith('body')?'All box text':selected.startsWith('box')?'All text boxes':kind==='activity'&&selected.startsWith('heading')?'Heading & activity label':kind==='divider'&&selected.startsWith('body')?'Chapter label & supporting text':'This slide type only';place('scope').append(scopeBadge);
-  field('element','Selected element',selected,targets.map(t=>({id:t.id,label:t.label})),value=>select(value,{focus:true}));
+  field('element','Editing',selected,targets.map(t=>({id:t.id,label:t.label})),value=>select(value,{focus:true}));
   document.getElementById('context-element').id='selectedElement';
   const saved={...host.model.roleStyleDefaults(host.catalog,design,kind),...design.roleStyles?.[kind]};
   const effective=host.model.effectiveRoleStyle(host.catalog,design,kind);
@@ -145,7 +145,7 @@ export function createPreviewEditor(host) {
    colorField('color','Text color',effective[type+'Color'],v=>apply(type+'Color',v));
    check('only-slide','Only this slide',host.onlySlide(),v=>host.setOnlySlide(v));
    field('align','Align',effective[type+'Alignment'],['left','center','right'].map(id=>({id,label:id[0].toUpperCase()+id.slice(1)})),v=>apply(type+'Alignment',v));
-   field('placement','Place in text area',saved[type+'Placement']==='layout'?(kind==='title'&&design.slides.title.layout==='bottom'?'bottom':kind==='title'&&['corner','headline','masthead'].includes(design.slides.title.layout)?'top':'middle'):saved[type+'Placement'],['top','middle','bottom'].map(id=>({id,label:id[0].toUpperCase()+id.slice(1)})),v=>apply(type+'Placement',v));
+   field('placement','Position',saved[type+'Placement']==='layout'?(kind==='title'&&design.slides.title.layout==='bottom'?'bottom':kind==='title'&&['corner','headline','masthead'].includes(design.slides.title.layout)?'top':'middle'):saved[type+'Placement'],['top','middle','bottom'].map(id=>({id,label:id[0].toUpperCase()+id.slice(1)})),v=>apply(type+'Placement',v));
    const target=targets.find(t=>t.id===selected)?.node;
    const box=target?.closest('.slide-card'),boxIndex=box?[...stage.querySelectorAll('.slide-card')].indexOf(box):-1;
    const isLabel=kind==='activity'&&target?.classList.contains('slide-activity-label')||kind==='divider'&&target?.matches('.slide-body:first-of-type');

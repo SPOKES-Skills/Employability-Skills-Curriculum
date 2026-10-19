@@ -85,15 +85,15 @@ try {
         await page.keyboard.press('Tab');assert(await page.locator('#teamName').evaluate(el=>el===document.activeElement),'Tab leaves the native selector for the next field');
         await lesson.selectOption(chosen);assert.equal(await lesson.inputValue(),chosen,'Native select preserves its chosen value');
       }
-      if(/Start|Shared colors|Text boxes|Video slide|Review & save/.test(name))await axe(page,`${label}/${name}`);
+      if(/Start|Shared colors|Text boxes|Video slide|Send/.test(name))await axe(page,`${label}/${name}`);
     }
     await surface(page,'preview');
     for(const kind of ['title','divider','cards','video','activity']) {
       await page.locator(`#previewTabs [data-view="${kind}"]`).click();await overflow(page,`${label}/preview-${kind}`);await geometry(page,`${label}/preview-${kind}`);
     }
-    await surface(page,'design');await builderDestination(page, 'Starting look');
+    await surface(page,'design');await builderDestination(page, 'Pick a look');
     await page.locator('[data-preset="modern"]').click();
-    if(!await page.locator('#presetDialog').isVisible()){await builderDestination(page,'Starting look');await page.locator('[data-preset="professional"]').click();}
+    if(!await page.locator('#presetDialog').isVisible()){await builderDestination(page,'Pick a look');await page.locator('[data-preset="professional"]').click();}
     await page.locator('#presetDialog').waitFor({state:'visible'});await axe(page,label+'/preset dialog');
     const dialog=await page.locator('#presetDialog').evaluate(el=>{const r=el.getBoundingClientRect();return {x:r.x,y:r.y,w:r.width,h:r.height,sw:el.scrollWidth,cw:el.clientWidth};});
     if(dialog.x<0||dialog.y<0||dialog.x+dialog.w>view.width+1||dialog.y+dialog.h>view.height+1||dialog.sw>dialog.cw+1)report('dialog containment '+label,dialog);

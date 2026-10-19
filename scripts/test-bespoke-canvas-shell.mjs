@@ -71,9 +71,9 @@ try {
     await page.keyboard.press('Escape');
 
     await page.locator('#stage-review').click();
-    assert.ok(await page.locator('#btnSave').evaluate(el => el.classList.contains('btn-secondary')), 'Save is secondary on Review');
+    assert.ok(await page.locator('#btnSave').evaluate(el => el.classList.contains('btn-secondary')), 'Save is secondary on Send');
     await context.close();
-    pass('Review stage demotes Save');
+    pass('Send stage demotes Save');
   }
   {
     // Apple HIG: closely related choices on an object are segmented controls; color opens a picker.
@@ -82,7 +82,7 @@ try {
     await page.locator('#stage-slides').click();
     await page.locator('#modelStage .slide-title-text').click();
 
-    for (const [label, count] of [['Size', 3], ['Align', 3], ['Place in text area', 3]]) {
+    for (const [label, count] of [['Size', 3], ['Align', 3], ['Position', 3]]) {
       const group = page.locator(`#contextToolbar [role=radiogroup][aria-label="${label}"]`);
       assert.equal(await group.count(), 1, `${label} is a segmented control`);
       assert.equal(await group.getByRole('radio').count(), count, `${label} segment count`);
@@ -141,7 +141,7 @@ try {
     assert.equal(await page.locator('#workspace').getAttribute('data-stage'), 'team');
     for (const id of ['#lessonSelect', '#teamName', '#spokespersonName', '#spokespersonEmail'])
       assert.ok(await page.locator(id).isVisible(), id + ' is visible without opening anything');
-    assert.equal(await page.locator('[data-preset]').count(), 0, 'the starting looks wait on the next stage');
+    assert.equal(await page.locator('[data-preset]').count(), 0, 'the looks wait on Pick a look');
     assert.equal(await page.locator('#stage-team').getAttribute('data-attention'), 'true', 'the pill asks for attention while details are missing');
     pass('a new visit opens on a Lesson & team page with an attention marker');
 
@@ -150,12 +150,12 @@ try {
     assert.equal(await page.locator('#stage-team').getAttribute('data-attention'), null, 'the marker clears once the team is identified');
     await page.locator('#btnNext').click();
     assert.equal(await page.locator('#stage-start').getAttribute('aria-current'), 'step');
-    assert.ok(await page.locator('[data-preset]').first().isVisible(), 'Continue opens the starting looks');
+    assert.ok(await page.locator('[data-preset]').first().isVisible(), 'Continue opens Pick a look');
     assert.match(await page.locator('#stage-team').getAttribute('title'), /Riverside Team/, 'the pill names the team on later stages');
     await page.locator('#btnBack').click();
     assert.equal(await page.locator('#stage-team').getAttribute('aria-current'), 'step', 'Back returns to Lesson & team');
     assert.equal(await page.locator('#teamName').inputValue(), 'Riverside Team');
-    pass('Continue and Back move between Lesson & team and the starting looks');
+    pass('Continue and Back move between Lesson & team and Pick a look');
 
     // Leaving a field must not rebuild the stage pills under the pointer and swallow the click.
     await page.locator('#teamName').fill('Riverside Team 2');

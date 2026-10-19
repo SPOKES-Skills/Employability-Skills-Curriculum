@@ -6,7 +6,7 @@ const roles = {
 };
 
 export const EDITOR_DESTINATIONS = [
-  'Start', 'Shared colors', 'Shared typography', ...Object.keys(roles), 'Review & save'
+  'Start', 'Shared colors', 'Shared typography', ...Object.keys(roles), 'Send'
 ];
 
 export async function builderDestination(page, destination) {
@@ -28,20 +28,20 @@ export async function builderDestination(page, destination) {
     await page.locator('#editor-'+roles[destination]).click();
     return;
   }
-  // Lesson & team is its own first stage; the starting looks are the second.
+  // Lesson & team is its own first stage; Pick a look is the second.
   if (destination === 'Start') {
     await page.locator('#stage-team').click();
     await page.locator('#teamName').waitFor({state: 'visible'});
     return;
   }
-  if (destination === 'Starting look') {
+  if (destination === 'Pick a look') {
     await page.locator('#stage-start').click();
     if (!await page.locator('[data-preset]').first().isVisible()) {
       await page.locator('#btnChangeStartingLook').click();
     }
     return;
   }
-  if (destination === 'Review & save') {
+  if (destination === 'Send') {
     await page.locator('#stage-review').click();
     return;
   }

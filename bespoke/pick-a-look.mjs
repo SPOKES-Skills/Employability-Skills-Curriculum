@@ -212,7 +212,13 @@ function wireStrip(strip, controller) {
   // pointer; answering those layout-made pointerover events would flip between two looks every frame.
   strip.addEventListener('pointermove', event => { if (card(event)) controller.show(card(event)); });
   strip.addEventListener('focusin', event => { if (card(event)) controller.show(card(event)); });
-  strip.addEventListener('pointerleave', () => { if (!strip.contains(document.activeElement)) controller.restore(); });
+  // Leaving the strip ends a hover preview. Focus can still sit on a card (a click puts it there), so the
+  // stage goes back to that card, which is the applied look itself after a click-apply.
+  strip.addEventListener('pointerleave', () => {
+    const focused = strip.contains(document.activeElement) ? document.activeElement.closest('[role=option]') : null;
+    if (focused) controller.show(focused);
+    else controller.restore();
+  });
   strip.addEventListener('focusout', event => { if (!strip.contains(event.relatedTarget)) controller.restore(); });
   strip.addEventListener('click', event => card(event)?.apply());
   strip.addEventListener('keydown', event => stripKeys(event, strip));

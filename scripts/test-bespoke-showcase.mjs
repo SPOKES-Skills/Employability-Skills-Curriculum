@@ -236,6 +236,18 @@ try {
   {
     const {context, page} = await open(1440, 900);
     await page.locator('#stage-start').click();
+    await page.locator('#preset-fun').click();
+    await page.locator('#preset-horizon').hover();
+    assert.equal(await textOf(page, '#lookName'), 'Ocean blue', 'hover previews after a click-apply');
+    await page.locator('#lookStage').hover();
+    assert.equal(await textOf(page, '#lookStageHeading'), 'Your starting look', 'leaving the strip ends the preview');
+    assert.equal(await textOf(page, '#lookName'), 'Midnight & gold', 'leaving the strip shows the applied look');
+    await context.close();
+    pass('leaving the strip returns to the applied look');
+  }
+  {
+    const {context, page} = await open(1440, 900);
+    await page.locator('#stage-start').click();
     const before = (await savedDraft(page)).design;
     await page.locator('#preset-fun').click();
     assert.equal(await page.locator('#presetDialog').count(), 0, 'no confirmation dialog');
@@ -249,14 +261,17 @@ try {
     pass('clicking applies without a dialog and stays');
   }
   {
-    const {context, page} = await open(1440, 900);
+    // Pick a look fits a 1440x900 window without scrolling, so a short window makes the page really scroll.
+    const {context, page} = await open(1440, 400);
     await page.locator('#stage-start').click();
     await page.locator('#preset-fun').click();
     await page.evaluate(() => window.scrollTo(0, 400));
+    const scrolled = () => page.evaluate(() => ({page: window.scrollY, workspace: document.getElementById('workspace').scrollTop}));
+    assert.ok((await scrolled()).page > 0, 'the page scrolled down before Make it ours');
     assert.equal(await textOf(page, '#btnMakeItOurs'), 'Make it ours →');
     await page.locator('#btnMakeItOurs').click();
     assert.equal(await page.locator('#workspace').getAttribute('data-stage'), 'slides');
-    assert.equal(await page.evaluate(() => window.scrollY), 0, 'Make it yours opens at the top');
+    assert.deepEqual(await scrolled(), {page: 0, workspace: 0}, 'Make it yours opens at the top');
     await context.close();
     pass('Make it ours lands at the top');
   }

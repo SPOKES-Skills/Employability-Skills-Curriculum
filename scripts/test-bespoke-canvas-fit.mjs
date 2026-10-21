@@ -31,3 +31,27 @@ test('enlarged text skips the fit', () => {
 test('a slide with no height is left alone', () => {
   assert.equal(fitScale({top: 0, natural: 0, viewport: 768}), 1);
 });
+
+// Ruling R24: no cliff at the floor. top 400 in a 768px window leaves 352px after the 16px gap.
+test('just below the floor, a mostly visible slide holds at the floor', () => {
+  // 352 / 0.44 = 800 natural: at 0.45 it is 360 tall and still ends 8px above the fold, inside the gap.
+  assert.equal(fitScale({top: 400, natural: 352 / 0.44, viewport: 768}), MIN_SCALE);
+  // 352 / 0.40 = 880 natural: at 0.45 it is 396 tall, 28px below the fold, under a fifth of it.
+  assert.equal(fitScale({top: 400, natural: 352 / 0.40, viewport: 768}), MIN_SCALE);
+});
+
+test('0.46 fits as is and 0.44 holds at the floor', () => {
+  assert.ok(Math.abs(fitScale({top: 400, natural: 352 / 0.46, viewport: 768}) - 0.46) < 1e-9);
+  assert.equal(fitScale({top: 400, natural: 352 / 0.44, viewport: 768}), MIN_SCALE);
+});
+
+test('far below the floor, the slide stays full size', () => {
+  // At 0.45 a 2000px slide is 900 tall and 532px of it would sit below the fold.
+  assert.equal(fitScale({top: 400, natural: 2000, viewport: 768}), 1);
+});
+
+test('the floor holds until a fifth of the slide falls below the fold', () => {
+  const natural = 1000, scaled = natural * MIN_SCALE;
+  assert.equal(fitScale({top: 768 - scaled * 0.81, natural, viewport: 768}), MIN_SCALE);
+  assert.equal(fitScale({top: 768 - scaled * 0.78, natural, viewport: 768}), 1);
+});

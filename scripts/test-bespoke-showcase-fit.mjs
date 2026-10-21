@@ -152,6 +152,41 @@ try {
       await context.close();
     }
   });
+  await check('a band above the workspace holds the slide at the floor, and its removal refits it', async () => {
+    // Ruling R24. Hosted sessions can show a status notice or the receipt band above the workspace; the local
+    // preview shows neither, so the test raises the #fileStatus notice the page uses for status text.
+    const scales = [];
+    for (const drawer of ['closed', 'open']) {
+      const {context, page} = await open(1024, 768);
+      await page.locator('#stage-slides').click();
+      await page.locator('#previewTabs [data-view=cards]').click();
+      await page.locator('#modelStage .slide-card .slide-body').first().click();
+      if (drawer === 'open') await page.locator('#btnMoreOptions').click();
+      const measure = async () => {
+        await page.evaluate(() => window.scrollTo(0, 0));
+        await settle(page);
+        return page.locator('#modelStage .bespoke-slide').evaluate(el => {
+          const r = el.getBoundingClientRect();
+          return {scale: r.height / el.offsetHeight, top: r.top, bottom: r.bottom, height: r.height};
+        });
+      };
+      const where = `1024x768, drawer ${drawer}, Text boxes`;
+      await page.evaluate(() => { const note = document.getElementById('fileStatus'); note.textContent = 'Synthetic status notice for the fit test.'; note.hidden = false; });
+      const banded = await measure();
+      const band = await rect(page, '#fileStatus');
+      assert.ok(band.height >= 30, `${where}: the notice shows above the workspace, ${band.height}px tall`);
+      assert.ok(banded.scale >= MIN_SCALE - 0.001 && banded.scale < 0.999, `${where}: with the notice the slide holds at a legible scale, not full size: ${banded.scale.toFixed(3)}`);
+      assert.ok(banded.bottom - 768 <= banded.height / 5, `${where}: with the notice at most a fifth of the slide is below the fold: ${banded.bottom - 768}px of ${banded.height}px`);
+      await page.evaluate(() => { document.getElementById('fileStatus').hidden = true; });
+      const clear = await measure();
+      assert.ok(clear.top >= 0 && clear.bottom <= 768, `${where}: without the notice the slide refits into the window, top ${clear.top}, bottom ${clear.bottom}`);
+      assert.ok(clear.scale > banded.scale, `${where}: the refit grows the slide back: ${banded.scale.toFixed(3)} to ${clear.scale.toFixed(3)}`);
+      scales.push(banded.scale);
+      await context.close();
+    }
+    // With the drawer closed the Text boxes slide keeps its 628px layout, so the notice pushes it to the floor.
+    assert.ok(scales.some(scale => Math.abs(scale - MIN_SCALE) < 0.001), `one case holds exactly at the floor ${MIN_SCALE}: ${scales.map(x => x.toFixed(3)).join(', ')}`);
+  });
   await check('Pick a look shows stage and strip together at 1024', async () => {
     const {context, page} = await open(1024, 768);
     await page.locator('#stage-start').click();

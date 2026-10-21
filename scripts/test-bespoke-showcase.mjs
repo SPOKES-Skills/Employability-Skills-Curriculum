@@ -174,19 +174,37 @@ try {
     const {context, page} = await open(1440, 900);
     await page.locator('#stage-slides').click();
     await page.evaluate(() => window.scrollTo(0, 600));
-    await page.locator('#btnSave').click();
+    // The live region is in the page and rendered before any message, so screen readers register it.
     const toast = page.locator('#toast');
-    await toast.waitFor({state: 'visible', timeout: 4000});
+    const state = () => toast.evaluate(el => ({
+      display: getComputedStyle(el).display, visibility: getComputedStyle(el).visibility,
+      opacity: getComputedStyle(el).opacity, position: getComputedStyle(el).position,
+      text: el.textContent, hiddenAttr: el.hasAttribute('hidden')
+    }));
     assert.equal(await page.locator('#toast').count(), 1, 'one #toast element is reused');
     assert.equal(await toast.getAttribute('role'), 'status');
     assert.equal(await toast.getAttribute('aria-live'), 'polite');
-    assert.match(await toast.textContent(), /Local test design saved|already up to date/, 'the toast carries the success message');
+    const idle = await state();
+    assert.notEqual(idle.display, 'none', 'the idle toast is rendered, not display:none');
+    assert.equal(idle.hiddenAttr, false, 'the idle toast has no hidden attribute');
+    assert.notEqual(idle.visibility, 'hidden', 'the idle toast is not visibility:hidden');
+    assert.equal(idle.opacity, '0', 'the idle toast is visually hidden');
+    assert.equal(idle.text, '', 'the idle toast is empty');
+    assert.match(await toast.ariaSnapshot(), /^- status/, 'the live region is in the accessibility tree before the message');
+    await page.locator('#btnSave').click();
+    await toast.filter({hasText: /Local test design saved|already up to date/}).waitFor({timeout: 4000});
+    const shown = await state();
+    assert.equal(shown.opacity, '1', 'the toast is visible with its message');
+    assert.equal(shown.position, 'fixed', 'the toast is fixed to the viewport');
+    assert.equal(await page.locator('#toast').count(), 1, 'still one #toast element');
     const box = await rect(page, '#toast');
     assert.ok(box.top >= 0 && box.top <= 120, `toast sits near the top of the viewport, top is ${box.top}px`);
-    assert.equal(await toast.evaluate(el => getComputedStyle(el).position), 'fixed', 'the toast is fixed to the viewport');
     assert.equal(await page.locator('#fileStatus').isVisible(), false, 'the page-top strip stays hidden for a success message');
     await page.waitForTimeout(5000);
-    assert.equal(await toast.isVisible(), false, 'the toast hides itself after a few seconds');
+    const after = await state();
+    assert.equal(after.opacity, '0', 'the toast hides itself after a few seconds');
+    assert.equal(after.text, '', 'the hidden toast is emptied');
+    assert.notEqual(after.display, 'none', 'the region stays rendered after it hides');
     await context.close();
     pass('success messages are toasts');
   }

@@ -1,4 +1,5 @@
 // One short message in view, for good news. Warnings stay in the page-top strip.
+// #toast stays rendered (never display:none) so screen readers announce text set into it.
 const DEFAULT_MS = 4000;
 let hideTimer = null;
 
@@ -10,7 +11,6 @@ function toastElement() {
     toast.className = 'toast';
     toast.setAttribute('role', 'status');
     toast.setAttribute('aria-live', 'polite');
-    toast.hidden = true;
     document.body.append(toast);
   }
   return toast;
@@ -19,10 +19,10 @@ function toastElement() {
 export function showToast(message, {ms = DEFAULT_MS} = {}) {
   const toast = toastElement();
   clearTimeout(hideTimer);
-  toast.hidden = false;
+  toast.classList.add('is-visible');
   toast.textContent = message;
   hideTimer = setTimeout(() => {
-    toast.hidden = true;
+    toast.classList.remove('is-visible');
     toast.textContent = '';
   }, ms);
 }

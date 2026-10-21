@@ -891,7 +891,7 @@ const findOption=(family,slug)=>state.library?.families?.[family]?.options.find(
       persistTeamSession();
     }
     storePendingSubmission(null);
-    successNotice(result.url ? "Britt received the review request. " + result.url : "Britt received the review request.");
+    successNotice("Britt received the review request.");
   }
 
   function scheduleSubmissionPoll(receipt, delay = 10000) {

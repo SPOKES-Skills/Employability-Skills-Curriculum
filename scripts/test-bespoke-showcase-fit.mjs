@@ -6,6 +6,7 @@ import assert from 'node:assert/strict';
 import {createDevServer} from './bespoke-dev-server.mjs';
 import {browserType} from './bespoke-test-browser.mjs';
 import {frameGaps, settle} from './bespoke-test-chrome.mjs';
+import {MIN_SCALE} from '../bespoke/canvas-fit.mjs';
 
 const server = await createDevServer({port: 0});
 const browser = await browserType.launch({headless: true});
@@ -109,6 +110,45 @@ try {
           assert.equal(await page.evaluate(() => document.activeElement.id), id.slice(1), `${width}: ${id} takes keyboard focus`);
         }
       }
+      await context.close();
+    }
+  });
+  await check('a slide too heavy to fit legibly stays full size', async () => {
+    // Ruling R23: the slide shrinks only while it stays legible; otherwise it keeps full size and the page scrolls.
+    const shown = async (page, where) => {
+      await page.evaluate(() => window.scrollTo(0, 0));
+      await settle(page);
+      const m = await page.locator('#modelStage .bespoke-slide').evaluate(el => {
+        const r = el.getBoundingClientRect();
+        return {scale: r.height / el.offsetHeight, top: r.top, bottom: r.bottom, innerHeight};
+      });
+      const full = Math.abs(m.scale - 1) < 0.001;
+      const fitted = m.scale >= MIN_SCALE - 0.001 && m.top >= 0 && m.bottom <= m.innerHeight;
+      assert.ok(full || fitted, `${where}: scale ${m.scale.toFixed(3)} is full size, or at least ${MIN_SCALE} with the slide in the window (top ${m.top}, bottom ${m.bottom})`);
+      return m;
+    };
+    {
+      const {context, page} = await open(768, 900);
+      await page.addStyleTag({content: 'html{font-size:200%!important}'});
+      await page.locator('#stage-slides').click();
+      await page.locator('#modelStage .slide-title-text').click();
+      const m = await shown(page, '768x900 at 200% text');
+      assert.ok(Math.abs(m.scale - 1) < 0.001, `768x900 at 200% text: enlarged text skips the fit, scale ${m.scale}`);
+      await context.close();
+    }
+    {
+      const {context, page} = await open(1920, 1080);
+      await page.locator('#stage-slides').click();
+      await page.locator('#previewTabs [data-view=cards]').click();
+      const boxes = await page.locator('#modelStage .slide-card .slide-body').count();
+      for (let i = 0; i < boxes; i++) {
+        await page.locator('#modelStage .slide-card .slide-body').nth(i).click();
+        const limit = Number(await page.locator('#context-text').getAttribute('maxlength'));
+        await page.locator('#context-text').fill('Consider a practical next step. '.repeat(60).slice(0, limit));
+        await page.locator('#context-text').blur();
+      }
+      // Three full boxes still fit at a legible scale here; the floor fallback itself is covered in test-bespoke-canvas-fit.mjs.
+      await shown(page, '1920x1080 with the longest box text');
       await context.close();
     }
   });

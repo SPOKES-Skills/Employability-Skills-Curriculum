@@ -2,19 +2,21 @@
 // Browser checks for the showcase polish: stage names, plain words, and the chrome rules later cases extend.
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-import {createDevServer} from './bespoke-dev-server.mjs';
+import {createDevServer, LOCAL_PREVIEW_VIEW_CODE} from './bespoke-dev-server.mjs';
+import {defaultDesign} from '../bespoke/builder-model.mjs';
+import catalog from '../bespoke/builder-catalog.json' with {type: 'json'};
 import {browserType} from './bespoke-test-browser.mjs';
 import {clickMenuItem} from './bespoke-test-navigation.mjs';
 
 const server = await createDevServer({port: 0});
 const browser = await browserType.launch({headless: true});
 const errors = [];
-const open = async (width, height = 900, reducedMotion = 'reduce') => {
+const open = async (width, height = 900, reducedMotion = 'reduce', baseUrl = server.baseUrl) => {
   const context = await browser.newContext({viewport: {width, height}, reducedMotion});
   await context.addInitScript(() => { window.__bespokeAutosave = {enabled: false}; });
   const page = await context.newPage();
   page.on('pageerror', e => errors.push(e.message));
-  await page.goto(server.baseUrl + '/bespoke/');
+  await page.goto(baseUrl + '/bespoke/');
   await page.locator('#localPreviewNotice').waitFor({state: 'visible'});
   return {context, page};
 };
@@ -23,6 +25,14 @@ const rect = (page, selector) => page.locator(selector).first().evaluate(el => {
   return {left: r.left, top: r.top, right: r.right, bottom: r.bottom, width: r.width, height: r.height};
 });
 const pass = name => console.log('ok - ' + name);
+// The browser draft holds the design with its sample words; the recovery copy beside it can hold an older one.
+const savedDraft = page => page.evaluate(() => JSON.parse(localStorage.getItem('bespoke-draft-v2')));
+const lookNameOf = id => catalog.presets.find(preset => preset.id === id).colorLabel;
+const textOf = (page, selector) => page.locator(selector).textContent().then(t => t.replace(/\s+/g, ' ').trim());
+// Slide renders carry their own data-look (the text box style), so look cards are read from the strip itself.
+const visibleLooks = page => page.locator('#lookStrip > [data-look]').evaluateAll(list => list
+  .filter(el => { const r = el.getBoundingClientRect(); return r.width > 0 && r.height > 0 && getComputedStyle(el).visibility !== 'hidden'; })
+  .map(el => el.dataset.look));
 
 // Visible builder controls outside the slide renders and outside shadow roots.
 // Later cases use this to check the 44px target, focus ring and tab order rules.
@@ -207,6 +217,166 @@ try {
     assert.notEqual(after.display, 'none', 'the region stays rendered after it hides');
     await context.close();
     pass('success messages are toasts');
+  }
+  {
+    const {context, page} = await open(1440, 900);
+    await page.locator('#stage-start').click();
+    const changes = () => page.locator('#changeList li').count();
+    const n = await changes();
+    const before = await textOf(page, '#lookName');
+    await page.locator('#preset-horizon').hover();
+    assert.equal(await textOf(page, '#lookName'), 'Ocean blue', 'hover shows the look name beside the stage');
+    assert.equal(await textOf(page, '#lookStageHeading'), 'Previewing Ocean blue');
+    assert.equal(await changes(), n, 'a preview is not an undo step');
+    await page.keyboard.press('Escape');
+    assert.equal(await textOf(page, '#lookName'), before, 'Escape returns to the applied look');
+    await context.close();
+    pass('hover previews without an undo step');
+  }
+  {
+    const {context, page} = await open(1440, 900);
+    await page.locator('#stage-start').click();
+    const before = (await savedDraft(page)).design;
+    await page.locator('#preset-fun').click();
+    assert.equal(await page.locator('#presetDialog').count(), 0, 'no confirmation dialog');
+    assert.equal(await page.locator('#workspace').getAttribute('data-stage'), 'start', 'applying stays on Pick a look');
+    assert.equal(await textOf(page, '#lookName'), 'Midnight & gold');
+    assert.notDeepEqual((await savedDraft(page)).design, before, 'the look was applied');
+    assert.equal(await textOf(page, '#btnUndoLook'), 'Undo');
+    await page.locator('#btnUndoLook').click();
+    assert.deepEqual((await savedDraft(page)).design, before, 'Undo restores the earlier design');
+    await context.close();
+    pass('clicking applies without a dialog and stays');
+  }
+  {
+    const {context, page} = await open(1440, 900);
+    await page.locator('#stage-start').click();
+    await page.locator('#preset-fun').click();
+    await page.evaluate(() => window.scrollTo(0, 400));
+    assert.equal(await textOf(page, '#btnMakeItOurs'), 'Make it ours →');
+    await page.locator('#btnMakeItOurs').click();
+    assert.equal(await page.locator('#workspace').getAttribute('data-stage'), 'slides');
+    assert.equal(await page.evaluate(() => window.scrollY), 0, 'Make it yours opens at the top');
+    await context.close();
+    pass('Make it ours lands at the top');
+  }
+  {
+    const {context, page} = await open(1440, 900);
+    await page.locator('#stage-start').click();
+    const titles = await page.locator('#showcase .slide-title-text').allTextContents();
+    assert.ok(titles.length > 1, `the stage and the strip render title slides, got ${titles.length}`);
+    for (const title of titles) assert.equal(title.trim(), 'Money Management', 'every render carries the lesson name');
+    assert.equal((await savedDraft(page)).design.samples.title, defaultDesign(catalog).samples.title, 'the lesson name is not written into the design');
+    await context.close();
+    pass('slides show the lesson name');
+  }
+  {
+    const {context, page} = await open(1440, 900);
+    await page.locator('#stage-start').click();
+    const chips = await page.locator('[data-mood]').evaluateAll(list => list.map(el => el.dataset.mood));
+    assert.deepEqual(chips, ['all', 'calm', 'bold', 'bright', 'classic'], 'mood chips in order');
+    assert.equal((await visibleLooks(page)).length, 12, 'All 12 shows every look');
+    await page.locator('[data-mood="bold"]').click();
+    assert.deepEqual((await visibleLooks(page)).sort(), ['fun', 'outspoken']);
+    await context.close();
+    pass('moods filter the strip');
+  }
+  {
+    const {context, page} = await open(1440, 900);
+    await page.locator('#stage-start').click();
+    assert.equal(await page.locator('#lookStrip').getAttribute('role'), 'listbox');
+    const ids = await visibleLooks(page);
+    const next = ids[ids.indexOf('professional') + 1];
+    await page.locator('#preset-professional').focus();
+    await page.keyboard.press('ArrowRight');
+    assert.equal(await page.evaluate(() => document.activeElement.dataset.look), next, 'ArrowRight moves to the next look');
+    assert.equal(await textOf(page, '#lookName'), lookNameOf(next), 'focus previews the look');
+    await context.close();
+    pass('arrow keys move and preview');
+  }
+  {
+    // A server with nothing saved, so the team arrives without a design of their own.
+    const empty = await createDevServer({port: 0});
+    const {context, page} = await open(1440, 900, 'reduce', empty.baseUrl);
+    await page.locator('#stage-start').click();
+    assert.equal(await page.locator('#lookYours').count(), 0, 'no Your design card without a design of their own');
+    await page.locator('#preset-fun').click();
+    await page.locator('#btnMakeItOurs').click();
+    await page.locator('#modelStage .slide-title-text').click();
+    await page.locator('#context-color-well').click();
+    await page.locator('#context-color-popover [role=radio][aria-checked=false]').first().click();
+    const mine = (await savedDraft(page)).design;
+    await page.locator('#stage-start').click();
+    assert.ok(await page.locator('#lookYours').isVisible(), 'Your design card shows');
+    await page.locator('#preset-horizon').click();
+    assert.notDeepEqual((await savedDraft(page)).design, mine);
+    await page.locator('#lookYours').click();
+    assert.deepEqual((await savedDraft(page)).design, mine, 'Your design restores the design from Make it yours');
+    await context.close();
+    await empty.close?.();
+    pass('Your design card');
+  }
+  {
+    const {context, page} = await open(1024, 768);
+    await page.locator('#stage-start').click();
+    const stage = await rect(page, '#lookStage'), side = await rect(page, '#lookSide');
+    assert.ok(side.top >= stage.bottom, `the side column moves under the stage, side top ${side.top}, stage bottom ${stage.bottom}`);
+    // The strip sits under the side column here, so a preview must not change the side column's height.
+    const stripTop = () => page.locator('#lookStrip').evaluate(el => el.getBoundingClientRect().top + window.scrollY);
+    const before = await stripTop();
+    for (const id of ['outspoken', 'columns', 'masthead']) {
+      await page.locator('#preset-' + id).hover();
+      assert.equal(await stripTop(), before, `previewing ${id} leaves the strip in place`);
+    }
+    await context.close();
+    pass('side column wraps at 1024');
+  }
+  {
+    const context = await browser.newContext({viewport: {width: 1440, height: 900}, reducedMotion: 'reduce'});
+    await context.addInitScript(() => { window.__bespokeAutosave = {enabled: false}; });
+    const page = await context.newPage();
+    page.on('pageerror', e => errors.push(e.message));
+    await page.goto(`${server.baseUrl}/bespoke/#view=money-management.${LOCAL_PREVIEW_VIEW_CODE}`);
+    await page.locator('body[data-access=view]').waitFor();
+    await page.locator('#stage-start').click();
+    await page.locator('#lookStrip').waitFor();
+    const locked = selector => page.locator(selector).evaluateAll(list => list.map(el => ({id: el.id || el.dataset.look, off: el.disabled === true || el.getAttribute('aria-disabled') === 'true'})));
+    const controls = [...await locked('#btnMakeItOurs'), ...await locked('#btnBuildOwn'), ...await locked('#lookYours'), ...await locked('#lookStrip > [data-look]')];
+    assert.ok(controls.length >= 14, `found the look controls, got ${controls.length}`);
+    for (const control of controls) assert.ok(control.off, `${control.id} cannot apply in a view-only session`);
+    await page.locator('#preset-horizon').hover();
+    assert.equal(await textOf(page, '#lookName'), 'Ocean blue', 'hover still previews');
+    await context.close();
+    pass('view-only sessions cannot apply');
+  }
+  {
+    const {context, page} = await open(1440, 900);
+    await page.locator('#stage-team').click();
+    const longest = await page.locator('#lessonSelect option').evaluateAll(list => list.reduce((a, b) => (b.textContent.length > a.textContent.length ? b : a)).value);
+    await page.locator('#lessonSelect').selectOption(longest);
+    await page.locator('#stage-start').click();
+    const fits = await page.locator('#showcase .slide-title-text').evaluateAll(list => list.map(el => {
+      const r = el.getBoundingClientRect(), s = el.closest('.bespoke-slide').getBoundingClientRect();
+      return {text: el.textContent, wide: el.scrollWidth <= el.clientWidth + 1, inside: r.left >= s.left - 1 && r.right <= s.right + 1 && r.top >= s.top - 1 && r.bottom <= s.bottom + 1};
+    }));
+    assert.ok(fits.length > 1);
+    for (const fit of fits) {
+      assert.ok(fit.wide, `"${fit.text}" does not overflow its line`);
+      assert.ok(fit.inside, `"${fit.text}" stays inside its slide`);
+    }
+    await context.close();
+    pass('long lesson titles fit');
+  }
+  {
+    const {context, page} = await open(390, 844);
+    await page.locator('#stage-start').click();
+    await page.locator('#btnMakeItOurs').scrollIntoViewIfNeeded();
+    assert.ok(await page.locator('#btnMakeItOurs').isVisible(), 'Make it ours is reachable on a phone');
+    await page.locator('#preset-modern').click();
+    assert.equal(await textOf(page, '#lookName'), 'Fresh green', 'a tap applies the look on a phone');
+    assert.ok(await page.evaluate(() => document.documentElement.scrollWidth) <= 390, 'no sideways page scroll on a phone');
+    await context.close();
+    pass('phone width stacks');
   }
   assert.deepEqual(errors, []);
 } finally {

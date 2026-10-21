@@ -36,9 +36,7 @@ export async function builderDestination(page, destination) {
   }
   if (destination === 'Pick a look') {
     await page.locator('#stage-start').click();
-    if (!await page.locator('[data-preset]').first().isVisible()) {
-      await page.locator('#btnChangeStartingLook').click();
-    }
+    await page.locator('#lookStrip').waitFor({state: 'visible'});
     return;
   }
   if (destination === 'Send') {
@@ -56,11 +54,6 @@ export async function recoveryMenu(page, open) {
 export async function switchSurface(page, surface) {
   const tab=page.locator('#surface-'+surface);
   if(await tab.isVisible())await tab.click();
-}
-
-export async function otherStartingPaths(page) {
- const section=page.locator('#otherStartingPaths');
- if(!await section.evaluate(n=>n.open))await section.locator('summary').click();
 }
 
 // Header actions other than Save, Undo and Redo live in the top bar's ⋯ menu.

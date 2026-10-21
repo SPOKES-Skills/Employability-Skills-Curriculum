@@ -141,7 +141,7 @@ try {
     assert.equal(await page.locator('#workspace').getAttribute('data-stage'), 'team');
     for (const id of ['#lessonSelect', '#teamName', '#spokespersonName', '#spokespersonEmail'])
       assert.ok(await page.locator(id).isVisible(), id + ' is visible without opening anything');
-    assert.equal(await page.locator('[data-preset]').count(), 0, 'the looks wait on Pick a look');
+    assert.equal(await page.locator('#lookStrip > [data-look]').count(), 0, 'the looks wait on Pick a look');
     assert.equal(await page.locator('#stage-team').getAttribute('data-attention'), 'true', 'the pill asks for attention while details are missing');
     pass('a new visit opens on a Lesson & team page with an attention marker');
 
@@ -150,7 +150,7 @@ try {
     assert.equal(await page.locator('#stage-team').getAttribute('data-attention'), null, 'the marker clears once the team is identified');
     await page.locator('#btnNext').click();
     assert.equal(await page.locator('#stage-start').getAttribute('aria-current'), 'step');
-    assert.ok(await page.locator('[data-preset]').first().isVisible(), 'Continue opens Pick a look');
+    assert.ok(await page.locator('#lookStrip > [data-look]').first().isVisible(), 'Continue opens Pick a look');
     assert.match(await page.locator('#stage-team').getAttribute('title'), /Riverside Team/, 'the pill names the team on later stages');
     await page.locator('#btnBack').click();
     assert.equal(await page.locator('#stage-team').getAttribute('aria-current'), 'step', 'Back returns to Lesson & team');

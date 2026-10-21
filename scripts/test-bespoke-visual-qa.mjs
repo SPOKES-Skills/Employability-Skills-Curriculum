@@ -51,7 +51,7 @@ async function overflow(page,label) {
 async function axe(page,label) {
   await page.addScriptTag({content:axeSource});
   // User-authored preview contrast is advisory; this scan covers editor controls.
-  const violations=await page.evaluate(async()=> (await window.axe.run({exclude:[['#modelStage'],['.button-color-sample']]},{runOnly:{type:'tag',values:['wcag2a','wcag2aa','wcag21aa','wcag22aa']}})).violations.map(v=>({id:v.id,impact:v.impact,nodes:v.nodes.map(n=>({target:n.target,summary:n.failureSummary}))})));
+  const violations=await page.evaluate(async()=> (await window.axe.run({exclude:[['#modelStage'],['.button-color-sample'],['#lookStage'],['.look-deck'],['.look-thumb']]},{runOnly:{type:'tag',values:['wcag2a','wcag2aa','wcag21aa','wcag22aa']}})).violations.map(v=>({id:v.id,impact:v.impact,nodes:v.nodes.map(n=>({target:n.target,summary:n.failureSummary}))})));
   axes++;if(violations.length)report('editor axe '+label,{violations});
 }
 async function geometry(page,label) {
@@ -92,15 +92,10 @@ try {
       await page.locator(`#previewTabs [data-view="${kind}"]`).click();await overflow(page,`${label}/preview-${kind}`);await geometry(page,`${label}/preview-${kind}`);
     }
     await surface(page,'design');await builderDestination(page, 'Pick a look');
-    await page.locator('[data-preset="modern"]').click();
-    if(!await page.locator('#presetDialog').isVisible()){await builderDestination(page,'Pick a look');await page.locator('[data-preset="professional"]').click();}
-    await page.locator('#presetDialog').waitFor({state:'visible'});await axe(page,label+'/preset dialog');
-    const dialog=await page.locator('#presetDialog').evaluate(el=>{const r=el.getBoundingClientRect();return {x:r.x,y:r.y,w:r.width,h:r.height,sw:el.scrollWidth,cw:el.clientWidth};});
-    if(dialog.x<0||dialog.y<0||dialog.x+dialog.w>view.width+1||dialog.y+dialog.h>view.height+1||dialog.sw>dialog.cw+1)report('dialog containment '+label,dialog);
-    for(const id of ['presetCancel','presetSkipConfirmation','presetApply']) {const node=page.locator('#'+id);await node.focus();assert(await node.evaluate(el=>el===document.activeElement),'Dialog control keyboard focus');}
-    await page.keyboard.press('Tab');assert(await page.locator('#presetSkipConfirmation').evaluate(el=>el===document.activeElement),'Dialog forward focus wraps');
-    await page.keyboard.press('Shift+Tab');assert(await page.locator('#presetApply').evaluate(el=>el===document.activeElement),'Dialog backward focus wraps');
-    await page.keyboard.press('Escape');assert(!await page.locator('#presetDialog').isVisible());
+    await axe(page,label+'/Pick a look');
+    const pick=await page.evaluate(()=>{const r=document.getElementById('btnMakeItOurs').getBoundingClientRect();return {sw:document.documentElement.scrollWidth,x:r.x,w:r.width};});
+    if(pick.sw>view.width+1||pick.x<0||pick.x+pick.w>view.width+1)report('Pick a look containment '+label,pick);
+    for(const id of ['preset-modern','btnMakeItOurs','btnBuildOwn']) {const node=page.locator('#'+id);await node.focus();assert(await node.evaluate(el=>el===document.activeElement),'Pick a look keyboard focus');}
     await surface(page,'design');await builderDestination(page, 'Video slide');
     if(output&&[320,390,768,1920].includes(view.width))await page.screenshot({path:path.join(output,`editor-${label}.png`),fullPage:true});
     console.log('CHECK editor '+label);

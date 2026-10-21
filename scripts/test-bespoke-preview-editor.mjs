@@ -1,5 +1,4 @@
 #!/usr/bin/env node
-import {otherStartingPaths} from './bespoke-test-navigation.mjs';
 import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
 import path from 'node:path';
@@ -100,7 +99,7 @@ try{
  const beside=async(page,a,b)=>page.evaluate(([a,b])=>{const x=document.querySelector(a).getBoundingClientRect(),y=document.querySelector(b).getBoundingClientRect();return {sameRow:x.top<y.bottom&&y.top<x.bottom,leftOf:x.right<=y.left+1,a:[x.left|0,x.top|0,x.width|0],b:[y.left|0,y.top|0,y.width|0]};},[a,b]);
  await check('guide',async()=>{
   const {page,done}=await fresh(1440);
-  await page.locator('#stage-start').click();await otherStartingPaths(page);await page.locator('#btnGuideMe').click();await page.locator('.guide-count').waitFor();
+  await page.locator('#stage-start').click();await page.locator('#btnGuideMe').click();await page.locator('.guide-count').waitFor();
   const question=await page.locator('.guide-count').textContent();
   await page.locator('#modelStage .slide-title-text').click();
   assert.equal(await page.locator('.guide-count').count(),1,'Clicking the preview keeps Guide me open');
@@ -129,7 +128,7 @@ try{
   const gap=await page.evaluate(()=>document.getElementById('previewPane').getBoundingClientRect().top-document.getElementById('slideRail').getBoundingClientRect().bottom);
   assert.ok(gap<60,'The preview starts right under the thumbnails at '+lw+'px, not after a gap of '+Math.round(gap)+'px');
   await page.locator('#btnCloseOptions').click();
-  await page.locator('#stage-start').click();await otherStartingPaths(page);await page.locator('#btnGuideMe').click();await page.locator('.guide-count').waitFor();
+  await page.locator('#stage-start').click();await page.locator('#btnGuideMe').click();await page.locator('.guide-count').waitFor();
   const guided=await beside(page,'#previewPane','#chromeRail');
   assert.ok(guided.sameRow&&guided.leftOf,'Guide me sits beside the preview at '+lw+'px: '+JSON.stringify(guided));
   await done();console.log('PASS options and the guide stay beside the preview at '+lw+'px');

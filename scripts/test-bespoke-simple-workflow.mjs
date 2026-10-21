@@ -23,15 +23,14 @@ try {
   const context=await browser.newContext({viewport:{width,height:1000},reducedMotion:'reduce'});
   await context.addInitScript(()=>window.__bespokeAutosave={enabled:false});
   const page=await context.newPage();page.on('pageerror',e=>errors.push(e.message));
-  await page.goto(server.baseUrl+'/bespoke/');await page.locator('#stage-start').click();await page.locator('.preset-choice').first().waitFor();
-  assert.equal(await page.locator('.preset-choice').count(),12);
+  await page.goto(server.baseUrl+'/bespoke/');await page.locator('#stage-start').click();await page.locator('#lookStrip > [data-look]').first().waitFor();
+  assert.equal(await page.locator('#lookStrip > [data-look]').count(),12);
   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),true);
   if(screenshots){await fs.mkdir(screenshots,{recursive:true});await page.screenshot({path:screenshots+`/layouts-${width}.png`,fullPage:true});}
   if(width===1440){
    const shapes=[];
    for(const preset of catalog.presets){
-    await page.locator('#preset-'+preset.id).click();
-    if(await page.locator('#presetDialog').isVisible())await page.locator('#presetApply').click();
+    await page.locator('#preset-'+preset.id).click();await page.locator('#btnMakeItOurs').click();
     assert.equal((await current(page)).slides.title.layout,preset.design.slides.title.layout);
     const shape=await page.locator('#modelStage').evaluate(stage=>{const root=stage.querySelector('.bespoke-slide').getBoundingClientRect();return [...stage.querySelectorAll('.slide-title-text,.slide-subtitle,.slide-accent')].map(n=>{const r=n.getBoundingClientRect();return [Math.round(r.x-root.x),Math.round(r.y-root.y),Math.round(r.width),Math.round(r.height)];});});
     shapes.push(JSON.stringify(shape));
@@ -39,7 +38,7 @@ try {
    }
    assert.equal(new Set(shapes).size,12,'Twelve visibly distinct geometries, not just colors');
   }
-  await page.locator('#preset-professional').click();if(await page.locator('#presetDialog').isVisible())await page.locator('#presetApply').click();
+  await page.locator('#preset-professional').click();await page.locator('#btnMakeItOurs').click();
   await page.locator('#modelStage .slide-title-text').focus();await page.keyboard.press('Enter');
   await page.locator('#context-text').fill('Team style <&>');await page.locator('#context-size').selectOption('large');
   assert.equal(await page.locator('#modelStage .slide-title-text').textContent(),'Team style <&>');

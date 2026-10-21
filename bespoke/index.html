@@ -63,17 +63,9 @@ FINISH: unreviewed and undocumented is unfinished; this build ends with the fini
   <p class="preview-caption">Every preview uses your current colors, fonts and arrangements. These are reusable slide designs, not finished lesson pages.</p>
  </section>
  <div id="inspectorFollowup" class="inspector-followup" hidden></div>
+ <section id="showcase" class="showcase" aria-label="Pick a look" hidden></section>
 </main>
 <dialog id="openDialog" aria-labelledby="openDialogTitle"><form id="openForm"><h2 id="openDialogTitle">Open your team design</h2><p>Type the 8-character team code from your team's OneDrive folder. Lost it? Ask Britt for a new code.</p><label class="field">Lesson<select id="openLesson" required></select></label><label class="field">Team code<input id="openEditCode" type="password" autocomplete="off" minlength="8" maxlength="128" required></label><p id="openError" role="status"></p><div class="dialog-actions"><button type="submit" class="btn btn-primary" id="openConfirm">Open</button><button type="button" class="btn btn-secondary" id="openCancel">Cancel</button></div></form></dialog>
-<dialog id="presetDialog" aria-labelledby="presetDialogTitle" aria-describedby="presetDialogDescription">
- <form id="presetForm" method="dialog">
-  <h2 id="presetDialogTitle">Apply this preset?</h2>
-  <p id="presetDialogDescription">Your visual choices will change. Sample text stays. Undo can restore your current look.</p>
-  <label class="dialog-check"><input type="checkbox" id="presetSkipConfirmation" aria-describedby="presetSessionHelp"><span>Don't ask again during this session</span></label>
-  <p id="presetSessionHelp" class="helper">Only in this tab's current editing session. Other warnings stay on.</p>
-  <div class="dialog-actions"><button type="button" class="btn btn-secondary" id="presetCancel" autofocus>Cancel</button><button type="submit" class="btn btn-primary" id="presetApply">Apply preset</button></div>
- </form>
-</dialog>
 <p id="toast" class="toast" role="status" aria-live="polite"></p>
 <script type="module" src="./builder-app.mjs"></script>
 </body></html>

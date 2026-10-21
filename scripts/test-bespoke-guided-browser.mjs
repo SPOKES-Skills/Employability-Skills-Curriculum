@@ -1,5 +1,4 @@
 #!/usr/bin/env node
-import {otherStartingPaths} from './bespoke-test-navigation.mjs';
 // Guided-mode checks use a fresh loopback-only server, synthetic people and in-memory drafts.
 import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
@@ -57,8 +56,8 @@ const design = async (page) => (await draft(page)).design;
 const heading = (page) => page.locator('#stepPanel h1').first().innerText();
 const count = (page) => page.locator('.guide-count').innerText();
 async function startGuide(page) {
-  await page.locator('#stage-start').click();await otherStartingPaths(page);
-  await otherStartingPaths(page);await page.locator('#btnGuideMe').click();
+  await page.locator('#stage-start').click();
+  await page.locator('#btnGuideMe').click();
   await page.locator('.guide-count').waitFor();
 }
 const next = (page) => page.locator('#btnGuideNext').click();
@@ -73,10 +72,10 @@ async function walkTo(page, title) {
 try {
   await scenario('Start offers Guide me and the guide opens on the first question', async ({ makePage }) => {
     const page = await makePage();
-    await page.locator('#stage-start').click();await otherStartingPaths(page);
-    assert.equal(await page.locator('#btnGuideMe').innerText(), 'Guide me step by step');
+    await page.locator('#stage-start').click();
+    assert.equal(await page.locator('#btnGuideMe').innerText(), 'Guide me');
     assert.equal(await page.locator('#btnBuildOwn').count(), 1, 'Edit freely (Build my own) is still there');
-    await otherStartingPaths(page);await page.locator('#btnGuideMe').click();
+    await page.locator('#btnGuideMe').click();
     assert.match(await count(page), /^Question 1 of 40 · Starting look$/);
     assert.equal(await heading(page), 'Your team');
     assert.equal(await page.locator('#stage-slides').getAttribute('aria-current'), 'step');
@@ -93,9 +92,9 @@ try {
     assert.equal(await heading(page), 'Starting look');
     await page.locator('#btnGuideExit').click();
     assert.equal(await page.locator('#roleEditorPanel').count(), 1, 'the free editor is showing');
-    await page.locator('#stage-start').click();await otherStartingPaths(page);
+    await page.locator('#stage-start').click();
     assert.equal(await page.locator('#btnGuideContinue').innerText(), 'Continue guide');
-    await otherStartingPaths(page);await page.locator('#btnGuideContinue').click();
+    await page.locator('#btnGuideContinue').click();
     assert.equal(await heading(page), 'Starting look', 'Continue guide returns to the question the team left');
   });
 
@@ -110,7 +109,7 @@ try {
     await page.reload();
     await page.locator('#stepList button').first().waitFor();
     await page.locator('#stage-start').click();
-    await otherStartingPaths(page);await page.locator('#btnGuideContinue').click();
+    await page.locator('#btnGuideContinue').click();
     assert.equal(await heading(page), 'Background pattern', 'Continue guide returns to the question the team left');
     // After a real choice the draft is restored as it was, guide open.
     await page.locator('.guide-sample[aria-pressed="false"]').first().click();
@@ -205,7 +204,6 @@ try {
           const beforeDesign = await design(page);
           const before = await page.locator('#modelStage').screenshot();
           await button.click();
-          if (await page.locator('#presetDialog[open]').count()) await page.locator('#presetApply').click();
           await page.mouse.move(0, 0);
           const after = await page.locator('#modelStage').screenshot();
           const afterDesign = await design(page);
@@ -274,7 +272,7 @@ try {
     assert.equal(await page.locator('#stage-review').getAttribute('aria-current'), 'step');
     assert.deepEqual(await design(page), start, 'Next without choosing changes nothing');
     assert.deepEqual(Model.validateDesign(catalog, await design(page)), []);
-    await page.locator('#stage-start').click();await otherStartingPaths(page);
+    await page.locator('#stage-start').click();
     assert.equal(await page.locator('#btnGuideMe').count(), 1, 'a finished guide offers to start again');
   });
   await scenario('Undo returns the guide to the question where the change was made', async ({ makePage }) => {
@@ -305,8 +303,8 @@ try {
     const original = (await design(page)).slides.title.layout;
     await page.locator(`.guide-sample[data-choice="${original === 'split' ? 'center' : 'split'}"]`).click();
     await page.locator('#btnGuideExit').click();
-    await page.locator('#stage-start').click();await otherStartingPaths(page);
-    await otherStartingPaths(page);await page.locator('#btnGuideRestart').click();
+    await page.locator('#stage-start').click();
+    await page.locator('#btnGuideMe').click();
     await page.locator('.guide-count').waitFor();
     assert.match(await count(page), /of 39\b/, 'the restarted guide no longer asks the team question');
     await page.locator('#btnUndo').click();

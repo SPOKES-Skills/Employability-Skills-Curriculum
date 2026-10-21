@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import {clickMenuItem, otherStartingPaths} from './bespoke-test-navigation.mjs';
+import {clickMenuItem} from './bespoke-test-navigation.mjs';
 // Independent acceptance of the three-stage workflow. All services are ephemeral,
 // all browser contexts are new, and all names/content are synthetic. Never attaches
 // to Safari, an existing browser, the persistent preview, or a hosted service.
@@ -133,11 +133,6 @@ async function team(page) {
   // Callers carry on with Pick a look, which is the stage after Lesson & team.
   await stage(page, 'start');
 }
-async function startingLooks(page) {
-  await stage(page, 'start');
-  const change = page.locator('#btnChangeStartingLook');
-  if (await change.isVisible() && await change.getAttribute('aria-expanded') !== 'true') await change.click();
-}
 async function save(page, status = 200) {
   const pending = page.waitForResponse(r => r.url().endsWith('/api/bespoke') && r.request().postDataJSON()?.action === 'save');
   await page.locator('#btnSave').click(); const response = await pending;
@@ -194,9 +189,9 @@ async function shot(page, name) {
 async function axe(page, label) {
   await page.addScriptTag({ content: axeSource });
   const result = await page.evaluate(async () => {
-    // Artwork remains configurable and advisory. Editor regions, preview tabs,
+    // Artwork (the editor preview and the Pick a look renders) remains configurable and advisory. Editor regions, preview tabs,
     // status messages, and all recovery controls are included with best practices.
-    const scan = await window.axe.run({ exclude: [['#modelStage'], ['.button-color-sample']] });
+    const scan = await window.axe.run({ exclude: [['#modelStage'], ['.button-color-sample'], ['#lookStage'], ['.look-deck'], ['.look-thumb']] });
     return { violations: scan.violations.map(v => ({ id: v.id, impact: v.impact, targets: v.nodes.map(n => n.target) })), regionChecked: scan.passes.some(r => r.id === 'region') };
   });
   evidence.push({ label, axe: result });
@@ -436,7 +431,7 @@ try {
   await scenario('custom journey and effective review', async ({ makePage, server }) => {
     const page = await makePage(); await team(page);
     assert.equal(await page.locator('#stepList button').count(), 4);
-    await otherStartingPaths(page);await page.locator('#btnBuildOwn').click();
+    await page.locator('#btnBuildOwn').click();
     assert.equal(await page.locator('#stage-slides').getAttribute('aria-current'), 'step');
     assert.equal(await page.locator('#roleEditorTabs [role=tab]').count(), 5);
     await shared(page);
@@ -489,52 +484,34 @@ try {
     await returning.locator('#fileStatus').filter({ hasText: /Opened|up to date|loaded/i }).waitFor();
     assert.deepEqual(await design(returning), selected, 'Fresh-context shared reopen preserves all five independent designs');
     await stage(returning, 'start');
-    assert(await returning.locator('#btnContinueEditing').isVisible());
-    assert(await returning.locator('#btnQuickReview').isVisible());
-    assert(await returning.locator('#preset-fun').isVisible(), 'Returning designs retain the gallery; applying a different look still requires confirmation');
-    await returning.locator('#btnContinueEditing').click();
-    assert.deepEqual(await design(returning), selected);
-    await startingLooks(returning);
+    assert(await returning.locator('#lookYours').isVisible(), 'A returning design is kept as the Your design card');
+    assert(await returning.locator('#preset-fun').isVisible(), 'Returning designs keep every look');
     await returning.locator('#preset-fun').click();
-    assert(await returning.locator('#presetDialog').isVisible(), 'A fresh shared load must confirm preset replacement without relying on Undo history');
-    assert.equal(await returning.evaluate(() => document.activeElement.id), 'presetCancel');
-    await returning.keyboard.press('Escape');
-    assert.deepEqual(await design(returning), selected);
-    assert.equal(await returning.evaluate(() => document.activeElement.id), 'preset-fun');
-    await returning.locator('#preset-fun').click(); await returning.locator('#presetCancel').click();
-    assert.deepEqual(await design(returning), selected);
+    assert.notDeepEqual(await design(returning), selected, 'A look applies in place');
+    await returning.locator('#lookYours').click();
+    assert.deepEqual(await design(returning), selected, 'Your design restores the returning design without relying on Undo history');
     evidence.push({ label: 'custom saved-reopened', effectiveFonts: Object.fromEntries(kinds.map(k => [k, effectiveRoleStyle(catalog, selected, k).headingFont])), revision: saved.revision });
   });
 
-  await scenario('preset quick path and confirmation scope', async ({ makePage }) => {
+  await scenario('preset quick path and undo', async ({ makePage }) => {
     const page = await makePage(); await team(page);
-    await startingLooks(page);await page.locator('#preset-modern').click();
-    assert(!await page.locator('#presetDialog').isVisible(), 'An untouched new design does not require replacement confirmation');
+    await page.locator('#preset-modern').click();
+    assert.equal(await page.locator('#presetDialog').count(), 0, 'Looks apply without a confirmation dialog');
     await page.locator('#stage-review').click();
     assert.equal(await page.locator('#stage-review').getAttribute('aria-current'), 'step');
     const quick = await design(page); await save(page);
-    await startingLooks(page);
+    await stage(page, 'start');
     await page.locator('#preset-fun').click();
-    await page.locator('#presetSkipConfirmation').check(); await page.locator('#presetCancel').click();
-    assert.deepEqual(await design(page), quick);
-    await page.locator('#preset-fun').click();
-    assert(await page.locator('#presetDialog').isVisible(), 'Cancel cannot enable the opt-out checkbox');
-    await page.locator('#presetSkipConfirmation').check(); await page.locator('#presetApply').click();
     const fun = await design(page);
     assert.equal(fun.startingPoint, 'fun');
-    await startingLooks(page);await page.locator('#preset-modern').click();
-    assert(!await page.locator('#presetDialog').isVisible(), 'Confirmed opt-out applies in the same tab session');
+    await page.locator('#preset-modern').click();
     await page.locator('#btnUndo').click(); assert.deepEqual(await design(page), fun);
     await page.locator('#btnUndo').click(); assert.deepEqual(await design(page), quick);
-    const fresh = await makePage(); await startingLooks(fresh);
-    await fresh.locator('#preset-fun').click();
-    assert(await fresh.locator('#presetDialog').isVisible(), 'Preset opt-out cannot leak into another browser context');
-    await fresh.keyboard.press('Escape');
-    evidence.push({ label: 'preset quick path', unnecessaryEditorsVisited: 0, cancelOptOutIgnored: true, newContextConfirms: true });
+    evidence.push({ label: 'preset quick path', unnecessaryEditorsVisited: 0, appliedInPlace: true });
   });
 
   await scenario('shared scope painted output and field resets', async ({ makePage }) => {
-    const page = await makePage(); await team(page); await otherStartingPaths(page);await page.locator('#btnBuildOwn').click();
+    const page = await makePage(); await team(page); await page.locator('#btnBuildOwn').click();
     await editor(page, 'title');
     await setField(page, 'title', 'backgroundMode', 'gradient');
     await setField(page, 'title', 'primary', 'gold');
@@ -686,7 +663,7 @@ try {
       if (scale === 2) await page.addStyleTag({ content: 'html { font-size: 200% !important; }' });
       const label = `${width}x${height}-${scale * 100}percent`;
       await axe(page, label + ' Start');
-      await otherStartingPaths(page);await page.locator('#btnBuildOwn').click();
+      await page.locator('#btnBuildOwn').click();
       await page.locator('#btnMoreOptions').click();
       await page.locator('#editor-title').focus(); await page.keyboard.press('ArrowRight');
       assert.equal(await page.locator('#editor-divider').getAttribute('aria-selected'), 'true');

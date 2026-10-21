@@ -61,6 +61,20 @@ try {
     assert.equal(await stripText(page), '', 'no yellow strip above the Send stage');
     await context.close();
   });
+  await check('Undo on Send clears the saved message beside the buttons', async () => {
+    const {context, page} = await open(1440, 900);
+    await page.locator('#stage-start').click();
+    await page.locator('#preset-fun').click();
+    await page.locator('#stage-review').click();
+    await page.locator('#btnSendSave').click();
+    const saved = /Local test design saved|already up to date/;
+    await page.locator('#sendFeedback').filter({hasText: saved}).waitFor({timeout: 4000});
+    await page.locator('#btnSendSave').focus();
+    await page.keyboard.press('ControlOrMeta+z');
+    await page.locator('#toast').filter({hasText: /^Undid: /}).waitFor({timeout: 3000});
+    assert.doesNotMatch(await page.locator('#sendFeedback').textContent(), saved, 'the saved message leaves once the design changes');
+    await context.close();
+  });
   await check('More options below 1101px lands on Sample text', async () => {
     const {context, page} = await open(1024, 768);
     await page.locator('#stage-slides').click();

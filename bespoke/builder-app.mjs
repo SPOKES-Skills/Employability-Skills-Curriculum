@@ -399,8 +399,9 @@ const findOption=(family,slug)=>state.library?.families?.[family]?.options.find(
     return Boolean(el);
   }
 
-  // Good news shows as a short toast in view. It replaces any pending message in the strip.
+  // Good news shows as a short toast in view. It clears older messages in the strip and beside the Send buttons.
   function successNotice(message) {
+    if (ui.sendFeedback) sendFeedback("");
     clearStrip();
     showToast(message);
   }

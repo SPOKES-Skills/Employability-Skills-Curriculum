@@ -12,19 +12,26 @@ import {frameGaps,settle} from './bespoke-test-chrome.mjs';
 import catalog from '../bespoke/builder-catalog.json' with {type:'json'};
 import {defaultDesign,applyPreset,setFeatureStyle} from '../bespoke/builder-model.mjs';
 import {submissionId} from '../netlify/functions/bespoke-handoff.mjs';
+import {designKey} from '../bespoke/showcase-model.mjs';
 const selection={schema:'bespoke-selection/v2',date:'2026-10-07',lesson:{id:'money-management',title:'Money Management'},team:{name:'Synthetic team',spokesperson:{name:'Synthetic reviewer',email:'synthetic@example.org'}},design:setFeatureStyle(catalog,defaultDesign(catalog),'sidebar','font','bitter'),alternatives:{active:'B',otherDesign:applyPreset(catalog,'modern')}};
 const server=await createDevServer({port:0}),browser=await browserType.launch({headless:true});
 const context=await browser.newContext(),errors=[],receipt=submissionId(selection),url='https://github.com/doclegg05/Curriculum-Employability-Skills/pull/123',artifactUrl='https://github.com/doclegg05/Curriculum-Employability-Skills/blob/'+('a'.repeat(40))+'/docs/phase-2/submissions/money-management/'+receipt+'/review.html';
-let ready=false,sends=0;
+// A follow-up note is a new save and a new send; its receipt and review request differ from the first.
+const noteReceipt='2026-10-07-'+'e'.repeat(16),noteUrl='https://github.com/doclegg05/Curriculum-Employability-Skills/pull/124';
+let ready=false,sends=0,saveConflict=false,holdSend=null,shared={revision:'b'.repeat(40),savedAt:'2026-10-07T16:00:00Z',selection};const calls=[],sentNotes=[];
 try{
  await context.addInitScript(()=>{window.__bespokeAutosave={enabled:false};if(!localStorage.getItem('bespoke-team-session-v2'))localStorage.setItem('bespoke-team-session-v2',JSON.stringify({lessonId:'money-management',editCode:'synthetic-review-test-access-code',revision:null,savedAt:null,baseSelectionKey:null,pendingSave:null}));});
  await context.route('**/*',async route=>{
   const u=new URL(route.request().url());assert.equal(u.origin,'https://bespoke.test','Only synthetic origin is allowed');
   if(u.pathname==='/bespoke/handoff-config.json')return route.fulfill({json:{apiBase:'https://bespoke.test/api/bespoke'}});
   if(u.pathname==='/api/bespoke'){
-   const body=route.request().postDataJSON();let result;
-   if(body.action==='open')result={revision:'b'.repeat(40),savedAt:'2026-10-07T16:00:00Z',selection};
-   else if(body.action==='send'){sends++;assert.deepEqual(body.selection.design,selection.design);assert.deepEqual(body.selection.alternatives,selection.alternatives);assert(!JSON.stringify(body.selection).includes('access-code'));result={status:ready?'received':'processing',submissionId:receipt,runId:12,url,artifactUrl,revision:'a'.repeat(40)};}
+   const body=route.request().postDataJSON();let result;calls.push(body.action);
+   if(body.action==='save'&&saveConflict)return route.fulfill({status:409,json:{ok:false,error:'conflict',message:'A newer design is saved.',revision:'d'.repeat(40),savedAt:'2026-10-07T18:00:00Z'}});
+   // Like the store, open returns the latest save.
+   if(body.action==='save')result=shared={revision:'c'.repeat(40),savedAt:'2026-10-07T17:00:00Z',selection:body.selection};
+   else if(body.action==='open')result=shared;
+   else if(body.action==='send'){sends++;assert.deepEqual(body.selection.design,selection.design);assert.deepEqual(body.selection.alternatives,selection.alternatives);assert(!JSON.stringify(body.selection).includes('access-code'));sentNotes.push(body.selection.unspoken);if(holdSend)await holdSend;
+    const note=Boolean(body.selection.unspoken);result={status:ready?'received':'processing',submissionId:note?noteReceipt:receipt,runId:12,url:note?noteUrl:url,artifactUrl,revision:'a'.repeat(40)};}
    else if(body.action==='status')result={status:ready?'received':'processing',submissionId:receipt,runId:12,url,artifactUrl,revision:'a'.repeat(40)};
    else throw new Error('Unexpected synthetic action: '+body.action);
    return route.fulfill({json:{ok:true,...result}});
@@ -58,6 +65,34 @@ try{
  assert.equal(await page.locator('#lastReviewReceipt').isVisible(),true,'other stages keep the receipt band');
  await sentView();
  await page.reload();await page.locator('#lastReviewReceipt').waitFor({state:'attached'});await sentView();
+ // A follow-up note: under the buttons and above Details, it edits the same notes Send used and resends through Save then Send.
+ const noteBox=page.locator('#sentView #sentNote'),noteButton=page.locator('#sentView #btnSendNote'),noteLine=page.locator('#sentView #sendFeedback');
+ assert.equal(await page.getByLabel('Add a note for Britt',{exact:true}).getAttribute('id'),'sentNote','the note box has a visible label');
+ assert.equal(await noteBox.inputValue(),'','the box shows the notes already sent');
+ assert.equal(await noteButton.textContent(),'Send note to Britt');assert.equal(await noteButton.isDisabled(),true,'nothing new to send until the note changes');
+ assert.deepEqual(await page.evaluate(()=>['btnDownloadCopy','sentNote','btnSendNote','sentDetails'].map(id=>document.getElementById(id)).map((el,i,all)=>i===0||Boolean(all[i-1].compareDocumentPosition(el)&Node.DOCUMENT_POSITION_FOLLOWING))),[true,true,true,true],'the note sits under the buttons and above Details');
+ for(const [name,el] of [['note box',noteBox],['note button',noteButton]]){assert.ok((await el.boundingBox()).height>=44,name+' is at least 44px tall');assert.match(await el.evaluate(n=>getComputedStyle(n).fontFamily),/Outfit/,name+' uses Outfit');}
+ const note='Please keep the gold heading on the title slide.';
+ await noteBox.fill(note);assert.equal(await noteButton.isDisabled(),false,'a changed note can be sent');
+ await noteBox.focus();await page.keyboard.press('Tab');assert.equal(await page.evaluate(()=>document.activeElement?.id),'btnSendNote','Tab moves from the note to its button');assert.equal(await noteButton.evaluate(b=>getComputedStyle(b).outlineStyle),'solid','the note button shows keyboard focus');
+ let release;holdSend=new Promise(resolve=>{release=resolve;});calls.length=0;
+ await noteButton.click();await noteLine.filter({hasText:'Sending to Britt…'}).waitFor();
+ assert.equal(await noteButton.isDisabled(),true,'the button waits while the note is in flight');
+ release();holdSend=null;await page.locator(`#sentDetails a[href="${noteUrl}"]`).waitFor({state:'attached'});
+ assert.deepEqual(calls,['save','send'],'the note saves, then sends');assert.equal(sentNotes.at(-1),note,'the send carries the new note');
+ assert.equal(await page.locator('#sentView').isVisible(),true,'the view stays Sent to Britt');
+ assert.equal(await noteLine.textContent(),'Note sent.');assert.equal(await noteButton.isDisabled(),true,'the sent note is not sent twice');
+ assert.equal(await page.locator('#toast').filter({hasText:'Sent to Britt.'}).count(),0,'on Send the view confirms, not a toast');
+ assert.equal((await page.evaluate(()=>JSON.parse(localStorage.getItem('bespoke-team-session-v2')))).lastReceipt.submissionId,noteReceipt);
+ await page.reload();await page.locator('#lastReviewReceipt').waitFor({state:'attached'});await sentView();
+ assert.equal(await noteBox.inputValue(),note,'after a reload the box shows the note already sent');assert.equal(await noteButton.isDisabled(),true);
+ // A save conflict stops before Send: the message shows beside the button and in the strip, and the note is kept.
+ saveConflict=true;calls.length=0;await noteBox.fill(note+' Thank you.');await noteButton.click();
+ const clash=/Someone saved a newer shared version/;await noteLine.filter({hasText:clash}).waitFor();
+ assert.match(await page.locator('#fileStatus').textContent(),clash,'the strip shows the conflict too');
+ assert.equal(await noteBox.inputValue(),note+' Thank you.','the note text is kept');assert.deepEqual(calls,['save'],'a failed save does not send');
+ saveConflict=false;assert.deepEqual(errors,[]);
+ console.log('PASS a follow-up note saves then sends, keeps the Sent to Britt view and stops on a save conflict');
  await page.locator('#stage-slides').click();await page.locator('#modelStage .slide-title-text').click();
  await page.locator('#context-color-well').click();await page.locator('#context-color-popover [role=radio][aria-checked=false]').first().click();
  await page.locator('#stage-review').click();await page.locator('#sentChangedNote').waitFor();
@@ -66,6 +101,21 @@ try{
  assert.equal(await page.locator('#sendPanel #sentChangedNote').count(),1,'the sent note sits in the summary panel');
  assert.deepEqual(errors,[]);
  console.log('PASS Sent to Britt shows on Send for the sent design, after a reload, and steps aside once the team edits');
+ // View-only sessions never see the Sent view or its note box, even with the lead's receipt in this browser.
+ const viewer=await context.newPage();viewer.on('pageerror',e=>errors.push(e.message));
+ await viewer.goto('https://bespoke.test/bespoke/#view=money-management.synthetic-review-test-view-code');await viewer.locator('body[data-access=view]').waitFor();
+ await viewer.locator('#stage-review').click();await viewer.locator('#sendPanel').waitFor();
+ assert.equal(await viewer.locator('#sentView, #sentNote, #btnSendNote').count(),0,'a view-only session has no Sent view or note box');await viewer.close();
+ // The local test preview cannot send, so the Sent view there has no note button.
+ const local=await browser.newContext(),design=selection.design;
+ await local.addInitScript(([draft,session])=>{window.__bespokeAutosave={enabled:false};localStorage.setItem('bespoke-draft-v2',draft);localStorage.setItem('bespoke-team-session-v2',session);},
+  [JSON.stringify({design,lessonId:'money-management',changes:[],redo:[]}),JSON.stringify({lessonId:'money-management',editCode:'bespoke-local-preview-synthetic',revision:null,savedAt:null,baseSelectionKey:null,pendingSave:null,lastReceipt:{submissionId:receipt,url,receivedAt:'2026-10-07T17:00:00Z',designKey:designKey(design)}})]);
+ const localPage=await local.newPage();localPage.on('pageerror',e=>errors.push(e.message));
+ await localPage.goto(server.baseUrl+'/bespoke/');await localPage.locator('#localPreviewNotice').waitFor();
+ await localPage.locator('#stage-review').click();await localPage.locator('#sentView').waitFor();
+ assert.equal(await localPage.locator('#btnSendNote').isVisible(),false,'the local preview hides the note button');await local.close();
+ assert.deepEqual(errors,[]);
+ console.log('PASS view-only sessions never see the note box and the local preview hides its button');
  const temp=await fs.mkdtemp(path.join(os.tmpdir(),'bespoke-offline-review-'));
  try{
   const file=path.join(temp,'payload.json');await fs.writeFile(file,JSON.stringify(selection));

@@ -396,6 +396,8 @@ const findOption=(family,slug)=>state.library?.families?.[family]?.options.find(
     const el = onStage("review") ? byId("sendFeedback") : null;
     ui.sendFeedback = el ? message : "";
     if (el) el.textContent = message;
+    const noteButton = byId("btnSendNote");
+    if (noteButton) noteButton.disabled = !noteReady(byId("sentNote").value);
     return Boolean(el);
   }
 
@@ -921,7 +923,7 @@ const findOption=(family,slug)=>state.library?.families?.[family]?.options.find(
   function rememberReceipt(result, receipt) {
     if (ui.teamSession?.lessonId === receipt.lessonId && ui.teamSession.editCode === receipt.editCode) {
       // The key is the design that was sent, so the confirmation shows only while that design is unchanged.
-      ui.teamSession.lastReceipt = {submissionId:result.submissionId, url:result.url, artifactUrl:result.artifactUrl, revision:result.revision, receivedAt:new Date().toISOString(), designKey:receipt.designKey || designKey(state.design)};
+      ui.teamSession.lastReceipt = {submissionId:result.submissionId, url:result.url, artifactUrl:result.artifactUrl, revision:result.revision, receivedAt:new Date().toISOString(), designKey:receipt.designKey || designKey(state.design), notes:receipt.notes ?? ""};
       persistTeamSession();
     }
     storePendingSubmission(null);
@@ -931,7 +933,7 @@ const findOption=(family,slug)=>state.library?.families?.[family]?.options.find(
     if (shown) clearStrip(); else successNotice("Sent to Britt.");
     if (!onStage("review")) return;
     render(false);
-    if (shown) byId("sentHeading")?.focus();
+    if (shown) byId(ui.noteFrom !== undefined ? "sentNote" : "sentHeading")?.focus();
   }
 
   function scheduleSubmissionPoll(receipt, delay = 10000) {
@@ -1014,7 +1016,8 @@ const findOption=(family,slug)=>state.library?.families?.[family]?.options.find(
         expectedRevision: pending.expectedRevision,
         submissionId: result.submissionId,
         runId: result.runId || null,
-        designKey: pending.designKey
+        designKey: pending.designKey,
+        notes: pending.selection.unspoken ?? ""
       };
       storePendingSubmission(receipt);
       if (result.status === "received") {
@@ -1795,8 +1798,20 @@ function sendHost(){
   openKind:kind=>{ui.editorRole=kind;ui.moreOptions=false;goStage('slides');},
   receipt:()=>ui.teamSession?.lastReceipt||null,lessonTitle:()=>findMeta(state.meta?.lessons,state.lessonId)?.title||'',
   sentNote:()=>sendView()==='changed'?ui.teamSession.lastReceipt.receivedAt:'',
-  keepEditing:()=>{ui.moreOptions=false;goStage('slides');},downloadCopy:()=>saveTeamFile()
+  keepEditing:()=>{ui.moreOptions=false;goStage('slides');},downloadCopy:()=>saveTeamFile(),
+  notes:()=>state.unspoken,editNote:value=>{state.unspoken=value;ui.noteFrom=undefined;saveDraft();},noteReady,sendNote,
+  noteSent:()=>ui.noteFrom!==undefined&&ui.teamSession?.lastReceipt?.submissionId!==ui.noteFrom
  };
+}
+// The notes on the latest confirmed receipt. A note can be sent when it differs and nothing is saving or sending.
+const sentNotes=()=>ui.teamSession?.lastReceipt?.notes??'';
+function noteReady(value){return !handoffBusy&&pendingSubmission()?.stage!=='receipt'&&value!==sentNotes();}
+// A follow-up note is the ordinary Save, then the ordinary Send. A save that did not land stops before Send.
+async function sendNote(){
+ ui.noteFrom=ui.teamSession?.lastReceipt?.submissionId;
+ await cloudSave();
+ if(ui.cloudConflict||hasUnsavedTeamWork()){ui.noteFrom=undefined;return;}
+ await cloudSend();
 }
 // Only the lead sees the confirmation. Receipts kept before sends carried a design key cannot be compared.
 function sendView(){const receipt=ui.teamSession?.lastReceipt;return isLeadSession()&&receipt?.designKey?sentState(receipt,designKey(state.design)):'none';}
@@ -1902,7 +1917,7 @@ function showNoteCount(count){byId('readabilityDetails').hidden=!count;byId('rea
 function showView(view){if(onStage('slides')){ui.editorRole=view;}state.previewView=view;ui.previewPinned=true;if(ui.sharedThemeOpen||onStage('slides'))render(false);else{updatePreview();saveDraft();}}
 function render(focus=true){
  if(byId('sharedTheme'))ui.sharedThemeOpen=byId('sharedTheme').open;
- const changed=ui.renderedStep!==state.step;if(changed){ui.renderedStep=state.step;ui.changedKinds=new Set();ui.sendFeedback='';if(onStage('slides'))state.previewView=ui.editorRole;ui.previewPinned=false;}
+ const changed=ui.renderedStep!==state.step;if(changed){ui.renderedStep=state.step;ui.changedKinds=new Set();ui.sendFeedback='';ui.noteFrom=undefined;if(onStage('slides'))state.previewView=ui.editorRole;ui.previewPinned=false;}
  const active=document.activeElement,activeId=active?.id;
  ui.roleSections||={};byId('stepPanel').querySelectorAll('[data-role-section]').forEach(d=>{ui.roleSections[d.id]=d.open;});
  const openDetails=new Map(Array.from(byId('stepPanel').querySelectorAll('details[id]')).map(d=>[d.id,d.open]));

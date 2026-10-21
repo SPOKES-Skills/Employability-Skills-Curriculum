@@ -217,6 +217,37 @@ function sentDetails(receipt) {
   return details;
 }
 
+const NOTE_SENT = 'Note sent.';
+// A follow-up note edits the notes Send used. The host saves, then sends, through its ordinary Save and Send.
+// Its message line keeps Send's id, so save and send messages reach it as they reach Send's panel.
+function buildFollowUp(host) {
+  const area = make('div', 'sent-follow');
+  area.hidden = host.localPreview;
+  const label = make('label', 'send-notes', 'Add a note for Britt');
+  const field = make('textarea');
+  field.id = 'sentNote';
+  field.rows = 3;
+  field.value = host.notes();
+  field.setAttribute('aria-describedby', 'sendFeedback');
+  label.append(field);
+  const feedback = make('p', 'send-feedback', host.feedback() || (host.noteSent() ? NOTE_SENT : ''));
+  feedback.id = 'sendFeedback';
+  feedback.setAttribute('role', 'status');
+  const send = button('btnSendNote', 'btn btn-primary', 'Send note to Britt', async () => {
+    send.disabled = true;
+    await host.sendNote();
+    if (send.isConnected) send.disabled = !host.noteReady(field.value);
+  });
+  send.disabled = !host.noteReady(field.value);
+  field.oninput = () => {
+    host.editNote(field.value);
+    if (feedback.textContent === NOTE_SENT) feedback.textContent = '';
+    send.disabled = !host.noteReady(field.value);
+  };
+  area.append(label, send, feedback);
+  return area;
+}
+
 function buildSentText(host) {
   const text = make('div', 'sent-text');
   const heading = make('h1', 'sent-heading', 'Sent to Britt');
@@ -229,7 +260,7 @@ function buildSentText(host) {
   const actions = make('div', 'sent-actions');
   actions.append(button('btnKeepEditing', 'btn btn-secondary', 'Keep editing', () => host.keepEditing()),
     button('btnDownloadCopy', 'btn btn-secondary', 'Download a copy', () => host.downloadCopy()));
-  text.append(make('div', 'sent-check', '\u2713'), heading, body, actions);
+  text.append(make('div', 'sent-check', '\u2713'), heading, body, actions, buildFollowUp(host));
   const receipt = host.receipt();
   if (receipt?.url?.startsWith(RECEIPT_LINKS)) text.append(sentDetails(receipt));
   text.firstChild.setAttribute('aria-hidden', 'true');

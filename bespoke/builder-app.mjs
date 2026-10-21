@@ -7,8 +7,8 @@ import { syncStageChrome } from './canvas-shell.mjs';
 import { createGuide } from './guide/guide.mjs';
 import { showToast } from './toast.mjs';
 import { renderPickALook, closePickALook } from './pick-a-look.mjs';
-import { slideOptions, designKey, changedKinds, lookDetail, designChanges } from './showcase-model.mjs';
-import { renderSendStage, closeSendStage } from './send-stage.mjs';
+import { slideOptions, designKey, changedKinds, lookDetail, designChanges, sentState } from './showcase-model.mjs';
+import { renderSendStage, renderSentView, closeSendStage } from './send-stage.mjs';
 import { scopeLine, startingFrom, renderStartingFrom, markRail, pulseRail } from './make-it-yours.mjs';
 import { createTeamView, isShareHash, isSnapshotHash, viewLinkToOpen } from './team-view.mjs';
 import { guideMark, indexForMark, keepsGuide } from './guide/questions.mjs';
@@ -27,6 +27,7 @@ const EDIT_CODE_MAX = 128;
 const HANDOFF_TIMEOUT_MS = 20000;
 const HANDOFF_CONFIG_URL = './handoff-config.json';
 const SAVING_NOTICE = 'Saving the shared design…';
+const SENDING_NOTICE = 'Sending to Britt…';
 const VIEW_NAMES = {title:'Title slide',divider:'Chapter divider',cards:'Text boxes',video:'Video slide',activity:'Activity'};
 const STEPS = [
  {id:'team',label:'Lesson & team',view:'title'},
@@ -382,6 +383,12 @@ const findOption=(family,slug)=>state.library?.families?.[family]?.options.find(
     sendFeedback(message);
   }
 
+  // A send in progress keeps its detail in the strip; beside the buttons on Send it reads "Sending to Britt…".
+  function pendingNotice(message) {
+    fileNotice(message);
+    sendFeedback(SENDING_NOTICE);
+  }
+
   // On Send, save and send progress also shows beside the buttons. Returns whether it did.
   function sendFeedback(message) {
     const el = onStage("review") ? byId("sendFeedback") : null;
@@ -392,10 +399,14 @@ const findOption=(family,slug)=>state.library?.families?.[family]?.options.find(
 
   // Good news shows as a short toast in view. It replaces any pending message in the strip.
   function successNotice(message) {
+    clearStrip();
+    showToast(message);
+  }
+
+  function clearStrip() {
     const notice = byId("fileStatus");
     notice.hidden = true;
     notice.textContent = "";
-    showToast(message);
   }
 
   function prepareDraftReplacement() {
@@ -906,12 +917,18 @@ const findOption=(family,slug)=>state.library?.families?.[family]?.options.find(
 
   function rememberReceipt(result, receipt) {
     if (ui.teamSession?.lessonId === receipt.lessonId && ui.teamSession.editCode === receipt.editCode) {
-      ui.teamSession.lastReceipt = {submissionId:result.submissionId, url:result.url, artifactUrl:result.artifactUrl, revision:result.revision, receivedAt:new Date().toISOString()};
+      // The key is the design that was sent, so the confirmation shows only while that design is unchanged.
+      ui.teamSession.lastReceipt = {submissionId:result.submissionId, url:result.url, artifactUrl:result.artifactUrl, revision:result.revision, receivedAt:new Date().toISOString(), designKey:receipt.designKey || designKey(state.design)};
       persistTeamSession();
     }
     storePendingSubmission(null);
-    successNotice("Britt received the review request.");
-    sendFeedback("Britt received the review request.");
+    ui.sendFeedback = "";
+    // On Send the confirmation view is the news; elsewhere one toast says it and the view waits on Send.
+    const shown = onStage("review") && sendView() === "sent";
+    if (shown) clearStrip(); else successNotice("Sent to Britt.");
+    if (!onStage("review")) return;
+    render(false);
+    if (shown) byId("sentHeading")?.focus();
   }
 
   function scheduleSubmissionPoll(receipt, delay = 10000) {
@@ -933,7 +950,7 @@ const findOption=(family,slug)=>state.library?.families?.[family]?.options.find(
     }
     if (result.status === "processing") {
       storePendingSubmission({ ...receipt, runId: result.runId || receipt.runId, stage: "receipt" });
-      actionNotice("Britt’s review request is processing. You can close this page; this browser will check again when you return.");
+      pendingNotice("Britt’s review request is processing. You can close this page; this browser will check again when you return.");
       scheduleSubmissionPoll({ ...receipt, runId: result.runId || receipt.runId }, 10000);
       return;
     }
@@ -974,11 +991,12 @@ const findOption=(family,slug)=>state.library?.families?.[family]?.options.find(
       editCode: session.editCode,
       expectedRevision: session.revision,
       mutationId,
-      selection: payload
+      selection: payload,
+      designKey: designKey(state.design)
     };
     storePendingSubmission(pending);
     handoffBusy = true;
-    actionNotice("Requesting Britt’s review…");
+    pendingNotice("Requesting Britt’s review…");
     try {
       const result = await handoffRequest("send", pending);
       if(ui.teamSession!==session)return;
@@ -992,13 +1010,14 @@ const findOption=(family,slug)=>state.library?.families?.[family]?.options.find(
         editCode: session.editCode,
         expectedRevision: pending.expectedRevision,
         submissionId: result.submissionId,
-        runId: result.runId || null
+        runId: result.runId || null,
+        designKey: pending.designKey
       };
       storePendingSubmission(receipt);
       if (result.status === "received") {
         rememberReceipt(result, receipt);
       } else {
-        actionNotice("Britt’s review request is processing. This is not a receipt yet.");
+        pendingNotice("Britt’s review request is processing. This is not a receipt yet.");
         scheduleSubmissionPoll(receipt, 5000);
       }
     } finally {
@@ -1010,7 +1029,7 @@ const findOption=(family,slug)=>state.library?.families?.[family]?.options.find(
     const pending = pendingSubmission();
     if (!pending || !ui.teamSession || pending.lessonId !== ui.teamSession.lessonId) return;
     if (pending.stage === "receipt" && pending.submissionId) {
-      actionNotice("Checking Britt’s pending review receipt…");
+      pendingNotice("Checking Britt’s pending review receipt…");
       await pollSubmission(pending);
     } else if (pending.stage === "request") {
       actionNotice("A previous review request may not have returned a receipt. Choose Send to Britt to retry the exact saved revision.");
@@ -1766,10 +1785,15 @@ function sendHost(){
   similarity:()=>{const n=near();return n?{shared:n.shared,total:n.total}:null;},
   fillSimilarityDetails:el=>{el.innerHTML=similarityDetails(compareDesign(fingerprints,state.design,catalog));},
   fillAllSettings:el=>{renderReview(el);renderSharedTheme(el);},
-  notesField:reviewNotesField,save:()=>cloudSave(),send:()=>cloudSend(),feedback:()=>ui.sendFeedback||'',
-  openKind:kind=>{ui.editorRole=kind;ui.moreOptions=false;goStage('slides');}
+  notesField:reviewNotesField,save:()=>cloudSave(),send:()=>cloudSend(),feedback:()=>ui.sendFeedback||(pendingSubmission()?.stage==='receipt'?SENDING_NOTICE:''),
+  openKind:kind=>{ui.editorRole=kind;ui.moreOptions=false;goStage('slides');},
+  receipt:()=>ui.teamSession?.lastReceipt||null,lessonTitle:()=>findMeta(state.meta?.lessons,state.lessonId)?.title||'',
+  sentNote:()=>sendView()==='changed'?ui.teamSession.lastReceipt.receivedAt:'',
+  keepEditing:()=>{ui.moreOptions=false;goStage('slides');},downloadCopy:()=>saveTeamFile()
  };
 }
+// Only the lead sees the confirmation. Receipts kept before sends carried a design key cannot be compared.
+function sendView(){const receipt=ui.teamSession?.lastReceipt;return isLeadSession()&&receipt?.designKey?sentState(receipt,designKey(state.design)):'none';}
 // The team pill asks for attention until the team is identified, then names the team.
 // Update it in place: rebuilding the pills while the pointer is down would swallow the click.
 function updateTeamPill(){
@@ -1812,7 +1836,7 @@ function renderEditors(panel){
 function renderPanel(){
  const panel=byId('stepPanel'),id=STEPS[state.step].id;
  if(id==='slides'&&ui.guide?.on){guide.render(panel);return;}
- if(id==='team')renderTeamStage(panel);else if(id==='start'){heading(panel,'Pick a look','Choose a starting look. Every choice stays editable.');renderPickALook(byId('showcase'),pickHost());}else if(id==='review'){heading(panel,'Send','Check your suggestion, save it for the team and send it to Britt.');renderSendStage(byId('showcase'),sendHost());}else renderEditors(panel);
+ if(id==='team')renderTeamStage(panel);else if(id==='start'){heading(panel,'Pick a look','Choose a starting look. Every choice stays editable.');renderPickALook(byId('showcase'),pickHost());}else if(id==='review'){heading(panel,'Send','Check your suggestion, save it for the team and send it to Britt.');(sendView()==='sent'?renderSentView:renderSendStage)(byId('showcase'),sendHost());}else renderEditors(panel);
  if(id==='slides'){renderSharedTheme(panel);panel.insertBefore(byId('sharedTheme'),panel.children[2]||null);}
  const nav=document.createElement('div');nav.className='panel-nav';nav.innerHTML='<button class="btn btn-secondary" id="btnBack"'+(state.step===0?' disabled':'')+'>Back'+(state.step>0?': '+escapeHtml(STEPS[state.step-1].label):'')+'</button>'+(state.step<STEPS.length-1?'<button class="btn btn-primary" id="btnNext">'+(id==='team'?'Continue to Pick a look':id==='start'?'Continue to Make it yours':'Continue to Send')+'</button>':'');panel.append(nav);
  byId('btnBack').onclick=()=>{state.step=Math.max(0,state.step-1);render();};if(byId('btnNext'))byId('btnNext').onclick=()=>{state.step++;render();};
@@ -1884,7 +1908,7 @@ function render(focus=true){
  byId('workspace').dataset.options=String(ui.moreOptions||!onStage('slides')||Boolean(ui.guide?.on));
  syncStageChrome(STEPS[state.step].id);buildStepper();renderPanel();byId('stepPanel').querySelectorAll('details[id]').forEach(d=>{if(!d.dataset.roleSection&&d.id!=='sharedTheme'&&openDetails.has(d.id))d.open=openDetails.get(d.id);});syncAccessChrome();lockViewControls();updatePreview();updateUndo();reviewTools?.refresh();
  if(isLeadSession()){if(ui.skipNextLocalSave)ui.skipNextLocalSave=false;else saveDraft();if(changed)scheduleAutosave(AUTOSAVE.stepMs);}
- if(focus&&changed)(onStage('start')?byId('lookStageHeading'):onStage('review')?byId('sendHeading'):byId('workspace').dataset.options==='false'?byId('selectedElement'):byId('stepPanel'))?.focus({preventScroll:true});else if(activeId)byId(activeId)?.focus({preventScroll:true});
+ if(focus&&changed)(onStage('start')?byId('lookStageHeading'):onStage('review')?byId('sentHeading')||byId('sendHeading'):byId('workspace').dataset.options==='false'?byId('selectedElement'):byId('stepPanel'))?.focus({preventScroll:true});else if(activeId)byId(activeId)?.focus({preventScroll:true});
 }
 function setupRecoveryMenu(){
  const menu=byId('filesRecovery'),trigger=menu.querySelector('summary');

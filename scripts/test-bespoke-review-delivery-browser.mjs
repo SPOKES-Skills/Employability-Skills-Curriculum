@@ -32,10 +32,33 @@ try{
  });
  const page=await context.newPage();page.on('console',m=>{if(m.type()==='error')console.error(m.text());});page.on('requestfailed',r=>console.error(r.url(),r.failure()));page.on('pageerror',e=>errors.push(e.message));page.setDefaultTimeout(10000);await page.goto('https://bespoke.test/bespoke/');await page.waitForFunction(()=>JSON.parse(localStorage.getItem('bespoke-draft-v2')||'null')?.alternatives?.active==='B').catch(async e=>{console.error(await page.locator('body').innerText(),errors);throw e;});
  await clickMenuItem(page, '#btnSend');await page.locator('#fileStatus').filter({hasText:'not a receipt yet'}).waitFor();assert.equal(await page.locator('#lastReviewReceipt').isVisible(),false);
- ready=true;await page.locator('#btnCheckStatus').click();await page.locator('#lastReviewReceipt').waitFor();assert.match(await page.locator('#lastReviewReceipt').textContent(),/does not confirm/);assert.equal(await page.locator('#lastReviewReceipt a').last().getAttribute('href'),artifactUrl);
+ // A pending send says so in the Send panel; a receipt confirmed on another stage is a toast, and the confirmation waits on Send.
+ await page.locator('#stage-review').click();assert.equal(await page.locator('#sendFeedback').textContent(),'Sending to Britt…');assert.equal(await page.locator('#sentView').count(),0);
+ await page.locator('#stage-slides').click();await page.locator('#workspace[data-stage=slides]').waitFor();
+ ready=true;await page.locator('#btnCheckStatus').click();await page.locator('#lastReviewReceipt').waitFor();
+ await page.locator('#toast').filter({hasText:'Sent to Britt.'}).waitFor();assert.equal(await page.locator('#sentView').isVisible(),false,'the confirmation view waits on Send');assert.match(await page.locator('#lastReviewReceipt').textContent(),/does not confirm/);assert.equal(await page.locator('#lastReviewReceipt a').last().getAttribute('href'),artifactUrl);
  await page.reload();await page.locator('#lastReviewReceipt').waitFor();assert.equal(await page.locator('#lastReviewReceipt a').first().getAttribute('href'),url);assert.equal(sends,1);
  const session=await page.evaluate(()=>JSON.parse(localStorage.getItem('bespoke-team-session-v2')));assert.equal(session.lastReceipt.submissionId,receipt);assert.deepEqual(errors,[]);
  console.log('PASS processing is not delivery; verified PR and pinned artifact remain findable after reload; no automatic review claim');
+ // After Send: the confirmation replaces Send while the sent design is unchanged, and survives a reload.
+ const sentView=async()=>{await page.locator('#stage-review').click();await page.locator('#sentView').waitFor();};
+ await sentView();assert.match(await page.locator('#sentView').textContent(),/Sent to Britt/);
+ assert.equal(await page.evaluate(()=>document.activeElement?.id),'sentHeading','entering the confirmation focuses its heading');
+ assert.match(await page.locator('#sentView p').filter({hasText:'is on its way'}).textContent(),/^Your Money Management suggestion, .+, is on its way\. Britt and the program administrator will use it when they make the final design\.$/);
+ assert.equal(await page.locator('#sentDetails a').getAttribute('href'),url);assert.equal(await page.locator('#sentDetails').evaluate(d=>d.open),false);
+ for(const id of ['btnKeepEditing','btnDownloadCopy'])assert.ok((await page.locator('#'+id).boundingBox()).height>=44,id+' is at least 44px tall');
+ const download=page.waitForEvent('download');await page.locator('#btnDownloadCopy').click();assert.match((await download).suggestedFilename(),/^money-management-.+-selection\.json$/);
+ await page.locator('#btnKeepEditing').click();await page.locator('#workspace[data-stage=slides]').waitFor();
+ await sentView();
+ await page.reload();await page.locator('#lastReviewReceipt').waitFor({state:'attached'});await sentView();
+ await page.locator('#stage-slides').click();await page.locator('#modelStage .slide-title-text').click();
+ await page.locator('#context-color-well').click();await page.locator('#context-color-popover [role=radio][aria-checked=false]').first().click();
+ await page.locator('#stage-review').click();await page.locator('#sentChangedNote').waitFor();
+ assert.equal(await page.locator('#sentView').count(),0,'an edited design returns Send to normal');
+ assert.match(await page.locator('#sentChangedNote').textContent(),/^Sent to Britt on .+\. You have changed it since\.$/);
+ assert.equal(await page.locator('#sendPanel #sentChangedNote').count(),1,'the sent note sits in the summary panel');
+ assert.deepEqual(errors,[]);
+ console.log('PASS Sent to Britt shows on Send for the sent design, after a reload, and steps aside once the team edits');
  const temp=await fs.mkdtemp(path.join(os.tmpdir(),'bespoke-offline-review-'));
  try{
   const file=path.join(temp,'payload.json');await fs.writeFile(file,JSON.stringify(selection));

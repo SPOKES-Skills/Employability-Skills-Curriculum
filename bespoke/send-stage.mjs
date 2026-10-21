@@ -9,6 +9,8 @@ export const SMALL_PRINT = 'This is a suggestion. Britt and the program administ
 // Disclosure states outlive a redraw within this page.
 let comparisonOpen = false;
 let settingsOpen = false;
+// The fan settles once each time the confirmation appears, not on every redraw.
+let fanSettled = false;
 
 const make = (tag, cls, text) => {
   const node = document.createElement(tag);
@@ -152,9 +154,17 @@ function buildPanel(host) {
   panel.id = 'sendPanel';
   panel.setAttribute('aria-labelledby', 'sendHeading');
   const look = host.look();
+  const note = host.sentNote();
+  if (note) panel.append(sentNote(note));
   panel.append(make('p', 'send-kicker', 'Your suggestion'), buildHeading(look), summaryRows(host, look), buildNotes(host),
     ...buildActions(host), ...buildSimilarity(host), make('p', 'send-fine', SMALL_PRINT), buildAllSettings(host));
   return panel;
+}
+
+function sentNote(receivedAt) {
+  const note = make('p', 'send-sent-note', `Sent to Britt on ${new Date(receivedAt).toLocaleDateString()}. You have changed it since.`);
+  note.id = 'sentChangedNote';
+  return note;
 }
 
 /** Draws Send into root. Redrawing replaces everything inside root. */
@@ -162,10 +172,79 @@ export function renderSendStage(root, host) {
   const body = make('div', 'send-body');
   body.append(buildDeck(host), buildPanel(host));
   forget(root);
+  fanSettled = false;
   root.replaceChildren(body);
 }
 
 /** Forgets the deck renders when the team leaves Send. */
 export function closeSendStage(root) {
   forget(root);
+  if (root.hidden) fanSettled = false;
+}
+
+// Only links into the curriculum repository are shown, as in the More menu's receipt.
+const RECEIPT_LINKS = 'https://github.com/doclegg05/Curriculum-Employability-Skills/';
+// The fan stacks activity, divider, then the title slide on top.
+const FAN = ['activity', 'divider', 'title'];
+
+function buildFan(host) {
+  const fan = make('div', 'sent-fan');
+  fan.setAttribute('aria-hidden', 'true');
+  if (!fanSettled) fan.classList.add('is-settling');
+  const design = host.design();
+  for (const kind of FAN) {
+    const card = make('div', 'sent-card');
+    const frame = make('div', 'send-frame');
+    frame.innerHTML = host.Model.renderSlide(host.catalog, design, kind, host.options(design));
+    frame.inert = true;
+    sizer.observe(frame);
+    card.append(frame);
+    fan.append(card);
+  }
+  return fan;
+}
+
+function sentDetails(receipt) {
+  const details = make('details', 'sent-details');
+  details.id = 'sentDetails';
+  details.append(make('summary', '', 'Details'));
+  const line = make('p', '');
+  const link = make('a', '', 'Open review request');
+  link.href = receipt.url;
+  link.target = '_blank';
+  link.rel = 'noopener';
+  line.append(link);
+  details.append(line);
+  return details;
+}
+
+function buildSentText(host) {
+  const text = make('div', 'sent-text');
+  const heading = make('h1', 'sent-heading', 'Sent to Britt');
+  heading.id = 'sentHeading';
+  heading.tabIndex = -1;
+  const look = host.look();
+  const body = make('p', 'sent-body', `Your ${host.lessonTitle()} suggestion, `);
+  body.append(make('b', '', look ? `${look.name}, made yours` : 'your design'),
+    ', is on its way. Britt and the program administrator will use it when they make the final design.');
+  const actions = make('div', 'sent-actions');
+  actions.append(button('btnKeepEditing', 'btn btn-secondary', 'Keep editing', () => host.keepEditing()),
+    button('btnDownloadCopy', 'btn btn-secondary', 'Download a copy', () => host.downloadCopy()));
+  text.append(make('div', 'sent-check', '\u2713'), heading, body, actions);
+  const receipt = host.receipt();
+  if (receipt?.url?.startsWith(RECEIPT_LINKS)) text.append(sentDetails(receipt));
+  text.firstChild.setAttribute('aria-hidden', 'true');
+  return text;
+}
+
+/** Draws the Sent to Britt confirmation into root, in place of Send's content. */
+export function renderSentView(root, host) {
+  const view = make('div', 'sent-view');
+  view.id = 'sentView';
+  view.setAttribute('aria-labelledby', 'sentHeading');
+  view.setAttribute('role', 'region');
+  view.append(buildFan(host), buildSentText(host));
+  forget(root);
+  fanSettled = true;
+  root.replaceChildren(view);
 }

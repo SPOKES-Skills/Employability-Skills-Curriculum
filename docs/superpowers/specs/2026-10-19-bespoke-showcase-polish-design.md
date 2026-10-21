@@ -1,7 +1,7 @@
 # BeSpoke showcase polish: design
 
 - **Date:** 2026-10-19
-- **Status:** draft for Britt's approval. Builder check done; its answers are marked "My call, from the builder check".
+- **Status:** approved by Britt on 2026-10-19. Builder check done; its answers are marked "My call, from the builder check".
 - **Base:** PR #56 head `a8b73fc` (`claude/bespoke-simplify-choices-02762b`). Work happens on `claude/bespoke-showcase-polish`, which starts from that commit.
 - **Approved mockups:** [Pick a look](../../bespoke/showcase-mockup-pick-a-look-2026-10-19.html) (option A) and [Make it yours, Send, After Send](../../bespoke/showcase-mockup-flow-2026-10-19.html). They are static pictures. Where this spec and a mockup disagree, this spec wins.
 - **Critique this answers:** `.impeccable/critique/2026-10-19T15-43-48Z__bespoke-index-html.md` (22/40, findings F1 to F6).

@@ -48,8 +48,7 @@ keep their design and can choose **Swap starting look**. Send shows the deck, a 
 summary and both actions; a confirmed receipt shows the Sent to Britt view.
 
 The optional **Shared theme** disclosure in the Slide options drawer and in Send's
-See every setting groups
-shared colors, fonts and texture. Preserve Sidebar, Accent and Buttons colors,
+See every setting groups shared colors, fonts and texture. Preserve Sidebar, Accent and Buttons colors,
 navigation/button typography, and the shared canvas/Band exterior bindings. A
 color element starts in **This slide** scope: its selected swatch and paint action
 use the current preview's effective local field. **Shared default** explicitly

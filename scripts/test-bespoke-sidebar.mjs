@@ -28,7 +28,7 @@ async function pageFor(width,height=900,scale=1) {
   await context.route(/^https?:/,route=>{requests.push(route.request());return new URL(route.request().url()).origin===server.baseUrl?route.continue():route.abort();});
   context.on('page',page=>page.on('pageerror',error=>errors.push(error.message)));
   const page=await context.newPage();await page.goto(server.baseUrl+'/bespoke/');
-  await page.locator('#btnSave').filter({hasText:'Save test design'}).waitFor();
+  await page.locator('#btnSave').filter({hasText:'Save test design'}).waitFor({state:'attached'});
   if(scale!==1)await page.addStyleTag({content:`html{font-size:${scale*100}%!important}`});
   await page.evaluate(()=>document.fonts.ready);return page;
 }
@@ -132,7 +132,7 @@ try {
     const final=await design(page);await surface(page,'design');await page.locator('#btnUndo').click();assert.notEqual((await design(page)).roles.sidebar,final.roles.sidebar);
     await page.locator('#btnRedo').click();assert.deepEqual(await design(page),final);
     const saved=page.waitForResponse(r=>r.url().endsWith('/api/bespoke')&&r.request().postDataJSON()?.action==='save');await page.locator('#btnSave').click();assert.equal((await saved).status(),200);
-    await page.locator('#toast').filter({hasText:/Local test design saved|already up to date/}).waitFor();await page.reload();await page.locator('#btnSave').filter({hasText:'Save test design'}).waitFor();assert.deepEqual(await design(page),final);
+    await page.locator('#toast').filter({hasText:/Local test design saved|already up to date/}).waitFor();await page.reload();await page.locator('#btnSave').filter({hasText:'Save test design'}).waitFor({state:'attached'});assert.deepEqual(await design(page),final);
     const reopened=await pageFor(width,height);assert.deepEqual(await design(reopened),final);await preview(reopened,'video');await openDrawer(reopened);await check(reopened,label+'/reopened');
     const generatedPage=await page.context().newPage();
     for(const kind of ['cards','video','activity']) {

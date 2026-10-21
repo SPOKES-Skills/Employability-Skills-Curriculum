@@ -31,7 +31,7 @@ async function editor(width) {
   await context.route(/^https?:/, route => new URL(route.request().url()).origin === server.baseUrl ? route.continue() : route.abort());
   const page = await context.newPage(); page.on('dialog', dialog => dialog.accept());
   await page.goto(server.baseUrl+'/bespoke/'); await page.locator('#localPreviewNotice').waitFor();
-  await page.locator('#btnSave').filter({hasText:'Save test design'}).waitFor();
+  await page.locator('#btnSave').filter({hasText:'Save test design'}).waitFor({state:'attached'});
   return page;
 }
 const saved = page => page.evaluate(() => JSON.parse(localStorage.getItem('bespoke-draft-v2')).design);

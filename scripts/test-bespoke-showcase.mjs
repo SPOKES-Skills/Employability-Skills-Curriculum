@@ -54,6 +54,38 @@ const visibleLooks = page => page.locator('#lookStrip > [data-look]').evaluateAl
   .filter(el => { const r = el.getBoundingClientRect(); return r.width > 0 && r.height > 0 && getComputedStyle(el).visibility !== 'hidden'; })
   .map(el => el.dataset.look));
 
+// A hosted (not local preview) lead session with an intercepted shared store. `save` answers the save action.
+// Shared saving needs an https store, so the hosted origin is https; every request is intercepted.
+const HOST = 'https://bespoke.example.test';
+const hostedSelection = {schema: 'bespoke-selection/v2', date: '2026-10-19', lesson: {id: 'money-management', title: 'Money Management'},
+  team: {name: 'Synthetic team', spokesperson: {name: 'Synthetic reviewer', email: 'synthetic@example.org'}}, design: defaultDesign(catalog)};
+const openHosted = async (width, height, save = () => ({status: 409, json: {ok: false, error: 'conflict', revision: 'c'.repeat(40), savedAt: '2026-10-19T17:00:00Z'}})) => {
+  const context = await browser.newContext({viewport: {width, height}, reducedMotion: 'reduce'});
+  await context.addInitScript(() => {
+    window.__bespokeAutosave = {enabled: false};
+    if (!localStorage.getItem('bespoke-team-session-v2')) localStorage.setItem('bespoke-team-session-v2', JSON.stringify({lessonId: 'money-management', editCode: 'synthetic-send-test-access-code', revision: null, savedAt: null, baseSelectionKey: null, pendingSave: null}));
+  });
+  await context.route(HOST + '/**', async route => {
+    const url = new URL(route.request().url());
+    if (url.pathname === '/bespoke/handoff-config.json') return route.fulfill({json: {apiBase: HOST + '/api/bespoke'}});
+    if (url.pathname === '/api/bespoke') {
+      const body = route.request().postDataJSON();
+      if (body.action === 'open') return route.fulfill({json: {ok: true, revision: 'b'.repeat(40), savedAt: '2026-10-19T16:00:00Z', selection: hostedSelection}});
+      if (body.action === 'save') return route.fulfill(save(body));
+      throw new Error('Unexpected synthetic action: ' + body.action);
+    }
+    const {origin, referer, ...headers} = route.request().headers();
+    await route.fulfill({response: await route.fetch({url: server.baseUrl + url.pathname + url.search, headers})});
+  });
+  const page = await context.newPage();
+  page.on('pageerror', e => errors.push(e.message));
+  const opened = page.waitForResponse(r => r.url().endsWith('/api/bespoke') && r.request().postDataJSON()?.action === 'open');
+  await page.goto(HOST + '/bespoke/');
+  await opened;
+  await page.locator('body[data-access=edit]').waitFor();
+  return {context, page};
+};
+
 // Visible builder controls outside the slide renders and outside shadow roots.
 // Later cases use this to check the 44px target, focus ring and tab order rules.
 const chromeControls = page => page.evaluate(() => {
@@ -187,7 +219,7 @@ try {
     assert.equal(await page.locator('#localPreviewNotice').isVisible(), false, 'this host is not the local preview');
     assert.equal((await page.locator('#btnSave').textContent()).trim(), 'Save for the team');
     await page.locator('#stage-review').click();
-    assert.equal(await page.getByRole('button', {name: 'Save for the team', exact: true}).count() >= 2, true, 'the review panel offers Save for the team as well');
+    assert.deepEqual(await page.getByRole('button', {name: 'Save for the team', exact: true}).evaluateAll(list => list.map(el => el.id)), ['btnSendSave'], 'on Send the panel holds the one Save for the team');
     assert.equal(await page.getByRole('button', {name: 'Save shared design'}).count(), 0, 'the old save wording is gone');
     await context.close();
     pass('the save button says Save for the team');
@@ -656,6 +688,38 @@ try {
     assert.equal(await page.locator('#sendDeck .send-open').first().isDisabled(), false, 'viewers can still open a slide');
     await context.close();
     pass('view-only sessions cannot save or send from Send');
+  }
+  {
+    const {context, page} = await openHosted(1024, 768);
+    assert.equal(await page.locator('#localPreviewNotice').isVisible(), false, 'this session is not the local preview');
+    await page.locator('#stage-start').click();
+    await page.locator('#preset-fun').click();
+    await page.locator('#stage-review').click();
+    await page.locator('#btnSendToBritt').click();
+    const unsaved = 'Save the current shared design before sending it to Britt.';
+    assert.equal(await textOf(page, '#sendFeedback'), unsaved, 'a send that cannot start says why beside the buttons');
+    assert.equal(await textOf(page, '#fileStatus'), unsaved, 'the strip still shows the warning');
+    await page.locator('#btnSendSave').click();
+    await page.locator('#sendFeedback').filter({hasText: 'Someone saved a newer shared version'}).waitFor({timeout: 4000});
+    assert.match(await textOf(page, '#fileStatus'), /Someone saved a newer shared version/, 'the strip still shows the conflict');
+    await context.close();
+    pass('send errors show beside the buttons');
+  }
+  {
+    const {context, page} = await openHosted(1440, 900);
+    await page.locator('#stage-slides').click();
+    assert.equal(await page.locator('#btnSave').isVisible(), true, 'the top bar keeps Save off Send');
+    await page.locator('#stage-review').click();
+    const actions = await page.locator('button').evaluateAll(list => list
+      // Content of a closed details element (the More menu) still reports a box, so it is left out by hand.
+      .filter(el => { const r = el.getBoundingClientRect(); return r.width > 0 && r.height > 0 && !el.closest('details:not([open])') && /Save for the team|Send to Britt/.test(el.textContent); })
+      .map(el => el.id));
+    assert.deepEqual(actions.sort(), ['btnSendSave', 'btnSendToBritt'], 'Send shows each action once, in the panel');
+    await page.locator('#stage-start').click();
+    assert.equal(await page.locator('#btnSave').isVisible(), true, 'Save returns to the top bar after Send');
+    assert.equal(await page.locator('#barEnd > #btnSend').count(), 0, 'Send to Britt is never promoted into the bar');
+    await context.close();
+    pass('Send keeps both actions in the panel');
   }
   assert.deepEqual(errors, []);
 } finally {

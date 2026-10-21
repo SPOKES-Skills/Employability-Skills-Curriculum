@@ -32,7 +32,7 @@ async function pageFor(view) {
   const page=await context.newPage();page.on('pageerror',error=>errors.push(error.message));
   page.on('dialog',async dialog=>{if(dialog.message().startsWith('Open this copy instead'))await dialog.accept();else {errors.push('Unexpected dialog: '+dialog.message());await dialog.dismiss();}});
   await page.goto(server.baseUrl+'/bespoke/');await page.locator('#localPreviewNotice').waitFor();
-  await page.locator('#btnSave').filter({hasText:'Save test design'}).waitFor();
+  await page.locator('#btnSave').filter({hasText:'Save test design'}).waitFor({state:'attached'});
   if(view.textScale)await page.addStyleTag({content:`html{font-size:${view.textScale*100}%!important}`});
   await page.evaluate(()=>document.fonts.ready);return page;
 }

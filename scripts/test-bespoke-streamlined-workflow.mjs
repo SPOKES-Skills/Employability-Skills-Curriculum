@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import {clickMenuItem} from './bespoke-test-navigation.mjs';
+import {clickMenuItem, saveControl} from './bespoke-test-navigation.mjs';
 // Independent acceptance of the three-stage workflow. All services are ephemeral,
 // all browser contexts are new, and all names/content are synthetic. Never attaches
 // to Safari, an existing browser, the persistent preview, or a hosted service.
@@ -68,7 +68,7 @@ async function scenario(name, run) {
 }
 async function ready(page) {
   await page.locator('#localPreviewNotice').waitFor({ state: 'visible' });
-  await page.locator('#btnSave').filter({ hasText: 'Save test design' }).waitFor();
+  await page.locator('#btnSave').filter({hasText:'Save test design'}).waitFor({state:'attached'});
   await page.locator('#stage-start').waitFor();
 }
 async function surface(page, name = 'design') {
@@ -136,7 +136,7 @@ async function team(page) {
 }
 async function save(page, status = 200) {
   const pending = page.waitForResponse(r => r.url().endsWith('/api/bespoke') && r.request().postDataJSON()?.action === 'save');
-  await page.locator('#btnSave').click(); const response = await pending;
+  await saveControl(page).click(); const response = await pending;
   assert.equal(response.status(), status, await response.text());
   if (status === 200) await page.locator('#toast').filter({ hasText: /Local test design saved|already up to date/ }).waitFor();
   return response;

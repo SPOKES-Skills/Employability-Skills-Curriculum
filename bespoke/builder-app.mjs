@@ -26,6 +26,7 @@ const EDIT_CODE_MIN = 8;
 const EDIT_CODE_MAX = 128;
 const HANDOFF_TIMEOUT_MS = 20000;
 const HANDOFF_CONFIG_URL = './handoff-config.json';
+const SAVING_NOTICE = 'Saving the shared design…';
 const VIEW_NAMES = {title:'Title slide',divider:'Chapter divider',cards:'Text boxes',video:'Video slide',activity:'Activity'};
 const STEPS = [
  {id:'team',label:'Lesson & team',view:'title'},
@@ -375,6 +376,12 @@ const findOption=(family,slug)=>state.library?.families?.[family]?.options.find(
     notice.textContent = message;
   }
 
+  // Save and send messages: warnings and errors keep the strip, and on Send they also show beside the buttons.
+  function actionNotice(message) {
+    fileNotice(message);
+    sendFeedback(message);
+  }
+
   // On Send, save and send progress also shows beside the buttons. Returns whether it did.
   function sendFeedback(message) {
     const el = onStage("review") ? byId("sendFeedback") : null;
@@ -684,7 +691,7 @@ const findOption=(family,slug)=>state.library?.families?.[family]?.options.find(
 
   function requireTeamSession() {
     if (ui.teamSession) return ui.teamSession;
-    fileNotice("Open your private team access before using shared Save or Send. Download backup still works.");
+    actionNotice("Open your private team access before using shared Save or Send. Download backup still works.");
     openOpenDialog();
     return null;
   }
@@ -786,18 +793,18 @@ const findOption=(family,slug)=>state.library?.families?.[family]?.options.find(
     if (!session) return;
     if (ui.cloudConflict) {
       if (auto) return;
-      fileNotice("A newer shared version exists. Download a backup and load the latest shared design before saving.");
+      actionNotice("A newer shared version exists. Download a backup and load the latest shared design before saving.");
       updateCloudChrome();
       return;
     }
     let payload;
     try { payload = currentSelection(); }
     catch (err) {
-      if (!auto) fileNotice("Could not save. " + err.message);
+      if (!auto) actionNotice("Could not save. " + err.message);
       return;
     }
     if (payload.lesson.id !== session.lessonId) {
-      if (!auto) fileNotice("This team access is locked to a different lesson. Your draft was not saved.");
+      if (!auto) actionNotice("This team access is locked to a different lesson. Your draft was not saved.");
       return;
     }
     const requestKey = selectionKey(payload);
@@ -816,7 +823,7 @@ const findOption=(family,slug)=>state.library?.families?.[family]?.options.find(
     autosaveTimer = null;
     handoffBusy = true;
     if (auto) setSaveStatus("Saving to the shared design…");
-    else if (!sendFeedback("Saving the shared design…")) fileNotice("Saving the shared design…");
+    else if (!sendFeedback(SAVING_NOTICE)) fileNotice(SAVING_NOTICE);
     try {
       const result = await handoffRequest("save", {
         lessonId: session.lessonId,
@@ -833,12 +840,12 @@ const findOption=(family,slug)=>state.library?.families?.[family]?.options.find(
           ui.cloudConflict = { revision: result.revision, savedAt: result.savedAt };
           session.pendingSave = null;
           persistTeamSession();
-          fileNotice("Someone saved a newer shared version. Your browser draft is safe. Download a backup, then load the latest shared design.");
+          actionNotice("Someone saved a newer shared version. Your browser draft is safe. Download a backup, then load the latest shared design.");
           updateCloudChrome();
           return;
         }
         if (auto) setSaveStatus("Automatic save will retry");
-        else fileNotice(result.message || "Shared Save did not finish. Your browser draft is safe; try Save again.");
+        else actionNotice(result.message || "Shared Save did not finish. Your browser draft is safe; try Save again.");
         return;
       }
       session.revision = result.revision;
@@ -849,7 +856,7 @@ const findOption=(family,slug)=>state.library?.families?.[family]?.options.find(
       if (replacedDuringSave) {
         persistTeamSession();
         setSaveStatus(draftStatusText());
-        fileNotice(ui.localPreview
+        actionNotice(ui.localPreview
           ? "The previous draft finished saving locally. Your current browser draft was kept; review it and choose Save test design."
           : "The previous draft finished saving. Your current browser draft was kept; review it and choose Save to share it.");
         return;
@@ -864,7 +871,7 @@ const findOption=(family,slug)=>state.library?.families?.[family]?.options.find(
         : (changedDuringSave ? "Newer browser changes not shared yet" : (auto ? "Saved to the shared design automatically" : "Shared design up to date")));
       if (!auto) {
         if (changedDuringSave) {
-          fileNotice(ui.localPreview
+          actionNotice(ui.localPreview
             ? "The version that started saving is saved locally. You made newer changes while it saved; choose Save test design again."
             : "The version that started saving is shared. You made newer changes while it saved; choose Save for the team again.");
         } else {
@@ -877,6 +884,8 @@ const findOption=(family,slug)=>state.library?.families?.[family]?.options.find(
       }
     } finally {
       handoffBusy = false;
+      // A save that ends without a message of its own must not leave "Saving…" beside the buttons.
+      if (ui.sendFeedback === SAVING_NOTICE) sendFeedback("");
       updateCloudChrome();
       scheduleAutosave(AUTOSAVE.idleMs);
     }
@@ -919,13 +928,12 @@ const findOption=(family,slug)=>state.library?.families?.[family]?.options.find(
     });
     if(ui.teamSession?.lessonId!==receipt.lessonId||ui.teamSession.editCode!==receipt.editCode||pendingSubmission()?.submissionId!==receipt.submissionId)return;
     if (!result.ok) {
-      fileNotice(result.message || "Britt’s receipt could not be checked. We will check again when this page opens.");
+      actionNotice(result.message || "Britt’s receipt could not be checked. We will check again when this page opens.");
       return;
     }
     if (result.status === "processing") {
       storePendingSubmission({ ...receipt, runId: result.runId || receipt.runId, stage: "receipt" });
-      fileNotice("Britt’s review request is processing. You can close this page; this browser will check again when you return.");
-      sendFeedback("Britt’s review request is processing.");
+      actionNotice("Britt’s review request is processing. You can close this page; this browser will check again when you return.");
       scheduleSubmissionPoll({ ...receipt, runId: result.runId || receipt.runId }, 10000);
       return;
     }
@@ -934,20 +942,20 @@ const findOption=(family,slug)=>state.library?.families?.[family]?.options.find(
       return;
     }
     storePendingSubmission({ ...receipt, stage: "failed" });
-    fileNotice(result.message || "The review request failed. Your saved design is unchanged; try Send to Britt again.");
+    actionNotice(result.message || "The review request failed. Your saved design is unchanged; try Send to Britt again.");
   }
 
   async function cloudSend() {
     if (!isLeadSession() || handoffBusy) return;
-    if (ui.localPreview) { fileNotice("This local preview does not send review requests. Your test design and backups remain available."); return; }
+    if (ui.localPreview) { actionNotice("This local preview does not send review requests. Your test design and backups remain available."); return; }
     const session = requireTeamSession();
     if (!session) return;
     if (!state.spokespersonName.trim()) {
-      goStage('team');byId('spokespersonName')?.focus();fileNotice("Add the spokesperson's name on Lesson & team before sending.");
+      goStage('team');byId('spokespersonName')?.focus();actionNotice("Add the spokesperson's name on Lesson & team before sending.");
       return;
     }
     if (ui.cloudConflict || !session.revision || hasUnsavedTeamWork()) {
-      fileNotice("Save the current shared design before sending it to Britt.");
+      actionNotice("Save the current shared design before sending it to Britt.");
       return;
     }
     const existing = pendingSubmission();
@@ -956,7 +964,7 @@ const findOption=(family,slug)=>state.library?.families?.[family]?.options.find(
       payload = existing.selection;
     } else {
       try { payload = currentSelection(); }
-      catch (err) { fileNotice("Could not send. " + err.message); return; }
+      catch (err) { actionNotice("Could not send. " + err.message); return; }
     }
     const mutationId = existing?.stage === "request" && existing.expectedRevision === session.revision
       ? existing.mutationId : newMutationId();
@@ -970,13 +978,12 @@ const findOption=(family,slug)=>state.library?.families?.[family]?.options.find(
     };
     storePendingSubmission(pending);
     handoffBusy = true;
-    fileNotice("Requesting Britt’s review…");
-    sendFeedback("Requesting Britt’s review…");
+    actionNotice("Requesting Britt’s review…");
     try {
       const result = await handoffRequest("send", pending);
       if(ui.teamSession!==session)return;
       if (!result.ok) {
-        fileNotice(result.message || "The review request did not finish. Your saved design is safe; choose Send to Britt to retry.");
+        actionNotice(result.message || "The review request did not finish. Your saved design is safe; choose Send to Britt to retry.");
         return;
       }
       const receipt = {
@@ -991,8 +998,7 @@ const findOption=(family,slug)=>state.library?.families?.[family]?.options.find(
       if (result.status === "received") {
         rememberReceipt(result, receipt);
       } else {
-        fileNotice("Britt’s review request is processing. This is not a receipt yet.");
-        sendFeedback("Britt’s review request is processing. This is not a receipt yet.");
+        actionNotice("Britt’s review request is processing. This is not a receipt yet.");
         scheduleSubmissionPoll(receipt, 5000);
       }
     } finally {
@@ -1004,12 +1010,12 @@ const findOption=(family,slug)=>state.library?.families?.[family]?.options.find(
     const pending = pendingSubmission();
     if (!pending || !ui.teamSession || pending.lessonId !== ui.teamSession.lessonId) return;
     if (pending.stage === "receipt" && pending.submissionId) {
-      fileNotice("Checking Britt’s pending review receipt…");
+      actionNotice("Checking Britt’s pending review receipt…");
       await pollSubmission(pending);
     } else if (pending.stage === "request") {
-      fileNotice("A previous review request may not have returned a receipt. Choose Send to Britt to retry the exact saved revision.");
+      actionNotice("A previous review request may not have returned a receipt. Choose Send to Britt to retry the exact saved revision.");
     } else if (pending.stage === "failed") {
-      fileNotice("The previous review request failed. Your shared design is safe; choose Send to Britt to try again.");
+      actionNotice("The previous review request failed. Your shared design is safe; choose Send to Britt to try again.");
     }
   }
 

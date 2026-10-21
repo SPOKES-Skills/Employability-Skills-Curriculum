@@ -42,7 +42,7 @@ async function editor(width) {
   context.on('page',page=>page.on('pageerror',error=>errors.push(error.message)));
   const page = await context.newPage();page.on('dialog',dialog=>dialog.accept());
   await page.goto(server.baseUrl+'/bespoke/');await page.locator('#localPreviewNotice').waitFor();
-  await page.locator('#btnSave').filter({hasText:'Save test design'}).waitFor();return page;
+  await page.locator('#btnSave').filter({hasText:'Save test design'}).waitFor({state:'attached'});return page;
 }
 const saved = page=>page.evaluate(()=>JSON.parse(localStorage.getItem('bespoke-draft-v2')).design);
 async function designSurface(page) {if(await page.locator('#surface-design').isVisible())await page.locator('#surface-design').click();}

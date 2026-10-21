@@ -55,7 +55,7 @@ async function scenario(name, run) {
     if (output) for (const [i, page] of pages.entries()) if (!page.isClosed()) await page.screenshot({ path: path.join(output, `${browserName}-failed-${name.replace(/\W+/g, '-')}-${i}.png`) }).catch(() => {});
   } finally { for (const context of contexts) await context.close(); await server.close(); }
 }
-async function ready(page) { await page.locator('#localPreviewNotice').waitFor(); await page.locator('#btnSave').filter({ hasText: 'Save test design' }).waitFor(); }
+async function ready(page) { await page.locator('#localPreviewNotice').waitFor(); await page.locator('#btnSave').filter({hasText:'Save test design'}).waitFor({state:'attached'}); }
 async function surface(page, view) { const tab = page.locator('#surface-' + view); if (await tab.isVisible()) await tab.click(); }
 async function shared(page) {
   if(!await page.locator('#sharedTheme').count())await page.locator('#stage-slides').click();

@@ -69,3 +69,6 @@ export async function clickMenuItem(page, selector) {
   if (!await target.isVisible()) await openMoreMenu(page);
   await target.click();
 }
+
+// Save lives in the top bar, except on Send, where the summary panel holds it.
+export const saveControl = page => page.locator('#btnSave:visible, #btnSendSave:visible');

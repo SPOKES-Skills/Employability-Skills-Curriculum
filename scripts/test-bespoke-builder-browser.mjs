@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // End-to-end checks use a fresh loopback-only server, synthetic people and memory drafts.
 // Nothing here uses provisioned team codes, a hosted API, Send, or released lessons.
-import {EDITOR_DESTINATIONS, builderDestination, clickMenuItem, recoveryMenu, switchSurface} from './bespoke-test-navigation.mjs';
+import {EDITOR_DESTINATIONS, builderDestination, clickMenuItem, recoveryMenu, saveControl, switchSurface} from './bespoke-test-navigation.mjs';
 import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
 import path from 'node:path';
@@ -69,7 +69,7 @@ async function scenario(name, callback) {
 async function ready(page) {
   await page.locator('#stepList button').first().waitFor();
   await page.locator('#localPreviewNotice').waitFor({ state: 'visible' });
-  await page.locator('#btnSave').filter({ hasText: 'Save test design' }).waitFor();
+  await page.locator('#btnSave').filter({hasText:'Save test design'}).waitFor({state:'attached'});
 }
 const go = builderDestination;
 const draft = page => page.evaluate(() => JSON.parse(localStorage.getItem('bespoke-draft-v2')));
@@ -93,7 +93,7 @@ async function fillTeam(page) {
 }
 async function save(page) {
   const response = page.waitForResponse(response => response.url().endsWith('/api/bespoke') && response.request().postDataJSON()?.action === 'save');
-  await page.locator('#btnSave').click();
+  await saveControl(page).click();
   const result = await response;
   assert.equal(result.status(), 200, await result.text());
   await page.locator('#toast').filter({ hasText: /Local test design saved|already up to date/ }).waitFor();
@@ -607,7 +607,7 @@ try {
     const newest = await design(first);
     await go(second, 'Shared typography'); await second.locator('#font-body').selectOption('inter');
     const staleLocal = await design(second);
-    await second.locator('#btnSave').click();
+    await saveControl(second).click();
     await second.locator('#fileStatus').filter({ hasText: 'Someone saved a newer shared version.' }).waitFor();
     assert.deepEqual(await design(second), staleLocal);
     assert.deepEqual((await openService(server)).selection.design, newest);

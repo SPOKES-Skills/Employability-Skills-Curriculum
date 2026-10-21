@@ -74,9 +74,16 @@ try {
     await page.keyboard.press('Escape');
 
     await page.locator('#stage-review').click();
-    assert.ok(await page.locator('#btnSave').evaluate(el => el.classList.contains('btn-secondary')), 'Save is secondary on Send');
+    for (const id of ['#btnSave', '#btnSend'])
+      assert.equal(await page.locator(id).isVisible(), false, `${id} is not in the top bar on Send`);
+    assert.equal(await page.locator('#barEnd > #btnSend').count(), 0, 'Send to Britt is not promoted into the bar');
+    const saves = await page.getByRole('button', {name: /^Save (for the team|test design)$/}).evaluateAll(list => list.map(el => el.id));
+    assert.deepEqual(saves, ['btnSendSave'], 'the panel holds the only Save on Send');
+    assert.equal(await page.locator('#btnSendToBritt').count(), 1, 'the panel holds Send to Britt');
+    await page.locator('#stage-slides').click();
+    assert.equal(await page.locator('#btnSave').isVisible(), true, 'Save is back in the top bar off Send');
     await context.close();
-    pass('Send stage demotes Save');
+    pass('Send stage keeps both actions in the panel');
   }
   {
     // Apple HIG: closely related choices on an object are segmented controls; color opens a picker.

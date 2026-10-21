@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // Independent role-control acceptance: actual UI, computed paint/type, isolated
 // synthetic service persistence. Never accesses a user's Safari or saved runtime.
-import {builderDestination, clickMenuItem, openMoreMenu, recoveryMenu} from './bespoke-test-navigation.mjs';
+import {builderDestination, clickMenuItem, openMoreMenu, recoveryMenu, saveControl} from './bespoke-test-navigation.mjs';
 import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
 import path from 'node:path';
@@ -30,7 +30,7 @@ const slide=page=>page.locator('#modelStage .bespoke-slide');
 const layer=page=>page.locator('#modelStage .bespoke-slide');
 const node=(page,kind,part)=>page.locator('#modelStage').locator((part==='heading'?headings:bodies)[kind]).first();
 const payload=d=>({schema:'bespoke-selection/v2',date:'2026-09-24',lesson:legacy.lesson,team:{name:'Synthetic role QA',spokesperson:{name:'Sample Instructor',email:'sample@example.org'}},design:d});
-async function ready(page){await page.locator('#localPreviewNotice').waitFor();await page.locator('#btnSave').filter({hasText:'Save test design'}).waitFor();}
+async function ready(page){await page.locator('#localPreviewNotice').waitFor();await page.locator('#btnSave').filter({hasText:'Save test design'}).waitFor({state:'attached'});}
 async function pageFor(width=1440,height=1000,scale=1){
   const context=await browser.newContext({viewport:{width,height},acceptDownloads:true,reducedMotion:'reduce'});contexts.push(context);
   await context.addInitScript(()=>window.__bespokeAutosave={enabled:false});
@@ -78,7 +78,7 @@ async function upload(page,value,name='synthetic-role-design.json'){
   await page.locator('#fileStatus').filter({hasText:`Opened ${name}.`}).waitFor();
 }
 async function save(page){
-  const request=page.waitForResponse(r=>r.url().endsWith('/api/bespoke')&&r.request().postDataJSON()?.action==='save');await page.locator('#btnSave').click();
+  const request=page.waitForResponse(r=>r.url().endsWith('/api/bespoke')&&r.request().postDataJSON()?.action==='save');await saveControl(page).click();
   const response=await request;assert.equal(response.status(),200,await response.text());
   await page.locator('#toast').filter({hasText:/Local test design saved|already up to date/}).waitFor();
 }

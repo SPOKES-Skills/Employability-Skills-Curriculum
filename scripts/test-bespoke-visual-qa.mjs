@@ -27,8 +27,7 @@ let axes=0, editorChecks=0, geometryChecks=0, canonicalChecks=0;
 const report=(name,details)=>{failures.push({name,...details});console.error('FAIL '+name+': '+JSON.stringify(details));};
 async function pageFor(view) {
   const context=await browser.newContext({viewport:{width:view.width,height:view.height},reducedMotion:'reduce'});contexts.push(context);
-  // These checks measure the slide's own layout at its column width, so Make it yours does not scale it to fit the window.
-  await context.addInitScript(()=>{window.__bespokeAutosave={enabled:false};window.__bespokeCanvasFit={enabled:false};});
+  await context.addInitScript(()=>{window.__bespokeAutosave={enabled:false};});
   await context.route(/^https?:/,route=>{if(new URL(route.request().url()).origin===server.baseUrl)return route.continue();external.push(route.request().url());return route.abort();});
   const page=await context.newPage();page.on('pageerror',error=>errors.push(error.message));
   page.on('dialog',async dialog=>{if(dialog.message().startsWith('Open this copy instead'))await dialog.accept();else {errors.push('Unexpected dialog: '+dialog.message());await dialog.dismiss();}});
@@ -58,11 +57,12 @@ async function axe(page,label) {
 }
 async function geometry(page,label) {
   const m=await page.locator('.bespoke-slide,.slide.active').evaluate(el=>{
-    const r=el.getBoundingClientRect();
+    // Make it yours scales its 960 canvas to fit the window (Ruling R26), so on-screen boxes are read back in the slide's own px.
+    const r=el.getBoundingClientRect(),k=el.offsetWidth/r.width;
     // Native details can expose layout rectangles for content that is not painted.
-    const boxes=[...el.querySelectorAll('h1,h2,h3,h4,p,li,.slide-logo,.slide-card,.card,.slide-activity,.slide-video-frame,.slide-video-frame>span')].filter(n=>!n.closest('details:not([open])')&&n.getBoundingClientRect().width).map(n=>{const b=n.getBoundingClientRect();return {name:n.className||n.tagName,x:b.x-r.x,y:b.y-r.y,w:b.width,h:b.height,scrollW:n.scrollWidth,clientW:n.clientWidth};});
+    const boxes=[...el.querySelectorAll('h1,h2,h3,h4,p,li,.slide-logo,.slide-card,.card,.slide-activity,.slide-video-frame,.slide-video-frame>span')].filter(n=>!n.closest('details:not([open])')&&n.getBoundingClientRect().width).map(n=>{const b=n.getBoundingClientRect();return {name:n.className||n.tagName,x:(b.x-r.x)*k,y:(b.y-r.y)*k,w:b.width*k,h:b.height*k,scrollW:n.scrollWidth,clientW:n.clientWidth};});
     const grid=el.querySelector('.slide-cards,.cards-grid');
-    return {w:r.width,h:r.height,scrollW:el.scrollWidth,scrollH:el.scrollHeight,canonical:el.matches('.slide.active'),columns:grid?getComputedStyle(grid).gridTemplateColumns:null,boxes};
+    return {w:el.offsetWidth,h:el.offsetHeight,scale:1/k,scrollW:el.scrollWidth,scrollH:el.scrollHeight,canonical:el.matches('.slide.active'),columns:grid?getComputedStyle(grid).gridTemplateColumns:null,boxes};
   });
   const maxHeight=m.canonical?m.scrollH:m.h;
   const escaped=m.boxes.filter(b=>b.x<-.5||b.y<-.5||b.x+b.w>m.w+.5||b.y+b.h>maxHeight+.5||b.scrollW>b.clientW+1);
@@ -106,7 +106,8 @@ try {
   // frame and pattern suites own broad color/pixel matrices and canonical parity.
   for(const view of [{width:320,height:800},{width:768,height:900},{width:1100,height:700},{width:1920,height:1080},{width:844,height:390},{width:390,height:800,textScale:2}]) {
     const page=await pageFor(view);await surface(page,'preview');
-    const canvas=await page.locator('#modelStage').evaluate(el=>el.getBoundingClientRect().width);assert(canvas>0,'Measure a visible preview canvas, not the layout gallery');
+    // The slide's own layout width: the 960 canvas above phone width (Ruling R26), the column on phones.
+    const canvas=await page.locator('#modelStage').evaluate(el=>el.getBoundingClientRect().width&&el.offsetWidth);assert(canvas>0,'Measure a visible preview canvas, not the layout gallery');
     const samplePage=await page.context().newPage();
     const fixture=longDesign();await surface(page,'design');
     await page.locator('#teamFileInput').setInputFiles({name:'synthetic-visual.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify({schema:'bespoke-selection/v2',date:'2026-09-24',submittedAt:'2026-09-24T16:30:00.000Z',lesson:legacy.lesson,team:legacy.team,design:fixture}))});

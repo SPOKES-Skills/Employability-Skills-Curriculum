@@ -52,10 +52,11 @@ async function preview(page,width) {if(width===390)await switchSurface(page,'pre
 async function measure(frame) {
   return frame.evaluate(el=>{
     const b=el.getBoundingClientRect(), child=el.firstElementChild, c=child.getBoundingClientRect(), s=getComputedStyle(el), cs=getComputedStyle(child);
-    const slide=el.closest('.bespoke-slide,.slide'),r=slide.getBoundingClientRect();
-    return {w:b.width,h:b.height,x:b.x-r.x,y:b.y-r.y,slideW:r.width,slideH:r.height,scrollW:slide.scrollWidth,
+    // Make it yours scales its 960 canvas to fit the window (Ruling R26), so on-screen boxes are read back in the slide's own px.
+    const slide=el.closest('.bespoke-slide,.slide'),r=slide.getBoundingClientRect(),k=slide.offsetWidth/r.width;
+    return {w:b.width*k,h:b.height*k,x:(b.x-r.x)*k,y:(b.y-r.y)*k,slideW:slide.offsetWidth,slideH:slide.offsetHeight,scrollW:slide.scrollWidth,
       border:s.borderTopWidth,borderColor:s.borderTopColor,padding:s.paddingTop,outline:s.outlineWidth,outlineColor:s.outlineColor,shadow:s.boxShadow,
-      child:{x:c.x-b.x,y:c.y-b.y,w:c.width,h:c.height,background:cs.backgroundColor,position:cs.position},
+      child:{x:(c.x-b.x)*k,y:(c.y-b.y)*k,w:c.width*k,h:c.height*k,background:cs.backgroundColor,position:cs.position},
       columns:getComputedStyle(slide).gridTemplateColumns};
   });
 }

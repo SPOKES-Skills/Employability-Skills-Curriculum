@@ -42,7 +42,8 @@ try{
    await page.locator('#modelStage .slide-card').first().focus();await page.keyboard.press('Enter');assert.equal(await page.locator('#selectedElement').inputValue(),'box-0');assert.equal(await page.evaluate(()=>document.activeElement.id),'selectedElement','Keyboard selection moves into the feature controls');
    await page.locator('#context-background').selectOption('muted');await page.locator('#context-border').selectOption('mauve');await page.locator('#context-look').selectOption('outline');
    assert.equal((await computed(page,'#modelStage .slide-card')).border,ink.mauve);
-   await page.locator('#modelStage .slide-title-bar').click({position:{x:5,y:5}});assert.equal(await page.locator('#selectedElement').inputValue(),'titlebar');await page.locator('#context-background').selectOption('gold');
+   // The slide is scaled to fit (Ruling R26), so click 2 on-screen px into the bar's padding, clear of its heading.
+   await page.locator('#modelStage .slide-title-bar').click({position:{x:2,y:2}});assert.equal(await page.locator('#selectedElement').inputValue(),'titlebar');await page.locator('#context-background').selectOption('gold');
    await view('video');await choose('#modelStage .slide-video-frame','video');await page.locator('#context-frame').selectOption('accent');await page.locator('#context-background').selectOption('royal');await page.locator('#context-border').selectOption('gold');
    assert.equal((await computed(page,'#modelStage .slide-video-frame > span')).fill,ink.royal);
    await choose('#modelStage .slide-button','button');await page.locator('#context-background').selectOption('mauve');await page.locator('#context-color').selectOption('light');await page.locator('#context-font').selectOption('bitter');

@@ -248,7 +248,8 @@ export function createPreviewEditor(host) {
  });
  stage.addEventListener('keydown',event=>{
   if(host.context().mode!=='edit'||event.target.closest('summary,a,input,select,textarea'))return;
-  if(event.key==='Escape'){event.preventDefault();select('background',{focus:true});}
+  // With the Slide options drawer open, Escape closes the drawer first (builder-app.mjs, Ruling R27).
+  if(event.key==='Escape'){const workspace=document.getElementById('workspace');if(workspace?.dataset.editor==='true'&&workspace.dataset.options==='true')return;event.preventDefault();select('background',{focus:true});}
   else if(event.key==='Enter'||event.key===' '){const node=event.target.closest('[data-edit-target]');if(node){event.preventDefault();select(node.dataset.editTarget,{focus:false});document.getElementById('selectedElement')?.focus({preventScroll:true});}}
  });
  matchMedia('(max-width:760px)').addEventListener('change',()=>refresh());

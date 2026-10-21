@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Browser checks for the canvas shell: slim top bar, docked toolbar, hideable options drawer.
+// Browser checks for the canvas shell: slim top bar, docked toolbar, hideable options drawer and its Escape key.
 import assert from 'node:assert/strict';
 import {createDevServer} from './bespoke-dev-server.mjs';
 import {browserType} from './bespoke-test-browser.mjs';
@@ -141,6 +141,44 @@ try {
     assert.equal(await page.locator('#chromeRail').isVisible(), true, 'menu command opens the drawer');
     await context.close();
     pass('options drawer toggles from toolbar, shortcut and menu');
+  }
+  {
+    // Ruling R27: Escape closes the open drawer first; with it closed, Escape on the canvas selects the background.
+    const {context, page} = await open(1440);
+    const options = () => page.locator('#workspace').getAttribute('data-options');
+    const focused = () => page.evaluate(() => document.activeElement.id);
+    await page.locator('#stage-slides').click();
+    await page.locator('#modelStage .slide-title-text').click();
+    await page.locator('#btnMoreOptions').click();
+    await page.locator('#btnHideDrawer').focus();
+    await page.keyboard.press('Tab');
+    assert.ok(await page.evaluate(() => document.getElementById('chromeRail').contains(document.activeElement)), 'focus is inside the drawer');
+    await page.keyboard.press('Escape');
+    assert.equal(await options(), 'false', 'Escape closes the open drawer');
+    assert.equal(await focused(), 'btnMoreOptions', 'focus returns to More options');
+    pass('Escape closes the open drawer and returns focus to More options');
+
+    await page.locator('#btnMoreOptions').click();
+    await page.locator('#modelStage .slide-title-text').focus();
+    await page.keyboard.press('Escape');
+    assert.equal(await options(), 'false', 'Escape on the canvas closes the open drawer first');
+    assert.equal(await page.locator('#selectedElement').inputValue(), 'heading-0', 'the selection stays while the drawer closes');
+    await page.locator('#modelStage .slide-title-text').focus();
+    await page.keyboard.press('Escape');
+    assert.equal(await page.locator('#selectedElement').inputValue(), 'background', 'with the drawer closed, Escape selects the background');
+    pass('with the drawer closed, Escape on the canvas selects the background');
+
+    await page.locator('#modelStage .slide-title-text').click();
+    await page.locator('#btnMoreOptions').click();
+    await page.locator('#context-color-well').click();
+    await page.keyboard.press('Escape');
+    assert.equal(await page.locator('#context-color-popover').count() === 0 || !await page.locator('#context-color-popover').isVisible(), true, 'Escape closes the color picker');
+    assert.equal(await options(), 'true', 'the drawer stays open while Escape closes the picker');
+    assert.equal(await focused(), 'context-color-well', 'focus returns to the color well');
+    await page.keyboard.press('Escape');
+    assert.equal(await options(), 'false', 'a second Escape closes the drawer');
+    await context.close();
+    pass('Escape closes the color picker before the drawer');
   }
   {
     // Lesson & team is its own first stage so people see it and identify their team.

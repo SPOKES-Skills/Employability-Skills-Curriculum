@@ -57,6 +57,12 @@ try{
   await page.locator('#context-look').selectOption('outline');await page.locator('#context-layout').selectOption('grid');
   const cards=await current(page);assert.equal(cards.slides.cards.look,'outline');assert.equal(cards.slides.cards.layout,'grid');
   assert.deepEqual(cards.roleStyles.title,edited.roleStyles.title);
+  // Ruling R27: while Slide options is open the first Escape closes it; with it closed, Escape selects the background.
+  if(await page.locator('#workspace').getAttribute('data-options')==='true'){
+    await page.locator('#modelStage .slide-card').first().focus();await page.keyboard.press('Escape');
+    assert.equal(await page.locator('#workspace').getAttribute('data-options'),'false','Escape closes the open drawer first');
+    assert.equal(await page.locator('#selectedElement').inputValue(),'box-0','closing the drawer keeps the selection');
+  }
   await page.locator('#modelStage .slide-card').first().focus();await page.keyboard.press('Escape');
   assert.equal(await page.locator('#selectedElement').inputValue(),'background');
   await page.locator('#context-finish').selectOption('solid');await page.locator('#context-background').selectOption('light');

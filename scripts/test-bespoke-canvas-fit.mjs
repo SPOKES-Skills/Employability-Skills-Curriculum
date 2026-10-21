@@ -55,3 +55,18 @@ test('the floor holds until a fifth of the slide falls below the fold', () => {
   assert.equal(fitScale({top: 768 - scaled * 0.81, natural, viewport: 768}), MIN_SCALE);
   assert.equal(fitScale({top: 768 - scaled * 0.78, natural, viewport: 768}), 1);
 });
+
+// Ruling R26: the slide lays out on the 960 canvas, so the column width caps the scale as well as the height.
+test('a slide on the 960 canvas never draws wider than its column', () => {
+  assert.equal(fitScale({top: 100, natural: 628, viewport: 1080, room: 540}), 540 / 960);
+  assert.equal(fitScale({top: 100, natural: 300, viewport: 1080, room: 1600}), 1);
+});
+
+test('the smaller of the width fit and the height fit wins', () => {
+  assert.ok(Math.abs(fitScale({top: 400, natural: 628, viewport: 768, room: 900}) - 352 / 628) < 1e-9);
+  assert.equal(fitScale({top: 100, natural: 628, viewport: 1080, room: 600}), 600 / 960);
+});
+
+test('a slide too heavy for the floor still fits its column width', () => {
+  assert.equal(fitScale({top: 400, natural: 2000, viewport: 768, room: 540}), 540 / 960);
+});

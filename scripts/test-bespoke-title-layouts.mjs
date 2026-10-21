@@ -42,9 +42,10 @@ async function choice(page, group, value) {
 }
 async function measure(locator, canonical = false) {
   return locator.evaluate((el, canonical) => {
-    const r = el.getBoundingClientRect(), style = getComputedStyle(el);
-    const box = selector => { const node = el.querySelector(selector), b = node.getBoundingClientRect(), css=getComputedStyle(node), range=document.createRange();range.selectNodeContents(node);const lines=[...range.getClientRects()].map(line=>({x:line.x-r.x,y:line.y-r.y,w:line.width,h:line.height}));return {x:b.x-r.x,y:b.y-r.y,w:b.width,h:b.height,font:css.fontSize,align:css.textAlign,color:css.color,lines}; };
-    return {w:r.width,h:r.height,scrollW:el.scrollWidth,scrollH:el.scrollHeight,background:style.backgroundImage,
+    // Make it yours scales its 960 canvas to fit the window (Ruling R26), so on-screen boxes are read back in the slide's own px.
+    const r = el.getBoundingClientRect(), style = getComputedStyle(el), k = el.offsetWidth / r.width;
+    const box = selector => { const node = el.querySelector(selector), b = node.getBoundingClientRect(), css=getComputedStyle(node), range=document.createRange();range.selectNodeContents(node);const lines=[...range.getClientRects()].map(line=>({x:(line.x-r.x)*k,y:(line.y-r.y)*k,w:line.width*k,h:line.height*k}));return {x:(b.x-r.x)*k,y:(b.y-r.y)*k,w:b.width*k,h:b.height*k,font:css.fontSize,align:css.textAlign,color:css.color,lines}; };
+    return {w:el.offsetWidth,h:el.offsetHeight,scrollW:el.scrollWidth,scrollH:el.scrollHeight,background:style.backgroundImage,
       title:box(canonical?'h1':'.slide-title-text'), subtitle:box(canonical?'.subtitle':'.slide-subtitle'), logo:box(canonical?'.logo':'.slide-logo'), rule:box(canonical?'.divider':'.slide-accent')};
   }, canonical);
 }

@@ -1,7 +1,7 @@
 #!/usr/bin/env node
-// Browser checks that the slide comes first: every showcase render fills its frame, Make it yours keeps the
-// whole slide on screen and larger than the toolbar band (Ruling R21), and Pick a look shows its stage and
-// strip together on a 1024x768 laptop. The rest of the showcase suite is in test-bespoke-showcase.mjs.
+// Browser checks that the slide comes first: every showcase render fills its frame, Make it yours draws the
+// slide on the same 960 canvas (Ruling R26) and keeps all of it on screen and larger than the toolbar band
+// (Ruling R21), and Pick a look shows its stage and strip together on a 1024x768 laptop. The rest of the showcase suite is in test-bespoke-showcase.mjs.
 import assert from 'node:assert/strict';
 import {createDevServer} from './bespoke-dev-server.mjs';
 import {browserType} from './bespoke-test-browser.mjs';
@@ -93,6 +93,54 @@ try {
       await context.close();
     }
   });
+  await check('Make it yours draws the slide on the 960 canvas, shaped as on Send (Ruling R26)', async () => {
+    for (const [width, height] of [[1280, 800], [1024, 768]]) {
+      const {context, page} = await open(width, height);
+      await page.locator('#stage-review').click();
+      await settle(page);
+      const send = await page.evaluate(() => Object.fromEntries([...document.querySelectorAll('#sendDeck .send-slide')]
+        .map(item => { const r = item.querySelector('.send-frame').getBoundingClientRect(); return [item.dataset.kind, r.width / r.height]; })));
+      await page.locator('#stage-slides').click();
+      for (const drawer of ['closed', 'open']) {
+        for (const [view, target] of [['title', '#modelStage .slide-title-text'], ['cards', '#modelStage .slide-card .slide-body']]) {
+          await page.locator(`#previewTabs [data-view=${view}]`).click();
+          await page.locator(target).first().click();
+          if ((drawer === 'open') !== (await page.locator('#workspace').getAttribute('data-options') === 'true')) await page.locator('#btnMoreOptions').click();
+          await page.evaluate(() => window.scrollTo(0, 0));
+          await settle(page);
+          const where = `${width}x${height}, drawer ${drawer}, ${view}`;
+          const m = await page.locator('#modelStage .bespoke-slide').evaluate(el => {
+            const r = el.getBoundingClientRect(), frame = el.closest('.preview-frame'), selected = el.closest('#modelStage').querySelector('.editor-selected');
+            const f = frame.getBoundingClientRect(), pad = parseFloat(getComputedStyle(frame).paddingLeft) + parseFloat(getComputedStyle(frame).paddingRight);
+            return {w: el.offsetWidth, h: el.offsetHeight, scale: r.width / el.offsetWidth, shown: r.width, mat: f.width - pad, outline: parseFloat(getComputedStyle(selected).outlineWidth)};
+          });
+          assert.equal(m.w, 960, `${where}: the slide lays out 960px wide, got ${m.w}`);
+          const shape = m.w / m.h;
+          assert.ok(Math.abs(shape / send[view] - 1) <= 0.01, `${where}: the slide's shape ${shape.toFixed(3)} matches Send's ${send[view].toFixed(3)}`);
+          assert.ok(Math.abs(m.mat - m.shown) <= 1, `${where}: the mat (${m.mat}px inside) hugs the ${m.shown}px slide`);
+          assert.ok(m.outline * m.scale >= 3, `${where}: the selection outline shows ${(m.outline * m.scale).toFixed(2)}px at scale ${m.scale.toFixed(3)}`);
+        }
+      }
+      await context.close();
+    }
+  });
+  await check('the Navigation sidebar is selectable at 1024 with the drawer open', async () => {
+    const {context, page} = await open(1024, 768);
+    await page.locator('#stage-slides').click();
+    await page.locator('#previewTabs [data-view=cards]').click();
+    await page.locator('#modelStage .slide-card .slide-body').first().click();
+    await page.locator('#btnMoreOptions').click();
+    await page.locator('#selectedElement').selectOption('sidebar');
+    await settle(page);
+    const m = await page.locator('#modelStage').evaluate(stage => {
+      const nav = stage.querySelector('.slide-sidebar'), picked = stage.querySelector('.editor-selected');
+      return {nav: getComputedStyle(nav).display, picked: picked?.className, height: picked?.getBoundingClientRect().height};
+    });
+    assert.notEqual(m.nav, 'none', 'the slide shows its sidebar');
+    assert.match(m.picked, /slide-sidebar(?!-)/, `Editing selects the sidebar itself, got ${m.picked}`);
+    assert.ok(m.height >= 40, `the selected sidebar is ${m.height}px tall`);
+    await context.close();
+  });
   await check('Sample text and Position wait behind More options below 1101px', async () => {
     // Below 1101px the band keeps Editing, Font, Size, Text color and Align; Sample text and Position wait in the drawer.
     for (const [width, height, inBand] of [[1440, 900, true], [1024, 768, false]]) {
@@ -180,12 +228,15 @@ try {
       await page.evaluate(() => { document.getElementById('fileStatus').hidden = true; });
       const clear = await measure();
       assert.ok(clear.top >= 0 && clear.bottom <= 768, `${where}: without the notice the slide refits into the window, top ${clear.top}, bottom ${clear.bottom}`);
-      assert.ok(clear.scale > banded.scale, `${where}: the refit grows the slide back: ${banded.scale.toFixed(3)} to ${clear.scale.toFixed(3)}`);
-      scales.push(banded.scale);
+      assert.ok(clear.scale >= banded.scale, `${where}: the refit never shrinks the slide: ${banded.scale.toFixed(3)} to ${clear.scale.toFixed(3)}`);
+      scales.push({banded: banded.scale, clear: clear.scale});
       await context.close();
     }
-    // With the drawer closed the Text boxes slide keeps its 628px layout, so the notice pushes it to the floor.
-    assert.ok(scales.some(scale => Math.abs(scale - MIN_SCALE) < 0.001), `one case holds exactly at the floor ${MIN_SCALE}: ${scales.map(x => x.toFixed(3)).join(', ')}`);
+    // The Text boxes slide is 960x628 on its canvas in both cases, so the notice pushes it to the floor. With the
+    // drawer open the slide sits at the floor even without the notice; with it closed, the refit grows it back.
+    const shown = scales.map(x => `${x.banded.toFixed(3)} to ${x.clear.toFixed(3)}`).join(', ');
+    assert.ok(scales.some(x => Math.abs(x.banded - MIN_SCALE) < 0.001), `one case holds exactly at the floor ${MIN_SCALE}: ${shown}`);
+    assert.ok(scales.some(x => x.clear > x.banded), `one case grows back once the notice goes: ${shown}`);
   });
   await check('Pick a look shows stage and strip together at 1024', async () => {
     const {context, page} = await open(1024, 768);

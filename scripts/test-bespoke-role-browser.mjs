@@ -33,8 +33,7 @@ const payload=d=>({schema:'bespoke-selection/v2',date:'2026-09-24',lesson:legacy
 async function ready(page){await page.locator('#localPreviewNotice').waitFor();await page.locator('#btnSave').filter({hasText:'Save test design'}).waitFor({state:'attached'});}
 async function pageFor(width=1440,height=1000,scale=1){
   const context=await browser.newContext({viewport:{width,height},acceptDownloads:true,reducedMotion:'reduce'});contexts.push(context);
-  // These checks measure the slide's own layout at its column width, so Make it yours does not scale it to fit the window.
-  await context.addInitScript(()=>{window.__bespokeAutosave={enabled:false};window.__bespokeCanvasFit={enabled:false};});
+  await context.addInitScript(()=>{window.__bespokeAutosave={enabled:false};});
   await context.route(/^https?:/,route=>{if(new URL(route.request().url()).origin===server.baseUrl)return route.continue();external.push(route.request().url());return route.abort();});
   const page=await context.newPage();page.on('pageerror',error=>errors.push(error.message));page.on('dialog',dialog=>dialog.accept());
   page.on('response',response=>{if(!response.url().endsWith('/api/bespoke')&&response.status()>=400)missing.push([response.url(),response.status()]);});
@@ -89,9 +88,10 @@ async function remote(action='open'){
 }
 async function geometry(page,label){
   const m=await slide(page).evaluate(el=>{
-    const root=el.getBoundingClientRect(),visible=n=>{const s=getComputedStyle(n);return s.display!=='none'&&s.visibility!=='hidden'&&n.getBoundingClientRect().width&&!n.closest('details:not([open])');};
-    const boxes=[...el.querySelectorAll('h1,h2,h3,p,li,.slide-logo,.role-watermark,.slide-card,.slide-video-frame,.slide-activity')].filter(visible).map(n=>{const r=n.getBoundingClientRect();return {name:n.className||n.tagName,x:r.x-root.x,y:r.y-root.y,w:r.width,h:r.height,sw:n.scrollWidth,cw:n.clientWidth};});
-    return {w:root.width,h:root.height,sw:el.scrollWidth,sh:el.scrollHeight,viewport:innerWidth,pageWidth:document.documentElement.scrollWidth,boxes};
+    // Make it yours scales its 960 canvas to fit the window (Ruling R26), so on-screen boxes are read back in the slide's own px.
+    const root=el.getBoundingClientRect(),k=el.offsetWidth/root.width,visible=n=>{const s=getComputedStyle(n);return s.display!=='none'&&s.visibility!=='hidden'&&n.getBoundingClientRect().width&&!n.closest('details:not([open])');};
+    const boxes=[...el.querySelectorAll('h1,h2,h3,p,li,.slide-logo,.role-watermark,.slide-card,.slide-video-frame,.slide-activity')].filter(visible).map(n=>{const r=n.getBoundingClientRect();return {name:n.className||n.tagName,x:(r.x-root.x)*k,y:(r.y-root.y)*k,w:r.width*k,h:r.height*k,sw:n.scrollWidth,cw:n.clientWidth};});
+    return {w:el.offsetWidth,h:el.offsetHeight,scale:1/k,sw:el.scrollWidth,sh:el.scrollHeight,viewport:innerWidth,pageWidth:document.documentElement.scrollWidth,boxes};
   });
   const escaped=m.boxes.filter(b=>b.x<-.75||b.y<-.75||b.x+b.w>m.w+.75||b.y+b.h>m.h+.75||b.sw>b.cw+1);
   assert(m.pageWidth<=m.viewport+1,`${label}: document overflow`);assert(m.sw<=m.w+1&&m.sh<=m.h+1,`${label}: slide overflow`);assert.deepEqual(escaped,[],`${label}: visible sample copy/decoration stays contained`);

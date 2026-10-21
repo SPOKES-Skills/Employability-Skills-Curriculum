@@ -37,15 +37,18 @@ local webfont package was found.
 
 ## Instructor workflow
 
-The current builder uses **Choose a layout → Customize → Review & save**.
-The layout gallery offers twelve presets and a Lesson & team disclosure. A preset
-opens Customize and can then go directly to review or receive a small edit. Title, Chapter divider, Text boxes, Video and
-Activity are direct, optional editors; there is no requirement to visit them all.
-Returning teams resume the current look with Continue editing or Review & save.
-The gallery remains available; applying another preset asks for replacement
-confirmation for an existing design, even after a fresh load.
+The current builder uses four stages: **Lesson & team → Pick a look → Make it
+yours → Send** (internal ids `team`, `start`, `slides`, `review`). Pick a look shows
+the current look on a large stage above a filmstrip of the twelve presets. Hover or
+focus previews a look; a click applies it as one Undo step, with no confirmation
+dialog. **Make it ours** opens Make it yours, where a toolbar band above the slide
+edits the selected part. Title, Chapter divider, Text boxes, Video and Activity are
+direct, optional editors; there is no requirement to visit them all. Returning teams
+keep their design and can choose **Swap starting look**. Send shows the deck, a short
+summary and both actions; a confirmed receipt shows the Sent to Britt view.
 
-The optional **Shared theme** disclosure in More options and Review & save groups
+The optional **Shared theme** disclosure in the Slide options drawer and in Send's
+See every setting groups
 shared colors, fonts and texture. Preserve Sidebar, Accent and Buttons colors,
 navigation/button typography, and the shared canvas/Band exterior bindings. A
 color element starts in **This slide** scope: its selected swatch and paint action

@@ -222,8 +222,9 @@ teacher chooses which version to keep. History offers older saved looks; saving
 an older look creates a new revision rather than deleting newer history.
 
 **Send to Britt** submits the saved design through Spoke Signals. Starting the
-workflow is only processing, not delivery. The UI may show **Britt received the review request.** only after
-the service confirms the matching proposal pull request. Failure, timeout, and
+workflow is only processing, not delivery. The UI may confirm delivery only after
+the service confirms the matching proposal pull request. On Send, that confirmation is the
+**Sent to Britt** view; on any other stage it is the toast **Sent to Britt.** Failure, timeout, and
 pending processing must be distinguished. Retrying the same design must find or
 reuse its existing proposal rather than create duplicates. Design review is
 separate from permission to build a lesson.

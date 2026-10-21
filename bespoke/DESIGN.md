@@ -14,6 +14,7 @@ colors:
   rail: "#f7f9fa"
   selected: "#edf5fa"
   input-line: "#8f9eaf"
+  swatch-line: "#8191a3"
   preview-mat: "#dfe7ed"
   notice: "#fff5d7"
   readability: "#fff4f0"
@@ -24,37 +25,27 @@ colors:
   lesson-gray: "#60636b"
   lesson-silver: "#d1d3d4"
 typography:
-  headline:
+  fs-2xs:
     fontFamily: "Outfit, system-ui, sans-serif"
-    fontSize: "1.8rem"
-    fontWeight: 600
-    lineHeight: 1.15
-    letterSpacing: "-0.04em"
-  title:
+    fontSize: "0.75rem"
+  fs-xs:
     fontFamily: "Outfit, system-ui, sans-serif"
-    fontSize: "1.2rem"
-    lineHeight: 1.2
-  preview-title:
-    fontFamily: "Outfit, system-ui, sans-serif"
-    fontSize: "1.35rem"
-    letterSpacing: "-0.02em"
-  body:
-    fontFamily: "Outfit, system-ui, sans-serif"
-    fontSize: "0.94rem"
-    lineHeight: 1.5
-  label:
-    fontFamily: "Outfit, system-ui, sans-serif"
-    fontSize: "0.87rem"
-    fontWeight: 500
-  helper:
+    fontSize: "0.8125rem"
+  fs-sm:
     fontFamily: "Outfit, system-ui, sans-serif"
     fontSize: "0.875rem"
-    lineHeight: 1.5
-  stage-count:
+  fs-md:
     fontFamily: "Outfit, system-ui, sans-serif"
-    fontSize: "0.875rem"
-    fontWeight: 500
-    lineHeight: 1.45
+    fontSize: "1rem"
+  fs-lg:
+    fontFamily: "Outfit, system-ui, sans-serif"
+    fontSize: "1.25rem"
+  fs-xl:
+    fontFamily: "Outfit, system-ui, sans-serif"
+    fontSize: "1.6rem"
+  fs-2xl:
+    fontFamily: "Outfit, system-ui, sans-serif"
+    fontSize: "2.1rem"
 rounded:
   field: "5px"
   control: "6px"
@@ -134,7 +125,7 @@ components:
 
 **Creative North Star: "The guided design workbench"**
 
-This is the code-defined design system for the guided builder at `bespoke/index.html`. Its working surfaces use the existing SPOKES navy, blue, white, bridge logo, and locally hosted Outfit type. Readable controls with a 44px minimum target frame the lesson preview and the user's expressive choices. Three stages organize the task; optional slide editors and Shared theme keep detailed decisions available without requiring a walkthrough.
+This is the code-defined design system for the guided builder at `bespoke/index.html`. Its working surfaces use the existing SPOKES navy, blue, white, bridge logo, and locally hosted Outfit type. Readable controls with a 44px minimum target frame the lesson preview and the user's expressive choices. Four stages organize the task: Lesson & team, Pick a look, Make it yours and Send. Optional slide editors and Shared theme keep detailed decisions available without requiring a walkthrough.
 
 The interface and the authored lesson design are separate layers. `builder.css` governs the builder chrome; `builder-catalog.json` supplies the editable choices; `builder-model.mjs` renders the shared lesson model. This document applies to the guided builder only. It does not restyle the dashboard, the original wizard, or any released lesson. Root `PRODUCT.md` describes the dashboard and is not a surface brief for this builder.
 
@@ -143,7 +134,7 @@ The interface and the authored lesson design are separate layers. `builder.css` 
 - Stable SPOKES controls surround a visibly changing lesson artifact.
 - Labels and sample previews explain choices before specialist vocabulary is needed.
 - Color roles and heading/body fonts remain independently editable.
-- Shared defaults and custom slide fields state their scope beside the controls and in Review.
+- Shared defaults and custom slide fields state their scope beside the controls and in Send's See every setting.
 - State, recovery, readability, and comparison information sit near the task they explain.
 
 ## Colors
@@ -165,6 +156,7 @@ The chrome uses cool neutral surfaces, dark blue text, blue actions, and a mauve
 - **Paper**, **canvas**, and **rail** distinguish controls, the page, and step navigation.
 - **Mist** and **selected** distinguish secondary hover and chosen controls.
 - **Muted** carries helper text; **line** divides regions; **input-line** delineates editable fields.
+- **Swatch line** (`--swatch-line`) outlines color swatches, so White stays visible on Paper at 3.2:1. Muted replaces the two older stray grays, `#44536a` for stage and local-test text and `#647487` for layout sketches; Muted text keeps 6.3:1 on Paper and 5.6:1 on Mist.
 - **Preview mat** separates the editable slide artifact from application chrome.
 - **Notice**, **readability**, and **readability ink** support explanatory status and repair messages. The notice edge uses lesson Gold.
 
@@ -194,7 +186,17 @@ The 11 shared theme roles are sidebar, title background, title second color, tit
 
 ## Typography
 
-**UI font:** locally hosted Outfit (`system-ui, sans-serif` fallback), with font synthesis disabled. The chrome hierarchy in frontmatter records the current panel heading, section heading, preview label, explanatory body, field label, helper, and stage-count roles. The brand name is larger than control text (1.6rem desktop, 1.4rem mobile). Supporting text, save/session status, recovery summaries and preset comparison captions use the helper size; header/navigation actions use the same 0.875rem size. Field labels remain 0.87rem and role editor tabs use 0.9rem. Paint labels use 0.8rem with a 1.3 line-height.
+**UI font:** locally hosted Outfit (`system-ui, sans-serif` fallback), with font synthesis disabled. Chrome text uses one scale of seven steps, defined as `--fs-*` custom properties on `:root` in `builder.css` and listed in the frontmatter. Chrome `font-size` uses only these steps, and `scripts/test-bespoke-showcase.mjs` fails on visible chrome text outside them. Slide renders keep their own sizes.
+
+| Step | Size | Used for |
+| --- | --- | --- |
+| `--fs-2xs` | 0.75rem (12px) | Kickers, toolbar labels, swatch names, changed tags, fine print |
+| `--fs-xs` | 0.8125rem (13px) | The scope line, the save chip, look names in the strip, captions |
+| `--fs-sm` | 0.875rem (14px) | Body text, fields, buttons, menus, stage pills |
+| `--fs-md` | 1rem (16px) | Primary actions, section headings, the brand name, text areas, the toast |
+| `--fs-lg` | 1.25rem (20px) | Panel headings and icon glyphs |
+| `--fs-xl` | 1.6rem (25.6px) | The page heading, the Send heading |
+| `--fs-2xl` | 2.1rem (33.6px) | The look's name on Pick a look, the Sent to Britt heading |
 
 **Lesson fonts:** either heading or body can use any of the 12 existing local families: DM Serif Display, Outfit, Playfair Display, Inter, Merriweather, Source Sans 3, Vollkorn, Fira Sans, Crimson Pro, Work Sans, Bitter, or Raleway. There is no required pairing and no serif/sans role restriction. Presets populate the two independent selectors; they do not constrain later choices.
 
@@ -212,7 +214,7 @@ Panel padding is 26px 22px 36px; preview padding is 26px 28px. Related fields an
 | --- | --- |
 | At least 1500px | Live thumbnails use a 170px rail. The central preview fills the remaining area with a 1080px canvas cap; More options opens a 380px detail panel. Stage navigation and history sit above the workspace. |
 | 761–1100px | Thumbnails form a strip across the top. More options and Guide me open in a 280px column beside the preview, so the slide stays in view while choices change. |
-| At most 760px | Thumbnails form a horizontal scrolling strip. The preview editor and toolbar stay together; More options opens below. Start, Review and Guide me retain the Design / Preview switch. Touch controls have 44px targets. |
+| At most 760px | Thumbnails form a horizontal scrolling strip. The preview editor and toolbar stay together; More options opens below. Pick a look, Send and Guide me retain the Design / Preview switch. Touch controls have 44px targets. |
 | At most 600px viewport | Generated slide styles reduce padding and collapse video/activity side layouts. |
 | Above 40rem sample canvas | Content samples show the lesson's 280px vertical chapter sidebar beside the main content. |
 | At most 40rem sample canvas | A labeled Sidebar sample menu opens a vertical drawer over the full-width content. |
@@ -226,15 +228,29 @@ The sample sidebar follows the six existing lessons: a lesson-name heading, seve
 
 ## Elevation & Depth
 
-The chrome is mostly flat, separated by cool surface tones and thin borders. Shadows are structural: the file/recovery menu floats above the workspace, and the slide receives a light lift above its mat. There is no shared entrance animation or transition-duration system in the current builder. Reduced-motion preferences disable animation, transitions, and smooth scrolling.
+The chrome is mostly flat, separated by cool surface tones and thin borders. Shadows are structural: the file/recovery menu floats above the workspace, and the slide receives a light lift above its mat. Motion has its own section below. Reduced-motion preferences disable animation, transitions, and smooth scrolling.
 
 - **Recovery menu:** `0 10px 24px #00133f20`.
 - **Slide artifact:** `0 6px 18px #00133f1f`.
 - **Dialog backdrop:** navy at half opacity (`#00133f80`). The dialog uses a border rather than an authored shadow.
+- **Toast:** `0 10px 28px #00133f40`.
+
+## Motion
+
+Each motion sits inside `@media (prefers-reduced-motion: no-preference)` in `showcase.css`, and `builder.css` also turns off animation and transitions under `reduce`. Each runs once. Nothing loops.
+
+| Moment | Motion | Duration |
+| --- | --- | --- |
+| Pick a look's stage swaps to a previewed or applied look | The old look fades out over the new one | 200ms |
+| A color change reaches other slides | Their rail thumbnails glow gold | 1s, once |
+| Toast in and out | Fade and an 8px slide | 180ms |
+| Sent to Britt | Three slides settle into the fan | 400ms, once |
+
+Slide styles apply page-wide, so the leaving look on the stage is a copy in its own shadow root with its own styles, removed when its fade ends. Under reduced motion the stage swaps at once, no copy is made, and changed thumbnails keep only their tag.
 
 ## Shapes
 
-Controls have modest corners: fields, swatches' button containers, stage controls, and editor tabs use the field radius; buttons, choices, presets, and the preview mat use the control radius. Build my own and the floating file menu use the feature radius. The access dialog uses the dialog radius. Swatches and small stage numbers are circular.
+Controls have modest corners: fields, swatches' button containers, stage controls, and editor tabs use the field radius; buttons, choices, presets, and the preview mat use the control radius. Build my own and the floating file menu use the feature radius. The access dialog uses the dialog radius. Swatches and small stage numbers are circular. In CSS the four radii are `--radius-field`, `--radius-control`, `--radius-feature` and `--radius-dialog` on `:root` in `builder.css`, and the chrome uses no other corner sizes. Mood chips, stage pills and the local test pill are fully rounded (999px).
 
 These chrome shapes do not constrain slide content. Lesson boxes support accent rails, outlines, filled treatments, and top bands; activities support boxes, callouts, banners, and side labels. Those catalog-backed variations belong to the artifact model and are preserved even where the chrome uses a quieter form language.
 
@@ -244,7 +260,7 @@ These chrome shapes do not constrain slide content. Lesson boxes support accent 
 
 Primary buttons use Blue with white text and become Navy on hover. Secondary buttons use Paper with a thin Line border and Mist hover. Buttons, text-link buttons, choices, stage navigation, preview tabs and mobile surface tabs have a 44px minimum height. Disabled buttons use half opacity. Text links remain underlined with a 3px underline offset. All focusable controls use the Mauve outline (3px, 3px offset); the programmatically focused panel suppresses its own outline.
 
-The header keeps How it works, save, open, and connected review actions visible; the local test preview hides Send and labels Save/Open as test actions. Help opens inline and returns focus to its button when closed. Start explains choosing a look, optional slide editing and saving; a disclosure explains the palette, fonts, boxes, logo, contrast, recovery and similarity guardrails. Saving guidance distinguishes the local test service from team saving and design review. Files & recovery uses native disclosure for backup, restore, and original-wizard access. The menu closes after a file action, on outside pointer interaction, or with Escape; Escape returns focus to its trigger. On phones the menu fits between 16px viewport insets. The team-opening dialog is a focused access task, with labeled lesson and private-code fields and explicit Open / Cancel actions. Saving a reusable visual design and authorizing a lesson build are distinct tasks.
+The header keeps How it works, save, open, and connected review actions visible; the local test preview hides Send and labels Save/Open as test actions. Help opens inline and returns focus to its button when closed. How it works has one step per stage; a disclosure explains the palette, fonts, boxes, logo, contrast, recovery and similarity guardrails. Saving guidance distinguishes the local test service from team saving and design review. Files & recovery uses native disclosure for backup, restore, and original-wizard access. The menu closes after a file action, on outside pointer interaction, or with Escape; Escape returns focus to its trigger. On phones the menu fits between 16px viewport insets. The team-opening dialog is a focused access task, with labeled lesson and private-code fields and explicit Open / Cancel actions. Saving a reusable visual design and authorizing a lesson build are distinct tasks.
 
 ### Fields and decisions
 
@@ -262,19 +278,47 @@ Text offers local heading/body colors, the twelve curated fonts, size, alignment
 
 ### Navigation and continuity
 
-Four named stages are **Lesson & team**, **Color & layout**, **Customize**, and **Review & save**. Lesson & team is its own first page (decisions, October 9, 2026) and its pill is marked until the team is identified. Color & layout offers Build my own or the editable presets. A preset can go directly to Review & save. Current stage navigation uses `aria-current="step"`, an accessible Stage N of 4 name, and a visible stage counter; Back and Continue controls name the destination. Undo, Redo, and Recent choices remain adjacent to navigation. Returning teams get Continue editing and Review & save; Change starting look deliberately exposes replacement choices instead of requiring a new preset.
+Four named stages are **Lesson & team**, **Pick a look**, **Make it yours**, and **Send**. Their internal ids stay `team`, `start`, `slides` and `review`. Each pill shows its number and name ("2 · Pick a look"), with a check mark once the stage is passed. Lesson & team is its own first page (decisions, October 9, 2026) and its pill is marked until the team is identified. Current stage navigation uses `aria-current="step"`, an accessible Stage N of 4 name, and a visible stage counter; Back and Continue controls name the destination. Undo, Redo, and Recent choices remain adjacent to navigation. Returning teams keep their design, and **Swap starting look** on Make it yours goes back to Pick a look.
 
-Within Slide designs, the distinct Slide design editors tablist offers **Title slide**, **Chapter divider**, **Text boxes**, **Video slide**, and **Activity**. All are optional. Selected editor tabs use Mist, a Blue border and a 3px inset bottom rule; the corresponding editor has a named tabpanel. Next slide type is a convenience action, with Review & save after Activity.
+Within the Slide options drawer, the distinct Slide design editors tablist offers **Title slide**, **Chapter divider**, **Text boxes**, **Video slide**, and **Activity**. All are optional. Selected editor tabs use Mist, a Blue border and a 3px inset bottom rule; the corresponding editor has a named tabpanel. Next slide type is a convenience action, with Send after Activity.
 
 Five separate preview tabs expose Title, Divider, Text boxes, Video, and Activity. These change the visible sample, not the editor or saved design. The selected preview tab has a blue underline and text; tablists support arrows, Home, End, Enter, and Space. Mobile Design / Preview tabs switch the visible region and retain separate scroll positions. The workspace is the single named, keyboard-focusable main landmark, with editor and preview sections inside it. The switch height is remeasured when text size or viewport changes. Stage changes move focus to the current panel. Dynamic choices, palettes, fonts, and preset controls have stable IDs so the rendering pass can restore focus after a same-stage change; open inline disclosures remain open. Design status and the mobile surface switch are contained in named landmarks.
 
-Review lists all five effective slide designs. Each has resolved colors, fonts and texture labeled Shared or Custom, retained second-color wording when unused, arrangement and local detail, plus direct Preview and Edit actions. Shared typography is explicitly identified as defaults rather than every slide's effective typography. Rows use top borders and 20px vertical padding. Definition lists stack below 1200px and pair labels with values in two columns from 1200px upward; long values wrap. On phones, Preview actions open the Preview surface, while Edit returns to Design. Readability advice, notes, saving and recovery follow the summary.
+Send's **See every setting** lists all five effective slide designs. Each has resolved colors, fonts and texture labeled Shared or Custom, retained second-color wording when unused, arrangement and local detail, plus direct Preview and Edit actions. Shared typography is explicitly identified as defaults rather than every slide's effective typography. Rows use top borders and 20px vertical padding. Definition lists stack below 1200px and pair labels with values in two columns from 1200px upward; long values wrap. On phones, Preview actions open the Preview surface, while Edit returns to Design. Readability advice, notes, saving and recovery follow the summary.
 
-### Editable presets
+### Pick a look
 
-Professional, Modern, Serious, Light-hearted, Fun, and Outspoken are starting looks in the same model as Build my own. Each preset button includes a small palette/type sample, name, short description, and a reference comparison. The selected preset has a blue outline. Choosing a preset is not a lock: every color, font, arrangement, and sample remains editable.
+The twelve editable presets are starting looks in the same model as Build my own. Choosing a look is not a lock: every color, font, arrangement, and sample remains editable.
 
-Replacing an existing look uses a native HTML dialog styled like the existing access dialog, including after a saved design opens in a fresh context. Its heading names the chosen preset, and its copy explains sample preservation and Undo. Cancel receives initial focus; Tab and Shift+Tab wrap through the three controls, Escape cancels, and dismissal returns focus to the initiating preset. The checkbox label is a 44px target and the actions wrap on narrow screens. The initially unchecked session opt-out is committed only by Apply preset and never suppresses other warnings. It is transient tab state, separate from design and team persistence; Leave session, changing team/lesson, and starting a new draft clear it.
+The stage takes about 60% of the width. It shows a large render of the current look's title slide, with the lesson's name as its title until the team types their own. Its width follows the window height but never drops below 480px, so the stage stays the largest element at short heights. The side column shows "Your starting look", the look's name in its own heading font at `--fs-2xl`, one line of layout and font detail, the look's colors as named dots, small renders of the other four slide types, **Make it ours →**, and an **Undo** link after an apply. At 1100px and narrower the side column moves under the stage.
+
+Below the stage, mood chips (All 12, Calm, Bold, Bright, Classic) filter a filmstrip of the twelve looks. Each look is a small render with its name. **Build my own**, **Guide me** and, while a guide is under way, **Continue guide** sit as text buttons at the end of the mood row. A team arriving with a design that matches none of the twelve looks sees a dashed **Your design** card first.
+
+Hover or keyboard focus previews a look on the stage without applying it. The heading reads "Previewing <name>" and a polite live region says the same. Leaving the strip or pressing Escape returns to the applied look. Clicking a look or pressing Enter applies it as one Undo step and stays on Pick a look. There is no confirmation dialog. Arrow keys move along the strip and Tab leaves it. The applied look has a gold outline and a previewed look a blue one.
+
+### Make it yours
+
+The slide stays the largest element on screen, with the "Your slides" thumbnail rail on its left on wide screens. A line under the top bar reads "Starting from **<look>** · N changes" with a **Swap starting look** link, or "Your design" when the look is unknown. N counts the design settings that differ from the starting look applied to the same sample words.
+
+**Toolbar band.** Above 760px the toolbar for the selected part sits in a band directly above the slide. It never covers the slide, the rail or the slide actions. When its fields do not fit one row, the band grows and pushes the slide down. The fields run in this order: Editing (the part picker), Sample text, Font, Size, Color, Align, Position, the add and reset actions, then **More options**, which opens the Slide options drawer. The drawer has one close button, the pinned **Hide options** bar.
+
+**Named swatches.** The Color well opens a popover of the eleven palette colors. Each swatch shows its palette name under the dot.
+
+**Scope line.** One line under the toolbar says what a color change touches, for example "Gold also changes the **Divider** heading, because they share a color." It lists up to three parts, then "and N more", and its **Change only this slide…** link opens the drawer at the Only this slide switch. With the switch on, it reads "This color stays on the Title slide only." For the sidebar, accent and buttons it reads, for example, "Changes the sidebar on every slide." The rail thumbnails of the other slides that changed glow gold once and keep a small **changed** tag until the team leaves the stage.
+
+Readability notes shrink to one line under the slide ("1 readability note") that opens to the full advisory text. The similarity comparison is a single line on Send, not on this stage.
+
+### Messages
+
+Success messages, such as an applied look or a finished save, appear as a toast near the top of the window. The toast is one `#toast` live region that stays rendered, shows for four seconds, fades in and out over 180ms and ignores the pointer. Warnings, conflicts, pending sends and errors stay in the notice strip, and a stage change does not clear them.
+
+### Send
+
+Send has two columns. The left column holds the five slides on one sheet: the title slide large (two columns by two rows), then divider, text boxes, video and activity. Clicking one opens it in Make it yours, and the editing outline never shows here. The right column is a summary panel that stays in view on wide screens. It holds the label "Your suggestion", the heading "**<look>**, made yours" (or "Your design"), three plain rows (Look, Fonts, Your changes), the notes field "Anything Britt should know?", and **Save for the team** and **Send to Britt →** with their messages beside them. Under them sit one similarity line ("Shares 8 of 22 choices with the released lessons") with **See the comparison**, the small print "This is a suggestion. Britt and the program administrator choose the final design.", and a closed **See every setting** disclosure with the full review. The local preview keeps Send blocked.
+
+### Sent to Britt
+
+When the latest confirmed receipt matches the saved design and nothing has changed since, Send shows a confirmation instead. It has three of the team's slides fanned out, a green check, the heading "Sent to Britt", one sentence naming the lesson and the design, **Keep editing**, **Download a copy**, and a closed **Details** disclosure with the review request link. It shows again after a reload. A send from another stage confirms with the toast "Sent to Britt." while the view waits on Send. After the team edits, Send returns with the line "Sent to Britt on <date>. You have changed it since." A pending send reads "Sending to Britt…" in the panel.
 
 ### Cumulative preview and comparison
 
@@ -386,14 +430,14 @@ with that state explained beside the selector.
 The cumulative slide is the primary editing surface. Five live thumbnails sit to
 its left; selecting visible text, a box or background exposes native formatting
 controls above it. More options retains the complete existing editor and explicit
-Shared default controls. The scope line names the actual model boundary: a slide
-role, all matching text on that role, or all Text boxes. Selection markings are
+Shared default controls. The scope line under the toolbar names the other slide
+parts a color change reaches (see Make it yours). Selection markings are
 UI only. Browser reload restores the options disclosure; saved designs retain the
-existing model contract. Guide me and Start/Review remain available.
+existing model contract. Guide me, Pick a look and Send remain available.
 
-Only the Slide designs stage edits through the preview. While Guide me runs it owns
-the preview, so the toolbar is hidden and slide elements are not selectable. On Start
-and Review the slide is for looking at; one Edit this slide button opens the editor.
+Only Make it yours edits through the preview. While Guide me runs it owns
+the preview, so the toolbar is hidden and slide elements are not selectable. On Pick a look
+and Send the slides are for looking at; clicking a slide on Send opens it in Make it yours.
 Selectable text keeps its visible words as its accessible name; the background and
 boxes are labeled groups, and the selected element carries `aria-current="true"`.
 
@@ -422,8 +466,8 @@ Keep readable text on every starter and preserve full saved-design colors.
 
 ### Feature inspector — October 7, 2026
 
-Keep the approved color-first gallery. During Customize, the right editor sidebar
-shows controls for the clicked preview feature, with a visible selection outline
+Keep the approved color-first gallery. During Customize (now Make it yours), a right-hand panel
+showed controls for the clicked preview feature (since October 19 they sit in the toolbar band above the slide), with a visible selection outline
 and scope description. Text, backgrounds, navigation, action buttons, box surfaces,
 title bars, logo, accent rule, video frame, activity panel and watermark are
 selectable with pointer or keyboard. The Selected element menu is an equivalent

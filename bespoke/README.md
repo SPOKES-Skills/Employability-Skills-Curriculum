@@ -9,26 +9,33 @@ build a complete deck, or publish lessons.
 review in an isolated worktree. Synthetic local saving is separate from hosted
 acceptance; this revision has not been merged or deployed.
 
-## Name the team, choose, customize, review
+## Name the team, pick a look, make it yours, send
 
 BeSpoke opens on **Lesson & team**. Choose the lesson, name the team and enter the
 spokesperson's name and email. The stage pill stays marked until the team is
 identified. Nothing blocks you from moving on, but Send to Britt needs the
 spokesperson's name.
 
-1. **Choose a layout:** choose one of exactly twelve slide thumbnails: Editorial,
-   Split stage, Centered, Grounded, Framed, Headline, Side rule, Horizon, Corner,
-   Masthead, Two columns and Inset. These use twelve different title compositions,
-   rendered with the same model as the live slide. **Other ways to start** retains the detailed guide and current-design path.
-2. **Customize:** select visible text in the large preview, or use Selected element.
-   Edit the words in the nearby Sample text field. Choose a text color, one of three
+1. **Pick a look:** a large stage shows the current look, with its name, layout,
+   fonts and colors beside it. Under it, a filmstrip holds the twelve looks, filtered
+   by mood chips (All 12, Calm, Bold, Bright, Classic). Every render uses the lesson's
+   name as its title until the team types their own. Hovering or focusing a look
+   previews it on the stage; clicking it or pressing Enter applies it as one Undo step.
+   **Make it ours** moves on to Make it yours. **Build my own** and **Guide me** sit at
+   the end of the mood row, and a **Your design** card brings back the team's own design.
+2. **Make it yours:** click visible text in the large slide, or pick it from **Editing**.
+   A toolbar band above the slide holds its options, and **More options** opens the
+   Slide options drawer. Edit the words in the nearby Sample text field. Choose a text color, one of three
    sizes, Left/Center/Right alignment, and Top/Middle/Bottom placement within the
    text area. A continuous typing session is one Undo action. **Add text** adds one
    additional editable text area per slide type; select it again to edit or remove it.
-   Existing box headings and bodies can be edited separately. Formatting scope is
-   stated above the preview; matching box text still shares formatting.
-3. **Review & save:** inspect the five reusable slide types, then use existing
-   Save/Open and Files & recovery. Saving remains a visual-design review workflow.
+   Existing box headings and bodies can be edited separately. One line under the
+   toolbar names the other slides a color change reaches, and their rail thumbnails
+   carry a **changed** tag. A line at the top reads "Starting from <look> · N changes".
+3. **Send:** the five slides sit on one sheet beside a summary of the look, its fonts
+   and the team's changes, the notes field, **Save for the team** and **Send to Britt**.
+   **See every setting** holds the full per-slide review. Saving remains a
+   visual-design review workflow.
 
 Select Background for **Solid** (one brand-color picker) or **Gradient**
 (independent start and end brand-color pickers). Changes appear immediately.
@@ -39,23 +46,13 @@ Undo and Redo remain beside the four stages. **More options** retains the detail
 slide choices and shared theme, without requiring a team to work through them.
 The original v1 wizard remains separate at `legacy.html`.
 
-A preset fills the same controls as individual editing. Changing a field keeps
-the other choices. Applying another preset replaces the visual choices, preserves
-sample text, and can be undone. An existing saved design receives the same
-replacement confirmation as a design edited in the current session.
+A look fills the same controls as individual editing. Changing a field keeps
+the other choices. Applying another look replaces the visual choices and keeps
+sample text. There is no confirmation dialog: the apply is one Undo step, and the
+**Undo** link beside Make it ours takes it back.
 
-The preset confirmation offers **Cancel**, **Apply preset**, and an initially
-unchecked **Don't ask again during this session** option. Only checking it and
-applying a preset suppresses later preset confirmations. Cancel and Escape leave
-both the design and preference unchanged. Other warnings stay active.
-
-The preference belongs to the current tab's editing session: it survives stage
-navigation and reload, and resets on Leave session, a different team/lesson,
-Start a new browser draft, or a fresh tab after closing this one. It uses only
-`sessionStorage`; it never enters designs, backups, history, or shared records.
-If tab storage is unavailable, the preference lasts only until the page reloads.
-
-**Shared theme** is an optional disclosure in More options and Review & save. It contains
+**Shared theme** is an optional disclosure in the Slide options drawer and in Send's
+**See every setting**. It contains
 the shared colors, heading/body fonts and texture, including Sidebar, Accent and
 Buttons colors. These three colors have no local slide replacement; shared body
 typography also supplies navigation and buttons. Shared content background still
@@ -65,7 +62,7 @@ Each inheritable slide field is marked **Shared** or **Custom**. Shared fields
 follow the corresponding current default; custom fields stay unchanged when that
 default changes. **Use shared theme** restores inheritance for that field on that
 slide type, keeping its other fields and the other slide designs. The effective
-Review summary reports each slide's resolved choices instead of describing shared
+summary in See every setting reports each slide's resolved choices instead of describing shared
 font defaults as though every slide used them.
 
 **Colors:** select an element, then a brand swatch to replace its color immediately.
@@ -147,7 +144,7 @@ guarantee.
 
 ## Guide me
 
-**Choose a layout → Other ways to start** offers **Guide me step by step**. The guide asks one question per
+On Pick a look, **Guide me** sits at the end of the mood row. The guide asks one question per
 screen, slide by slide: a starting look, a shared look (fonts, pattern, sidebar, accent and
 button colors), then the title slide, chapter divider, text boxes, video slide and activity.
 Each question shows its choices as small pictures drawn from the real slide styles, and
@@ -180,7 +177,7 @@ version, and recover the choices the team agrees to keep.
 
 A v1 backup opens as an **explained conversion**, not a promise of identical
 appearance. The exact source selection remains in `legacySelection` in every v2
-backup and can be downloaded separately on Review. Older title/divider/card options
+backup and can be downloaded separately on Send. Older title/divider/card options
 may have no exact equivalent; chapter-specific styling remains in that original
 backup. Review conversion and readability notes before saving the new design. The
 original wizard remains at `bespoke/legacy.html`; its storage keys are separate.
@@ -197,7 +194,8 @@ repository artifacts; use work contact details and non-sensitive sample copy.
 
 **Send to Britt** uses the confirmed saved selection. Processing is not delivery;
 only the matching proposal receipt establishes that Britt received the review
-request. Local preview disables Send and receipt-status requests completely.
+request. Then Send shows the **Sent to Britt** view, or another stage shows the toast
+**Sent to Britt.** Local preview disables Send and receipt-status requests completely.
 
 ## Local review
 

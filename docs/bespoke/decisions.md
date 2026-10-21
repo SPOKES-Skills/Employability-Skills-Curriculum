@@ -1,5 +1,13 @@
 # BeSpoke decisions
 
+## Showcase polish: October 19, 2026
+
+Britt approved the showcase polish spec (`docs/superpowers/specs/2026-10-19-bespoke-showcase-polish-design.md`).
+
+| Date | Decision |
+|---|---|
+| 2026-10-19 | The stages are named Lesson & team, Pick a look, Make it yours and Send. Their order and internal ids (`team`, `start`, `slides`, `review`) do not change. Applying a look no longer opens the preset confirmation dialog: the apply is one Undo step, and an Undo link sits beside Make it ours. The scope badge ("This slide type only") is gone. One scope line under the toolbar names the other slides a color change reaches. The similarity meter leaves Make it yours and becomes one line on Send with a See the comparison link. This replaces the September 24 "prominent advisory meter" placement. The comparison, its six reference lessons and its advisory wording do not change. |
+
 ## PR #56 merged with main: October 15, 2026
 
 Britt chose main's twelve layout presets (Editorial, Split stage, Centered, Grounded,

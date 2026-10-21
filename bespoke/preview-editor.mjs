@@ -1,5 +1,5 @@
 import {isQuickField} from './canvas-toolbar.mjs';
-import {SHARED_LINE_END} from './make-it-yours.mjs';
+import {SHARED_LINE_END, renderScopeParts} from './make-it-yours.mjs';
 import {colorWell,segmentedControl,SEGMENTED_FIELDS,MAX_SEGMENTS} from './canvas-controls.mjs';
 import {fitCanvas} from './canvas-fit.mjs';
 // Narrower than this, the docked band sends Sample text and Position to the drawer so it keeps two rows.
@@ -207,8 +207,7 @@ export function createPreviewEditor(host) {
  // One line under the toolbar says what else the selected part's color changes.
  function renderScopeLine(kind,key){
   const line=document.getElementById('scopeLine');if(!line)return;
-  const text=host.context().mode==='edit'?host.scopeLine(kind,selected,key):'';
-  line.replaceChildren(text);line.hidden=!text;
+  const text=renderScopeParts(line,host.context().mode==='edit'?host.scopeLine(kind,selected,key):[]);line.hidden=!text;
   if(!text.endsWith(SHARED_LINE_END))return;
   const only=document.createElement('button');only.type='button';only.id='btnOnlyThisSlide';only.className='text-link';only.textContent='Change only this slide…';only.disabled=!host.context().editable;
   only.onclick=()=>{if(!host.context().optionsOpen)host.more(selected);document.getElementById('context-only-slide')?.focus();};

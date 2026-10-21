@@ -485,7 +485,7 @@ try {
     assert.deepEqual(saved.selection.design, selected);
     for (const key of ['step', 'stepId', 'editorRole', 'sharedThemeOpen', 'previewView', 'meaningfulDesign']) assert(!Object.hasOwn(saved.selection, key), `${key} must not enter the selection payload`);
     const returning = await makePage();
-    await returning.locator('#fileStatus').filter({ hasText: /Opened|up to date|loaded/i }).waitFor();
+    await returning.locator('#toast').filter({ hasText: /Opened|up to date|loaded/i }).waitFor();
     assert.deepEqual(await design(returning), selected, 'Fresh-context shared reopen preserves all five independent designs');
     await stage(returning, 'start');
     assert(await returning.locator('#lookYours').isVisible(), 'A returning design is kept as the Your design card');
@@ -612,7 +612,7 @@ try {
     assert.equal(await second.locator('#btnHistory').getAttribute('aria-expanded'), 'true', 'Previous versions is not intercepted by recovery overlay');
     await clickMenuItem(second, '#btnHistory');
     await second.locator('#btnLoadLatest').click();
-    await second.locator('#fileStatus').filter({ hasText: 'Opened the latest shared design.' }).waitFor();
+    await second.locator('#toast').filter({ hasText: 'Opened the latest shared design.' }).waitFor();
     assert.deepEqual(await design(second), (await remote(server)).selection.design);
     await upload(second, recovery);
     assert.equal((await draft(second)).autosavePaused, true, 'Recovered backup needs deliberate Save');

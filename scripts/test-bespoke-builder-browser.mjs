@@ -201,7 +201,7 @@ try {
     await page.locator('#btnSave').focus(); await page.keyboard.press('Control+Shift+z');
     assert.deepEqual(await design(page), edited);
     await clickMenuItem(page, '#btnOpen');
-    await page.locator('#fileStatus').filter({hasText:/opened|loaded/i}).waitFor();
+    await page.locator('#toast').filter({hasText:/opened|loaded/i}).waitFor();
     assert.deepEqual(await design(page), edited);
   });
 
@@ -459,7 +459,7 @@ try {
     assert.deepEqual(await design(page), backup.design);
     // An explicit open follows the same recovery boundary as startup.
     await clickMenuItem(page, '#btnOpen');
-    await page.locator('#fileStatus').filter({ hasText: /Opened the latest shared design/ }).waitFor();
+    await page.locator('#toast').filter({ hasText: /Opened the latest shared design/ }).waitFor();
     assert.deepEqual(await design(page), backup.design);
   });
 
@@ -614,7 +614,7 @@ try {
     const backup = await download(second);
     assert.deepEqual(backup.payload.design, staleLocal);
     await second.locator('#btnLoadLatest').click();
-    await second.locator('#fileStatus').filter({ hasText: 'Opened the latest shared design.' }).waitFor();
+    await second.locator('#toast').filter({ hasText: 'Opened the latest shared design.' }).waitFor();
     assert.deepEqual(await design(second), newest);
     const recovery = await second.evaluate(() => JSON.parse(localStorage.getItem('bespoke-previous-draft-v2')));
     assert.deepEqual(recovery.design, staleLocal);

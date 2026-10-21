@@ -8,9 +8,9 @@ import { syncStageChrome } from './canvas-shell.mjs';
 import { createGuide } from './guide/guide.mjs';
 import { showToast } from './toast.mjs';
 import { renderPickALook, closePickALook } from './pick-a-look.mjs';
-import { slideOptions, designKey, changedKinds, lookDetail, designChanges, sentState } from './showcase-model.mjs';
+import { slideOptions, designKey, changedKinds, lookDetail, designChanges, sentState, withSampleWords } from './showcase-model.mjs';
 import { renderSendStage, renderSentView, closeSendStage } from './send-stage.mjs';
-import { scopeLine, startingFrom, renderStartingFrom, markRail, pulseRail } from './make-it-yours.mjs';
+import { scopeLineParts, startingFrom, renderStartingFrom, markRail, pulseRail } from './make-it-yours.mjs';
 import { createTeamView, isShareHash, isSnapshotHash, viewLinkToOpen } from './team-view.mjs';
 import { guideMark, indexForMark, keepsGuide } from './guide/questions.mjs';
 import { buildQuestions, normalizeGuide } from './guide/questions.mjs';
@@ -437,7 +437,7 @@ const findOption=(family,slug)=>state.library?.families?.[family]?.options.find(
       downloadText(filename, JSON.stringify(payload, null, 2), "application/json");
       const status = byId("builderFileStatus");
       if (status) status.textContent = "Downloaded a backup file without the private access code.";
-      fileNotice("Backup downloaded. Keep it in the team’s shared folder; it does not contain the private access code.");
+      successNotice("Backup downloaded without the access code. Keep it in your team folder.");
       return true;
     } catch (err) { fileNotice(`Could not download the design file. ${err.message}`); return false; }
   }
@@ -790,8 +790,8 @@ const findOption=(family,slug)=>state.library?.families?.[family]?.options.find(
         setSaveStatus("Browser storage unavailable");
       }
       render();
-      if(result.selection)fileNotice("Opened the latest shared design.");
-      else byId("fileStatus").hidden=true;
+      if(result.selection)successNotice("Opened the latest shared design.");
+      else clearStrip();
       return true;
     } finally {
       handoffBusy = false;
@@ -1125,8 +1125,8 @@ const findOption=(family,slug)=>state.library?.families?.[family]?.options.find(
       if (err) err.textContent = "";
       byId("openDialog").close();
       render();
-      if(result.selection)fileNotice("Opened the latest shared design.");
-      else byId("fileStatus").hidden=true;
+      if(result.selection)successNotice("Opened the latest shared design.");
+      else clearStrip();
     } finally {
       handoffBusy = false;
       ui.cloudBusy = false;
@@ -1418,7 +1418,7 @@ function undoChange(redo=false){
  state.design=entry.design;state.alternatives=clone(entry.alternatives||null);if(Object.hasOwn(entry,'look'))ui.appliedLook=knownLook(entry.look);
  const index=ui.guide?.on?indexForMark(ui.guide,entry.guide):null;if(index!==null)ui.guide={...ui.guide,index};
  saveDraft();render(false);
- fileNotice((redo?'Redid: ':'Undid: ')+entry.label);
+ successNotice((redo?'Redid: ':'Undid: ')+entry.label);
 }
 function updateUndo(){
  for(const [id,entries,verb] of [['btnUndo',state.changes,'Undo'],['btnRedo',state.redo,'Redo']]){
@@ -1469,11 +1469,12 @@ function pickHost(){
   preview:design=>updatePreview(design||state.design,{quick:true}),
   apply:id=>applyPresetChoice(id),
   applySnapshot:()=>{if(!lead()||!ui.lookSnapshot)return;if(replaceDesign('Went back to your design',clone(ui.lookSnapshot)))ui.lookUndoAt=state.changes.length;render(false);},
-  buildOwn:()=>{if(!lead())return;replaceDesign('Started from Build my own',{...Model.defaultDesign(catalog),samples:clone(state.design.samples)});ui.editorRole='title';ui.moreOptions=false;goStage('slides');},
+  buildOwn:()=>{if(!lead())return;replaceDesign('Started from Build my own',withSampleWords(catalog,Model,Model.defaultDesign(catalog),state.design));ui.editorRole='title';ui.moreOptions=false;goStage('slides');},
   guideMe:()=>guide.start(),
   canResumeGuide:()=>Boolean(ui.guide&&!ui.guide.done),resumeGuide:()=>guide.resume(),
   makeItOurs:()=>{ui.editorRole='title';ui.moreOptions=false;goStage('slides');byId('startingFrom').focus({preventScroll:true});window.scrollTo(0,0);byId('workspace').scrollTop=0;},
-  undoApply:()=>{if(ui.lookUndoAt===state.changes.length)undoChange();},
+  // The redrawn Undo link is hidden, so focus moves to the stage heading instead of the page.
+  undoApply:()=>{if(ui.lookUndoAt!==state.changes.length)return;undoChange();byId('lookStageHeading')?.focus({preventScroll:true});},
   canUndoApply:()=>lead()&&ui.lookUndoAt!==null&&ui.lookUndoAt===state.changes.length
  };
 }
@@ -1482,7 +1483,7 @@ function builderGuidance(compact=false){
   ? 'In this local review preview, Save test design and Open test design use this computer’s test space. Nothing is sent or published.'
   : 'Use Save for the team to save with your team, and Open team design to return. Send to Britt requests a design review; it does not build a lesson.';
  const steps='<ol class="how-to-steps"><li><strong>Lesson &amp; team.</strong> Choose the lesson and tell us who is on your team and who is the spokesperson.</li><li><strong>Pick a look.</strong> Choose one of twelve starting looks, each a color combination with its own layout. Everything stays editable.</li><li><strong>Make it yours.</strong> Click anything on a slide to change it. Shared theme is optional and supplies defaults; fields marked Custom keep their own choices. These are sample designs and words, not finished lesson content.</li><li><strong>Send.</strong> Check your changes, save for the team, and send your suggestion to Britt for a design review.</li></ol>';
- const rules='<p><strong>Why eleven colors?</strong> These are the approved SPOKES brand colors. They keep lessons recognizable, and you can mix and match all eleven freely. You are not limited to two or three.</p><p><strong>Type, boxes and branding.</strong> Choose heading and body fonts independently from the twelve curated font families. Up to four text boxes keep a slide manageable. The title keeps the SPOKES logo; its position can change, but a watermark does not replace or edit the logo.</p><p><strong>Readability is your decision.</strong> Contrast compares text with its background. Advisories explain when reading may be harder; the team leader can keep and save any palette choice. A passing measurement is not a whole-design accessibility assessment.</p><p><strong>Keep your work.</strong> Undo and Redo restore recent choices. Outside text fields, use Ctrl/Cmd+Z to undo and Ctrl/Cmd+Shift+Z to redo. Text fields keep their normal typing shortcuts. Previous versions lets you reopen shared saves. Download backup and Open backup are in the More menu. Hiding a subtitle, second color or watermark keeps its settings for later.</p><p><strong>Compare for ideas.</strong> The similarity meter compares supported choices with six known lessons. Unmeasured choices do not count. It does not guarantee uniqueness or compare private team designs.</p><p>'+saving+'</p>';
+ const rules='<p><strong>Why eleven colors?</strong> These are the approved SPOKES brand colors. They keep lessons recognizable, and you can mix and match all eleven freely. You are not limited to two or three.</p><p><strong>Type, boxes and branding.</strong> Choose heading and body fonts independently from the twelve curated font families. Up to four text boxes keep a slide manageable. The title keeps the SPOKES logo; its position can change, but a watermark does not replace or edit the logo.</p><p><strong>Readability is your decision.</strong> Contrast compares text with its background. Advisories explain when reading may be harder; the team leader can keep and save any palette choice. A passing measurement is not a whole-design accessibility assessment.</p><p><strong>Keep your work.</strong> Undo and Redo restore recent choices. Outside text fields, use Ctrl/Cmd+Z to undo and Ctrl/Cmd+Shift+Z to redo. Text fields keep their normal typing shortcuts. Previous versions lets you reopen shared saves. Download backup and Open backup are in the More menu. Hiding a subtitle, second color or watermark keeps its settings for later.</p><p><strong>Compare for ideas.</strong> One line on Send counts how many of your supported choices the six released lessons share. Unmeasured choices do not count. It does not guarantee uniqueness or compare private team designs.</p><p>'+saving+'</p>';
  return steps+(compact?'<p class="helper"><strong>Eleven brand colors, freely mixed.</strong> Readability advice never blocks your color choices.</p><details class="inline-details"><summary>Why these choices and guardrails?</summary>'+rules+'</details>':rules);
 }
 function showBuilderHelp(close=false){
@@ -1621,6 +1622,8 @@ function renderFonts(panel){
  const patternNote=document.createElement('p');patternNote.id='patternScopeHelp';patternNote.className='helper';patternNote.textContent=local?VIEW_NAMES[kind]+' texture · '+(saved.pattern==='inherit'?'Shared':'Custom')+'. Thumbnails use this slide’s colors, gradient and '+({subtle:'Subtle',normal:'Standard',bold:'Stronger'}[effective.patternStrength])+' texture strength. Plain removes the texture and keeps its strength for next time.':'Thumbnails show shared colors at Standard texture strength. Plain removes the shared texture; custom slide textures stay independent.';panel.append(patternNote);
  if(!local)appendSharedScope(panel,'pattern');
 }
+// Below 1101px Sample text waits at the top of the Slide options drawer, so More options lands there.
+function focusSampleText(){const text=byId('context-text');if(!text||!byId('inspectorMore')?.contains(text))return;text.focus();text.scrollIntoView({block:'nearest'});}
 function showRoleEditor(kind,section='background',field='primary'){
  ui.moreOptions=true;
  if(ui.guide)ui.guide={...ui.guide,on:false};
@@ -1961,9 +1964,9 @@ async function init(){
   change:(label,edit)=>changeDesign(label,edit),
   textChange:(label,edit,checkpoint)=>changeDesign(label,edit,{redraw:false,checkpoint}),
   onlySlide:()=>ui.onlySlide,setOnlySlide:value=>{ui.onlySlide=value;render(false);},
-  scopeLine:(kind,selected,key)=>scopeLine({catalog,Model,design:state.design,kind,selected,key,onlySlide:ui.onlySlide}),
+  scopeLine:(kind,selected,key)=>scopeLineParts({catalog,Model,design:state.design,kind,selected,key,onlySlide:ui.onlySlide}),
   displayTitle:()=>renderOptions(state.design).title,
-  more:target=>{ui.moreOptions=!ui.moreOptions;if(!ui.moreOptions){render(false);byId('btnMoreOptions').focus();return;}if(target.startsWith('sidebar')){/* render() reads the open state back from the live panel */if(byId('sharedTheme'))byId('sharedTheme').open=true;ui.sharedThemeOpen=true;ui.activeRole='sidebar';ui.paintScope='shared';render(false);byId('colorRole')?.focus({preventScroll:true});return;}showRoleEditor(state.previewView,target==='background'?'background':target.startsWith('box')?'arrangement':'text',target.startsWith('body')?'bodyFont':target==='background'?'primary':'headingFont');},
+  more:target=>{ui.moreOptions=!ui.moreOptions;if(!ui.moreOptions){render(false);byId('btnMoreOptions').focus();return;}if(target.startsWith('sidebar')){/* render() reads the open state back from the live panel */if(byId('sharedTheme'))byId('sharedTheme').open=true;ui.sharedThemeOpen=true;ui.activeRole='sidebar';ui.paintScope='shared';render(false);byId('colorRole')?.focus({preventScroll:true});return;}showRoleEditor(state.previewView,target==='background'?'background':target.startsWith('box')?'arrangement':'text',target.startsWith('body')?'bodyFont':target==='background'?'primary':'headingFont');focusSampleText();},
   thumbnail:kind=>Model.renderSlide(catalog,state.design,kind,renderOptions(state.design))
  });
  const closeOptions=()=>{ui.moreOptions=false;render(false);byId('btnMoreOptions').focus();};

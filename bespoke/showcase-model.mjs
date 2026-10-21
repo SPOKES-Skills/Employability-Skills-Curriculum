@@ -129,3 +129,18 @@ const sorted = (_, value) => value && typeof value === 'object' && !Array.isArra
 export const designKey = design => JSON.stringify(design, sorted);
 
 export const sentState = (lastReceipt, currentKey) => !lastReceipt ? 'none' : lastReceipt.designKey === currentKey ? 'sent' : 'changed';
+
+// The words a team types on slides. Model.applyPreset keeps the same fields when a look is applied.
+const TYPED_WORDS = ['headingText', 'bodyText', 'labelText', 'watermarkText', 'extraText', 'boxHeadings'];
+
+/** The base design with the team's sample words: their samples, and any typed slide words that differ from the defaults. */
+export function withSampleWords(catalog, Model, base, current) {
+  const next = { ...structuredClone(base), samples: structuredClone(current.samples) };
+  for (const [kind, style] of Object.entries(current.roleStyles ?? {})) {
+    const defaults = Model.roleStyleDefaults(catalog, base, kind);
+    const words = TYPED_WORDS.filter(key => style[key] !== undefined && style[key] !== defaults[key])
+      .map(key => [key, structuredClone(style[key])]);
+    if (words.length) next.roleStyles = { ...next.roleStyles, [kind]: { ...defaults, ...base.roleStyles?.[kind], ...Object.fromEntries(words) } };
+  }
+  return next;
+}

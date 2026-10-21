@@ -143,7 +143,7 @@ try {
     await page.reload(); await ready(page); assert.deepEqual(await design(page), expected); await selectedTheme(page, 'divider');
     await save(page); const saved = (await openRemote(server)).selection; assert.deepEqual(saved.design, expected); noUiFields(saved);
     const fresh = await makePage(); assert.deepEqual(await design(fresh), expected); await clickMenuItem(fresh, '#btnOpen');
-    await fresh.locator('#fileStatus').filter({ hasText: /Opened|latest|up to date/i }).waitFor(); assert.deepEqual(await design(fresh), expected);
+    await fresh.locator('#toast').filter({ hasText: /Opened|latest|up to date/i }).waitFor(); assert.deepEqual(await design(fresh), expected);
     const copied = await backup(fresh); assert.deepEqual(copied.design, expected); noUiFields(copied);
     await importDesign(fresh, before); await fresh.locator('#teamFileInput').setInputFiles({ name: 'synthetic-theme-backup.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(copied)) });
     await fresh.locator('#fileStatus').filter({ hasText: 'Opened synthetic-theme-backup.json.' }).waitFor(); assert.deepEqual(await design(fresh), expected);

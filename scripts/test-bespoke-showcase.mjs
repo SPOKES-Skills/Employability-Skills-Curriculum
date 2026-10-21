@@ -717,7 +717,10 @@ try {
   {
     const {context, page} = await open(1440, 900, 'no-preference');
     const durations = {};
-    let before = 0;
+    // An earlier case saved a shared design, so the page opens it with a toast; count motion from after that.
+    await page.locator('#toast.is-visible').waitFor({state: 'hidden', timeout: 8000});
+    await page.waitForFunction(() => document.getAnimations().length === 0);
+    let before = (await motionSeen(page)).seen.length;
     await motionTour(page, async moment => {
       const {seen, running} = await motionSeen(page);
       for (const item of [...seen, ...running]) assert.notEqual(item.iterations, Infinity, `${item.name} does not loop`);

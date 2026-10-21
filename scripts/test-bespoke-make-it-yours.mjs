@@ -3,7 +3,7 @@
 import assert from 'node:assert/strict';
 import catalog from '../bespoke/builder-catalog.json' with { type: 'json' };
 import * as Model from '../bespoke/builder-model.mjs';
-import { scopeLine, listParts, startingFrom, SHARED_LINE_END } from '../bespoke/make-it-yours.mjs';
+import { scopeLine, scopeLineParts, listParts, startingFrom, SHARED_LINE_END } from '../bespoke/make-it-yours.mjs';
 
 let failed = false;
 const test = (name, fn) => {
@@ -53,6 +53,14 @@ test('inputs are not changed', () => {
   line(gold, 'heading-0', 'headingColor');
   startingFrom(catalog, Model, gold, 'professional');
   assert.deepEqual(gold, before);
+});
+
+test('the scope line marks each slide name for bold', () => {
+  const marked = parts => parts.map(part => typeof part === 'string' ? part : `**${part.strong}**`).join('');
+  const parts = (design, selected, key) => scopeLineParts({ catalog, Model, design, kind: 'title', selected, key, onlySlide: false });
+  assert.equal(marked(parts(gold, 'heading-0', 'headingColor')), 'Gold also changes the **Divider** heading, because they share a color.');
+  assert.equal(marked(parts(d, 'accent')), 'Changes the accent on every slide.');
+  assert.deepEqual(parts(d, 'logo', null), []);
 });
 
 if (failed) process.exit(1);

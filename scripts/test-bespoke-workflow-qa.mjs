@@ -115,7 +115,7 @@ try {
     await clickMenuItem(first, '#btnOpen');
     await first.locator('#fileStatus').filter({ hasText: 'A newer shared version exists' }).waitFor();
     await first.locator('#btnLoadLatest').click();
-    await first.locator('#fileStatus').filter({ hasText: 'Opened the latest shared design.' }).waitFor();
+    await first.locator('#toast').filter({ hasText: 'Opened the latest shared design.' }).waitFor();
     const recovery = await first.evaluate(() => JSON.parse(localStorage.getItem('bespoke-previous-draft-v2')));
     assert.deepEqual(recovery.design, firstDesign, 'Recovery must retain the design being replaced in this tab, not a different tab’s storage.');
     assert.deepEqual(await design(first), (await api(server)).selection.design);

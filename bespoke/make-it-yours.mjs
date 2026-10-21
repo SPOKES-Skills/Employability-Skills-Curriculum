@@ -8,25 +8,52 @@ const SHARED_KEYS = ['primary', 'secondary', 'headingColor', 'bodyColor'];
 export const SHARED_LINE_END = ', because they share a color.';
 const MAX_PARTS = 3;
 
-/** "A", "A and B", "A, B and C", or "A, B, C and 2 more". */
-export function listParts(parts) {
+// The parts with their separators: "A", "A and B", "A, B and C", or "A, B, C and 2 more".
+function listItems(parts) {
   const shown = parts.slice(0, MAX_PARTS), more = parts.length - shown.length;
-  if (more) return `${shown.join(', ')} and ${more} more`;
-  return shown.length > 1 ? `${shown.slice(0, -1).join(', ')} and ${shown.at(-1)}` : (shown[0] ?? '');
+  const before = i => (i === 0 ? [] : [more || i < shown.length - 1 ? ', ' : ' and ']);
+  return [...shown.flatMap((part, i) => [...before(i), part]), ...(more ? [` and ${more} more`] : [])];
 }
+
+export const listParts = parts => listItems(parts).join('');
 
 const partLabel = (kind, key) => partName(kind, key) ?? `${KIND_SHORT[kind]} second color`;
 
-/** One plain line about the selected part's color. Empty when the color reaches no other slide. */
-export function scopeLine({catalog, Model, design, kind, selected, key, onlySlide}) {
-  if (ALWAYS_SHARED[selected]) return `Changes the ${ALWAYS_SHARED[selected]} on every slide.`;
-  if (!SHARED_KEYS.includes(key)) return '';
-  if (onlySlide) return `This color stays on the ${SLIDE_NAMES[kind]} only.`;
-  const parts = sharedParts(catalog, Model, design, kind, key).map(other => partLabel(other, key));
-  if (!parts.length) return '';
+// The slide name in a part is bold: "Divider heading" becomes [{strong: 'Divider'}, ' heading'].
+function partParts(kind, key) {
+  const label = partLabel(kind, key), short = KIND_SHORT[kind];
+  return label.startsWith(`${short} `) ? [{strong: short}, label.slice(short.length)] : [{strong: label}];
+}
+
+/**
+ * One plain line about the selected part's color, as strings and {strong} slide names. Empty when the color
+ * reaches no other slide.
+ */
+export function scopeLineParts({catalog, Model, design, kind, selected, key, onlySlide}) {
+  if (ALWAYS_SHARED[selected]) return [`Changes the ${ALWAYS_SHARED[selected]} on every slide.`];
+  if (!SHARED_KEYS.includes(key)) return [];
+  if (onlySlide) return [`This color stays on the ${SLIDE_NAMES[kind]} only.`];
+  const others = sharedParts(catalog, Model, design, kind, key);
+  if (!others.length) return [];
   const value = Model.effectiveRoleStyle(catalog, design, kind)[key];
   const color = catalog.palette.find(item => item.id === value)?.name ?? value;
-  return `${color} also changes the ${listParts(parts)}${SHARED_LINE_END}`;
+  return [`${color} also changes the `, ...listItems(others.map(other => partParts(other, key))).flat(), SHARED_LINE_END];
+}
+
+const partText = part => (typeof part === 'string' ? part : part.strong);
+
+/** The scope line as plain text. */
+export const scopeLine = args => scopeLineParts(args).map(partText).join('');
+
+/** Fills a node with scope line parts, slide names in <strong>. Returns the plain text. */
+export function renderScopeParts(node, parts) {
+  node.replaceChildren(...parts.map(part => {
+    if (typeof part === 'string') return part;
+    const strong = document.createElement('strong');
+    strong.textContent = part.strong;
+    return strong;
+  }));
+  return parts.map(partText).join('');
 }
 
 /** The applied look's name and the number of settings changed since; no name when the look is unknown. */

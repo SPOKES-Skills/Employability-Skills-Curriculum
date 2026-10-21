@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import catalog from '../bespoke/builder-catalog.json' with { type: 'json' };
 import * as Model from '../bespoke/builder-model.mjs';
-import { MOODS, MOOD_ORDER, MOOD_LABELS, moodOf, displayTitle, slideOptions, lookDetail, designChanges, sharedParts, changedKinds, designKey, sentState } from '../bespoke/showcase-model.mjs';
+import { MOODS, MOOD_ORDER, MOOD_LABELS, moodOf, displayTitle, slideOptions, lookDetail, designChanges, sharedParts, changedKinds, designKey, sentState, withSampleWords } from '../bespoke/showcase-model.mjs';
 
 let failed = false;
 const test = (name, fn) => {
@@ -98,6 +98,29 @@ test('sentState', () => {
   assert.equal(sentState({ designKey: 'k' }, 'k'), 'sent');
   assert.equal(sentState({ designKey: 'j' }, 'k'), 'changed');
   assert.equal(designKey(d), designKey(structuredClone(d)));
+});
+
+test('withSampleWords keeps the team\'s typed words on the default design and nothing else', () => {
+  let typed = Model.setRoleStyle(catalog, e, 'divider', 'headingText', 'Our chapter');
+  typed = Model.setRoleStyle(catalog, typed, 'cards', 'boxHeadings', ['One', 'Two', 'Three', 'Four']);
+  typed = Model.setRoleStyle(catalog, typed, 'activity', 'labelText', 'Try it');
+  typed = Model.setRoleStyle(catalog, typed, 'title', 'watermarkText', 'TEAM');
+  typed = Model.setRoleStyle(catalog, typed, 'video', 'extraText', 'Watch for this');
+  typed = { ...typed, samples: { ...typed.samples, title: 'Our budget' } };
+  const before = structuredClone(typed), base = Model.defaultDesign(catalog), baseBefore = structuredClone(base);
+  const own = withSampleWords(catalog, Model, base, typed);
+  assert.deepEqual(own.samples, typed.samples, 'samples are kept');
+  assert.equal(own.roleStyles.divider.headingText, 'Our chapter');
+  assert.deepEqual(own.roleStyles.cards.boxHeadings, ['One', 'Two', 'Three', 'Four']);
+  assert.equal(own.roleStyles.activity.labelText, 'Try it');
+  assert.equal(own.roleStyles.title.watermarkText, 'TEAM');
+  assert.equal(own.roleStyles.video.extraText, 'Watch for this');
+  for (const kind of Model.ROLE_STYLE_KINDS) assert.equal(Model.effectiveRoleStyle(catalog, own, kind).headingColor, Model.effectiveRoleStyle(catalog, base, kind).headingColor, `${kind} colors come from the default design`);
+  assert.deepEqual(own.roles, base.roles);
+  assert.deepEqual(Model.structuralErrors(catalog, own), []);
+  assert.deepEqual(typed, before, 'the team design is not changed');
+  assert.deepEqual(base, baseBefore, 'the default design is not changed');
+  assert.equal(Object.hasOwn(withSampleWords(catalog, Model, base, def), 'roleStyles'), false, 'no typed words adds no roleStyles');
 });
 
 if (failed) process.exit(1);

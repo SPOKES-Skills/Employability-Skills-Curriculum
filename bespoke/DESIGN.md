@@ -17,6 +17,7 @@ colors:
   swatch-line: "#8191a3"
   preview-mat: "#dfe7ed"
   notice: "#fff5d7"
+  scope-tint: "#fff8e6"
   readability: "#fff4f0"
   readability-ink: "#6d2434"
   lesson-green: "#37b550"
@@ -159,6 +160,7 @@ The chrome uses cool neutral surfaces, dark blue text, blue actions, and a mauve
 - **Swatch line** (`--swatch-line`) outlines color swatches, so White stays visible on Paper at 3.2:1. Muted replaces the two older stray grays, `#44536a` for stage and local-test text and `#647487` for layout sketches; Muted text keeps 6.3:1 on Paper and 5.6:1 on Mist.
 - **Preview mat** separates the editable slide artifact from application chrome.
 - **Notice**, **readability**, and **readability ink** support explanatory status and repair messages. The notice edge uses lesson Gold.
+- **Scope tint** (`scope-tint`) fills the scope line under the toolbar. It is paler than Notice, so the line reads as information about the edit and not as a warning. Its edge also uses lesson Gold.
 
 ### Editable lesson palette
 
@@ -274,7 +276,7 @@ Shared theme's summary has a 48px minimum height. Paint colors names the selecte
 
 Background supports an inherited finish, Solid or a two-color gradient, local primary/secondary colors and three gradient directions. The second color stays saved when hidden. Split title panels use the second color in the right panel and omit the inapplicable direction control; Solid colors both panels uniformly. Divider Band retains its colored middle panel and the shared lesson surface above and below it. Texture offers the existing five recipes and three strengths, independently per role. Plain hides the strength control without clearing it.
 
-Text offers local heading/body colors, the twelve curated fonts, size, alignment, visibility and editable sample words. Match arrangement keeps inherited sizing/alignment; explicit choices override them. Chapter and activity labels can be edited and hidden independently. Text boxes retain their four sample strings and existing treatment/count/title-bar controls. The video supporting paragraph starts hidden to preserve the old look. Hiding text retains its words and style. Watermarks offer None or custom text/number, eleven colors, three sizes, four corners and three strengths. Decorative custom marks occupy reserved space apart from reading text and never modify the required title logo. Presets reset visual settings but preserve all sample words.
+Text offers local heading/body colors, the twelve curated fonts, size, alignment, visibility and editable sample words. The Default choice keeps inherited sizing/alignment; explicit choices override them. Chapter and activity labels can be edited and hidden independently. Text boxes retain their four sample strings and existing treatment/count/title-bar controls. The video supporting paragraph starts hidden to preserve the old look. Hiding text retains its words and style. Watermarks offer None or custom text/number, eleven colors, three sizes, four corners and three strengths. Decorative custom marks occupy reserved space apart from reading text and never modify the required title logo. Presets reset visual settings but preserve all sample words.
 
 ### Navigation and continuity
 
@@ -470,7 +472,7 @@ Keep the approved color-first gallery. During Customize (now Make it yours), a r
 showed controls for the clicked preview feature (since October 19 they sit in the toolbar band above the slide), with a visible selection outline
 and scope description. Text, backgrounds, navigation, action buttons, box surfaces,
 title bars, logo, accent rule, video frame, activity panel and watermark are
-selectable with pointer or keyboard. The Selected element menu is an equivalent
+selectable with pointer or keyboard. The Editing menu is an equivalent
 entry point. On phones the inspector follows the preview and selection brings
 it into view; on tablets it stays beside the preview. More slide options remains
 optional. Guide and Review keep their separate behavior.

@@ -131,8 +131,9 @@ color choices are unchanged. The frame fits inside the same responsive 16:9 box
 in the preview, generated sample and canonical video/iframe wrapper. Samples stay
 inert and never load media.
 
-**Comparison:** the advisory meter counts exact matching measured choices against
-six actual presentations: Time Management, Interview Skills, Controlling Anger,
+**Comparison:** one line on Send reads "Shares X of Y choices with the released
+lessons". It counts exact matching measured choices against six actual
+presentations: Time Management, Interview Skills, Controlling Anger,
 Employee Accountability, Communicating with the Public, and Problem Solving &
 Decision Making. It includes comparable font, color, background, layout and component
 characteristics. Details show matches, differences and unknown features. Unknown or

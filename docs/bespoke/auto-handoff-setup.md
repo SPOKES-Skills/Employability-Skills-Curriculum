@@ -209,7 +209,7 @@ backup is not evidence of a successful shared save.
 
 ## What saving and sending mean
 
-**Save shared design** writes an encrypted revision. The browser supplies the
+**Save for the team** writes an encrypted revision. The browser supplies the
 revision it last opened, so a newer save from another computer produces a conflict
 instead of silently being overwritten. A failed or uncertain save must remain
 visible to the teacher, with a downloadable backup available. Browser storage is

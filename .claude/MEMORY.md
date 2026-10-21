@@ -7,6 +7,7 @@
 - **Repo**: origin = doclegg05/Curriculum-Employability-Skills (dev); publisher = SPOKES-Skills/Employability-Skills-Curriculum (public Pages); t9 = /Volumes/T9 backup mirror
 
 ## Current Status
+- **BeSpoke showcase polish: PR #59 open, not merged (2026-10-21).** Branch `claude/bespoke-showcase-polish`, base `claude/bespoke-simplify-choices-02762b` (PR #56, still open), code at `b4a7a71`. Stages renamed Lesson & team, Pick a look, Make it yours, Send. Pick a look is a stage plus filmstrip with moods, hover preview, apply with Undo (no dialog). Make it yours docks the toolbar, adds a scope line and changed tags, and draws the slide on a 960 canvas scaled to fit. Send is one sheet with a plain summary and one similarity line; Sent to Britt confirms and takes a follow-up note. Success messages are toasts. Critique 22 → 28 → 28 of 40 (target 30). `quality.sh` exit 0; canvas-shell exit 0. No Netlify file changed, so no service redeploy for #59 itself. Spec `docs/superpowers/specs/2026-10-19-bespoke-showcase-polish-design.md`, plan `docs/superpowers/plans/2026-10-19-bespoke-showcase-polish.md`; follow-ups listed in the PR body.
 - **PR #56 (`claude/bespoke-simplify-choices-02762b`) remerged with `main`, 2026-10-15; not merged, service not redeployed.** The branch's two merges of main (`b84710a`, `c3a6c6e`) failed CI on a stale v2 schema and a broken `build-bespoke-presets.mjs`, and dropped main's Lesson & team stage, 8-character codes, canvas-shell editor and twelve layout presets. Redone from `82bd860` + `fc09474` and committed on top of `c3a6c6e` (no force-push). Britt chose main's twelve presets. Kept from the PR: builder name, team view links with the `view:` hash and viewer copy, colors follow every slide with Only this slide, sidebar text in Shared theme. `--rotate-team-codes` is gone; `--reissue` covers it. `quality.sh` exit 0 locally. The PR changes `bespoke-handoff.mjs`, `builder-model.mjs` and the v2 schema (`team.builder`), so stage the service and Britt deploys before merging ([[bespoke-netlify-deploy]] in auto-memory).
 - **BeSpoke 8-character team codes + admin reissue: PR #51 open, not merged, service not redeployed (2026-10-13).** Branch `claude/bespoke-access-codes-135c3f` (`6008dbc`, `e10f4c4`). Codes become `K7QX-M3PD` (31 characters, no I/L/O; case, spaces and dash ignored); old 32-character codes keep working until reissued. `scripts/bespoke-provision.mjs --reissue all|<lesson-id>` writes `team-env.json`/`team-access.json`/`team-links.html` and archives the old ones in `previous-<stamp>/`; never touches the draft key. Live teams still use the 32-character links. Rollout steps: `docs/bespoke/auto-handoff-setup.md` (Reissue team codes). `quality.sh` exit 0 on `e10f4c4`.
 - **Print slides merged to `main` 2026-10-13** (PR #50, merge commit `a4e635f`, so the 66 MB of picture history is on `main`, not the 34 MB a squash would keep). A Print slides button in all six released lessons prints a Student workbook (no answers) or a Teacher copy (answers marked) from saved slide pictures (`scripts/capture-print-slides.mjs`, `scripts/print-slides.js`). Round 2 carries the step (template, build guides, SPOKES-STANDARD PRT-01). Spec `docs/superpowers/specs/2026-10-09-print-slides-workbook-design.md`, plan `docs/superpowers/plans/2026-10-09-print-slides-workbook.md`.
@@ -25,10 +26,10 @@
 - Quality gate green on PR #36 head `8fa1e5b`, locally and in CI (2026-10-01).
 
 ## Last Session
-- **Date**: 2026-10-15
-- **What we worked on**: PR #56 could not merge (failing `quality`). Root cause was the two merges of main into the branch, not the PR's own work. Redid the merge in a scratch worktree, 20 conflicted files, then adapted the PR's tests to main's presets and UI (builder name on the Lesson & team stage, Open in the ⋯ menu, Fun's colors read from the catalog, Corner for the color-scope check).
-- **What we decided**: main's twelve presets win (Britt). Main's team-link wording (codes in OneDrive) wins over the PR's builder-link wording. View links keep the PR's hardening. See the 2026-10-15 PR #56 row in the decision log and `docs/bespoke/decisions.md`.
-- **Where we left off**: fix pushed to the PR branch; Britt reviews and merges after the service deploy. Not done: staging the service, a manual look at the Only this slide switch in the floating toolbar.
+- **Date**: 2026-10-21
+- **What we worked on**: GitHub branch cleanup (2026-10-19: 39 merged branches deleted, 4 unmerged kept only as `archive/<name>` tags). Then the BeSpoke "bolder showcase" polish: impeccable critique, mockups, spec, plan, and 13 subagent-built tasks, each reviewed (Tasks 10-13 added after the critique and the final review). PR #59.
+- **What we decided**: see the 2026-10-19 and 2026-10-21 rows in the decision log. The PR #59 description lists Britt's decisions and the build-time visible changes; all controller rulings R1-R33 are in the local, gitignored SDD ledger `.superpowers/sdd/2026-10-19-bespoke-showcase-polish/`.
+- **Where we left off**: PR #59 open for Britt. Merge PR #56 first (it needs the service staged and deployed, see the PR #56 bullet), or retarget #59 to `main`. Britt's test plan in #59: a look at 1280x800 and 1024x768, a hosted send plus follow-up note, a Safari run.
 
 ## Open Items
 - [ ] **Offline lessons package**: PR open from `claude/offline-lessons-package` (see Last Session). Britt merges, then picks the download location (GitHub Release on the publisher repo needs the publisher brought up to date first; or Teams/OneDrive). Try the zip on a Windows laptop: Extract All, START HERE, a video with captions on.
@@ -52,6 +53,9 @@
 - [ ] Tablet and phone bodies keep their old stacked layout; only the top bar changed there. Britt's call whether to redesign them.
 - [ ] Cleanup, Britt's call: remote branch `claude/bespoke-minimalist-slide-ui-33bd9c`, local `preserve/bespoke-canvas-shell`, and the worktree `.claude/worktrees/bespoke-minimalist-slide-ui-33bd9c`.
 - [ ] Land PR #56 (`claude/bespoke-simplify-choices-02762b`, remerged 2026-10-15): stage the service, Britt deploys, then Britt merges. Quick pick is still a spec only.
+- [ ] **PR #59 (showcase polish)**: Britt merges after #56 (or retargets to `main`). Test plan in the PR: 1280x800 and 1024x768 look, hosted send and follow-up note, `BESPOKE_BROWSER=webkit node scripts/test-bespoke-showcase.mjs`, Pages check after merge.
+- [ ] PR #59 follow-ups (29, listed in the PR body). Largest: the drawer should overlay the slide below about 900px (R32); the three critique P2s (apply moment and toast over the pills, look name font and two primaries, drawer wording).
+- [ ] `scripts/test-bespoke-canvas-shell.mjs` is not in `quality.sh`; it went stale once already (fixed in Task 5 of #59).
 - [x] **Money Management intro**: PR #46 merged 2026-10-09 (`8deee7c`) on a green `quality` check.
 - [ ] Intro animation (Claude Design, team-owned): the Transportation tag sits on the Wants box edge from 0:27 to 0:33 before moving to Needs at 0:34, while the narration says "able to get to work". Team fix in the design file; then re-export and rerun `build_intro_audio.py` (no credits).
 - [ ] Intro master lands at -14.2 LUFS, the gate's lower edge (house loudnorm runs dynamic because the music bed fills the gaps). Britt's call whether to trade voice squash or a quieter bed for -13.7.
@@ -99,6 +103,13 @@
 ## Key Decisions Log
 | Date | Decision | Rationale |
 |------|----------|-----------|
+| 2026-10-21 | Make it yours draws the slide on the fixed 960 canvas and scales it; it grows past 960 on wide windows and uses the column width when 960 would be below 45% | Britt: the slide wins over the toolbar (R21, R26); legibility floor (R23, R31) |
+| 2026-10-21 | Escape closes the open Slide options drawer first; with it closed, Escape selects the slide background | Britt (R27) |
+| 2026-10-21 | Sent to Britt view takes a follow-up note that saves and resends | Britt (R28); works with the deployed service, no function change |
+| 2026-10-21 | Fix the critique's P1s on the branch before the PR; P2s become follow-ups | Britt (R21); score 28/40 against a 30 target |
+| 2026-10-19 | BeSpoke "bolder showcase": stage names Lesson & team, Pick a look, Make it yours, Send; stage + filmstrip layout (mockup option A); moods Calm, Bold, Bright, Classic | Britt picked from the mockups; spec approved the same day |
+| 2026-10-19 | Similarity meter becomes one line on Send, replacing the 2026-09-24 "prominent" placement | Britt's pick |
+| 2026-10-19 | Unmerged GitHub branches are kept as `archive/<branch>` tags, not branches | Britt: 45 open branches cut to main plus PR #56 |
 | 2026-10-15 | PR #56 remerge: main's twelve layout presets win; the PR's six new presets are not shipped | Britt's pick. Matches 3e7778e and main's one-layout-per-preset picker |
 | 2026-10-15 | Fix PR #56 with one commit on top of the branch instead of rewriting its merges | No force-push on a shared branch; same pattern as 3e7778e |
 | 2026-10-15 | Offline package embeds captions in its copy of each lesson; the released lessons keep their .vtt links | Chrome and Edge block caption files on file:// pages; the hosted site loads them, and the released lessons stay untouched |

@@ -368,8 +368,8 @@ try {
     const {context, page} = await open(1024, 768);
     await page.locator('#stage-start').click();
     const stage = await rect(page, '#lookStage'), side = await rect(page, '#lookSide');
-    assert.ok(side.top >= stage.bottom, `the side column moves under the stage, side top ${side.top}, stage bottom ${stage.bottom}`);
-    // The strip sits under the side column here, so a preview must not change the side column's height.
+    assert.ok(side.left >= stage.right, `the side column stays beside the stage, side left ${side.left}, stage right ${stage.right}`);
+    // The strip sits under the stage and side column, so a preview must not change either one's height.
     const stripTop = () => page.locator('#lookStrip').evaluate(el => el.getBoundingClientRect().top + window.scrollY);
     const before = await stripTop();
     for (const id of ['outspoken', 'columns', 'masthead']) {
@@ -377,7 +377,7 @@ try {
       assert.equal(await stripTop(), before, `previewing ${id} leaves the strip in place`);
     }
     await context.close();
-    pass('side column wraps at 1024');
+    pass('side column stays beside the stage at 1024');
   }
   {
     const context = await browser.newContext({viewport: {width: 1440, height: 900}, reducedMotion: 'reduce'});
@@ -418,6 +418,8 @@ try {
   {
     const {context, page} = await open(390, 844);
     await page.locator('#stage-start').click();
+    const stage = await rect(page, '#lookStage'), side = await rect(page, '#lookSide');
+    assert.ok(side.top >= stage.bottom, `the side column moves under the stage, side top ${side.top}, stage bottom ${stage.bottom}`);
     await page.locator('#btnMakeItOurs').scrollIntoViewIfNeeded();
     assert.ok(await page.locator('#btnMakeItOurs').isVisible(), 'Make it ours is reachable on a phone');
     await page.locator('#preset-modern').click();

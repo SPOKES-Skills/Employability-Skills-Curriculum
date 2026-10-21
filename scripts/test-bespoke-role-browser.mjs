@@ -33,7 +33,8 @@ const payload=d=>({schema:'bespoke-selection/v2',date:'2026-09-24',lesson:legacy
 async function ready(page){await page.locator('#localPreviewNotice').waitFor();await page.locator('#btnSave').filter({hasText:'Save test design'}).waitFor({state:'attached'});}
 async function pageFor(width=1440,height=1000,scale=1){
   const context=await browser.newContext({viewport:{width,height},acceptDownloads:true,reducedMotion:'reduce'});contexts.push(context);
-  await context.addInitScript(()=>window.__bespokeAutosave={enabled:false});
+  // These checks measure the slide's own layout at its column width, so Make it yours does not scale it to fit the window.
+  await context.addInitScript(()=>{window.__bespokeAutosave={enabled:false};window.__bespokeCanvasFit={enabled:false};});
   await context.route(/^https?:/,route=>{if(new URL(route.request().url()).origin===server.baseUrl)return route.continue();external.push(route.request().url());return route.abort();});
   const page=await context.newPage();page.on('pageerror',error=>errors.push(error.message));page.on('dialog',dialog=>dialog.accept());
   page.on('response',response=>{if(!response.url().endsWith('/api/bespoke')&&response.status()>=400)missing.push([response.url(),response.status()]);});

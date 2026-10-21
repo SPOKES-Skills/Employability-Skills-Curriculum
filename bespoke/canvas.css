@@ -3,7 +3,7 @@
    toolbar docks in normal flow above the slide, so tablets (761-1100px) keep it there
    too and their Slide options drawer scrolls on its own. Phones (760px and narrower)
    keep the stacked layout. Chrome only; lesson colors stay inside the preview. */
-:root{--bar-h:52px;--band-h:180px}
+:root{--bar-h:52px}
 
 /* ---- Top bar ---------------------------------------------------------- */
 .app-bar{display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px;min-height:var(--bar-h);padding:4px 16px;background:#fff;border-bottom:1px solid var(--line)}
@@ -77,9 +77,18 @@ body:has(.workspace[data-editor=true]) #btnMenuOptions{display:flex}
 /* The drawer keeps one visible close button at every width: the pinned Hide options bar. */
 .workspace[data-editor=true][data-options=true] .drawer-bar{position:sticky;top:0;z-index:3;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:6px 16px;border-bottom:1px solid var(--line);background:#fff}
 .drawer-bar strong{font-size:var(--fs-md)}
-/* 761 to 1100: the drawer scrolls on its own, so reaching a field in it never scrolls the toolbar off screen. */
+/* 761 to 1100: the drawer scrolls on its own, so reaching a field in it never scrolls the toolbar off screen.
+   The slide wins the height: the thumbnails stand in a column beside it, as on wide screens, instead of a row
+   above it, and with the drawer closed its column goes too. */
 @media(min-width:761px) and (max-width:1100px){
- .workspace[data-editor=true] .chrome-rail{position:sticky;top:0;align-self:start;max-height:100dvh;overflow:auto}
+ .workspace[data-editor=true]{grid-template-columns:136px minmax(0,1fr) 280px;grid-template-rows:auto}
+ .workspace[data-editor=true][data-options=false]{grid-template-columns:136px minmax(0,1fr)}
+ .workspace[data-editor=true] .slide-rail{position:sticky;top:0;grid-column:1;grid-row:1;align-self:start;max-height:100dvh;padding:12px 6px;overflow:auto;border-right:1px solid var(--line);background:#fff}
+ .workspace[data-editor=true] #previewTabs{flex-direction:column;overflow:visible}
+ .workspace[data-editor=true] #previewTabs button{width:100%}
+ .workspace[data-editor=true] .preview-pane{grid-column:2;grid-row:1}
+ .workspace[data-editor=true] .chrome-rail{position:sticky;top:0;grid-column:3;grid-row:1;align-self:start;max-height:100dvh;overflow:auto}
+ .workspace[data-editor=true][data-options=false] .chrome-rail{display:none}
 }
 @media(min-width:1101px){
  html{scrollbar-gutter:stable}
@@ -97,8 +106,8 @@ body:has(.workspace[data-editor=true]) #btnMenuOptions{display:flex}
  .workspace[data-editor=true] .preview-heading{margin:0;min-height:44px}
  .workspace[data-editor=true] .preview-heading h2{display:inline;font-size:var(--fs-md)}
  .workspace[data-editor=true] .canvas-hint{display:inline;margin-left:12px;color:var(--muted);font-size:var(--fs-xs)}
- /* The band above the slide holds the docked toolbar; the slide is sized to leave room for it. */
- .workspace[data-editor=true] .preview-frame{max-width:min(100%,calc((100dvh - var(--band-h) - 226px) * 1.7778));margin:12px auto 0;padding:0;background:transparent}
+ /* The band above the slide holds the docked toolbar; canvas-fit.mjs scales the slide to the room left under it. */
+ .workspace[data-editor=true] .preview-frame{margin:12px auto 0;padding:0;background:transparent}
 }
 
 @media(min-width:761px){
@@ -156,9 +165,6 @@ body:has(.workspace[data-editor=true]) #btnMenuOptions{display:flex}
 @media(min-width:1101px) and (max-width:1330px){
  .app-bar #stepList button{padding:6px 8px;font-size:var(--fs-xs)}
 }
-
-/* Two-row toolbar below 1440px: the band above the slide grows to hold it. */
-@media(min-width:1101px) and (max-width:1439px){:root{--band-h:240px}}
 
 @media(max-width:760px){
  .app-bar{position:relative;padding:6px 12px}

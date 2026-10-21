@@ -1,10 +1,17 @@
 import {isQuickField} from './canvas-toolbar.mjs';
 import {SHARED_LINE_END} from './make-it-yours.mjs';
 import {colorWell,segmentedControl,SEGMENTED_FIELDS,MAX_SEGMENTS} from './canvas-controls.mjs';
+import {fitCanvas} from './canvas-fit.mjs';
+// Narrower than this, the docked band sends Sample text and Position to the drawer so it keeps two rows.
+const FULL_BAND_MIN=1000;
 /** Selection is transient UI state; every edit goes through the existing history/model. */
 export function createPreviewEditor(host) {
  // Above phone width the toolbar docks above the slide; phones keep the stacked inspector form.
- const wide=matchMedia('(min-width:761px)');
+ const wide=matchMedia('(min-width:761px)'),narrow=matchMedia('(max-width:1100px)');
+ const mount=document.getElementById('previewToolbarMount');
+ // Below 1101px, or when the open drawer squeezes the band, the band is compact.
+ const compactBand=()=>narrow.matches||mount.clientWidth<FULL_BAND_MIN;
+ let compact=false;
  // Where the next control goes: the docked toolbar, or (above phone width) the options drawer.
  let place=()=>document.getElementById('contextToolbar');
  // Docked toolbars swap small dropdowns for segmented controls and a color well.
@@ -27,6 +34,7 @@ export function createPreviewEditor(host) {
   const picker=document.getElementById('selectedElement');if(picker)picker.value=selected;
   document.getElementById('editScope').textContent=scope(kind,selected);
   renderToolbar();
+  fitCanvas();
  }
  function scope(kind,id){
   const target=label(id);
@@ -71,7 +79,8 @@ export function createPreviewEditor(host) {
   if(!design)return;
   // Docked editing: quick controls sit in the band above the slide, the rest wait in the options drawer.
   const docked=mode==='edit'&&wide.matches,moreBox=document.getElementById('inspectorMore');
-  place=id=>docked&&!isQuickField(selected,id)?moreBox:toolbar;
+  compact=docked&&compactBand();
+  place=id=>docked&&!isQuickField(selected,id,{compact})?moreBox:toolbar;
   richControls=docked;
   toolbar.classList.toggle('is-docked',docked);
   // Guide me owns the preview while it runs; Start and Review offer one explicit way into editing.
@@ -81,8 +90,8 @@ export function createPreviewEditor(host) {
   const after=phone?followup:document.getElementById('previewPane');
   for(const node of document.querySelectorAll('.similarity,.preview-caption'))if(node.parentElement!==after)after.append(node);
 
-  const mount=mode==='edit'&&!docked?document.getElementById('inspectorFields'):document.getElementById('previewToolbarMount');
-  if(toolbar.parentElement!==mount)mount.append(toolbar);
+  const home=mode==='edit'&&!docked?document.getElementById('inspectorFields'):mount;
+  if(toolbar.parentElement!==home)home.append(toolbar);
   const line=document.getElementById('scopeLine');if(line&&line.previousElementSibling!==toolbar)toolbar.after(line);
   toolbar.hidden=mode==='guide';
   document.getElementById('inspectorTitle').textContent=label(selected);
@@ -245,5 +254,6 @@ export function createPreviewEditor(host) {
  });
  matchMedia('(max-width:760px)').addEventListener('change',()=>refresh());
  wide.addEventListener('change',()=>refresh());
+ new ResizeObserver(()=>{if(toolbar.classList.contains('is-docked')&&compactBand()!==compact)renderToolbar();}).observe(mount);
  return {refresh,select};
 }

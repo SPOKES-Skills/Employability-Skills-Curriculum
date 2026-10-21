@@ -40,6 +40,8 @@ try {
   }
   await page.locator('#preset-professional').click();await page.locator('#btnMakeItOurs').click();
   await page.locator('#modelStage .slide-title-text').focus();await page.keyboard.press('Enter');
+  // From 761 to 1100px the compact band keeps Sample text and Position in the Slide options drawer.
+  if(width>760&&width<=1100)await page.locator('#btnMoreOptions').click();
   await page.locator('#context-text').fill('Team style <&>');await page.locator('#context-size').selectOption('large');
   assert.equal(await page.locator('#modelStage .slide-title-text').textContent(),'Team style <&>');
   await page.locator('#btnUndo').click();assert.equal((await current(page)).roleStyles.title.headingSize,'default');

@@ -4,8 +4,8 @@
  * Talks to the builder only through its PickHost. Designs from the host are never changed here.
  */
 import { MOODS, MOOD_ORDER, MOOD_LABELS, lookDetail } from './showcase-model.mjs';
+import { CANVAS, frameSizer } from './slide-frame.mjs';
 
-const CANVAS = 960;
 const DECK = { divider: 'Divider', cards: 'Text boxes', video: 'Video', activity: 'Activity' };
 const NEXT_KEYS = { ArrowRight: 1, ArrowDown: 1, ArrowLeft: -1, ArrowUp: -1 };
 // The cross-fade runs 200ms in CSS; the leaving copy is removed after this even if no animationend arrives.
@@ -31,12 +31,12 @@ function button(id, cls, text, onClick, enabled) {
 }
 
 // Each render is drawn at one size and scaled to its box, so every slide keeps its real layout.
-const sizer = new ResizeObserver(entries => {
-  for (const { target, contentRect } of entries) target.style.setProperty('--look-scale', String(contentRect.width / CANVAS));
-});
+const sizer = frameSizer('--look-scale');
+// Render styles inside shadow roots: the showcase canvas, as .look-frame > .bespoke-slide has in showcase.css.
+const SHADOW_SLIDE = `.bespoke-slide{width:${CANVAS}px!important;max-width:none!important;min-height:calc(var(--show-h) * 1px)!important;margin:0!important;transform:scale(var(--look-scale,.16));transform-origin:top left}`;
 
 // Stop sizing renders that are about to leave the page.
-const forget = container => container.querySelectorAll('.look-frame, .look-thumb').forEach(node => sizer.unobserve(node));
+const forget = container => container.querySelectorAll('.look-frame, .look-thumb').forEach(node => sizer.forget(node));
 
 function frame(cls, markup) {
   const box = make('div', 'look-frame ' + cls);
@@ -52,8 +52,8 @@ function thumbnail(host, design) {
   box.setAttribute('aria-hidden', 'true');
   box.inert = true;
   const css = host.Model.cssForDesign(host.catalog, design, { canonical: false });
-  box.attachShadow({ mode: 'open' }).innerHTML = '<style>:host{display:block;aspect-ratio:16/9;overflow:hidden}'
-    + css + `.bespoke-slide{width:${CANVAS}px!important;max-width:none!important;min-height:${CANVAS * 9 / 16}px;transform:scale(var(--look-scale,.16));transform-origin:top left}</style>`
+  box.attachShadow({ mode: 'open' }).innerHTML = '<style>:host{display:block;aspect-ratio:var(--show-w) / var(--show-h);overflow:hidden}'
+    + css + SHADOW_SLIDE + '</style>'
     + host.Model.renderSlide(host.catalog, design, 'title', host.options(design));
   sizer.observe(box);
   return box;
@@ -90,8 +90,11 @@ function fillSide(parts, host, view) {
   parts.colors.style.visibility = view.detail ? '' : 'hidden';
 }
 
-// What a stage shows now, so the next swap can fade it out: its design and its render scale.
-const shownOn = stage => stage?.shown && { design: stage.shown, scale: stage.querySelector('.look-hero')?.style.getPropertyValue('--look-scale') };
+// What a stage shows now, so the next swap can fade it out: its design, render scale and shape.
+const shownOn = stage => {
+  const hero = stage?.querySelector('.look-hero');
+  return stage?.shown && { design: stage.shown, scale: hero?.style.getPropertyValue('--look-scale'), ratio: hero?.style.aspectRatio };
+};
 
 // The look leaving the stage. Slide styles on the page already show the new look, so this copy
 // carries its own styles in a shadow root, the way strip thumbnails do.
@@ -100,9 +103,9 @@ function leavingLayer(host, previous) {
   layer.setAttribute('aria-hidden', 'true');
   layer.inert = true;
   layer.style.setProperty('--look-scale', previous.scale || '.5');
+  if (previous.ratio) layer.style.aspectRatio = previous.ratio;
   const css = host.Model.cssForDesign(host.catalog, previous.design, { canonical: false });
-  layer.attachShadow({ mode: 'open' }).innerHTML = '<style>:host{display:block}' + css
-    + `.bespoke-slide{width:${CANVAS}px!important;max-width:none!important;min-height:${CANVAS * 9 / 16}px;margin:0!important;transform:scale(var(--look-scale,.5));transform-origin:top left}</style>`
+  layer.attachShadow({ mode: 'open' }).innerHTML = '<style>:host{display:block}' + css + SHADOW_SLIDE + '</style>'
     + host.Model.renderSlide(host.catalog, previous.design, 'title', host.options(previous.design));
   return layer;
 }

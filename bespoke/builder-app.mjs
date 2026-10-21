@@ -3,6 +3,7 @@ import { createReviewTools } from './review-tools.mjs';
 import { readabilitySuggestions } from './readability.mjs';
 import { compareDesign } from './similarity.mjs';
 import { createPreviewEditor } from './preview-editor.mjs';
+import { watchCanvasFit } from './canvas-fit.mjs';
 import { syncStageChrome } from './canvas-shell.mjs';
 import { createGuide } from './guide/guide.mjs';
 import { showToast } from './toast.mjs';
@@ -1948,9 +1949,11 @@ async function init(){
  [state.meta,state.library,catalog,fingerprints,selectionSchema]=data;state.design=Model.defaultDesign(catalog);
  guide=createGuide(guideHost());
  byId('slideRail').append(byId('previewTabs'));
- const thumbnailMedia=matchMedia('(max-width:1100px)');
- const orientThumbnails=()=>byId('previewTabs').setAttribute('aria-orientation',thumbnailMedia.matches?'horizontal':'vertical');
- thumbnailMedia.addEventListener('change',orientThumbnails);orientThumbnails();
+ const thumbnailMedia=matchMedia('(max-width:1100px)'),phoneMedia=matchMedia('(max-width:760px)');
+ // The thumbnails run across the top on phones, and at 761-1100 while Guide me runs; the editor stands them in a column (canvas.css).
+ const orientThumbnails=()=>byId('previewTabs').setAttribute('aria-orientation',phoneMedia.matches||thumbnailMedia.matches&&byId('workspace').dataset.editor!=='true'?'horizontal':'vertical');
+ for(const media of [thumbnailMedia,phoneMedia])media.addEventListener('change',orientThumbnails);orientThumbnails();
+ new MutationObserver(orientThumbnails).observe(byId('workspace'),{attributes:true,attributeFilter:['data-editor']});
  previewEditor=createPreviewEditor({
   catalog, model:Model,
   context:()=>({design:state.design,kind:state.previewView,editable:isLeadSession(),optionsOpen:ui.moreOptions,mode:ui.guide?.on?'guide':onStage('slides')?'edit':'browse'}),
@@ -2000,6 +2003,7 @@ async function init(){
  const workspace=byId('workspace'),surfacePositions={design:0,preview:0};
  const sizeSurfaceNavigation=()=>{const height=document.querySelector('.surface-navigation').getBoundingClientRect().height;document.documentElement.style.setProperty('--surface-navigation-height',Math.ceil(height)+'px');};
  new ResizeObserver(sizeSurfaceNavigation).observe(document.querySelector('.surface-navigation'));sizeSurfaceNavigation();
+ watchCanvasFit();
  document.querySelectorAll('#surfaceSwitcher [role=tab]').forEach(tab=>tab.onclick=()=>{surfacePositions[workspace.dataset.activeSurface]=workspace.scrollTop;workspace.dataset.activeSurface=tab.dataset.surface;workspace.scrollTop=surfacePositions[tab.dataset.surface];document.querySelectorAll('#surfaceSwitcher [role=tab]').forEach(t=>t.setAttribute('aria-selected',String(t===tab)));previewEditor.refresh();});bindTablistKeys(byId('surfaceSwitcher'));
  window.addEventListener('storage',event=>{if((event.key===STORAGE_KEY||event.key===null)&&isLeadSession()){storageConflict=true;setSaveStatus('Another tab changed this draft');fileNotice('This tab’s draft is kept. Download a backup before reopening the latest version.');}});
  window.addEventListener('beforeunload',event=>{if(ui.allowUnload||!isLeadSession()||!hasUnsavedTeamWork())return;runAutosave();event.preventDefault();event.returnValue='';});

@@ -104,3 +104,15 @@ export async function motionTour(page, check) {
   await page.locator('#toast.is-visible').waitFor();
   await check('a toast');
 }
+
+// Two animation frames, so resize observers have sized the renders after the last action.
+export const settle = page => page.evaluate(() => new Promise(done => requestAnimationFrame(() => requestAnimationFrame(done))));
+
+// For each showcase frame matching selector, how far its slide's top, right, bottom and left edges sit from the frame's.
+// A slide that fills its frame exactly reads 0 on all four sides: no page white around it and nothing cut off.
+export const frameGaps = (page, selector) => page.evaluate(selector => [...document.querySelectorAll(selector)].map((frame, index) => {
+  const slide = frame.querySelector(':scope > .bespoke-slide') ?? frame.shadowRoot?.querySelector('.bespoke-slide');
+  const a = frame.getBoundingClientRect(), b = slide?.getBoundingClientRect();
+  const name = `${frame.className.split(' ').slice(-1)[0]} ${index} (${frame.title || frame.closest('[data-kind]')?.dataset.kind || 'title'})`;
+  return {name, gaps: b ? [b.top - a.top, b.right - a.right, b.bottom - a.bottom, b.left - a.left].map(gap => Math.round(gap * 10) / 10) : null};
+}), selector);

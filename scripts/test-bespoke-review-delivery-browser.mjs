@@ -8,6 +8,7 @@ import path from 'node:path';
 import {execFileSync} from 'node:child_process';
 import {createDevServer} from './bespoke-dev-server.mjs';
 import {browserType} from './bespoke-test-browser.mjs';
+import {frameGaps,settle} from './bespoke-test-chrome.mjs';
 import catalog from '../bespoke/builder-catalog.json' with {type:'json'};
 import {defaultDesign,applyPreset,setFeatureStyle} from '../bespoke/builder-model.mjs';
 import {submissionId} from '../netlify/functions/bespoke-handoff.mjs';
@@ -43,6 +44,8 @@ try{
  // After Send: the confirmation replaces Send while the sent design is unchanged, and survives a reload.
  const sentView=async()=>{await page.locator('#stage-review').click();await page.locator('#sentView').waitFor();};
  await sentView();assert.match(await page.locator('#sentView').textContent(),/Sent to Britt/);
+ // The fanned slides fill their cards: no page white wedge under the top card, nothing cut off.
+ await settle(page);const fan=await frameGaps(page,'#sentView .send-frame');assert.equal(fan.length,3,'three fanned slides');for(const {name,gaps} of fan)assert.ok(gaps&&gaps.every(gap=>Math.abs(gap)<=1),`${name} fills its card: gaps ${gaps}`);
  assert.equal(await page.evaluate(()=>document.activeElement?.id),'sentHeading','entering the confirmation focuses its heading');
  assert.match(await page.locator('#sentView p').filter({hasText:'is on its way'}).textContent(),/^Your Money Management suggestion, .+, is on its way\. Britt and the program administrator will use it when they make the final design\.$/);
  assert.equal(await page.locator('#sentDetails a').getAttribute('href'),url);assert.equal(await page.locator('#sentDetails').evaluate(d=>d.open),false);

@@ -20,8 +20,8 @@ try{
   try{
    await page.goto(server.baseUrl+'/bespoke/');await page.locator('#stage-slides').click();
    // Above phone width the quick controls dock above the slide; the rest wait in the options drawer,
-   // which wide screens open on request and 761 to 1100 keep beside the preview.
-   const wide=width>=1101,docked=width>760;if(wide)await page.locator('#btnMoreOptions').click();
+   // which opens on request (761 to 1100 drop its column while it is closed).
+   const wide=width>=1101,docked=width>760;if(docked)await page.locator('#btnMoreOptions').click();
    const view=async kind=>{await page.locator(`#previewTabs [data-view=${kind}]`).click();};
    const choose=async(selector,id)=>{await page.locator(selector).first().click();assert.equal(await page.locator('#selectedElement').inputValue(),id);assert.equal(await page.locator((docked?'#previewToolbarMount':'#selectionInspector')+' #contextToolbar').count(),1);};
    await view('cards');const before=await current(page);

@@ -24,7 +24,8 @@ let geometryChecks=0,paints=0,axes=0,generatedChecks=0;
 const color=id=>{const hex=catalog.palette.find(c=>c.id===id).hex;return `rgb(${[1,3,5].map(n=>parseInt(hex.slice(n,n+2),16)).join(', ')})`;};
 async function pageFor(width,height=900,scale=1) {
   const context=await browser.newContext({viewport:{width,height},reducedMotion:'reduce'});contexts.push(context);
-  await context.addInitScript(()=>window.__bespokeAutosave={enabled:false});
+  // These checks measure the slide's own layout at its column width, so Make it yours does not scale it to fit the window.
+  await context.addInitScript(()=>{window.__bespokeAutosave={enabled:false};window.__bespokeCanvasFit={enabled:false};});
   await context.route(/^https?:/,route=>{requests.push(route.request());return new URL(route.request().url()).origin===server.baseUrl?route.continue():route.abort();});
   context.on('page',page=>page.on('pageerror',error=>errors.push(error.message)));
   const page=await context.newPage();await page.goto(server.baseUrl+'/bespoke/');

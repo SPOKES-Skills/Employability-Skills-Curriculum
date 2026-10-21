@@ -2,7 +2,8 @@
  * Send: the team's five slides on one sheet beside a summary panel with the two actions.
  * Talks to the builder only through its SendHost. Designs from the host are never changed here.
  */
-const CANVAS = 960;
+import { frameSizer } from './slide-frame.mjs';
+
 const DECK = [['title', 'Title slide'], ['divider', 'Chapter divider'], ['cards', 'Text boxes'], ['video', 'Video slide'], ['activity', 'Activity']];
 const MAX_CHANGES = 3;
 export const SMALL_PRINT = 'This is a suggestion. Britt and the program administrator choose the final design.';
@@ -34,10 +35,8 @@ export function changesText(changes) {
 }
 
 // Each render is drawn at one size and scaled to its box, so every slide keeps its real layout.
-const sizer = new ResizeObserver(entries => {
-  for (const { target, contentRect } of entries) target.style.setProperty('--send-scale', String(contentRect.width / CANVAS));
-});
-const forget = root => root.querySelectorAll('.send-frame').forEach(node => sizer.unobserve(node));
+const sizer = frameSizer('--send-scale');
+const forget = root => root.querySelectorAll('.send-frame').forEach(node => sizer.forget(node));
 
 function deckSlide(host, design, [kind, label]) {
   const item = make('div', 'send-slide');

@@ -27,7 +27,8 @@ let axes=0, editorChecks=0, geometryChecks=0, canonicalChecks=0;
 const report=(name,details)=>{failures.push({name,...details});console.error('FAIL '+name+': '+JSON.stringify(details));};
 async function pageFor(view) {
   const context=await browser.newContext({viewport:{width:view.width,height:view.height},reducedMotion:'reduce'});contexts.push(context);
-  await context.addInitScript(()=>window.__bespokeAutosave={enabled:false});
+  // These checks measure the slide's own layout at its column width, so Make it yours does not scale it to fit the window.
+  await context.addInitScript(()=>{window.__bespokeAutosave={enabled:false};window.__bespokeCanvasFit={enabled:false};});
   await context.route(/^https?:/,route=>{if(new URL(route.request().url()).origin===server.baseUrl)return route.continue();external.push(route.request().url());return route.abort();});
   const page=await context.newPage();page.on('pageerror',error=>errors.push(error.message));
   page.on('dialog',async dialog=>{if(dialog.message().startsWith('Open this copy instead'))await dialog.accept();else {errors.push('Unexpected dialog: '+dialog.message());await dialog.dismiss();}});

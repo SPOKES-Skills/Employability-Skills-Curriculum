@@ -18,11 +18,14 @@ const QUICK_FIELDS = {
   watermark: ['element', 'watermark-text', 'color']
 };
 
+// A compact band (below 1101px, or squeezed by the drawer) sends these to the drawer so it keeps two rows.
+const COMPACT_DRAWER = ['text', 'placement'];
+
 const isTextSelection = selected => selected.startsWith('heading') || selected.startsWith('body') || selected === 'extra';
 
 /** True when a control for the selected element belongs on the docked toolbar. */
-export function isQuickField(selected, fieldId) {
-  if (isTextSelection(selected)) return TEXT_FIELDS.includes(fieldId);
+export function isQuickField(selected, fieldId, { compact = false } = {}) {
+  if (isTextSelection(selected)) return TEXT_FIELDS.includes(fieldId) && !(compact && COMPACT_DRAWER.includes(fieldId));
   const key = selected.startsWith('box') ? 'box' : selected;
   return (QUICK_FIELDS[key] ?? ['element']).includes(fieldId);
 }

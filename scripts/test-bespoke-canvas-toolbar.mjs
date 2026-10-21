@@ -33,3 +33,11 @@ test('an unknown selection still exposes the element picker', () => {
   assert.equal(isQuickField('mystery', 'element'), true);
   assert.equal(isQuickField('mystery', 'color'), false);
 });
+
+test('a compact band sends Sample text and Position to the drawer and keeps the rest in order', () => {
+  for (const selected of ['heading-0', 'body-2', 'extra']) {
+    const quick = TEXT_FIELDS.filter(id => isQuickField(selected, id, {compact: true}));
+    assert.deepEqual(quick, ['element', 'font', 'size', 'color', 'align'], selected);
+  }
+  assert.equal(isQuickField('background', 'finish', {compact: true}), true, 'other selections keep their quick fields');
+});

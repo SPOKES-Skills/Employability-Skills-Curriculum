@@ -1,4 +1,8 @@
 /* Showcase polish. Chrome text uses Outfit only. */
+/* Showcase renders are drawn 960 wide and at least 628 tall: the Text boxes, Video and Activity slides' own
+   height at that width, so the tallest preset title fits too. Shorter slides stretch to fill the box; a taller
+   one grows its frame (slide-frame.mjs), so a render never shows page white or loses its bottom. */
+:root{--show-w:960;--show-h:628}
 .toast {
   position: fixed;
   top: 16px;
@@ -36,9 +40,9 @@
 .showcase{min-width:0;font-family:"Outfit",system-ui,sans-serif;color:var(--navy)}
 .look-top{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(280px,1fr);gap:28px;align-items:center;padding:24px clamp(16px,2vw,28px) 16px}
 /* Sized to the window height, but never so small that the side column outweighs it at short heights. */
-.look-stage{position:relative;min-width:0;width:min(100%,max(480px,calc((100dvh - 320px) * 1.7778)));justify-self:center}
-.look-frame{position:relative;aspect-ratio:16/9;overflow:hidden;border-radius:var(--radius-control);background:#fff}
-.look-frame>.bespoke-slide{position:absolute;top:0;left:0;width:960px!important;max-width:none!important;min-height:540px;margin:0!important;transform:scale(var(--look-scale,.5));transform-origin:top left}
+.look-stage{position:relative;min-width:0;width:min(100%,max(480px,calc((100dvh - 320px) * var(--show-w) / var(--show-h))));justify-self:center}
+.look-frame{position:relative;aspect-ratio:var(--show-w) / var(--show-h);overflow:hidden;border-radius:var(--radius-control);background:#fff}
+.look-frame>.bespoke-slide{position:absolute;top:0;left:0;width:960px!important;max-width:none!important;min-height:calc(var(--show-h) * 1px)!important;margin:0!important;transform:scale(var(--look-scale,.5));transform-origin:top left}
 .look-hero{border-radius:var(--radius-feature);box-shadow:0 14px 34px #00133f40}
 /* Stage cross-fade on preview and apply: the old look fades out over the new one, 200ms. */
 .look-leaving{position:absolute;top:0;left:0;width:100%;pointer-events:none}
@@ -76,12 +80,13 @@
 .look-yours .look-thumb{outline:2px dashed var(--blue);outline-offset:3px}
 .look-yours[aria-selected=true] .look-thumb{outline:3px dashed #d3b257}
 .look-card-name{font-size:var(--fs-xs);line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-@media(max-width:1100px){
- .look-top{grid-template-columns:minmax(0,1fr);align-items:start}
- .look-stage{width:100%}
+/* Laptops keep the side column beside a stage sized to the window height, so the strip shows under both. */
+@media(min-width:761px) and (max-width:1100px){
+ .look-stage{width:min(100%,max(400px,calc((100dvh - 400px) * var(--show-w) / var(--show-h))))}
 }
 @media(max-width:760px){
- .look-top{padding:16px}
+ .look-top{grid-template-columns:minmax(0,1fr);align-items:start;padding:16px}
+ .look-stage{width:100%}
  .look-name{font-size:var(--fs-xl)}
  .look-card{flex-basis:132px}
  .look-paths{margin-left:0}
@@ -117,8 +122,8 @@
 .send-deck{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;align-content:start}
 .send-slide{position:relative;min-width:0}
 .send-slide:first-child{grid-column:span 2;grid-row:span 2}
-.send-frame{position:relative;aspect-ratio:16/9;overflow:hidden;border-radius:var(--radius-control);background:#fff;box-shadow:0 4px 14px #00133f26}
-.send-frame>.bespoke-slide{position:absolute;top:0;left:0;width:960px!important;max-width:none!important;min-height:540px;margin:0!important;box-shadow:none;transform:scale(var(--send-scale,.3));transform-origin:top left}
+.send-frame{position:relative;aspect-ratio:var(--show-w) / var(--show-h);overflow:hidden;border-radius:var(--radius-control);background:#fff;box-shadow:0 4px 14px #00133f26}
+.send-frame>.bespoke-slide{position:absolute;top:0;left:0;width:960px!important;max-width:none!important;min-height:calc(var(--show-h) * 1px)!important;margin:0!important;box-shadow:none;transform:scale(var(--send-scale,.3));transform-origin:top left}
 .send-open{position:absolute;inset:0;width:100%;border:0;border-radius:var(--radius-control);background:transparent;cursor:pointer}
 .send-open:hover{box-shadow:inset 0 0 0 3px var(--action)}
 .send-open:focus-visible{outline:3px solid var(--focus);outline-offset:3px}

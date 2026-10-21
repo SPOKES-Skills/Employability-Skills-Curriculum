@@ -99,6 +99,15 @@ try {
     await page.locator('#context-color-well').click();
     await page.locator('#context-color-popover').getByRole('radio', {name: 'Gold', exact: true}).click();
     assert.deepEqual(await page.locator('#scopeLine strong').allTextContents(), ['Divider']);
+    // The bold name sits in running text: one space on each side, not a flex gap (textContent cannot show this).
+    const gaps = await page.locator('#scopeLine strong').evaluate(strong => {
+      const glyph = (node, index) => { const range = document.createRange(); range.setStart(node, index); range.setEnd(node, index + 1); return range.getBoundingClientRect(); };
+      const before = strong.previousSibling, after = strong.nextSibling, box = strong.getBoundingClientRect();
+      const space = (() => { const probe = document.createElement('span'); probe.textContent = ' '; strong.after(probe); const w = probe.getBoundingClientRect().width; probe.remove(); return w; })();
+      return {space, before: box.left - glyph(before, before.textContent.trimEnd().length - 1).right, after: glyph(after, after.textContent.search(/\S/)).left - box.right};
+    });
+    for (const side of ['before', 'after'])
+      assert.ok(Math.abs(gaps[side] - gaps.space) <= 1.5, `one space ${side} the bold name: ${gaps[side].toFixed(1)}px, a space is ${gaps.space.toFixed(1)}px`);
     await context.close();
   });
   assert.deepEqual(errors, [], 'no page errors');

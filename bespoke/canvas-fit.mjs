@@ -1,10 +1,11 @@
 /**
- * Make it yours: the slide wins (Rulings R21, R23, R24 and R26). Above phone width the editable slide is drawn on
- * the same 960px canvas as Pick a look and Send, so its layout and shape never change with the window or the
- * drawer. It then scales down to its column's width and until all of it shows below the toolbar band at scroll
- * 0, as long as it stays legible. Short of height, it holds at the floor while most of it still shows; a slide
- * that would lose more than a fifth below the fold even at the floor fills its column's width and the page
- * scrolls. Lesson output and the slide's own layout are unchanged; only its picture on this stage gets smaller.
+ * Make it yours: the slide wins (Rulings R21, R23, R24, R26, R30 and R31). Above phone width the editable slide is
+ * drawn on the same 960px canvas as Pick a look and Send, so its layout and shape never change with the window or
+ * the drawer. It then scales to fit its column's width and the room left below the toolbar band at scroll 0,
+ * growing past 960 on wide windows. Short of height, it holds at the floor while most of it still shows; a slide
+ * that would lose more than a fifth below the fold even at the floor is drawn at full size (no wider than its
+ * column) and the page scrolls. A column too narrow to show the 960 canvas at the floor lays the slide out at its
+ * own width instead, with the same height fit. Lesson output and the slide's own layout are unchanged.
  */
 import {CANVAS} from './slide-frame.mjs';
 
@@ -21,10 +22,9 @@ const DEFAULT_ROOT_PX = 16;
 const ACTIVE = '.workspace[data-stage=slides][data-editor=true]';
 const DOCKED = '(min-width:761px)';
 
-// The height fit: never above 1, held at MIN_SCALE while most of the slide shows, else 1 (the page scrolls).
+// The height fit: any scale from MIN_SCALE up, held at MIN_SCALE while most of the slide shows, else 1 (the page scrolls).
 function heightScale(top, natural, viewport) {
   const scale = (viewport - top - GAP) / natural;
-  if (scale >= 1) return 1;
   if (scale >= MIN_SCALE) return scale;
   const floored = natural * MIN_SCALE;
   return top + floored - viewport <= floored * BELOW_FOLD_SHARE ? MIN_SCALE : 1;
@@ -39,6 +39,9 @@ export function fitScale({ top, natural, viewport, rootFont = DEFAULT_ROOT_PX, r
   return Math.min(room / CANVAS, heightScale(top, natural, viewport));
 }
 
+/** Whether a column room px wide can show the 960 canvas at the floor or larger (Ruling R31). */
+export const usesCanvas = room => room / CANVAS >= MIN_SCALE;
+
 const enlargedText = () => parseFloat(getComputedStyle(document.documentElement).fontSize) > DEFAULT_ROOT_PX;
 
 // The width the frame's content may take: the preview column less the frame's own padding.
@@ -51,22 +54,26 @@ function roomFor(frame) {
 function clear(frame) {
   if (!frame.hasAttribute('data-fit')) return;
   frame.removeAttribute('data-fit');
-  for (const name of ['--fit-scale', '--fit-h']) frame.style.removeProperty(name);
+  for (const name of ['--fit-scale', '--fit-h', '--fit-w']) frame.style.removeProperty(name);
 }
 
-/** Draws #modelStage on the 960 canvas and scales it so its slide ends inside the window. Safe to call at any time. */
+/**
+ * Draws #modelStage on the 960 canvas, or at its column's width when the column is too narrow for that, and scales
+ * it so its slide ends inside the window. Safe to call at any time.
+ */
 export function fitCanvas() {
   const stage = document.getElementById('modelStage'), frame = stage?.parentElement;
   if (!frame) return;
   // Phones and enlarged text keep the slide at its column's width and full size.
   if (!matchMedia(DOCKED).matches || !stage.closest(ACTIVE) || enlargedText()) return clear(frame);
-  if (!frame.hasAttribute('data-fit')) {
-    frame.style.setProperty('--fit-scale', '1');
-    frame.setAttribute('data-fit', '');
-  }
+  const room = roomFor(frame), canvas = usesCanvas(room);
+  // canvas.css lays the stage out --fit-w px wide, scales it by --fit-scale and gives back the height it no longer takes.
+  frame.dataset.fit = canvas ? 'canvas' : 'column';
+  frame.style.setProperty('--fit-w', String(canvas ? CANVAS : room));
+  if (!frame.style.getPropertyValue('--fit-scale')) frame.style.setProperty('--fit-scale', '1');
   const natural = stage.offsetHeight;
-  const scale = fitScale({ top: stage.getBoundingClientRect().top + scrollY, natural, viewport: innerHeight, room: roomFor(frame) });
-  // canvas.css draws the stage 960px wide, scales it by --fit-scale and gives back the height it no longer takes.
+  // At the column's width the width fit is 1, so only the height fit (never above full size) applies.
+  const scale = fitScale({ top: stage.getBoundingClientRect().top + scrollY, natural, viewport: innerHeight, room: canvas ? room : CANVAS });
   frame.style.setProperty('--fit-scale', String(scale));
   frame.style.setProperty('--fit-h', String(natural));
 }

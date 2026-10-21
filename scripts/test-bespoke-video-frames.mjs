@@ -72,15 +72,21 @@ function check(m,design,label) {
   assert(Math.abs(m.child.x-inset)<1&&Math.abs(m.child.y-inset)<1,label+': media respects frame inset');
   assert(Math.abs(m.child.w-(m.w-inset*2))<1&&Math.abs(m.child.h-(m.h-inset*2))<1,label+': media stays inside frame');
 }
-async function pixels(page,png,design) {
-  const rows=await page.evaluate(async encoded=>{
+// Samples rows 1, 4 and 7 of the frame: the keyline, accent and keyline bands of an accent frame. The live slide is
+// scaled to fit (Rulings R26 and R30), where the browser rasterizes those thin bands with blended edges, so there the
+// check reads the frame's top rows in order and keeps the first three runs of exact frame colors instead.
+async function pixels(page,png,design,scale=1) {
+  const keyline=channels(inkFor(catalog,design.roles.accent)),accent=channels(design.roles.accent),surface=channels(design.roles.sidebar);
+  const column=await page.evaluate(async ({encoded,rows})=>{
     const bitmap=await createImageBitmap(new Blob([Uint8Array.from(atob(encoded),c=>c.charCodeAt(0))],{type:'image/png'}));
     const canvas=document.createElement('canvas');canvas.width=bitmap.width;canvas.height=bitmap.height;
     const c=canvas.getContext('2d');c.drawImage(bitmap,0,0);bitmap.close();
-    return [1,4,7].map(y=>[...c.getImageData(Math.floor(canvas.width/2),y,1,1).data].slice(0,3));
-  },png.toString('base64'));
-  const keyline=channels(inkFor(catalog,design.roles.accent)),accent=channels(design.roles.accent),surface=channels(design.roles.sidebar);
-  assert.deepEqual(rows,design.slides.video.frame==='accent'?[keyline,accent,keyline]:[surface,surface,surface], 'Rendered frame pixels follow the chosen accent and separating keylines');
+    return Array.from({length:rows},(_,y)=>[...c.getImageData(Math.floor(canvas.width/2),y,1,1).data].slice(0,3));
+  },{encoded:png.toString('base64'),rows:Math.ceil(12*scale)});
+  const accented=design.slides.video.frame==='accent',exact=[keyline,accent,surface].map(String);
+  const runs=column.filter(rgb=>exact.includes(String(rgb))).filter((rgb,i,all)=>i===0||String(rgb)!==String(all[i-1]));
+  const rows=scale===1||!accented?[1,4,7].map(y=>column[Math.floor(y*scale)]):runs.slice(0,3);
+  assert.deepEqual(rows,accented?[keyline,accent,keyline]:[surface,surface,surface], `Rendered frame pixels follow the chosen accent and separating keylines (scale ${scale.toFixed(3)}, column ${JSON.stringify(column)})`);
   return rows;
 }
 let editorChecks=0, generatedChecks=0, parity=0;
@@ -103,7 +109,8 @@ try {
           assert.equal(await slide.locator('video,iframe').count(),0,'Editor sample remains inert');
           const m=await measure(frameNode);check(m,expected,`editor ${width}/${name}/${layout}/${frame}`);
           assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),'Editor viewport does not overflow');
-          const png=await frameNode.screenshot(), bands=await pixels(page,png,expected);editorChecks++;
+          const fit=await frameNode.evaluate(el=>{const slide=el.closest('.bespoke-slide');return slide.getBoundingClientRect().width/slide.offsetWidth;});
+          const png=await frameNode.screenshot(), bands=await pixels(page,png,expected,fit);editorChecks++;
           if(frame==='plain')plain=png;else{
             const delta=await pixelDifference(page,plain,png);assert(delta.changedFraction>.008,'Frame must visibly change even with matching colors');
             evidence.push({width,name,layout,...m,...delta});
@@ -119,7 +126,8 @@ try {
             check(gm,expected,`${kind} ${width}/${name}/${layout}/${frame}`);generatedChecks++;
             const gpng=await node.screenshot();
             if(frame==='accent'||kind==='sample'){assert.deepEqual(await pixels(generatedPage,gpng,expected),bands,'Generated/canonical frame bands match live preview pixels');parity++;}
-            if(kind==='sample'){assert.equal(gm.w,m.w);assert.equal(gm.h,m.h);}
+            // The live slide is scaled to fit (Rulings R26 and R30), so its px come back through a float scale.
+            if(kind==='sample'){assert(Math.abs(gm.w-m.w)<.5,'Generated frame width matches the live one');assert(Math.abs(gm.h-m.h)<.5,'Generated frame height matches the live one');}
             if(kind!=='sample'&&width===390&&layout==='side')assert(!gm.columns.includes(' '),'Canonical side layout stacks on phone');
             if(kind==='video')assert(await node.locator('video').evaluate(el=>el.paused&&!el.autoplay&&el.networkState===0),'Native video remains unloaded and paused');
           }

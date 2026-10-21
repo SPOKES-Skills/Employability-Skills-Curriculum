@@ -207,11 +207,13 @@ export function createPreviewEditor(host) {
  // One line under the toolbar says what else the selected part's color changes.
  function renderScopeLine(kind,key){
   const line=document.getElementById('scopeLine');if(!line)return;
-  const text=renderScopeParts(line,host.context().mode==='edit'?host.scopeLine(kind,selected,key):[]);line.hidden=!text;
+  // The sentence runs in one inline span, so the flex line holds only the sentence and its link (no gaps around bold names).
+  const sentence=document.createElement('span');sentence.className='scope-text';line.replaceChildren(sentence);
+  const text=renderScopeParts(sentence,host.context().mode==='edit'?host.scopeLine(kind,selected,key):[]);line.hidden=!text;
   if(!text.endsWith(SHARED_LINE_END))return;
   const only=document.createElement('button');only.type='button';only.id='btnOnlyThisSlide';only.className='text-link';only.textContent='Change only this slide…';only.disabled=!host.context().editable;
   only.onclick=()=>{if(!host.context().optionsOpen)host.more(selected);document.getElementById('context-only-slide')?.focus();};
-  line.append(' ',only);
+  line.append(only);
  }
  function refresh({thumbnails=true}={}){
   const {kind}=host.context();if(lastKind!==kind){selected='background';lastKind=kind;}

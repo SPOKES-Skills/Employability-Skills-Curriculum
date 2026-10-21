@@ -123,10 +123,11 @@ body:has(.workspace[data-editor=true]) #btnMenuOptions{display:flex}
  .context-toolbar.is-docked #btnMoreOptions{margin-left:auto}
 
  /* Make it yours draws the slide on the 960px showcase canvas, at least --show-h tall, as Pick a look and Send do
-    (Ruling R26). canvas-fit.mjs sets --fit-scale and the slide's height --fit-h; the mat hugs the scaled slide. */
- .preview-frame[data-fit]{box-sizing:content-box;width:calc(var(--fit-scale) * 960px);max-width:none;margin-inline:auto}
- .preview-frame[data-fit] #modelStage{width:960px;transform:scale(var(--fit-scale));transform-origin:0 0;margin-bottom:calc((var(--fit-scale) - 1) * var(--fit-h) * 1px)}
- .preview-frame[data-fit] #modelStage>.bespoke-slide{min-height:calc(var(--show-h) * 1px)}
+    (Ruling R26), or at its column's width when the column cannot show 960 at the floor (Ruling R31). canvas-fit.mjs
+    sets the layout width --fit-w, --fit-scale and the slide's height --fit-h; the mat hugs the scaled slide. */
+ .preview-frame[data-fit]{box-sizing:content-box;width:calc(var(--fit-scale) * var(--fit-w) * 1px);max-width:none;margin-inline:auto}
+ .preview-frame[data-fit] #modelStage{width:calc(var(--fit-w) * 1px);transform:scale(var(--fit-scale));transform-origin:0 0;margin-bottom:calc((var(--fit-scale) - 1) * var(--fit-h) * 1px)}
+ .preview-frame[data-fit=canvas] #modelStage>.bespoke-slide{min-height:calc(var(--show-h) * 1px)}
 
  /* Segmented control: a few closely related choices that act on the selection. */
  .toolbar-segmented,.toolbar-well{position:relative;display:flex;flex-direction:column;gap:5px;color:var(--muted);font-size:var(--fs-2xs);font-weight:500}

@@ -140,7 +140,8 @@ try {
       await preview(page,kind);await openDrawer(page);const live=await check(page,label+'/'+kind+'/parity-source');
       await generatedPage.setContent(`<base href="${server.baseUrl}/bespoke/"><style>html,body{margin:0}main{width:${live.w}px;max-width:100%}*{box-sizing:border-box}</style><style>${cssForDesign(catalog,final)}</style><main>${renderSlide(catalog,final,kind)}</main>`);
       const summary=generatedPage.locator('.slide-sidebar-disclosure > summary');if(await summary.isVisible())await summary.click();await generatedPage.evaluate(()=>document.fonts.ready);
-      const generated=await check(generatedPage,label+'/'+kind+'/generated',{generated:true});assert.equal(generated.nav.w,live.nav.w);assert.equal(generated.main.w,live.main.w);generatedChecks++;
+      const generated=await check(generatedPage,label+'/'+kind+'/generated',{generated:true});// The live slide is scaled to fit (Rulings R26 and R30), so its px come back through a float scale.
+      assert(Math.abs(generated.nav.w-live.nav.w)<.5,'Generated sidebar width matches the live one');assert(Math.abs(generated.main.w-live.main.w)<.5,'Generated content width matches the live one');generatedChecks++;
     }
     await generatedPage.setContent(`<base href="${server.baseUrl}/bespoke/"><style>${templateCss}</style><style>${cssForDesign(catalog,final)}</style>${templateNav}`);
     assert.equal(await generatedPage.locator('.sidebar').evaluate(el=>getComputedStyle(el).backgroundColor),color(final.roles.sidebar));

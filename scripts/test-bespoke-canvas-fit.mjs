@@ -2,7 +2,7 @@
 // Node checks for the Make it yours fit: the slide shrinks only while it stays legible (Ruling R23).
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import {fitScale, MIN_SCALE} from '../bespoke/canvas-fit.mjs';
+import {fitScale, MIN_SCALE, usesCanvas} from '../bespoke/canvas-fit.mjs';
 
 test('the floor keeps a shrunk slide legible', () => {
   assert.ok(MIN_SCALE >= 0.45 && MIN_SCALE <= 0.5, `floor ${MIN_SCALE}`);
@@ -19,8 +19,10 @@ test('a slide that cannot fit even at the floor stays full size and the page scr
   assert.equal(fitScale({top: 300, natural: 485, viewport: 390}), 1);
 });
 
-test('a slide that already fits is never enlarged', () => {
-  assert.equal(fitScale({top: 100, natural: 300, viewport: 1080}), 1);
+// Ruling R30: with room to spare the slide grows until the window height or its column stops it.
+test('a slide with room to spare grows to fill the window or its column', () => {
+  assert.ok(Math.abs(fitScale({top: 317, natural: 628, viewport: 1080, room: 1706}) - (1080 - 317 - 16) / 628) < 1e-9);
+  assert.equal(fitScale({top: 100, natural: 300, viewport: 1080, room: 1200}), 1200 / 960);
 });
 
 test('enlarged text skips the fit', () => {
@@ -59,7 +61,7 @@ test('the floor holds until a fifth of the slide falls below the fold', () => {
 // Ruling R26: the slide lays out on the 960 canvas, so the column width caps the scale as well as the height.
 test('a slide on the 960 canvas never draws wider than its column', () => {
   assert.equal(fitScale({top: 100, natural: 628, viewport: 1080, room: 540}), 540 / 960);
-  assert.equal(fitScale({top: 100, natural: 300, viewport: 1080, room: 1600}), 1);
+  assert.equal(fitScale({top: 100, natural: 300, viewport: 1080, room: 1600}), 1600 / 960);
 });
 
 test('the smaller of the width fit and the height fit wins', () => {
@@ -69,4 +71,15 @@ test('the smaller of the width fit and the height fit wins', () => {
 
 test('a slide too heavy for the floor still fits its column width', () => {
   assert.equal(fitScale({top: 400, natural: 2000, viewport: 768, room: 540}), 540 / 960);
+});
+
+test('a slide too heavy for the floor on a wide window keeps the 960 canvas at full size', () => {
+  assert.equal(fitScale({top: 400, natural: 2000, viewport: 768, room: 1600}), 1);
+});
+
+// Ruling R31: the 960 canvas shows only where it can be at least the floor; narrower columns lay the slide out at their width.
+test('the 960 canvas needs a column at least the floor of 960 wide', () => {
+  assert.equal(usesCanvas(960 * MIN_SCALE), true);
+  assert.equal(usesCanvas(541), true);
+  assert.equal(usesCanvas(334), false);
 });

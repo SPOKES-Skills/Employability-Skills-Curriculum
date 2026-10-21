@@ -124,6 +124,49 @@ try {
       await context.close();
     }
   });
+  await check('a wide window grows the slide past 960 while all of it shows (Ruling R30)', async () => {
+    const {context, page} = await open(1920, 1080);
+    await page.locator('#stage-slides').click();
+    await page.locator('#previewTabs [data-view=cards]').click();
+    await page.locator('#modelStage .slide-card .slide-body').first().click();
+    for (const drawer of ['closed', 'open']) {
+      if (drawer === 'open') await page.locator('#btnMoreOptions').click();
+      await page.evaluate(() => window.scrollTo(0, 0));
+      await settle(page);
+      const m = await page.locator('#modelStage .bespoke-slide').evaluate(el => {
+        const r = el.getBoundingClientRect();
+        return {w: el.offsetWidth, shown: r.width, top: r.top, bottom: r.bottom};
+      });
+      const where = `1920x1080, drawer ${drawer}`;
+      assert.equal(m.w, 960, `${where}: the slide lays out on the 960 canvas`);
+      assert.ok(m.shown > 1000, `${where}: the slide shows wider than 960, got ${m.shown}`);
+      assert.ok(m.top >= 0 && m.bottom <= 1080, `${where}: all of the slide is in the window, top ${m.top}, bottom ${m.bottom}`);
+    }
+    await context.close();
+  });
+  await check('a column too narrow for a legible 960 canvas lays the slide out at its width (Ruling R31)', async () => {
+    for (const [width, height] of [[768, 1024], [834, 1112]]) {
+      const {context, page} = await open(width, height);
+      await page.locator('#stage-slides').click();
+      await page.locator('#previewTabs [data-view=cards]').click();
+      await page.locator('#modelStage .slide-card .slide-body').first().click();
+      await page.locator('#btnMoreOptions').click();
+      await page.evaluate(() => window.scrollTo(0, 0));
+      await settle(page);
+      const m = await page.locator('#modelStage .bespoke-slide').evaluate(el => {
+        const frame = el.closest('.preview-frame'), pane = frame.parentElement, p = getComputedStyle(pane), f = getComputedStyle(frame);
+        const room = pane.clientWidth - parseFloat(p.paddingLeft) - parseFloat(p.paddingRight) - parseFloat(f.paddingLeft) - parseFloat(f.paddingRight);
+        return {w: el.offsetWidth, room, scale: el.getBoundingClientRect().width / el.offsetWidth,
+          sidebar: getComputedStyle(el.querySelector('.slide-sidebar')).display, disclosure: getComputedStyle(el.querySelector('.slide-sidebar-disclosure')).display};
+      });
+      const where = `${width}x${height}, drawer open`;
+      assert.ok(m.room < 960 * MIN_SCALE, `${where}: the column (${m.room}px) is too narrow for the 960 canvas at the floor`);
+      assert.ok(Math.abs(m.w - m.room) <= 1, `${where}: the slide lays out at the column width ${m.room}, got ${m.w}`);
+      assert.ok(m.scale >= MIN_SCALE - 0.001, `${where}: the slide is never shown below the floor, scale ${m.scale.toFixed(3)}`);
+      assert.ok(m.sidebar === 'none' && m.disclosure !== 'none', `${where}: the narrow slide uses its sidebar sample menu (sidebar ${m.sidebar}, menu ${m.disclosure})`);
+      await context.close();
+    }
+  });
   await check('the Navigation sidebar is selectable at 1024 with the drawer open', async () => {
     const {context, page} = await open(1024, 768);
     await page.locator('#stage-slides').click();

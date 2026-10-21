@@ -150,6 +150,9 @@ try {
     await page.locator('#stage-slides').click();
     await page.locator('#modelStage .slide-title-text').click();
     await page.locator('#btnMoreOptions').click();
+    // An Escape that ends text composition (IME) belongs to the composition, not the drawer.
+    await page.evaluate(() => document.getElementById('btnHideDrawer').dispatchEvent(new KeyboardEvent('keydown', {key: 'Escape', isComposing: true, bubbles: true, cancelable: true})));
+    assert.equal(await options(), 'true', 'an Escape during text composition leaves the drawer open');
     await page.locator('#btnHideDrawer').focus();
     await page.keyboard.press('Tab');
     assert.ok(await page.evaluate(() => document.getElementById('chromeRail').contains(document.activeElement)), 'focus is inside the drawer');

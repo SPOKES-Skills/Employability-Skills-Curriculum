@@ -1985,7 +1985,7 @@ async function init(){
  byId('btnCloseHelp').onclick=()=>showBuilderHelp(true);
  setupRecoveryMenu();
  // Escape closes the open drawer once menus, dialogs, pickers and the More menu have had their turn (Ruling R27).
- document.addEventListener('keydown',event=>{if(event.key==='Escape'&&!event.defaultPrevented&&ui.moreOptions&&byId('workspace').dataset.editor==='true'&&!document.querySelector('dialog[open]')){event.preventDefault();closeOptions();}});
+ document.addEventListener('keydown',event=>{if(event.key==='Escape'&&!event.isComposing&&!event.defaultPrevented&&ui.moreOptions&&byId('workspace').dataset.editor==='true'&&!document.querySelector('dialog[open]')){event.preventDefault();closeOptions();}});
  reviewTools=createReviewTools({catalog,options:design=>renderOptions(design),context:()=>({design:state.design,alternatives:state.alternatives,kind:state.previewView,editable:isLeadSession()}),change:(label,action)=>{if(!isLeadSession())return;recordChange(label,clone(state.design));action(state);ui.meaningfulDesign=true;saveDraft();render(false);}});
  byId('btnDownloadBackup').onclick=saveTeamFile;byId('btnOpenBackup').onclick=()=>byId('teamFileInput').click();byId('teamFileInput').onchange=async e=>{await openTeamFile(e.target.files?.[0]);e.target.value='';};
  byId('btnLoadLatest').onclick=()=>fetchSharedDesign({replace:true});byId('btnKeepLocal').onclick=()=>fileNotice('Browser draft kept. Download a backup before loading the latest shared version.');

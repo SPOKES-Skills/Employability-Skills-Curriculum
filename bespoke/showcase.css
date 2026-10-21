@@ -74,3 +74,25 @@
  .look-card{flex-basis:132px}
  .look-paths{margin-left:0}
 }
+
+/* ---- Make it yours: starting look, scope line, rail tags, quieter drawer ---- */
+.starting-from{display:flex;flex-wrap:wrap;align-items:center;gap:0 12px;margin:0 0 4px;color:var(--muted);font-size:.875rem}
+.starting-from b{color:var(--navy);font-weight:600}
+.starting-from:focus{outline:0}
+.starting-from:focus-visible{outline:3px solid var(--blue);outline-offset:2px}
+.workspace:not([data-editor=true]) .starting-from{display:none}
+.scope-line{display:flex;flex-wrap:wrap;align-items:center;gap:0 8px;min-height:44px;margin:8px 0 0;padding:0 12px;border-left:3px solid #d3b257;border-radius:4px;background:#fff8e6;color:var(--navy);font-size:.8125rem;line-height:1.4}
+.scope-line[hidden]{display:none}
+.scope-line .text-link{font-size:.8125rem}
+/* One line under the slide; the summary opens today's advisory text. They never block anything. */
+.readability-details{margin:12px 0 0}
+.readability-details>summary{display:flex;align-items:center;min-height:44px;padding:0 4px;color:var(--navy);font-size:.875rem;cursor:pointer}
+.readability-details .readability-warning{margin-top:4px}
+#previewTabs [data-rail-kind]{position:relative}
+.changed-tag{position:absolute;top:6px;right:6px;padding:1px 7px;border-radius:99px;background:#d3b257;color:#00133f;font-size:.6875rem;font-weight:600;line-height:1.4}
+@media(prefers-reduced-motion:no-preference){
+ #previewTabs .just-changed{animation:rail-glow 1s ease-out 1}
+}
+@keyframes rail-glow{0%{box-shadow:0 0 0 4px #d3b25799,0 0 18px #d3b257}100%{box-shadow:0 0 0 0 transparent}}
+/* The similarity meter moves to Send; the drawer drops its repeated stage counter. */
+.workspace[data-stage=slides] .similarity,.workspace[data-stage=slides] .stage-count{display:none}

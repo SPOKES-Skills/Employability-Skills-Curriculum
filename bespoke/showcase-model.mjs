@@ -36,7 +36,7 @@ export function lookDetail(catalog, presetId) {
   };
 }
 
-const KIND_SHORT = { title: 'Title', divider: 'Divider', cards: 'Text boxes', video: 'Video', activity: 'Activity' };
+export const KIND_SHORT = { title: 'Title', divider: 'Divider', cards: 'Text boxes', video: 'Video', activity: 'Activity' };
 // Effective style fields that are not compared: sample words. Watermark and extra-text colors and fonts follow the
 // heading and body fields, so they count only when the team set them directly (see explicitFollowers).
 const FOLLOWERS = ['watermarkColor', 'watermarkFont', 'extraColor', 'extraFont'];
@@ -46,7 +46,7 @@ const SETTING_LABELS = { secondary: 'second background', pattern: 'texture', pat
 const FEATURE_NAMES = { sidebar: 'Sidebar', button: 'Button', box: 'Text box', titlebar: 'Title bar', video: 'Video frame', activity: 'Activity box' };
 const words = key => key.replace(/[A-Z]/g, letter => ` ${letter.toLowerCase()}`);
 
-function partName(kind, key) {
+export function partName(kind, key) {
   if (FOLLOWERS.includes(key)) return `${KIND_SHORT[kind]} ${key.startsWith('watermark') ? 'watermark' : 'extra text'}`;
   const part = { primary: 'background', headingColor: 'heading', headingFont: 'heading', bodyColor: 'text', bodyFont: 'text' }[key];
   if (kind !== 'title') return part && `${KIND_SHORT[kind]} ${part}`;

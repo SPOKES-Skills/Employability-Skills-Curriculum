@@ -174,7 +174,9 @@ try {
     assert.match(await risky.innerText(), /^Hard to read \(\d\.\d to 1, aim for (3|4\.5) to 1\)$/);
     await risky.locator('xpath=ancestor::button').click();
     assert.deepEqual(Model.validateDesign(catalog, await design(page)), [], 'the design is still valid and saved');
-    assert.equal(await page.locator('#readabilityNotes').isVisible(), true, 'the preview shows the advisory');
+    // The advisory is one line under the slide that opens to the full text.
+    assert.equal(await page.locator('#readabilitySummary').isVisible(), true, 'the preview shows the advisory');
+    assert.match(await page.locator('#readabilitySummary').textContent(), /^\d+ readability notes?$/);
   });
 
   await scenario('shared-look questions name the slides a change leaves alone', async ({ makePage }) => {

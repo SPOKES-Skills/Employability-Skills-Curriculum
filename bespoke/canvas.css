@@ -1,7 +1,8 @@
 /* Canvas shell. Loaded after builder.css: a slim top bar at every width, and a
    slide-first editing canvas on wide screens (>= 1101px). Phone and tablet bodies
-   keep their stacked layout. Chrome only; lesson colors stay inside the preview. */
-:root{--bar-h:52px;--toolbar-gutter:104px}
+   keep their stacked layout. Chrome only; lesson colors stay inside the preview.
+   The editing toolbar docks in normal flow above the slide at every width above 760px. */
+:root{--bar-h:52px;--band-h:180px}
 
 /* ---- Top bar ---------------------------------------------------------- */
 .app-bar{display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px;min-height:var(--bar-h);padding:4px 16px;background:#fff;border-bottom:1px solid var(--line)}
@@ -89,21 +90,25 @@ body:has(.workspace[data-editor=true]) #btnMenuOptions{display:flex}
  .workspace[data-editor=true] .preview-heading{margin:0;min-height:44px}
  .workspace[data-editor=true] .preview-heading h2{display:inline;font-size:1rem}
  .workspace[data-editor=true] .canvas-hint{display:inline;margin-left:12px;color:var(--muted);font-size:.8125rem}
- .workspace[data-editor=true] .selection-help{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
- /* The gap above the slide is where the floating toolbar sits for slide-level selections. */
- .workspace[data-editor=true] .preview-frame{max-width:min(100%,calc((100dvh - var(--toolbar-gutter) - 226px) * 1.7778));margin:var(--toolbar-gutter) auto 0;padding:0;background:transparent}
+ /* The band above the slide holds the docked toolbar; the slide is sized to leave room for it. */
+ .workspace[data-editor=true] .preview-frame{max-width:min(100%,calc((100dvh - var(--band-h) - 226px) * 1.7778));margin:12px auto 0;padding:0;background:transparent}
+}
 
- .context-toolbar.is-floating{position:absolute;z-index:6;width:max-content;max-width:calc(100% - 16px);gap:6px 8px;align-items:end;padding:8px 10px;border-color:var(--line);border-radius:12px;box-shadow:0 8px 24px #00133f2e}
- .context-toolbar.is-floating .toolbar-field{flex:0 0 auto;order:2;max-width:150px;color:var(--muted);font-size:.75rem}
- .context-toolbar.is-floating .toolbar-field:has(#selectedElement){order:0;max-width:160px}
- .context-toolbar.is-floating .toolbar-copy{flex:1 1 180px;order:1;max-width:240px;color:var(--muted);font-size:.75rem}
- .context-toolbar.is-floating .toolbar-copy textarea{min-height:44px;height:44px;padding:9px 10px;font-size:.875rem;line-height:1.35;resize:none}
- .context-toolbar.is-floating .toolbar-copy:focus-within textarea{height:112px}
- .context-toolbar.is-floating .btn{order:3;margin:0}
+@media(min-width:761px){
+ /* Docked toolbar: in normal flow above the slide. When it needs more room it wraps and pushes the slide down. */
+ .context-toolbar.is-docked{display:flex;flex-wrap:wrap;align-items:end;gap:8px 10px;margin:0;padding:8px 10px;border:1px solid var(--line);border-radius:12px;background:#fff;box-shadow:0 4px 14px #00133f14}
+ .context-toolbar.is-docked .toolbar-field{flex:0 0 auto;max-width:170px;color:var(--muted);font-size:.75rem}
+ /* builder.css orders .toolbar-copy last for the phone form; docked, DOM order is the visual order. */
+ .context-toolbar.is-docked .toolbar-copy{flex:1 1 180px;order:0;max-width:260px;color:var(--muted);font-size:.75rem}
+ .context-toolbar.is-docked .toolbar-copy textarea{height:60px;min-height:60px;padding:8px 10px;font-size:.875rem;line-height:1.35;resize:none}
+ .context-toolbar.is-docked .btn,.context-toolbar.is-docked .text-link{margin:0}
+ /* The selection help stays for screen readers; the band above the slide keeps its room for the toolbar. */
+ .workspace[data-editor=true] .selection-help{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+ .context-toolbar.is-docked #btnMoreOptions{margin-left:auto}
 
  /* Segmented control: a few closely related choices that act on the selection. */
  .toolbar-segmented,.toolbar-well{position:relative;display:flex;flex-direction:column;gap:5px;color:var(--muted);font-size:.75rem;font-weight:500}
- .context-toolbar.is-floating .toolbar-segmented,.context-toolbar.is-floating .toolbar-well{max-width:none}
+ .context-toolbar.is-docked .toolbar-segmented,.context-toolbar.is-docked .toolbar-well{max-width:none}
  .toolbar-label{line-height:1.2}
  .segment-icon{display:grid;place-items:center;min-width:44px;padding:0}
  .segmented{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;border:1px solid #8fa2b3;border-radius:8px;overflow:hidden;background:#fff}
@@ -119,20 +124,20 @@ body:has(.workspace[data-editor=true]) #btnMenuOptions{display:flex}
  .well[aria-expanded=true]{border-color:var(--blue);box-shadow:0 0 0 2px #dbe9f3}
  .well-chip{flex:none;width:22px;height:22px;border-radius:50%;box-shadow:inset 0 0 0 1px #00133f40}
  .well-popover{position:absolute;top:calc(100% + 6px);left:0;z-index:8;padding:10px;border:1px solid var(--line);border-radius:12px;background:#fff;box-shadow:0 10px 28px #00133f33}
- .swatch-grid{display:grid;grid-template-columns:repeat(6,44px);gap:2px}
- .swatch{display:grid;place-items:center;width:44px;height:44px;padding:0;border:2px solid transparent;border-radius:10px;background:transparent}
+ /* Each swatch carries its palette name under the dot. */
+ .swatch-grid{display:grid;grid-template-columns:repeat(4,72px);gap:2px}
+ .swatch{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;width:72px;min-height:60px;padding:4px 2px;border:2px solid transparent;border-radius:10px;background:transparent;color:var(--navy)}
  .swatch:hover{background:var(--mist)}
  .swatch[aria-checked=true]{border-color:var(--blue)}
  .swatch-dot{width:26px;height:26px;border-radius:50%;box-shadow:inset 0 0 0 1px #00133f40}
- /* Group related controls with quiet dividers: selection and words, formatting, then actions. */
- .context-toolbar.is-floating .toolbar-copy{padding-right:10px;border-right:1px solid var(--line)}
- .context-toolbar.is-floating:not(.has-copy) .toolbar-field:has(#selectedElement){padding-right:10px;border-right:1px solid var(--line)}
- .context-toolbar.is-floating > .btn:first-of-type{margin-left:2px;padding-left:12px;border-left:1px solid var(--line);border-radius:0 6px 6px 0}
+ .swatch-name{font-size:.75rem;line-height:1.2;white-space:nowrap}
 
  .inspector-more{display:flex;flex-direction:column;gap:16px}
  .inspector-more:empty{display:none}
  .inspector-more .toolbar-field{flex:none;max-width:none;font-size:.875rem}
+}
 
+@media(min-width:1101px){
  .workspace[data-editor=true] .similarity{display:grid;grid-template-columns:auto 1fr;gap:2px 18px;align-items:center;margin-top:20px;padding:10px 16px;border:1px solid var(--line);border-radius:8px;background:#fff}
  .workspace[data-editor=true] .similarity .comparison-heading{grid-column:1}
  .workspace[data-editor=true] .similarity .distinct-meter{grid-column:2;margin:0}
@@ -145,8 +150,8 @@ body:has(.workspace[data-editor=true]) #btnMenuOptions{display:flex}
  .app-bar #stepList button{padding:6px 8px;font-size:.8125rem}
 }
 
-/* Two-row toolbar below 1440px: the gutter above the slide grows to hold it. */
-@media(min-width:1101px) and (max-width:1439px){:root{--toolbar-gutter:150px}}
+/* Two-row toolbar below 1440px: the band above the slide grows to hold it. */
+@media(min-width:1101px) and (max-width:1439px){:root{--band-h:240px}}
 
 @media(max-width:760px){
  .app-bar{position:relative;padding:6px 12px}

@@ -7,7 +7,8 @@ import { syncStageChrome } from './canvas-shell.mjs';
 import { createGuide } from './guide/guide.mjs';
 import { showToast } from './toast.mjs';
 import { renderPickALook, closePickALook } from './pick-a-look.mjs';
-import { slideOptions, designKey } from './showcase-model.mjs';
+import { slideOptions, designKey, changedKinds } from './showcase-model.mjs';
+import { scopeLine, startingFrom, renderStartingFrom, markRail, pulseRail } from './make-it-yours.mjs';
 import { createTeamView, isShareHash, isSnapshotHash, viewLinkToOpen } from './team-view.mjs';
 import { guideMark, indexForMark, keepsGuide } from './guide/questions.mjs';
 import { buildQuestions, normalizeGuide } from './guide/questions.mjs';
@@ -41,6 +42,8 @@ let guide = null;
 let previewEditor = null;
 let reviewTools = null;
 ui.moreOptions = false;
+// Slide types changed by an edit on another slide during this visit to Make it yours.
+ui.changedKinds = new Set();
 let catalog, fingerprints, selectionSchema, handoffApiBase='', handoffBusy=false, lastSavedRaw=null, storageConflict=false;
 // Replacing a draft or team invalidates pending operations against its predecessor.
 let draftGeneration=0;
@@ -1359,8 +1362,11 @@ function changeDesign(label,edit,{redraw=true,checkpoint=true}={}){
  const before=clone(state.design), next=clone(state.design);edit(next);
  if(JSON.stringify(before)===JSON.stringify(next))return;
  next.startingPoint='custom';ui.meaningfulDesign=true;
+ const moved=changedKinds(catalog,Model,before,next).filter(kind=>kind!==state.previewView);
+ if(moved.length)ui.changedKinds=new Set([...ui.changedKinds,...moved]);
  if(checkpoint)recordChange(label,before);else state.redo=[];state.design=next;
  saveDraft();if(redraw)render(false);else{updatePreview();updateUndo();}
+ pulseRail(byId('previewTabs'),moved);
  byId('saveLive').textContent=label+'. Browser draft updated.';
 }
 function undoChange(redo=false){
@@ -1425,7 +1431,7 @@ function pickHost(){
   buildOwn:()=>{if(!lead())return;replaceDesign('Started from Build my own',{...Model.defaultDesign(catalog),samples:clone(state.design.samples)});ui.editorRole='title';ui.moreOptions=false;goStage('slides');},
   guideMe:()=>guide.start(),
   canResumeGuide:()=>Boolean(ui.guide&&!ui.guide.done),resumeGuide:()=>guide.resume(),
-  makeItOurs:()=>{ui.editorRole='title';ui.moreOptions=false;goStage('slides');const heading=byId('previewName');heading.tabIndex=-1;heading.focus({preventScroll:true});window.scrollTo(0,0);byId('workspace').scrollTop=0;},
+  makeItOurs:()=>{ui.editorRole='title';ui.moreOptions=false;goStage('slides');byId('startingFrom').focus({preventScroll:true});window.scrollTo(0,0);byId('workspace').scrollTop=0;},
   undoApply:()=>{if(ui.lookUndoAt===state.changes.length)undoChange();},
   canUndoApply:()=>lead()&&ui.lookUndoAt!==null&&ui.lookUndoAt===state.changes.length
  };
@@ -1807,8 +1813,10 @@ function updatePreview(design=state.design,{quick=false}={}){
  byId('previewName').textContent=VIEW_NAMES[state.previewView];
  document.querySelectorAll('#previewTabs [role=tab]').forEach(t=>{t.setAttribute('aria-selected',String(t.dataset.view===state.previewView));t.tabIndex=t.dataset.view===state.previewView?0:-1;});
  updateSimilarity(design);
+ renderStartingFrom(byId('startingFromText'),startingFrom(catalog,Model,state.design,ui.appliedLook));
+ markRail(byId('previewTabs'),ui.changedKinds);
  const errors=Model.validateDesign(catalog,design),allIssues=Model.contrastIssues(catalog,design),visibleSurface=state.previewView==='title'?'titleBackground':state.previewView==='divider'?'dividerBackground':'contentBackground';
- const issues=allIssues.filter(issue=>issue.feature==='sidebar'?['cards','video','activity'].includes(state.previewView):issue.feature==='button'?['video','activity'].includes(state.previewView):issue.kind?issue.kind===state.previewView:issue.surface===visibleSurface&&!design.roleStyles?.[state.previewView]);const warn=byId('readabilityNotes');warn.hidden=!errors.length&&!issues.length;warn.innerHTML=errors.length?'<strong>Design needs attention</strong><p>'+escapeHtml(errors.join(' '))+'</p>':issues.length?contrastAdvisory(issues):'';
+ const issues=allIssues.filter(issue=>issue.feature==='sidebar'?['cards','video','activity'].includes(state.previewView):issue.feature==='button'?['video','activity'].includes(state.previewView):issue.kind?issue.kind===state.previewView:issue.surface===visibleSurface&&!design.roleStyles?.[state.previewView]);const warn=byId('readabilityNotes');showNoteCount(errors.length||issues.length);warn.innerHTML=errors.length?'<strong>Design needs attention</strong><p>'+escapeHtml(errors.join(' '))+'</p>':issues.length?contrastAdvisory(issues):'';
  for(const suggestion of readabilitySuggestions(catalog,design,state.previewView,issues).slice(0,2)){
   const button=document.createElement('button');button.type='button';button.className='btn btn-secondary';button.textContent=suggestion.label;button.disabled=!isLeadSession();button.onclick=()=>reviewTools.previewFix(suggestion,()=>changeDesign(suggestion.label,d=>Object.assign(d,suggestion.design)),button);warn.append(button);
  }
@@ -1824,10 +1832,12 @@ function updatePreview(design=state.design,{quick=false}={}){
  if(issues.length&&!dividerIssues){const repair=document.createElement('button');repair.className='text-link';repair.textContent='Edit '+(issues[0]?.feature?({sidebar:'navigation sidebar',button:'action button',box:'text box',titlebar:'title bar',video:'video frame',activity:'activity panel'}[issues[0].feature]):VIEW_NAMES[state.previewView].toLowerCase())+' colors';repair.onclick=()=>issues[0]?.feature?previewEditor.select(issues[0].feature==='box'?'box-0':issues[0].feature):showRoleEditor(state.previewView,'text',issues[0]?.role==='body'||issues[0]?.role==='subtitle'?'bodyColor':'headingColor');repairs.append(repair);}
  byId('liveRegion').textContent=VIEW_NAMES[state.previewView]+' preview updated.'+(issues.length?' Contrast advisory: '+issues.map(issue=>issue.message).join(' ')+' The team leader can keep this choice and save the design.':'');
 }
+// Advisory notes fold into one line under the slide; the summary opens today's full text.
+function showNoteCount(count){byId('readabilityDetails').hidden=!count;byId('readabilitySummary').textContent=count+' readability '+(count===1?'note':'notes');}
 function showView(view){if(onStage('slides')){ui.editorRole=view;}state.previewView=view;ui.previewPinned=true;if(ui.sharedThemeOpen||onStage('slides'))render(false);else{updatePreview();saveDraft();}}
 function render(focus=true){
  if(byId('sharedTheme'))ui.sharedThemeOpen=byId('sharedTheme').open;
- const changed=ui.renderedStep!==state.step;if(changed){ui.renderedStep=state.step;if(onStage('slides'))state.previewView=ui.editorRole;ui.previewPinned=false;}
+ const changed=ui.renderedStep!==state.step;if(changed){ui.renderedStep=state.step;ui.changedKinds=new Set();if(onStage('slides'))state.previewView=ui.editorRole;ui.previewPinned=false;}
  const active=document.activeElement,activeId=active?.id;
  ui.roleSections||={};byId('stepPanel').querySelectorAll('[data-role-section]').forEach(d=>{ui.roleSections[d.id]=d.open;});
  const openDetails=new Map(Array.from(byId('stepPanel').querySelectorAll('details[id]')).map(d=>[d.id,d.open]));
@@ -1836,7 +1846,6 @@ function render(focus=true){
  ui.onStart=onStage('start');byId('showcase').hidden=!ui.onStart;if(!ui.onStart)closePickALook(byId('showcase'));
  byId('workspace').dataset.editor=String(onStage('slides')&&!ui.guide?.on);
  byId('workspace').dataset.options=String(ui.moreOptions||!onStage('slides')||Boolean(ui.guide?.on));
- byId('btnCloseOptions').hidden=!onStage('slides')||Boolean(ui.guide?.on);
  syncStageChrome(STEPS[state.step].id);buildStepper();renderPanel();byId('stepPanel').querySelectorAll('details[id]').forEach(d=>{if(!d.dataset.roleSection&&d.id!=='sharedTheme'&&openDetails.has(d.id))d.open=openDetails.get(d.id);});syncAccessChrome();lockViewControls();updatePreview();updateUndo();reviewTools?.refresh();
  if(isLeadSession()){if(ui.skipNextLocalSave)ui.skipNextLocalSave=false;else saveDraft();if(changed)scheduleAutosave(AUTOSAVE.stepMs);}
  if(focus&&changed)(onStage('start')?byId('lookStageHeading'):byId('workspace').dataset.options==='false'?byId('selectedElement'):byId('stepPanel'))?.focus({preventScroll:true});else if(activeId)byId(activeId)?.focus({preventScroll:true});
@@ -1888,11 +1897,13 @@ async function init(){
   change:(label,edit)=>changeDesign(label,edit),
   textChange:(label,edit,checkpoint)=>changeDesign(label,edit,{redraw:false,checkpoint}),
   onlySlide:()=>ui.onlySlide,setOnlySlide:value=>{ui.onlySlide=value;render(false);},
+  scopeLine:(kind,selected,key)=>scopeLine({catalog,Model,design:state.design,kind,selected,key,onlySlide:ui.onlySlide}),
+  displayTitle:()=>renderOptions(state.design).title,
   more:target=>{ui.moreOptions=!ui.moreOptions;if(!ui.moreOptions){render(false);byId('btnMoreOptions').focus();return;}if(target.startsWith('sidebar')){/* render() reads the open state back from the live panel */if(byId('sharedTheme'))byId('sharedTheme').open=true;ui.sharedThemeOpen=true;ui.activeRole='sidebar';ui.paintScope='shared';render(false);byId('colorRole')?.focus({preventScroll:true});return;}showRoleEditor(state.previewView,target==='background'?'background':target.startsWith('box')?'arrangement':'text',target.startsWith('body')?'bodyFont':target==='background'?'primary':'headingFont');},
   thumbnail:kind=>Model.renderSlide(catalog,state.design,kind,renderOptions(state.design))
  });
  const closeOptions=()=>{ui.moreOptions=false;render(false);byId('btnMoreOptions').focus();};
- byId('btnCloseOptions').onclick=closeOptions;byId('btnHideDrawer').onclick=closeOptions;
+ byId('btnHideDrawer').onclick=closeOptions;byId('btnSwapLook').onclick=()=>goStage('start');
  // Show or hide the options drawer by toolbar button, menu command or shortcut (Apple HIG: more than one way to reveal a hidden pane).
  const toggleOptions=()=>{if(byId('workspace').dataset.editor==='true')byId('btnMoreOptions')?.click();};
  byId('btnMenuOptions').onclick=toggleOptions;

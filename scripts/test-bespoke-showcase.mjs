@@ -25,6 +25,26 @@ const rect = (page, selector) => page.locator(selector).first().evaluate(el => {
   return {left: r.left, top: r.top, right: r.right, bottom: r.bottom, width: r.width, height: r.height};
 });
 const pass = name => console.log('ok - ' + name);
+// Text of an element without the buttons it holds (the Swap and Change only this slide links).
+const ownText = (page, selector) => page.locator(selector).evaluate(el => {
+  const copy = el.cloneNode(true);
+  copy.querySelectorAll('button').forEach(button => button.remove());
+  return copy.textContent.replace(/\s+/g, ' ').trim();
+});
+// A hidden element has an empty box and cannot overlap anything.
+const overlaps = (a, b) => a.width > 0 && a.height > 0 && b.width > 0 && b.height > 0
+  && a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom;
+// Pick a look, apply one, and land on Make it yours.
+const makeItOurs = async (page, look) => {
+  await page.locator('#stage-start').click();
+  await page.locator('#preset-' + look).click();
+  await page.locator('#btnMakeItOurs').click();
+  await page.locator('#workspace[data-stage=slides]').waitFor();
+};
+const chooseColor = async (page, name) => {
+  await page.locator('#context-color-well').click();
+  await page.locator('#context-color-popover').getByRole('radio', {name, exact: true}).click();
+};
 // The browser draft holds the design with its sample words; the recovery copy beside it can hold an older one.
 const savedDraft = page => page.evaluate(() => JSON.parse(localStorage.getItem('bespoke-draft-v2')));
 const lookNameOf = id => catalog.presets.find(preset => preset.id === id).colorLabel;
@@ -392,6 +412,140 @@ try {
     assert.ok(await page.evaluate(() => document.documentElement.scrollWidth) <= 390, 'no sideways page scroll on a phone');
     await context.close();
     pass('phone width stacks');
+  }
+  {
+    for (const [width, height] of [[1440, 900], [1280, 800], [1024, 768]]) {
+      const {context, page} = await open(width, height);
+      await page.locator('#stage-slides').click();
+      for (const drawer of ['closed', 'open']) {
+        for (const [view, target] of [['title', '#modelStage .slide-title-text'], ['cards', '#modelStage .slide-card .slide-body']]) {
+          await page.locator(`#previewTabs [data-view=${view}]`).click();
+          await page.locator(target).first().click();
+          if (drawer === 'open' && await page.locator('#workspace').getAttribute('data-options') !== 'true') await page.locator('#btnMoreOptions').click();
+          const where = `${width}x${height}, drawer ${drawer}, ${view}`;
+          const toolbar = await rect(page, '#contextToolbar'), slide = await rect(page, '#modelStage .bespoke-slide');
+          assert.ok(toolbar.height > 0, `${where}: the toolbar shows`);
+          assert.ok(toolbar.bottom <= slide.top, `${where}: toolbar bottom ${toolbar.bottom} is above slide top ${slide.top}`);
+          assert.ok(toolbar.bottom <= await page.evaluate(() => innerHeight), `${where}: toolbar ends inside the window, bottom ${toolbar.bottom}`);
+          for (const other of ['#btnPresent', '#btnTryVersion', '.similarity'])
+            assert.ok(!overlaps(toolbar, await rect(page, other)), `${where}: toolbar does not cover ${other}`);
+        }
+      }
+      await context.close();
+    }
+    pass('toolbar stays above the slide and on screen');
+  }
+  {
+    const {context, page} = await open(1440, 900);
+    await page.locator('#stage-slides').click();
+    await page.locator('#modelStage .slide-title-text').click();
+    assert.ok(await page.locator('#contextToolbar #context-font').isVisible(), 'Font is in the toolbar for a text selection');
+    const labels = await page.locator('#contextToolbar').evaluate(toolbar => [...toolbar.querySelectorAll('.toolbar-label, label.toolbar-field, label.toolbar-copy')]
+      .map(el => (el.matches('label') ? el.firstChild.textContent : el.textContent).trim()));
+    assert.deepEqual(labels, ['Editing', 'Sample text', 'Font', 'Size', 'Text color', 'Align', 'Position'], 'text fields in the spec order');
+    await page.locator('#selectedElement').focus();
+    const stops = [];
+    while (await page.evaluate(() => document.getElementById('contextToolbar').contains(document.activeElement))) {
+      stops.push(await page.evaluate(() => { const r = document.activeElement.getBoundingClientRect(); return {id: document.activeElement.id, left: r.left, right: r.right, top: r.top, bottom: r.bottom}; }));
+      await page.keyboard.press('Tab');
+    }
+    assert.ok(stops.length >= 7, `Tab visits the toolbar fields, got ${stops.map(s => s.id).join(', ')}`);
+    for (let i = 1; i < stops.length; i++) {
+      const [a, b] = [stops[i - 1], stops[i]];
+      const sameRow = b.top < a.bottom && a.top < b.bottom;
+      assert.ok(sameRow ? b.left >= a.right - 1 : b.top >= a.bottom - 1, `${b.id} comes after ${a.id} left to right, then top to bottom`);
+    }
+    await context.close();
+    pass('font is in the toolbar');
+  }
+  {
+    const {context, page} = await open(1440, 900);
+    await page.locator('#stage-slides').click();
+    await page.locator('#modelStage .slide-title-text').click();
+    await page.locator('#context-color-well').click();
+    const names = await page.locator('#context-color-popover .swatch').evaluateAll(list => list.map(el => el.innerText.trim()));
+    assert.deepEqual(names, catalog.palette.map(color => color.name), 'each swatch shows its palette name');
+    await context.close();
+    pass('swatches carry names');
+  }
+  {
+    const {context, page} = await open(1440, 900);
+    await makeItOurs(page, 'professional');
+    await page.locator('#modelStage .slide-title-text').click();
+    await chooseColor(page, 'Gold');
+    assert.equal(await ownText(page, '#scopeLine'), 'Gold also changes the Divider heading, because they share a color.');
+    assert.equal(await textOf(page, '#btnOnlyThisSlide'), 'Change only this slide…');
+    assert.ok(await page.locator('[data-rail-kind="divider"] .changed-tag').isVisible(), 'the Divider thumbnail is tagged');
+    assert.equal(await textOf(page, '[data-rail-kind="divider"] .changed-tag'), 'changed');
+    assert.equal(await page.locator('[data-rail-kind="title"] .changed-tag').count(), 0, 'the slide being edited is not tagged');
+    assert.equal(await ownText(page, '#startingFrom'), 'Starting from Paper & berry · 2 changes');
+    await page.locator('#previewTabs [data-view=divider]').click();
+    assert.equal(await page.locator('#modelStage .slide-heading').first().evaluate(el => getComputedStyle(el).color), 'rgb(211, 178, 87)');
+    await page.locator('#stage-review').click();
+    await page.locator('#stage-slides').click();
+    assert.equal(await page.locator('.changed-tag').count(), 0, 'leaving the stage clears the tags');
+    await context.close();
+    pass('scope line names the divider');
+  }
+  {
+    const {context, page} = await open(1440, 900);
+    await makeItOurs(page, 'professional');
+    await page.locator('#modelStage .slide-title-text').click();
+    await chooseColor(page, 'Gold');
+    await page.locator('#btnOnlyThisSlide').click();
+    assert.equal(await page.evaluate(() => document.activeElement.id), 'context-only-slide', 'focus lands on the Only this slide switch');
+    assert.ok(await page.locator('#context-only-slide').isVisible(), 'the drawer is open at the switch');
+    await page.locator('#context-only-slide').check();
+    assert.equal(await ownText(page, '#scopeLine'), 'This color stays on the Title slide only.');
+    await context.close();
+    pass('only this slide line');
+  }
+  {
+    const {context, page} = await open(1440, 900);
+    await page.locator('#stage-slides').click();
+    await page.locator('#modelStage .slide-title-text').click();
+    await page.locator('#btnMoreOptions').click();
+    assert.equal(await page.locator('#chromeRail').isVisible(), true, 'the drawer is open');
+    const closers = await page.locator('#chromeRail button').evaluateAll(list => list
+      .filter(el => { const r = el.getBoundingClientRect(); return r.width > 0 && r.height > 0 && /hide|close/i.test(el.textContent); })
+      .map(el => el.id));
+    assert.deepEqual(closers, ['btnHideDrawer'], 'one close button in the drawer');
+    assert.equal(await page.locator('#btnCloseOptions').count(), 0, 'Close options is gone');
+    assert.equal(await page.locator('#stepCount').isVisible(), false, 'no stage counter in the drawer');
+    assert.equal(await page.locator('.similarity').isVisible(), false, 'the similarity meter leaves Make it yours');
+    await context.close();
+    pass('one close button in the drawer');
+  }
+  {
+    const {context, page} = await open(1440, 900);
+    await makeItOurs(page, 'fun');
+    assert.equal(await page.evaluate(() => document.activeElement.id), 'startingFrom', 'Make it ours moves focus to the starting look line');
+    assert.equal(await ownText(page, '#startingFrom'), 'Starting from Midnight & gold', 'no count before any change');
+    assert.equal(await textOf(page, '#btnSwapLook'), 'Swap starting look');
+    await page.evaluate(() => {
+      const draft = JSON.parse(localStorage.getItem('bespoke-draft-v2'));
+      delete draft.appliedLook;
+      localStorage.setItem('bespoke-draft-v2', JSON.stringify(draft));
+    });
+    await page.reload();
+    await page.locator('#localPreviewNotice').waitFor({state: 'visible'});
+    assert.equal(await page.locator('#workspace').getAttribute('data-stage'), 'slides');
+    assert.equal(await ownText(page, '#startingFrom'), 'Your design', 'an unknown look reads Your design');
+    await page.locator('#btnSwapLook').click();
+    assert.equal(await page.locator('#workspace').getAttribute('data-stage'), 'start', 'Swap starting look goes to Pick a look');
+    await context.close();
+    pass('unknown look reads Your design');
+  }
+  {
+    const {context, page} = await open(1440, 900);
+    await page.locator('#stage-slides').click();
+    await page.locator('#modelStage .slide-title-text').click();
+    assert.equal(await page.locator('#context-text').inputValue(), 'Money Management', 'Sample text shows the lesson name');
+    assert.equal((await savedDraft(page)).design.samples.title, defaultDesign(catalog).samples.title, 'showing it writes nothing');
+    await page.locator('#context-text').fill('Our money plan');
+    assert.equal((await savedDraft(page)).design.samples.title, 'Our money plan', 'typing writes the team’s words');
+    await context.close();
+    pass('Sample text shows the lesson name until the team types');
   }
   assert.deepEqual(errors, []);
 } finally {

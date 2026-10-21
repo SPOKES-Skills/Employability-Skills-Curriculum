@@ -1,53 +1,13 @@
 #!/usr/bin/env node
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import {computeToolbarPosition, isQuickField} from '../bespoke/canvas-toolbar.mjs';
+import {isQuickField, TEXT_FIELDS} from '../bespoke/canvas-toolbar.mjs';
 
-const canvas = {width: 1000, height: 700};
-const toolbar = {width: 400, height: 64};
-const rect = (left, top, width, height) => ({left, top, width, height});
-
-test('floats above the anchor, centered on it', () => {
-  const pos = computeToolbarPosition({anchor: rect(400, 300, 200, 60), canvas, toolbar});
-  assert.deepEqual(pos, {left: 300, top: 226, placement: 'above'});
-});
-
-test('flips below when there is no room above', () => {
-  const pos = computeToolbarPosition({anchor: rect(400, 40, 200, 60), canvas, toolbar});
-  assert.equal(pos.placement, 'below');
-  assert.equal(pos.top, 110);
-});
-
-test('pins to the top margin when it fits neither above nor below', () => {
-  const pos = computeToolbarPosition({anchor: rect(0, 0, 1000, 700), canvas, toolbar});
-  assert.deepEqual(pos, {left: 300, top: 8, placement: 'top'});
-});
-
-test('clamps horizontally inside the canvas', () => {
-  const left = computeToolbarPosition({anchor: rect(0, 300, 40, 40), canvas, toolbar});
-  const right = computeToolbarPosition({anchor: rect(960, 300, 40, 40), canvas, toolbar});
-  assert.equal(left.left, 8);
-  assert.equal(right.left, 592);
-});
-
-test('a toolbar wider than the canvas starts at the margin', () => {
-  const pos = computeToolbarPosition({anchor: rect(10, 300, 40, 40), canvas: {width: 300, height: 700}, toolbar});
-  assert.equal(pos.left, 8);
-});
-
-test('does not mutate its inputs', () => {
-  const input = {anchor: rect(400, 300, 200, 60), canvas: {...canvas}, toolbar: {...toolbar}};
-  const snapshot = structuredClone(input);
-  computeToolbarPosition(input);
-  assert.deepEqual(input, snapshot);
-});
-
-test('text selections keep the five editing controls quick', () => {
+test('text selections keep their editing controls quick, font included, in the spec order', () => {
+  assert.deepEqual(TEXT_FIELDS, ['element', 'text', 'font', 'size', 'color', 'align', 'placement']);
   for (const selected of ['heading-0', 'body-2', 'extra']) {
-    for (const id of ['element', 'text', 'color', 'size', 'align', 'placement']) {
-      assert.equal(isQuickField(selected, id), true, `${selected}:${id}`);
-    }
-    assert.equal(isQuickField(selected, 'font'), false, `${selected}:font`);
+    for (const id of TEXT_FIELDS) assert.equal(isQuickField(selected, id), true, `${selected}:${id}`);
+    assert.equal(isQuickField(selected, 'only-slide'), false, `${selected}:only-slide waits in the drawer`);
   }
 });
 

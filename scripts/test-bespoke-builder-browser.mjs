@@ -270,6 +270,8 @@ try {
     await page.locator('#btnRedo').click();
     assert.deepEqual(await design(page), expected);
     const closest = compareDesign(fingerprints, expected, catalog)[0];
+    // The similarity meter left Make it yours (2026-10-19); it shows on Send.
+    await go(page, 'Send');
     assert.match(await page.locator('#distinctMeter').textContent(), new RegExp(`${closest.shared}.*of ${closest.total}`));
     assert((await page.locator('#distinctMeter').textContent()).includes(closest.title));
     await page.locator('.similarity summary').click();
@@ -654,7 +656,7 @@ try {
     await desktop.keyboard.press('Enter');
     assert.equal(await desktop.locator('#preset-professional').evaluate(el => el === document.activeElement), true, 'Applying a look keeps focus on it.');
     await desktop.locator('#btnMakeItOurs').focus(); await desktop.keyboard.press('Enter');
-    assert.equal(await desktop.locator('#previewName').evaluate(el => el === document.activeElement), true, 'Make it ours moves focus to the slide heading in Make it yours.');
+    assert.equal(await desktop.locator('#startingFrom').evaluate(el => el === document.activeElement), true, 'Make it ours moves focus to the Starting from line in Make it yours.');
     await desktop.locator('#selectedElement').focus(); await desktop.keyboard.press(tabKey);
     // Background mode is a segmented control on wide screens; its checked segment holds the tab stop.
     assert.equal(await desktop.evaluate(() => document.activeElement.closest('[role=radiogroup]')?.getAttribute('aria-label')), 'Background', 'Tab continues into the contextual controls.');

@@ -194,7 +194,6 @@
 .context-toolbar{display:flex;align-items:end;flex-wrap:wrap;gap:10px;padding:12px;border:1px solid var(--line);border-radius:5px;background:white}.toolbar-field{display:flex;flex-direction:column;gap:5px;font-size:.75rem;font-weight:500;flex:1 1 130px;max-width:220px;min-width:0}.toolbar-field select{font:inherit;font-size:.875rem;min-height:44px;width:100%;padding:8px 34px 8px 10px;border:1px solid #8fa2b3;border-radius:4px;background-color:white;color:var(--navy)}.context-toolbar .btn{margin-left:auto}.toolbar-readonly{font-size:.8rem}
 .edit-scope{font-size:.85rem;font-weight:500;margin:12px 0 6px;line-height:1.5}.selection-help{font-size:.75rem;color:var(--muted);line-height:1.5;margin:0 0 12px}
 #modelStage [data-edit-target]{cursor:pointer}#modelStage [data-edit-target]:hover:not(:has([data-edit-target]:hover)){outline:2px dashed var(--blue);outline-offset:3px}#modelStage .editor-selected{outline:3px solid var(--blue)!important;outline-offset:4px;box-shadow:var(--editor-art-shadow,0 0 0 0 transparent),0 0 0 2px white!important}#modelStage [data-edit-target]:focus-visible{outline:3px solid var(--blue);outline-offset:4px}.preview-frame{padding:14px}
-#btnCloseOptions{margin-bottom:16px}
 @media(min-width:1500px){.workspace{grid-template-columns:170px minmax(0,1fr) 380px}.workspace[data-options=false]{grid-template-columns:170px minmax(0,1fr)}}
 /* Smaller laptops: thumbnails run across the top so options and Guide me stay beside a preview
    wide enough for the real slide layouts; below the preview, the teacher would edit blind. */

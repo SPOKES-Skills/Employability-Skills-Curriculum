@@ -122,6 +122,8 @@ async function focusedRegressions(){
   }
   await go(page,'activity');await setStyle(page,'activity','backgroundMode','solid');await setStyle(page,'activity','primary','dark');await setStyle(page,'activity','headingColor','dark');
   const text=page.locator('#section-activity-text');await text.locator(':scope > summary').click();assert.equal(await text.evaluate(el=>el.open),false);
+  // The advisory notes fold into one line under the slide; open it to reach the shortcut.
+  if(!await page.locator('#readabilityDetails').evaluate(d=>d.open))await page.locator('#readabilitySummary').click();
   const unchanged=await design(page);await page.locator('#readabilityNotes').getByRole('button',{name:'Edit activity colors',exact:true}).click();
   assert.equal(await text.evaluate(el=>el.open),true,'Same-step contrast edit shortcut opens the previously closed Text section');assert.equal(await page.evaluate(()=>document.activeElement.id),'role-activity-headingColor');assert(await page.locator('#role-activity-headingColor').evaluate(el=>{const r=el.getBoundingClientRect();return r.top>=0&&r.bottom<=innerHeight;}),'Explicit contrast edit jump scrolls the focused color control into view');assert.deepEqual(await design(page),unchanged,'Contrast shortcut does not rewrite selected colors');
   console.log('PASS focused label-only typography, same-step contrast editing, and local-mode import/save wording');

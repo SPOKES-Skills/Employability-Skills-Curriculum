@@ -44,10 +44,13 @@ try{
    await page.locator('#selectedElement').selectOption('background');await page.locator('#context-background').selectOption('light');
    if(await page.locator('#context-finish').count())await page.locator('#context-finish').selectOption('solid');
    await page.locator('#modelStage .slide-title-text').click();await page.locator('#context-color').selectOption('light');
+   // Advisory notes fold into one line under the slide; open it to reach the suggestions.
+   assert.match(await page.locator('#readabilitySummary').textContent(),/^\d+ readability notes?$/);
+   if(!await page.locator('#readabilityDetails').evaluate(d=>d.open))await page.locator('#readabilitySummary').click();
    const low=(await current(page)).design;await page.locator('#readabilityNotes > button').first().click();
    assert.deepEqual((await current(page)).design,low,'Suggestion preview does not save');
    await page.locator('#btnApplyReadability').click();assert.notDeepEqual((await current(page)).design,low);await page.locator('#btnUndo').click();assert.deepEqual((await current(page)).design,low);await page.locator('#btnRedo').click();
-   await page.locator('#previewTabs [data-view=cards]').click();await page.locator('#modelStage .slide-card h3').first().click();assert.match(await page.locator('#formattingScope').textContent(),/all box headings/);
+   await page.locator('#previewTabs [data-view=cards]').click();await page.locator('#modelStage .slide-card h3').first().click();assert.match(await page.locator('#editScope').textContent(),/ALL box headings/);
    await page.locator('#btnCompareVersions').click();
    if(process.env.BESPOKE_REVIEW_DIR){await page.locator('#reviewSlide').selectOption('title');for(const iframe of await page.locator('#designReviewDialog iframe').all()){const frame=await iframe.contentFrame();await frame.locator('.slide-title-text').waitFor();}await page.screenshot({path:process.env.BESPOKE_REVIEW_DIR+`/comparison-${width}.png`});}
    await page.locator('#btnExitReview').click();

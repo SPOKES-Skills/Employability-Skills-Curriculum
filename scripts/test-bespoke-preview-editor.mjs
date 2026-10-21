@@ -62,7 +62,8 @@ try{
   await page.locator('#context-finish').selectOption('solid');await page.locator('#context-background').selectOption('light');
   // On wide screens the drawer is already open from the font step above.
   if(!await page.locator('#detailControls').isVisible())await page.locator('#btnMoreOptions').click();assert.equal(await page.locator('#detailControls').isVisible(),true);
-  await page.locator('#btnCloseOptions').click();assert.equal(await page.locator('#detailControls').isVisible(),false);
+  // The drawer keeps one close button, pinned in its bar on wide screens; below that, More options toggles it.
+  await page.locator(width>=1101?'#btnHideDrawer':'#btnMoreOptions').click();assert.equal(await page.locator('#detailControls').isVisible(),false);
   // Picker is the native keyboard equivalent of clicking visible text.
   await page.locator('#selectedElement').selectOption('heading-1');assert.equal(width>=1101?await page.locator('#context-font').count()===1:await page.locator('#context-font').isVisible(),true);
   assert.match(await page.locator('#editScope').textContent(),/ALL box headings/);
@@ -127,7 +128,7 @@ try{
   assert.ok(options.sameRow&&options.leftOf,'More options opens beside the preview at '+lw+'px: '+JSON.stringify(options));
   const gap=await page.evaluate(()=>document.getElementById('previewPane').getBoundingClientRect().top-document.getElementById('slideRail').getBoundingClientRect().bottom);
   assert.ok(gap<60,'The preview starts right under the thumbnails at '+lw+'px, not after a gap of '+Math.round(gap)+'px');
-  await page.locator('#btnCloseOptions').click();
+  await page.locator('#btnMoreOptions').click();await page.locator('#detailControls').waitFor({state:'hidden'});
   await page.locator('#stage-start').click();await page.locator('#btnGuideMe').click();await page.locator('.guide-count').waitFor();
   const guided=await beside(page,'#previewPane','#chromeRail');
   assert.ok(guided.sameRow&&guided.leftOf,'Guide me sits beside the preview at '+lw+'px: '+JSON.stringify(guided));

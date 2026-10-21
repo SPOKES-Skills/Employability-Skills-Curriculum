@@ -85,6 +85,14 @@ test('changedKinds finds the divider', () => {
   assert.ok(!kinds.includes('cards'));
 });
 
+test('changedKinds counts the accent and shared features on every slide that shows them', () => {
+  const other = catalog.palette.find(color => color.id !== d.roles.accent).id;
+  const accent = { ...d, roles: { ...d.roles, accent: other } };
+  assert.deepEqual(changedKinds(catalog, Model, d, accent), ['title', 'cards', 'video', 'activity'], 'the divider shows no accent');
+  assert.deepEqual(changedKinds(catalog, Model, d, Model.setFeatureStyle(catalog, d, 'sidebar', 'color', 'gold')), ['cards', 'video', 'activity']);
+  assert.deepEqual(changedKinds(catalog, Model, d, Model.setFeatureStyle(catalog, d, 'button', 'background', 'gold')), ['video', 'activity']);
+});
+
 test('sentState', () => {
   assert.equal(sentState(null, 'k'), 'none');
   assert.equal(sentState({ designKey: 'k' }, 'k'), 'sent');

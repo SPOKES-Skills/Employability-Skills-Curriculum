@@ -100,8 +100,27 @@ export function sharedParts(catalog, Model, design, kind, key) {
     && Model.effectiveRoleStyle(catalog, design, other)[key] !== Model.effectiveRoleStyle(catalog, after, other)[key]);
 }
 
-export const changedKinds = (catalog, Model, before, after) => Model.ROLE_STYLE_KINDS.filter(kind =>
-  JSON.stringify(Model.effectiveRoleStyle(catalog, before, kind)) !== JSON.stringify(Model.effectiveRoleStyle(catalog, after, kind)));
+// Shared parts and the slide classes that show them. A slide kind shows a part when its render holds one of these.
+const FEATURE_CLASSES = { sidebar: 'slide-sidebar', button: 'slide-button', box: 'slide-card', titlebar: 'slide-title-bar', video: 'slide-video-frame', activity: 'slide-activity' };
+const ACCENT_CLASSES = ['slide-accent', 'sample-chapter', 'sample-slide-name', 'slide-title-bar', 'slide-card', 'slide-video-frame', 'slide-activity'];
+const classesOf = html => new Set([...html.matchAll(/class="([^"]*)"/g)].flatMap(match => match[1].split(/\s+/)));
+
+// Everything that paints one slide kind: its own style and layout, plus the shared accent and features it shows.
+function kindLook(catalog, Model, design, kind, shown) {
+  const features = Object.keys(FEATURE_CLASSES).filter(feature => shown.has(FEATURE_CLASSES[feature]));
+  return JSON.stringify({
+    style: Model.effectiveRoleStyle(catalog, design, kind),
+    slides: design.slides?.[kind],
+    accent: ACCENT_CLASSES.some(name => shown.has(name)) ? design.roles.accent : null,
+    features: features.map(feature => Model.effectiveFeatureStyle(catalog, design, feature))
+  });
+}
+
+/** Slide kinds whose rendered look differs between two designs. */
+export const changedKinds = (catalog, Model, before, after) => Model.ROLE_STYLE_KINDS.filter(kind => {
+  const shown = new Set([...classesOf(Model.renderSlide(catalog, before, kind)), ...classesOf(Model.renderSlide(catalog, after, kind))]);
+  return kindLook(catalog, Model, before, kind, shown) !== kindLook(catalog, Model, after, kind, shown);
+});
 
 // Sorted keys, so two designs with the same content give the same key however they were built.
 const sorted = (_, value) => value && typeof value === 'object' && !Array.isArray(value)

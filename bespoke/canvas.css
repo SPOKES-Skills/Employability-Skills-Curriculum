@@ -73,6 +73,13 @@ body:has(.workspace[data-editor=true]) #btnMenuOptions{display:flex}
 
 /* ---- Wide editing canvas ---------------------------------------------- */
 .canvas-hint,.drawer-bar{display:none}
+/* The drawer keeps one visible close button at every width: the pinned Hide options bar. */
+.workspace[data-editor=true][data-options=true] .drawer-bar{position:sticky;top:0;z-index:3;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:6px 16px;border-bottom:1px solid var(--line);background:#fff}
+.drawer-bar strong{font-size:1rem}
+/* 761 to 1100: the drawer scrolls on its own, so reaching a field in it never scrolls the toolbar off screen. */
+@media(min-width:761px) and (max-width:1100px){
+ .workspace[data-editor=true] .chrome-rail{position:sticky;top:0;align-self:start;max-height:100dvh;overflow:auto}
+}
 @media(min-width:1101px){
  html{scrollbar-gutter:stable}
  .app-bar{position:sticky;top:0;z-index:20;flex-wrap:nowrap}
@@ -85,7 +92,6 @@ body:has(.workspace[data-editor=true]) #btnMenuOptions{display:flex}
  .workspace[data-editor=true][data-options=false] .chrome-rail{display:none}
  /* Pinned so Hide options stays reachable however far the drawer is scrolled. */
  .workspace[data-editor=true] .drawer-bar{position:sticky;top:0;z-index:3;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:6px 16px 6px 20px;border-bottom:1px solid var(--line);background:#fff}
- .drawer-bar strong{font-size:1rem}
 
  .workspace[data-editor=true] .preview-heading{margin:0;min-height:44px}
  .workspace[data-editor=true] .preview-heading h2{display:inline;font-size:1rem}

@@ -426,6 +426,7 @@ try {
           const toolbar = await rect(page, '#contextToolbar'), slide = await rect(page, '#modelStage .bespoke-slide');
           assert.ok(toolbar.height > 0, `${where}: the toolbar shows`);
           assert.ok(toolbar.bottom <= slide.top, `${where}: toolbar bottom ${toolbar.bottom} is above slide top ${slide.top}`);
+          assert.ok(toolbar.top >= 0, `${where}: toolbar starts inside the window, top ${toolbar.top}`);
           assert.ok(toolbar.bottom <= await page.evaluate(() => innerHeight), `${where}: toolbar ends inside the window, bottom ${toolbar.bottom}`);
           for (const other of ['#btnPresent', '#btnTryVersion', '.similarity'])
             assert.ok(!overlaps(toolbar, await rect(page, other)), `${where}: toolbar does not cover ${other}`);
@@ -490,6 +491,18 @@ try {
   {
     const {context, page} = await open(1440, 900);
     await makeItOurs(page, 'professional');
+    await page.locator('#selectedElement').selectOption('accent');
+    assert.equal(await ownText(page, '#scopeLine'), 'Changes the accent on every slide.');
+    await page.locator('#context-color-well').click();
+    await page.locator('#context-color-popover [role=radio][aria-checked=false]').first().click();
+    for (const kind of ['cards', 'video', 'activity'])
+      assert.ok(await page.locator(`[data-rail-kind="${kind}"] .changed-tag`).isVisible(), `an accent change tags the ${kind} thumbnail`);
+    await context.close();
+    pass('an accent change tags the slides that show the accent');
+  }
+  {
+    const {context, page} = await open(1440, 900);
+    await makeItOurs(page, 'professional');
     await page.locator('#modelStage .slide-title-text').click();
     await chooseColor(page, 'Gold');
     await page.locator('#btnOnlyThisSlide').click();
@@ -501,19 +514,25 @@ try {
     pass('only this slide line');
   }
   {
-    const {context, page} = await open(1440, 900);
-    await page.locator('#stage-slides').click();
-    await page.locator('#modelStage .slide-title-text').click();
-    await page.locator('#btnMoreOptions').click();
-    assert.equal(await page.locator('#chromeRail').isVisible(), true, 'the drawer is open');
-    const closers = await page.locator('#chromeRail button').evaluateAll(list => list
-      .filter(el => { const r = el.getBoundingClientRect(); return r.width > 0 && r.height > 0 && /hide|close/i.test(el.textContent); })
-      .map(el => el.id));
-    assert.deepEqual(closers, ['btnHideDrawer'], 'one close button in the drawer');
-    assert.equal(await page.locator('#btnCloseOptions').count(), 0, 'Close options is gone');
-    assert.equal(await page.locator('#stepCount').isVisible(), false, 'no stage counter in the drawer');
-    assert.equal(await page.locator('.similarity').isVisible(), false, 'the similarity meter leaves Make it yours');
-    await context.close();
+    for (const [width, height] of [[1440, 900], [1024, 768]]) {
+      const {context, page} = await open(width, height);
+      await page.locator('#stage-slides').click();
+      await page.locator('#modelStage .slide-title-text').click();
+      await page.locator('#btnMoreOptions').click();
+      assert.equal(await page.locator('#detailControls').isVisible(), true, `${width}: the drawer is open`);
+      const closers = await page.locator('#chromeRail button').evaluateAll(list => list
+        .filter(el => { const r = el.getBoundingClientRect(); return r.width > 0 && r.height > 0 && /hide|close/i.test(el.textContent); })
+        .map(el => el.id));
+      assert.deepEqual(closers, ['btnHideDrawer'], `${width}: one close button in the drawer`);
+      assert.equal(await page.locator('#btnCloseOptions').count(), 0, 'Close options is gone');
+      assert.equal(await page.locator('#stepCount').isVisible(), false, 'no stage counter in the drawer');
+      assert.equal(await page.locator('.similarity').isVisible(), false, 'the similarity meter leaves Make it yours');
+      await page.locator('#btnHideDrawer').click();
+      assert.equal(await page.locator('#workspace').getAttribute('data-options'), 'false', `${width}: Hide options closes the drawer`);
+      assert.equal(await page.locator('#detailControls').isVisible(), false, `${width}: the slide options are hidden again`);
+      assert.equal(await page.evaluate(() => document.activeElement.id), 'btnMoreOptions', `${width}: focus returns to More options`);
+      await context.close();
+    }
     pass('one close button in the drawer');
   }
   {

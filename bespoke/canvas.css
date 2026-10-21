@@ -1,20 +1,21 @@
 /* Canvas shell. Loaded after builder.css: a slim top bar at every width, and a
-   slide-first editing canvas on wide screens (>= 1101px). Phone and tablet bodies
-   keep their stacked layout. Chrome only; lesson colors stay inside the preview.
-   The editing toolbar docks in normal flow above the slide at every width above 760px. */
+   slide-first editing canvas on wide screens (>= 1101px). Above 760px the editing
+   toolbar docks in normal flow above the slide, so tablets (761-1100px) keep it there
+   too and their Slide options drawer scrolls on its own. Phones (760px and narrower)
+   keep the stacked layout. Chrome only; lesson colors stay inside the preview. */
 :root{--bar-h:52px;--band-h:180px}
 
 /* ---- Top bar ---------------------------------------------------------- */
 .app-bar{display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px;min-height:var(--bar-h);padding:4px 16px;background:#fff;border-bottom:1px solid var(--line)}
 .app-bar .brand{gap:8px}
 .app-bar .brand img{width:28px;height:28px}
-.app-bar .brand strong{font-size:1.1rem}
+.app-bar .brand strong{font-size:var(--fs-md)}
 .app-bar .brand small{display:none}
-.local-pill{margin:0;padding:2px 9px;border:1px solid var(--line);border-radius:999px;background:var(--mist);color:#44536a;font-size:.8125rem;white-space:nowrap}
+.local-pill{margin:0;padding:2px 9px;border:1px solid var(--line);border-radius:999px;background:var(--mist);color:var(--muted);font-size:var(--fs-xs);white-space:nowrap}
 .app-bar .stepper{min-width:0;margin-left:8px;padding:0;border:0;background:transparent}
 .app-bar #stepList{display:flex;gap:2px;margin:0;padding:0;list-style:none}
 .app-bar #stepList li{margin:0}
-.app-bar #stepList button{position:relative;display:flex;align-items:center;gap:6px;width:auto;min-width:0;min-height:44px;padding:6px 12px;border:0;border-radius:999px;background:transparent;color:var(--muted);font-size:.875rem;line-height:1.2;white-space:nowrap}
+.app-bar #stepList button{position:relative;display:flex;align-items:center;gap:6px;width:auto;min-width:0;min-height:44px;padding:6px 12px;border:0;border-radius:999px;background:transparent;color:var(--muted);font-size:var(--fs-sm);line-height:1.2;white-space:nowrap}
 .app-bar .step-num{min-width:0;height:auto;border:0;border-radius:0;font-size:inherit;font-weight:600}
 .app-bar #stepList button:after{content:"";position:absolute;inset:-4px 0}
 .app-bar #stepList button:hover{background:var(--mist)}
@@ -25,28 +26,28 @@
 .btn-ghost:hover{background:var(--mist)}
 .btn-ghost:disabled{opacity:.4;background:transparent}
 .bar-end #btnUndo,.bar-end #btnRedo{min-width:44px;padding:0;font-size:0}
-.bar-end #btnUndo:before,.bar-end #btnRedo:before{font-size:1.2rem;line-height:1}
+.bar-end #btnUndo:before,.bar-end #btnRedo:before{font-size:var(--fs-lg);line-height:1}
 .bar-end #btnUndo:before{content:"\21B6"}
 .bar-end #btnRedo:before{content:"\21B7"}
 .more-menu>summary.btn{min-width:44px;padding:0 8px}
 .more-menu>summary:after{content:none}
-.more-menu>summary span{font-size:1.4rem;line-height:1}
-.save-chip{position:relative;max-width:clamp(120px,16vw,260px);margin:0;padding-left:14px;overflow:hidden;color:var(--muted);font-size:.8125rem;text-overflow:ellipsis;white-space:nowrap}
+.more-menu>summary span{font-size:var(--fs-lg);line-height:1}
+.save-chip{position:relative;max-width:clamp(120px,16vw,260px);margin:0;padding-left:14px;overflow:hidden;color:var(--muted);font-size:var(--fs-xs);text-overflow:ellipsis;white-space:nowrap}
 .save-chip:before{content:"";position:absolute;left:0;top:50%;width:8px;height:8px;border-radius:50%;background:#37b550;transform:translateY(-50%)}
 .save-chip[data-state=warn]:before{background:#d3b257}
 .save-chip:empty{display:none}
 
 /* Menu: one place for everything that is not a primary action. */
 .more-menu-list{right:0;left:auto;width:270px;max-height:calc(100dvh - 80px);overflow:auto}
-.more-menu-list .menu-status{margin:0 0 4px;padding:8px 12px 10px;border-bottom:1px solid var(--line);color:var(--muted);font-size:.8125rem;line-height:1.45}
+.more-menu-list .menu-status{margin:0 0 4px;padding:8px 12px 10px;border-bottom:1px solid var(--line);color:var(--muted);font-size:var(--fs-xs);line-height:1.45}
 .more-menu-list .menu-status:empty{display:none}
-.more-menu-list .btn{justify-content:flex-start;min-height:44px;padding:12px;border:0;border-radius:0;background:#fff;color:var(--navy);font-size:.9rem;font-weight:400}
+.more-menu-list .btn{justify-content:flex-start;min-height:44px;padding:12px;border:0;border-radius:0;background:#fff;color:var(--navy);font-size:var(--fs-sm);font-weight:400}
 .more-menu-list .btn:hover{background:var(--mist)}
 .more-menu-list hr{margin:6px 0;border:0;border-top:1px solid var(--line)}
 .more-menu-list button[hidden]{display:none}
-.menu-recent summary{min-height:44px;padding:12px;font-size:.9rem;cursor:pointer}
+.menu-recent summary{min-height:44px;padding:12px;font-size:var(--fs-sm);cursor:pointer}
 .menu-recent summary:hover{background:var(--mist)}
-.menu-recent ol{margin:0;padding:0 12px 10px 32px;color:var(--muted);font-size:.8125rem;line-height:1.5}
+.menu-recent ol{margin:0;padding:0 12px 10px 32px;color:var(--muted);font-size:var(--fs-xs);line-height:1.5}
 
 /* Lesson & team is its own first page. The pill asks for attention until the team is identified. */
 .app-bar #stepList button[data-attention=true]{box-shadow:inset 0 0 0 1.5px #d3b257}
@@ -62,11 +63,11 @@
 #btnMenuOptions{display:none}
 body:has(.workspace[data-editor=true]) #btnMenuOptions{display:flex}
 #btnMenuOptions{align-items:center;justify-content:space-between;gap:16px}
-.more-menu-list kbd{color:var(--muted);font:inherit;font-size:.8125rem}
+.more-menu-list kbd{color:var(--muted);font:inherit;font-size:var(--fs-xs)}
 
 /* Notices stay slim; the session strip appears only when it holds a decision. */
-.notice{padding:8px 16px;font-size:.875rem}
-.team-session{display:none;padding:8px 16px;background:#fff5d7;border-bottom:1px solid #d3b257;font-size:.875rem}
+.notice{padding:8px 16px;font-size:var(--fs-sm)}
+.team-session{display:none;padding:8px 16px;background:#fff5d7;border-bottom:1px solid #d3b257;font-size:var(--fs-sm)}
 .team-session:has(#btnLoadLatest:not([hidden]),#btnKeepLocal:not([hidden]),#btnCheckStatus:not([hidden]),#historyPanel:not([hidden]),#lastReviewReceipt:not([hidden])){display:flex}
 .team-session[hidden]{display:none}
 .team-session .review-receipt{margin:0}
@@ -75,7 +76,7 @@ body:has(.workspace[data-editor=true]) #btnMenuOptions{display:flex}
 .canvas-hint,.drawer-bar{display:none}
 /* The drawer keeps one visible close button at every width: the pinned Hide options bar. */
 .workspace[data-editor=true][data-options=true] .drawer-bar{position:sticky;top:0;z-index:3;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:6px 16px;border-bottom:1px solid var(--line);background:#fff}
-.drawer-bar strong{font-size:1rem}
+.drawer-bar strong{font-size:var(--fs-md)}
 /* 761 to 1100: the drawer scrolls on its own, so reaching a field in it never scrolls the toolbar off screen. */
 @media(min-width:761px) and (max-width:1100px){
  .workspace[data-editor=true] .chrome-rail{position:sticky;top:0;align-self:start;max-height:100dvh;overflow:auto}
@@ -94,57 +95,57 @@ body:has(.workspace[data-editor=true]) #btnMenuOptions{display:flex}
  .workspace[data-editor=true] .drawer-bar{position:sticky;top:0;z-index:3;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:6px 16px 6px 20px;border-bottom:1px solid var(--line);background:#fff}
 
  .workspace[data-editor=true] .preview-heading{margin:0;min-height:44px}
- .workspace[data-editor=true] .preview-heading h2{display:inline;font-size:1rem}
- .workspace[data-editor=true] .canvas-hint{display:inline;margin-left:12px;color:var(--muted);font-size:.8125rem}
+ .workspace[data-editor=true] .preview-heading h2{display:inline;font-size:var(--fs-md)}
+ .workspace[data-editor=true] .canvas-hint{display:inline;margin-left:12px;color:var(--muted);font-size:var(--fs-xs)}
  /* The band above the slide holds the docked toolbar; the slide is sized to leave room for it. */
  .workspace[data-editor=true] .preview-frame{max-width:min(100%,calc((100dvh - var(--band-h) - 226px) * 1.7778));margin:12px auto 0;padding:0;background:transparent}
 }
 
 @media(min-width:761px){
  /* Docked toolbar: in normal flow above the slide. When it needs more room it wraps and pushes the slide down. */
- .context-toolbar.is-docked{display:flex;flex-wrap:wrap;align-items:end;gap:8px 10px;margin:0;padding:8px 10px;border:1px solid var(--line);border-radius:12px;background:#fff;box-shadow:0 4px 14px #00133f14}
- .context-toolbar.is-docked .toolbar-field{flex:0 0 auto;max-width:170px;color:var(--muted);font-size:.75rem}
+ .context-toolbar.is-docked{display:flex;flex-wrap:wrap;align-items:end;gap:8px 10px;margin:0;padding:8px 10px;border:1px solid var(--line);border-radius:var(--radius-dialog);background:#fff;box-shadow:0 4px 14px #00133f14}
+ .context-toolbar.is-docked .toolbar-field{flex:0 0 auto;max-width:170px;color:var(--muted);font-size:var(--fs-2xs)}
  /* builder.css orders .toolbar-copy last for the phone form; docked, DOM order is the visual order. */
- .context-toolbar.is-docked .toolbar-copy{flex:1 1 180px;order:0;max-width:260px;color:var(--muted);font-size:.75rem}
- .context-toolbar.is-docked .toolbar-copy textarea{height:60px;min-height:60px;padding:8px 10px;font-size:.875rem;line-height:1.35;resize:none}
+ .context-toolbar.is-docked .toolbar-copy{flex:1 1 180px;order:0;max-width:260px;color:var(--muted);font-size:var(--fs-2xs)}
+ .context-toolbar.is-docked .toolbar-copy textarea{height:60px;min-height:60px;padding:8px 10px;font-size:var(--fs-sm);line-height:1.35;resize:none}
  .context-toolbar.is-docked .btn,.context-toolbar.is-docked .text-link{margin:0}
  /* The selection help stays for screen readers; the band above the slide keeps its room for the toolbar. */
  .workspace[data-editor=true] .selection-help{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
  .context-toolbar.is-docked #btnMoreOptions{margin-left:auto}
 
  /* Segmented control: a few closely related choices that act on the selection. */
- .toolbar-segmented,.toolbar-well{position:relative;display:flex;flex-direction:column;gap:5px;color:var(--muted);font-size:.75rem;font-weight:500}
+ .toolbar-segmented,.toolbar-well{position:relative;display:flex;flex-direction:column;gap:5px;color:var(--muted);font-size:var(--fs-2xs);font-weight:500}
  .context-toolbar.is-docked .toolbar-segmented,.context-toolbar.is-docked .toolbar-well{max-width:none}
  .toolbar-label{line-height:1.2}
  .segment-icon{display:grid;place-items:center;min-width:44px;padding:0}
- .segmented{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;border:1px solid #8fa2b3;border-radius:8px;overflow:hidden;background:#fff}
- .segment{min-width:52px;min-height:44px;padding:0 10px;border:0;border-left:1px solid var(--line);background:#fff;color:var(--navy);font-size:.8125rem;white-space:nowrap}
+ .segmented{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;border:1px solid #8fa2b3;border-radius:var(--radius-feature);overflow:hidden;background:#fff}
+ .segment{min-width:52px;min-height:44px;padding:0 10px;border:0;border-left:1px solid var(--line);background:#fff;color:var(--navy);font-size:var(--fs-xs);white-space:nowrap}
  .segment:first-child{border-left:0}
  .segment:hover:not(:disabled){background:var(--mist)}
  .segment[aria-checked=true]{background:#dbe9f3;color:var(--blue);font-weight:600;box-shadow:inset 0 -3px 0 var(--blue)}
  .segment:disabled{opacity:.55}
  .native-mirror{position:absolute;inset:0;width:100%;height:100%;opacity:0;pointer-events:none}
  /* Color well: shows the current color; opens the brand swatches. */
- .well{display:flex;align-items:center;gap:8px;min-height:44px;min-width:128px;padding:0 10px;border:1px solid #8fa2b3;border-radius:8px;background:#fff;color:var(--navy);font-size:.8125rem;text-align:left}
+ .well{display:flex;align-items:center;gap:8px;min-height:44px;min-width:128px;padding:0 10px;border:1px solid #8fa2b3;border-radius:var(--radius-feature);background:#fff;color:var(--navy);font-size:var(--fs-xs);text-align:left}
  .well:hover:not(:disabled){background:var(--mist)}
  .well[aria-expanded=true]{border-color:var(--blue);box-shadow:0 0 0 2px #dbe9f3}
  .well-chip{flex:none;width:22px;height:22px;border-radius:50%;box-shadow:inset 0 0 0 1px #00133f40}
- .well-popover{position:absolute;top:calc(100% + 6px);left:0;z-index:8;padding:10px;border:1px solid var(--line);border-radius:12px;background:#fff;box-shadow:0 10px 28px #00133f33}
+ .well-popover{position:absolute;top:calc(100% + 6px);left:0;z-index:8;padding:10px;border:1px solid var(--line);border-radius:var(--radius-dialog);background:#fff;box-shadow:0 10px 28px #00133f33}
  /* Each swatch carries its palette name under the dot. */
  .swatch-grid{display:grid;grid-template-columns:repeat(4,72px);gap:2px}
- .swatch{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;width:72px;min-height:60px;padding:4px 2px;border:2px solid transparent;border-radius:10px;background:transparent;color:var(--navy)}
+ .swatch{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;width:72px;min-height:60px;padding:4px 2px;border:2px solid transparent;border-radius:var(--radius-dialog);background:transparent;color:var(--navy)}
  .swatch:hover{background:var(--mist)}
  .swatch[aria-checked=true]{border-color:var(--blue)}
  .swatch-dot{width:26px;height:26px;border-radius:50%;box-shadow:inset 0 0 0 1px #00133f40}
- .swatch-name{font-size:.75rem;line-height:1.2;white-space:nowrap}
+ .swatch-name{font-size:var(--fs-2xs);line-height:1.2;white-space:nowrap}
 
  .inspector-more{display:flex;flex-direction:column;gap:16px}
  .inspector-more:empty{display:none}
- .inspector-more .toolbar-field{flex:none;max-width:none;font-size:.875rem}
+ .inspector-more .toolbar-field{flex:none;max-width:none;font-size:var(--fs-sm)}
 }
 
 @media(min-width:1101px){
- .workspace[data-editor=true] .similarity{display:grid;grid-template-columns:auto 1fr;gap:2px 18px;align-items:center;margin-top:20px;padding:10px 16px;border:1px solid var(--line);border-radius:8px;background:#fff}
+ .workspace[data-editor=true] .similarity{display:grid;grid-template-columns:auto 1fr;gap:2px 18px;align-items:center;margin-top:20px;padding:10px 16px;border:1px solid var(--line);border-radius:var(--radius-feature);background:#fff}
  .workspace[data-editor=true] .similarity .comparison-heading{grid-column:1}
  .workspace[data-editor=true] .similarity .distinct-meter{grid-column:2;margin:0}
  .workspace[data-editor=true] .similarity details,.workspace[data-editor=true] .similarity .comparison-note{grid-column:1 / -1;margin-top:6px}
@@ -153,7 +154,7 @@ body:has(.workspace[data-editor=true]) #btnMenuOptions{display:flex}
 
 /* Four stage pills share the bar, so tighten them on narrower desktops. */
 @media(min-width:1101px) and (max-width:1330px){
- .app-bar #stepList button{padding:6px 8px;font-size:.8125rem}
+ .app-bar #stepList button{padding:6px 8px;font-size:var(--fs-xs)}
 }
 
 /* Two-row toolbar below 1440px: the band above the slide grows to hold it. */

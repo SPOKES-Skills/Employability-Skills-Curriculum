@@ -8,6 +8,8 @@ import { MOODS, MOOD_ORDER, MOOD_LABELS, lookDetail } from './showcase-model.mjs
 const CANVAS = 960;
 const DECK = { divider: 'Divider', cards: 'Text boxes', video: 'Video', activity: 'Activity' };
 const NEXT_KEYS = { ArrowRight: 1, ArrowDown: 1, ArrowLeft: -1, ArrowUp: -1 };
+// The cross-fade runs 200ms in CSS; the leaving copy is removed after this even if no animationend arrives.
+const SWAP_FALLBACK_MS = 300;
 // The chosen mood chip outlives a redraw within this page.
 let mood = 'all';
 let active = null;
@@ -88,12 +90,43 @@ function fillSide(parts, host, view) {
   parts.colors.style.visibility = view.detail ? '' : 'hidden';
 }
 
-function fillStage(parts, host, view) {
+// What a stage shows now, so the next swap can fade it out: its design and its render scale.
+const shownOn = stage => stage?.shown && { design: stage.shown, scale: stage.querySelector('.look-hero')?.style.getPropertyValue('--look-scale') };
+
+// The look leaving the stage. Slide styles on the page already show the new look, so this copy
+// carries its own styles in a shadow root, the way strip thumbnails do.
+function leavingLayer(host, previous) {
+  const layer = make('div', 'look-frame look-hero look-leaving');
+  layer.setAttribute('aria-hidden', 'true');
+  layer.inert = true;
+  layer.style.setProperty('--look-scale', previous.scale || '.5');
+  const css = host.Model.cssForDesign(host.catalog, previous.design, { canonical: false });
+  layer.attachShadow({ mode: 'open' }).innerHTML = '<style>:host{display:block}' + css
+    + `.bespoke-slide{width:${CANVAS}px!important;max-width:none!important;min-height:${CANVAS * 9 / 16}px;margin:0!important;transform:scale(var(--look-scale,.5));transform-origin:top left}</style>`
+    + host.Model.renderSlide(host.catalog, previous.design, 'title', host.options(previous.design));
+  return layer;
+}
+
+// Cross-fade: the new look sits underneath while the old one fades out on top (CSS, 200ms).
+// Without motion, or when nothing changed, the stage simply shows the new look.
+function showOnStage(host, stage, hero, design, previous) {
+  stage.replaceChildren(hero);
+  stage.shown = design;
+  const changed = previous && JSON.stringify(previous.design) !== JSON.stringify(design);
+  if (!changed || !matchMedia('(prefers-reduced-motion: no-preference)').matches) return;
+  const layer = leavingLayer(host, previous);
+  const done = () => layer.remove();
+  layer.addEventListener('animationend', done, { once: true });
+  setTimeout(done, SWAP_FALLBACK_MS);
+  stage.append(layer);
+}
+
+function fillStage(parts, host, view, previous = shownOn(parts.stage)) {
   const { Model, catalog } = host;
   const slide = kind => Model.renderSlide(catalog, view.design, kind, host.options(view.design));
   forget(parts.stage);
   forget(parts.deck);
-  parts.stage.replaceChildren(frame('look-hero', slide('title')));
+  showOnStage(host, parts.stage, frame('look-hero', slide('title')), view.design, previous);
   parts.deck.replaceChildren(...Object.entries(DECK).map(([kind, label]) => {
     const mini = frame('look-mini', slide(kind));
     mini.title = label;
@@ -273,7 +306,8 @@ export function renderPickALook(root, host) {
   const bottom = make('div', 'look-strip');
   bottom.append(moods.row, strip);
   parts.stage = stage;
-  fillStage(parts, host, appliedView(host));
+  // An apply redraws the whole stage, so the look on the old stage is the one that fades out.
+  fillStage(parts, host, appliedView(host), shownOn(root.querySelector('#lookStage')));
   const controller = previewController(parts, host, strip);
   wireStrip(strip, controller);
   filterStrip(strip, moods.chips);

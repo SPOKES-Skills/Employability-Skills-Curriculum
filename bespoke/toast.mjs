@@ -1,6 +1,8 @@
 // One short message in view, for good news. Warnings stay in the page-top strip.
 // #toast stays rendered (never display:none) so screen readers announce text set into it.
 const DEFAULT_MS = 4000;
+// Matches the 180ms toast transition in showcase.css.
+const FADE_MS = 180;
 let hideTimer = null;
 
 function toastElement() {
@@ -23,6 +25,7 @@ export function showToast(message, {ms = DEFAULT_MS} = {}) {
   toast.textContent = message;
   hideTimer = setTimeout(() => {
     toast.classList.remove('is-visible');
-    toast.textContent = '';
+    // The words stay while the toast fades out, then the region is emptied.
+    hideTimer = setTimeout(() => { toast.textContent = ''; }, FADE_MS);
   }, ms);
 }

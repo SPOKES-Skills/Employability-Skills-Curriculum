@@ -7,6 +7,7 @@ import {defaultDesign} from '../bespoke/builder-model.mjs';
 import catalog from '../bespoke/builder-catalog.json' with {type: 'json'};
 import {browserType} from './bespoke-test-browser.mjs';
 import {clickMenuItem} from './bespoke-test-navigation.mjs';
+import {chromeControls, chromeFontSizes, recordMotion, motionSeen, motionTour} from './bespoke-test-chrome.mjs';
 
 const server = await createDevServer({port: 0});
 const browser = await browserType.launch({headless: true});
@@ -14,6 +15,7 @@ const errors = [];
 const open = async (width, height = 900, reducedMotion = 'reduce', baseUrl = server.baseUrl) => {
   const context = await browser.newContext({viewport: {width, height}, reducedMotion});
   await context.addInitScript(() => { window.__bespokeAutosave = {enabled: false}; });
+  await recordMotion(context);
   const page = await context.newPage();
   page.on('pageerror', e => errors.push(e.message));
   await page.goto(baseUrl + '/bespoke/');
@@ -85,27 +87,6 @@ const openHosted = async (width, height, save = () => ({status: 409, json: {ok: 
   await page.locator('body[data-access=edit]').waitFor();
   return {context, page};
 };
-
-// Visible builder controls outside the slide renders and outside shadow roots.
-// Later cases use this to check the 44px target, focus ring and tab order rules.
-const chromeControls = page => page.evaluate(() => {
-  const selector = 'button, select, input, summary, [role=radio], [role=tab]';
-  const visible = el => {
-    const r = el.getBoundingClientRect();
-    const style = getComputedStyle(el);
-    return r.width > 0 && r.height > 0 && style.visibility !== 'hidden' && style.display !== 'none';
-  };
-  return [...document.querySelectorAll(selector)]
-    .filter(el => !el.closest('.bespoke-slide') && visible(el))
-    .map(el => {
-      const r = el.getBoundingClientRect();
-      return {
-        id: el.id, tag: el.tagName.toLowerCase(), role: el.getAttribute('role'),
-        label: (el.getAttribute('aria-label') || el.textContent || '').trim().slice(0, 60),
-        left: r.left, top: r.top, width: r.width, height: r.height
-      };
-    });
-});
 
 try {
   {
@@ -720,6 +701,86 @@ try {
     assert.equal(await page.locator('#barEnd > #btnSend').count(), 0, 'Send to Britt is never promoted into the bar');
     await context.close();
     pass('Send keeps both actions in the panel');
+  }
+  {
+    const {context, page} = await open(1440, 900, 'reduce');
+    await motionTour(page, async moment => {
+      const {seen, running} = await motionSeen(page);
+      assert.deepEqual(running, [], `no animation runs after ${moment} with reduced motion`);
+      assert.deepEqual(seen, [], `no animation started for ${moment} with reduced motion`);
+    });
+    await context.close();
+    pass('reduced motion stops new animation');
+  }
+  {
+    const {context, page} = await open(1440, 900, 'no-preference');
+    const durations = {};
+    let before = 0;
+    await motionTour(page, async moment => {
+      const {seen, running} = await motionSeen(page);
+      for (const item of [...seen, ...running]) assert.notEqual(item.iterations, Infinity, `${item.name} does not loop`);
+      durations[moment] = [...new Set(seen.slice(before).map(item => item.duration))];
+      if (process.env.T8_DEBUG) console.log(moment, JSON.stringify(seen.slice(before)));
+      before = seen.length;
+    });
+    assert.ok(durations['an apply'].length > 0, 'an apply produces at least one animation');
+    for (const duration of Object.values(durations).flat()) assert.ok([200, 1000, 180, 400].includes(duration), `motion uses the set durations, saw ${duration}ms in ${JSON.stringify(durations)}`);
+    assert.deepEqual(durations['a hover preview'], [200], 'the stage cross-fades in 200ms on a preview');
+    assert.ok(durations['an apply'].includes(200), `the stage cross-fades in 200ms on an apply, saw ${durations['an apply']}`);
+    assert.ok(durations['a color change'].includes(1000), `the rail glows for 1s, saw ${durations['a color change']}`);
+    assert.deepEqual(durations['a toast'], [180], 'the toast fades and slides in 180ms');
+    await context.close();
+    pass('motion runs when allowed');
+  }
+  for (const [width, height, full] of [[1440, 900, true], [1024, 768, true], [390, 844, false]]) {
+    const {context, page} = await open(width, height);
+    const scan = async where => {
+      const {scale, offenders} = await chromeFontSizes(page);
+      const steps = Object.keys(scale);
+      assert.ok(steps.length >= 4 && steps.length <= 8, `the chrome type scale has 4 to 8 steps, got ${steps.join(', ')}`);
+      assert.deepEqual(offenders, [], `chrome text on ${where} at ${width}px uses the type scale ${JSON.stringify(scale)}`);
+    };
+    await page.locator('#stage-team').click();
+    await page.locator('#filesRecovery > summary').click();
+    await scan('Lesson & team with the menu open');
+    await clickMenuItem(page, '#btnHelp');
+    await scan('How it works');
+    await page.locator('#stage-start').click();
+    await scan('Pick a look');
+    if (full) {
+      await makeItOurs(page, 'professional');
+      await page.locator('#modelStage .slide-title-text').click();
+      await page.locator('#context-color-well').click();
+      await scan('Make it yours with the toolbar and colors open');
+      await page.keyboard.press('Escape');
+      await page.locator('#btnMoreOptions').click();
+      await scan('Make it yours with Slide options open');
+      await page.locator('#stage-review').click();
+      await page.locator('.send-all > summary').click();
+      await scan('Send with every setting open');
+    }
+    await context.close();
+  }
+  pass('chrome uses the type scale');
+  {
+    const {context, page} = await open(1440, 900);
+    const check = async where => {
+      const small = (await chromeControls(page)).filter(control => control.height < 44 && control.labelHeight < 44);
+      assert.deepEqual(small, [], `every control on ${where} is at least 44px tall`);
+    };
+    await page.locator('#stage-team').click();
+    await check('Lesson & team');
+    await page.locator('#stage-start').click();
+    await check('Pick a look');
+    await makeItOurs(page, 'professional');
+    await page.locator('#modelStage .slide-title-text').click();
+    await check('Make it yours');
+    await page.locator('#btnMoreOptions').click();
+    await check('Make it yours with Slide options open');
+    await page.locator('#stage-review').click();
+    await check('Send');
+    await context.close();
+    pass('chrome controls are at least 44px');
   }
   assert.deepEqual(errors, []);
 } finally {

@@ -46,9 +46,13 @@ try{
  assert.equal(await page.evaluate(()=>document.activeElement?.id),'sentHeading','entering the confirmation focuses its heading');
  assert.match(await page.locator('#sentView p').filter({hasText:'is on its way'}).textContent(),/^Your Money Management suggestion, .+, is on its way\. Britt and the program administrator will use it when they make the final design\.$/);
  assert.equal(await page.locator('#sentDetails a').getAttribute('href'),url);assert.equal(await page.locator('#sentDetails').evaluate(d=>d.open),false);
+ // On the confirmation the receipt link lives only in Details: the page-wide receipt band steps aside.
+ assert.equal(await page.locator('#lastReviewReceipt').isVisible(),false,'no receipt band over the confirmation');assert.equal(await page.locator('#teamSessionBar').isVisible(),false,'the strip holds nothing else, so it hides');
+ await page.locator('#sentDetails > summary').click();assert.deepEqual(await page.locator(`a[href="${url}"]:visible`).evaluateAll(l=>l.map(a=>a.closest('#sentDetails')?.id)),['sentDetails'],'Details holds the only visible receipt link');await page.locator('#sentDetails > summary').click();
  for(const id of ['btnKeepEditing','btnDownloadCopy'])assert.ok((await page.locator('#'+id).boundingBox()).height>=44,id+' is at least 44px tall');
  const download=page.waitForEvent('download');await page.locator('#btnDownloadCopy').click();assert.match((await download).suggestedFilename(),/^money-management-.+-selection\.json$/);
  await page.locator('#btnKeepEditing').click();await page.locator('#workspace[data-stage=slides]').waitFor();
+ assert.equal(await page.locator('#lastReviewReceipt').isVisible(),true,'other stages keep the receipt band');
  await sentView();
  await page.reload();await page.locator('#lastReviewReceipt').waitFor({state:'attached'});await sentView();
  await page.locator('#stage-slides').click();await page.locator('#modelStage .slide-title-text').click();

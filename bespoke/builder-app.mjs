@@ -224,7 +224,8 @@ const findOption=(family,slug)=>state.library?.families?.[family]?.options.find(
       : `${lesson?.title || session.lessonId} team session.${saved}${dirty}`;
     let delivered=byId('lastReviewReceipt');
     if(!delivered){delivered=document.createElement('p');delivered.id='lastReviewReceipt';delivered.className='review-receipt';panel.append(delivered);}
-    delivered.replaceChildren();delivered.hidden=!session.lastReceipt;
+    // The Sent view holds the receipt link in its Details, so the band steps aside there (the strip hides when it holds nothing else).
+    delivered.replaceChildren();delivered.hidden=!session.lastReceipt||(onStage("review")&&sendView()==="sent");
     if(session.lastReceipt){
       delivered.append(document.createTextNode('Last confirmed review package · '+session.lastReceipt.submissionId+'. '));
       for(const [field,label] of [['url','Open review request'],['artifactUrl','Exact submitted artifact']]){

@@ -7,7 +7,8 @@ import { syncStageChrome } from './canvas-shell.mjs';
 import { createGuide } from './guide/guide.mjs';
 import { showToast } from './toast.mjs';
 import { renderPickALook, closePickALook } from './pick-a-look.mjs';
-import { slideOptions, designKey, changedKinds } from './showcase-model.mjs';
+import { slideOptions, designKey, changedKinds, lookDetail, designChanges } from './showcase-model.mjs';
+import { renderSendStage, closeSendStage } from './send-stage.mjs';
 import { scopeLine, startingFrom, renderStartingFrom, markRail, pulseRail } from './make-it-yours.mjs';
 import { createTeamView, isShareHash, isSnapshotHash, viewLinkToOpen } from './team-view.mjs';
 import { guideMark, indexForMark, keepsGuide } from './guide/questions.mjs';
@@ -297,13 +298,11 @@ const findOption=(family,slug)=>state.library?.families?.[family]?.options.find(
 
   function lockViewControls() {
     if (isLeadSession()) return;
-    const panel = byId("stepPanel");
-    if (!panel) return;
-    panel.querySelectorAll("input, select, textarea, button").forEach((el) => {
+    document.querySelectorAll("#stepPanel, #allSettings").forEach((panel) => panel.querySelectorAll("input, select, textarea, button").forEach((el) => {
       if (["btnBack","btnNext","btnNextRole"].includes(el.id) || el.dataset.editorRole || el.dataset.scopeRole || el.id.startsWith("review-preview-") || el.id.startsWith("review-edit-")) return;
       el.disabled = true;
       el.setAttribute("aria-disabled", "true");
-    });
+    }));
   }
 
   function renderTeam(panel, {heading = true} = {}) {
@@ -370,9 +369,18 @@ const findOption=(family,slug)=>state.library?.families?.[family]?.options.find(
   }
 
   function fileNotice(message) {
+    if (ui.sendFeedback) sendFeedback("");
     const notice = byId("fileStatus");
     notice.hidden = false;
     notice.textContent = message;
+  }
+
+  // On Send, save and send progress also shows beside the buttons. Returns whether it did.
+  function sendFeedback(message) {
+    const el = onStage("review") ? byId("sendFeedback") : null;
+    ui.sendFeedback = el ? message : "";
+    if (el) el.textContent = message;
+    return Boolean(el);
   }
 
   // Good news shows as a short toast in view. It replaces any pending message in the strip.
@@ -808,7 +816,7 @@ const findOption=(family,slug)=>state.library?.families?.[family]?.options.find(
     autosaveTimer = null;
     handoffBusy = true;
     if (auto) setSaveStatus("Saving to the shared design…");
-    else fileNotice("Saving the shared design…");
+    else if (!sendFeedback("Saving the shared design…")) fileNotice("Saving the shared design…");
     try {
       const result = await handoffRequest("save", {
         lessonId: session.lessonId,
@@ -860,9 +868,11 @@ const findOption=(family,slug)=>state.library?.families?.[family]?.options.find(
             ? "The version that started saving is saved locally. You made newer changes while it saved; choose Save test design again."
             : "The version that started saving is shared. You made newer changes while it saved; choose Save for the team again.");
         } else {
-          successNotice(ui.localPreview
+          const saved = ui.localPreview
             ? (result.unchanged ? "The local test design was already up to date." : "Local test design saved.")
-            : (result.unchanged ? "The shared design was already up to date." : "Shared design saved."));
+            : (result.unchanged ? "The shared design was already up to date." : "Shared design saved.");
+          successNotice(saved);
+          sendFeedback(saved);
         }
       }
     } finally {
@@ -892,6 +902,7 @@ const findOption=(family,slug)=>state.library?.families?.[family]?.options.find(
     }
     storePendingSubmission(null);
     successNotice("Britt received the review request.");
+    sendFeedback("Britt received the review request.");
   }
 
   function scheduleSubmissionPoll(receipt, delay = 10000) {
@@ -914,6 +925,7 @@ const findOption=(family,slug)=>state.library?.families?.[family]?.options.find(
     if (result.status === "processing") {
       storePendingSubmission({ ...receipt, runId: result.runId || receipt.runId, stage: "receipt" });
       fileNotice("Britt’s review request is processing. You can close this page; this browser will check again when you return.");
+      sendFeedback("Britt’s review request is processing.");
       scheduleSubmissionPoll({ ...receipt, runId: result.runId || receipt.runId }, 10000);
       return;
     }
@@ -959,6 +971,7 @@ const findOption=(family,slug)=>state.library?.families?.[family]?.options.find(
     storePendingSubmission(pending);
     handoffBusy = true;
     fileNotice("Requesting Britt’s review…");
+    sendFeedback("Requesting Britt’s review…");
     try {
       const result = await handoffRequest("send", pending);
       if(ui.teamSession!==session)return;
@@ -979,6 +992,7 @@ const findOption=(family,slug)=>state.library?.families?.[family]?.options.find(
         rememberReceipt(result, receipt);
       } else {
         fileNotice("Britt’s review request is processing. This is not a receipt yet.");
+        sendFeedback("Britt’s review request is processing. This is not a receipt yet.");
         scheduleSubmissionPoll(receipt, 5000);
       }
     } finally {
@@ -1708,8 +1722,8 @@ function addSampleField(host,key,label,value){
 function contrastAdvisory(issues){
  return '<strong>Contrast advisory</strong><p>Contrast is the difference between text and its background. Low contrast can make text harder to read.</p><ul>'+issues.map(issue=>'<li>'+escapeHtml(issue.message)+'</li>').join('')+'</ul><p>Consider a different text or background color. The team leader can keep this choice and save the design.</p>';
 }
+// Today's full review, inside Send's See every setting. The notes field and Save live in the Send panel.
 function renderReview(panel){
- heading(panel,'Your design, together','Review each slide type in the preview. Save the agreed design before requesting a review. Building a lesson is a separate step.');
  if(state.alternatives){const note=document.createElement('p');note.className='version-status';note.textContent='Option '+state.alternatives.active+' is chosen for submission. Both options are included in your saved design and review package.';panel.append(note);}
  const errors=Model.validateDesign(catalog,state.design);
  const issues=Model.contrastIssues(catalog,state.design);
@@ -1726,16 +1740,29 @@ function renderReview(panel){
   row.append(dl);
   const details=document.createElement('p');details.className='helper';details.textContent=[effective.backgroundMode==='gradient'?'Two-color gradient · '+({right:'left to right',down:'top to bottom',diagonal:'diagonal'}[effective.direction]):'Solid background',...group.decisions.filter(d=>!['colors','watermark'].includes(d.id)).map(d=>d.label+': '+d.options.find(o=>o.id===state.design.slides[kind][d.id])?.label),!effective.headingVisible?'Heading hidden':'',!effective.bodyVisible?'Supporting / box text hidden':'',effective.watermarkMode==='text'?'Custom watermark: '+effective.watermarkText+' · '+color(effective.watermarkColor)+' · '+effective.watermarkPlacement.replaceAll('-',' ')+' · '+effective.watermarkSize+' · '+effective.watermarkOpacity+' strength':effective.watermarkMode==='legacy'?'Arrangement watermark':'No watermark','Texture strength: '+({subtle:'Subtle',normal:'Standard',bold:'Stronger'}[effective.patternStrength]),'Heading: '+({default:'Default',small:'Smaller',large:'Larger'}[effective.headingSize])+', '+effective.headingAlignment+' aligned, '+effective.headingPlacement+' placement','Supporting / box text: '+({default:'Default',small:'Smaller',large:'Larger'}[effective.bodySize])+', '+effective.bodyAlignment+' aligned, '+effective.bodyPlacement+' placement',effective.extraText!==null?'Added text: '+effective.extraText:'',kind==='divider'&&state.design.slides.divider.layout==='band'?'Band outer surface: '+color(state.design.roles.contentBackground)+' · Shared':''].filter(Boolean).join(' · ');row.append(details);
   const actions=document.createElement('div');actions.className='review-role-actions';
-  for(const [action,label] of [['preview','Preview'],['edit','Edit']]){const button=document.createElement('button');button.type='button';button.className='text-link';button.id='review-'+action+'-'+kind;button.textContent=label+' '+VIEW_NAMES[kind];button.onclick=()=>{if(action==='edit')showRoleEditor(kind);else{showView(kind);if(matchMedia('(max-width:760px)').matches)byId('surface-preview').click();byId('previewTabs').querySelector('[data-view="'+kind+'"]').focus({preventScroll:true});}};actions.append(button);}row.append(actions);summary.append(row);
+  for(const [action,label] of [['preview','Preview'],['edit','Edit']]){const button=document.createElement('button');button.type='button';button.className='text-link';button.id='review-'+action+'-'+kind;button.textContent=label+' '+VIEW_NAMES[kind];button.onclick=()=>action==='edit'?showRoleEditor(kind):showDeckSlide(kind);actions.append(button);}row.append(actions);summary.append(row);
  }
  const defaults=document.createElement('p');defaults.className='helper';defaults.id='reviewSharedDefaults';defaults.textContent='Shared defaults: '+font(state.design.fonts.heading)+' headings; '+font(state.design.fonts.body)+' body. Navigation and buttons inherit the shared body font unless customized. Sidebar '+color(state.design.roles.sidebar)+', Accent '+color(state.design.roles.accent)+', Buttons '+color(state.design.roles.button)+' are shared defaults.';summary.append(defaults);
  for(const feature of Object.keys(state.design.featureStyles||{})){const style=Model.effectiveFeatureStyle(catalog,state.design,feature),p=document.createElement('p');p.textContent=({sidebar:'Navigation sidebar',button:'Action buttons',box:'Text boxes',titlebar:'Title bar',video:'Video frame',activity:'Activity panel'}[feature])+': '+color(style.background)+' fill'+(['sidebar','button'].includes(feature)?', '+color(style.color)+' text, '+font(style.font):', '+color(style.border)+' border')+'.';summary.append(p);}
  const valid=document.createElement('div');valid.className=errors.length||issues.length?'readability-warning':'review-ready';valid.innerHTML=errors.length?escapeHtml(errors.join(' ')):issues.length?contrastAdvisory(issues):'Contrast guidance is met for the modeled text/background pairs. This is not a whole-design accessibility assessment.';panel.append(valid);
- const label=document.createElement('label');label.className='field';label.innerHTML='Notes for the design review';const notes=document.createElement('textarea');notes.id='reviewNotes';notes.rows=3;notes.value=state.unspoken;notes.oninput=()=>{state.unspoken=notes.value;saveDraft();};label.append(notes);panel.append(label);
  const disclosure=document.createElement('p');disclosure.className='helper';disclosure.textContent=ui.localPreview?'This review preview saves only to the local test service. Nothing is sent to Britt or published.':'A review proposal is stored in a public repository, including both saved options when present. Use work contact details and non-sensitive sample text. A saved design does not authorize a lesson build.';panel.append(disclosure);
- const save=document.createElement('button');save.className='btn btn-primary';save.textContent=ui.localPreview?'Save test design':'Save for the team';save.onclick=()=>cloudSave();panel.append(save);
  const backup=document.createElement('button');backup.className='btn btn-secondary';backup.textContent='Download design backup';backup.onclick=saveTeamFile;panel.append(backup);
  if(state.legacySelection){const p=document.createElement('p');p.className='helper';p.textContent='This design began as an older selection. Its complete original is retained for recovery; the new layout is a conversion to review.';panel.append(p);const b=document.createElement('button');b.className='btn btn-secondary';b.textContent='Download original v1 design';b.onclick=()=>downloadText('original-v1-selection.json',JSON.stringify(state.legacySelection,null,2),'application/json');panel.append(b);}
+}
+// On Send every slide is already on the sheet, so Preview points at it there.
+function showDeckSlide(kind){const open=document.querySelector('#sendDeck [data-kind="'+kind+'"] .send-open');open?.scrollIntoView({block:'nearest'});open?.focus({preventScroll:true});}
+function reviewNotesField(){const notes=document.createElement('textarea');notes.id='reviewNotes';notes.rows=3;notes.value=state.unspoken;notes.disabled=!isLeadSession();notes.oninput=()=>{state.unspoken=notes.value;saveDraft();};return notes;}
+function sendHost(){
+ const look=knownLook(ui.appliedLook),near=()=>compareDesign(fingerprints,state.design,catalog)[0];
+ return {
+  catalog,Model,design:()=>state.design,options:design=>renderOptions(design),editable:()=>isLeadSession(),localPreview:ui.localPreview,
+  look:()=>look&&lookDetail(catalog,look),changes:()=>look?designChanges(catalog,Model,state.design,look):[],
+  similarity:()=>{const n=near();return n?{shared:n.shared,total:n.total}:null;},
+  fillSimilarityDetails:el=>{el.innerHTML=similarityDetails(compareDesign(fingerprints,state.design,catalog));},
+  fillAllSettings:el=>{renderReview(el);renderSharedTheme(el);},
+  notesField:reviewNotesField,save:()=>cloudSave(),send:()=>cloudSend(),feedback:()=>ui.sendFeedback||'',
+  openKind:kind=>{ui.editorRole=kind;ui.moreOptions=false;goStage('slides');}
+ };
 }
 // The team pill asks for attention until the team is identified, then names the team.
 // Update it in place: rebuilding the pills while the pointer is down would swallow the click.
@@ -1779,8 +1806,8 @@ function renderEditors(panel){
 function renderPanel(){
  const panel=byId('stepPanel'),id=STEPS[state.step].id;
  if(id==='slides'&&ui.guide?.on){guide.render(panel);return;}
- if(id==='team')renderTeamStage(panel);else if(id==='start'){heading(panel,'Pick a look','Choose a starting look. Every choice stays editable.');renderPickALook(byId('showcase'),pickHost());}else if(id==='review')renderReview(panel);else renderEditors(panel);
- if(!['team','start'].includes(id)){renderSharedTheme(panel);panel.insertBefore(byId('sharedTheme'),panel.children[2]||null);}
+ if(id==='team')renderTeamStage(panel);else if(id==='start'){heading(panel,'Pick a look','Choose a starting look. Every choice stays editable.');renderPickALook(byId('showcase'),pickHost());}else if(id==='review'){heading(panel,'Send','Check your suggestion, save it for the team and send it to Britt.');renderSendStage(byId('showcase'),sendHost());}else renderEditors(panel);
+ if(id==='slides'){renderSharedTheme(panel);panel.insertBefore(byId('sharedTheme'),panel.children[2]||null);}
  const nav=document.createElement('div');nav.className='panel-nav';nav.innerHTML='<button class="btn btn-secondary" id="btnBack"'+(state.step===0?' disabled':'')+'>Back'+(state.step>0?': '+escapeHtml(STEPS[state.step-1].label):'')+'</button>'+(state.step<STEPS.length-1?'<button class="btn btn-primary" id="btnNext">'+(id==='team'?'Continue to Pick a look':id==='start'?'Continue to Make it yours':'Continue to Send')+'</button>':'');panel.append(nav);
  byId('btnBack').onclick=()=>{state.step=Math.max(0,state.step-1);render();};if(byId('btnNext'))byId('btnNext').onclick=()=>{state.step++;render();};
 }
@@ -1788,9 +1815,11 @@ function updateSimilarity(design){
  const comparisons=compareDesign(fingerprints,design,catalog),near=comparisons[0];
  if(!near){byId('distinctMeter').textContent='Reference comparison unavailable';return;}
  byId('distinctMeter').innerHTML='<span class="meter-count">'+near.shared+' <span>of '+near.total+'</span></span><span><strong>'+escapeHtml(near.title)+'</strong><span>Closest reference · exact comparable choices</span></span>';
- const labelOf=e=>typeof e==='string'?e:(e.label||e.key);
- const details=byId('similarityDetails');
- details.innerHTML='<p>This counts matching visual choices, not a perceptual percentage. Unknown features do not count. The six released lessons are the comparison library.</p><h3>Matches</h3><p>'+escapeHtml(near.matches?.length?near.matches.map(labelOf).join(', '):'No measured choices match.')+'</p><h3>Different</h3><p>'+escapeHtml(near.differences?.length?near.differences.map(labelOf).join(', '):'No measured differences.')+'</p><h3>Not comparable</h3><p>'+escapeHtml(near.unknown?.length?near.unknown.map(e=>labelOf(e)+(e.reason?': '+e.reason:'')).join('; '):'All supported characteristics were measured.')+'</p><ul>'+comparisons.map(c=>'<li>'+escapeHtml(c.title)+': '+c.shared+' of '+c.total+'</li>').join('')+'</ul>';
+ byId('similarityDetails').innerHTML=similarityDetails(comparisons);
+}
+function similarityDetails(comparisons){
+ const near=comparisons[0],labelOf=e=>typeof e==='string'?e:(e.label||e.key);
+ return '<p>This counts matching visual choices, not a perceptual percentage. Unknown features do not count. The six released lessons are the comparison library.</p><h3>Matches</h3><p>'+escapeHtml(near.matches?.length?near.matches.map(labelOf).join(', '):'No measured choices match.')+'</p><h3>Different</h3><p>'+escapeHtml(near.differences?.length?near.differences.map(labelOf).join(', '):'No measured differences.')+'</p><h3>Not comparable</h3><p>'+escapeHtml(near.unknown?.length?near.unknown.map(e=>labelOf(e)+(e.reason?': '+e.reason:'')).join('; '):'All supported characteristics were measured.')+'</p><ul>'+comparisons.map(c=>'<li>'+escapeHtml(c.title)+': '+c.shared+' of '+c.total+'</li>').join('')+'</ul>';
 }
 function buttonColorSample(id){
  return `<section id="${id}" class="bespoke-slide button-color-sample" aria-label="Button color sample"><div><strong>Button color sample</strong><p>Style preview only; no file opens.</p></div>${Model.renderSampleButton()}</section>`;
@@ -1837,18 +1866,19 @@ function showNoteCount(count){byId('readabilityDetails').hidden=!count;byId('rea
 function showView(view){if(onStage('slides')){ui.editorRole=view;}state.previewView=view;ui.previewPinned=true;if(ui.sharedThemeOpen||onStage('slides'))render(false);else{updatePreview();saveDraft();}}
 function render(focus=true){
  if(byId('sharedTheme'))ui.sharedThemeOpen=byId('sharedTheme').open;
- const changed=ui.renderedStep!==state.step;if(changed){ui.renderedStep=state.step;ui.changedKinds=new Set();if(onStage('slides'))state.previewView=ui.editorRole;ui.previewPinned=false;}
+ const changed=ui.renderedStep!==state.step;if(changed){ui.renderedStep=state.step;ui.changedKinds=new Set();ui.sendFeedback='';if(onStage('slides'))state.previewView=ui.editorRole;ui.previewPinned=false;}
  const active=document.activeElement,activeId=active?.id;
  ui.roleSections||={};byId('stepPanel').querySelectorAll('[data-role-section]').forEach(d=>{ui.roleSections[d.id]=d.open;});
  const openDetails=new Map(Array.from(byId('stepPanel').querySelectorAll('details[id]')).map(d=>[d.id,d.open]));
  byId('workspace').dataset.stage=STEPS[state.step].id;
  if(onStage('start')&&!ui.onStart)enterPickALook();
- ui.onStart=onStage('start');byId('showcase').hidden=!ui.onStart;if(!ui.onStart)closePickALook(byId('showcase'));
+ ui.onStart=onStage('start');const showcase=byId('showcase');showcase.hidden=!ui.onStart&&!onStage('review');showcase.setAttribute('aria-label',onStage('review')?'Send':'Pick a look');
+ if(!ui.onStart){closeSendStage(showcase);closePickALook(showcase);}
  byId('workspace').dataset.editor=String(onStage('slides')&&!ui.guide?.on);
  byId('workspace').dataset.options=String(ui.moreOptions||!onStage('slides')||Boolean(ui.guide?.on));
  syncStageChrome(STEPS[state.step].id);buildStepper();renderPanel();byId('stepPanel').querySelectorAll('details[id]').forEach(d=>{if(!d.dataset.roleSection&&d.id!=='sharedTheme'&&openDetails.has(d.id))d.open=openDetails.get(d.id);});syncAccessChrome();lockViewControls();updatePreview();updateUndo();reviewTools?.refresh();
  if(isLeadSession()){if(ui.skipNextLocalSave)ui.skipNextLocalSave=false;else saveDraft();if(changed)scheduleAutosave(AUTOSAVE.stepMs);}
- if(focus&&changed)(onStage('start')?byId('lookStageHeading'):byId('workspace').dataset.options==='false'?byId('selectedElement'):byId('stepPanel'))?.focus({preventScroll:true});else if(activeId)byId(activeId)?.focus({preventScroll:true});
+ if(focus&&changed)(onStage('start')?byId('lookStageHeading'):onStage('review')?byId('sendHeading'):byId('workspace').dataset.options==='false'?byId('selectedElement'):byId('stepPanel'))?.focus({preventScroll:true});else if(activeId)byId(activeId)?.focus({preventScroll:true});
 }
 function setupRecoveryMenu(){
  const menu=byId('filesRecovery'),trigger=menu.querySelector('summary');

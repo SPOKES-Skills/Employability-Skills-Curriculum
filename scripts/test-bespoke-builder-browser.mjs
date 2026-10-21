@@ -99,8 +99,10 @@ async function save(page) {
   await page.locator('#toast').filter({ hasText: /Local test design saved|already up to date/ }).waitFor();
 }
 async function download(page, original = false) {
-  const control = page.locator(original ? '#stepPanel button' : '#btnDownloadBackup').filter(original ? { hasText: 'Download original v1 design' } : {});
+  // The original v1 download sits in Send's See every setting.
+  const control = page.locator(original ? '#allSettings button' : '#btnDownloadBackup').filter(original ? { hasText: 'Download original v1 design' } : {});
   if (!original && !await control.isVisible()) await page.locator('.more-menu > summary').click();
+  if (original && !await page.locator('#allSettings').evaluate(el => el.open)) await page.locator('#allSettings > summary').click();
   const event = page.waitForEvent('download');
   await control.click();
   const file = await event;
@@ -270,13 +272,13 @@ try {
     await page.locator('#btnRedo').click();
     assert.deepEqual(await design(page), expected);
     const closest = compareDesign(fingerprints, expected, catalog)[0];
-    // The similarity meter left Make it yours (2026-10-19); it shows on Send.
+    // The similarity meter left Make it yours (2026-10-19); it is one line on Send.
     await go(page, 'Send');
-    assert.match(await page.locator('#distinctMeter').textContent(), new RegExp(`${closest.shared}.*of ${closest.total}`));
-    assert((await page.locator('#distinctMeter').textContent()).includes(closest.title));
-    await page.locator('.similarity summary').click();
-    assert.equal(await page.locator('#similarityDetails li').count(), 6);
-    assert.match(await page.locator('#similarityDetails').textContent(), /not a perceptual percentage/);
+    assert.match(await page.locator('#sendSimilarity').textContent(), new RegExp(`^Shares ${closest.shared} of ${closest.total} choices with the released lessons`));
+    await page.locator('#sendSimilarity button').click();
+    assert((await page.locator('#sendComparison').textContent()).includes(`${closest.title}: ${closest.shared} of ${closest.total}`));
+    assert.equal(await page.locator('#sendComparison li').count(), 6);
+    assert.match(await page.locator('#sendComparison').textContent(), /not a perceptual percentage/);
     const backup = await download(page);
     assert.equal(backup.payload.schema, 'bespoke-selection/v2');
     assert.deepEqual(backup.payload.design, expected);
@@ -574,7 +576,8 @@ try {
       const chosen = await design(page);
       assert.equal(await page.locator('#modelStage .slide-card .slide-body').first().evaluate(el => getComputedStyle(el).color), 'rgb(211, 178, 87)');
       await go(page, 'Send');
-      assert.match(await page.locator('#stepPanel .readability-warning').textContent(), /team leader can keep/);
+      // The readability advice is in Send's See every setting.
+      assert.match(await page.locator('#allSettings .readability-warning').textContent(), /team leader can keep/);
       await save(page); assert.deepEqual((await openService(server)).selection.design, chosen);
       const backup = await download(page), savedHistory = (await draft(page)).changes;
       assert.deepEqual(backup.payload.design, chosen);

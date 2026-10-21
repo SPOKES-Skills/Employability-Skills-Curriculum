@@ -93,7 +93,8 @@ async function preview(page, kind) {
   await page.evaluate(() => document.fonts.ready);
 }
 async function shared(page, open = true) {
-  if(!await page.locator('#sharedTheme').count())await page.locator('#stage-slides').click();
+  // Send also holds the Shared theme, inside See every setting; the drawer lives on Make it yours.
+  if(await page.locator('#workspace').getAttribute('data-stage')!=='slides')await page.locator('#stage-slides').click();
   await surface(page);
   if (!await page.locator('#detailControls').isVisible()) await page.locator('#btnMoreOptions').click();
   const details = page.locator('#sharedTheme');
@@ -422,7 +423,8 @@ try {
     assert.equal(await tab.evaluate(() => localStorage.getItem('bespoke-draft-v2')), null, 'no browser draft is written');
     assert.equal(await tab.evaluate(() => localStorage.getItem('bespoke-team-session-v2')), null, 'no editing session is installed');
     assert.equal(await tab.locator('#btnSave').isDisabled(), true);
-    assert.equal(await tab.locator('#stepPanel').locator('input:enabled, select:enabled, textarea:enabled').count(), 0, 'no editing controls are enabled');
+    // A view lands on Send, whose controls sit in the showcase.
+    assert.equal(await tab.locator('#stepPanel, #showcase').locator('input:enabled, select:enabled, textarea:enabled').count(), 0, 'no editing controls are enabled');
     assert.ok(await viewSession(tab), 'the view link is kept for this tab');
     await openDialog(tab, LOCAL_PREVIEW_CODE);
     await tab.locator('body[data-access=edit]').waitFor();
@@ -461,7 +463,9 @@ try {
     for (const kind of kinds) await preview(page, kind);
     await stage(page, 'review');
     assert.deepEqual(await design(page), payloadBeforeNavigation, 'Editor/preview/stage navigation cannot change design values');
-    const review = await page.locator('#stepPanel').innerText();
+    // The full review sits in Send's See every setting.
+    await page.locator('#allSettings > summary').click();
+    const review = await page.locator('#allSettings').innerText();
     assert.match(review, /shared.*default|default.*shared/i, 'Shared typography must be identified as defaults');
     for (const kind of kinds) {
       const effective = effectiveRoleStyle(catalog, selected, kind);
@@ -470,7 +474,7 @@ try {
       assert.equal(await row.locator('[data-review-field=bodyFont]').textContent(), fontName(effective.bodyFont) + ' · Custom', `${kind}: effective body font is accurate`);
       assert.equal(await row.locator('[data-review-field=primary]').textContent(), catalog.palette.find(c => c.id === effective.primary).name + ' · Custom');
       await page.locator('#review-preview-' + kind).click();
-      assert.equal(await page.locator(`#previewTabs [data-view="${kind}"]`).getAttribute('aria-selected'), 'true');
+      assert.equal(await page.evaluate(k => document.activeElement.closest('#sendDeck [data-kind]')?.dataset.kind, kind), kind, `${kind}: Preview points at the slide on the Send sheet`);
     }
     assert.match(review, /custom|exception/i);
     await page.locator('#reviewNotes').fill('Synthetic team agreement; design review only.');
@@ -651,6 +655,7 @@ try {
     assert.match(await page.locator('#restoreNotice').textContent(), /older|convert/i);
     assert.deepEqual((await backup(page)).legacySelection, legacy, 'V1 archive survives conversion exactly');
     await stage(page, 'review');
+    await page.locator('#allSettings > summary').click();
     const pending = page.waitForEvent('download'); await page.getByRole('button', { name: 'Download original v1 design', exact: true }).click();
     const original = JSON.parse(await fs.readFile(await (await pending).path(), 'utf8'));
     assert.deepEqual(original, legacy);

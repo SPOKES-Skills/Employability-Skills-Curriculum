@@ -13,7 +13,8 @@ export async function builderDestination(page, destination) {
   const designSurface = page.locator('#surface-design');
   if (await designSurface.isVisible()) await designSurface.click();
   if (destination === 'Shared colors' || destination === 'Shared typography') {
-    if (!await page.locator('#sharedTheme').count()) await page.locator('#stage-slides').click();
+    // Send also holds the Shared theme, inside See every setting; the drawer lives on Make it yours.
+    if (await page.locator('#workspace').getAttribute('data-stage') !== 'slides') await page.locator('#stage-slides').click();
     if (!await page.locator('#detailControls').isVisible()) await page.locator('#btnMoreOptions').click();
     const theme = page.locator('#sharedTheme');
     if (!await theme.evaluate(el => el.open)) await theme.locator(':scope > summary').click();

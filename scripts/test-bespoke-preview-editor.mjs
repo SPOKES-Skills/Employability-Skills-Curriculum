@@ -112,13 +112,15 @@ try{
  for(const stage of ['review'])await check('stage '+stage,async()=>{
   const {page,done}=await fresh(1440);
   await page.locator('#stage-'+stage).click();
-  await page.locator('#modelStage .slide-title-text').click();
-  assert.equal(await stepId(page),stage,'Clicking the preview on '+stage+' does not change stage');
-  assert.equal(await page.locator('#modelStage [data-edit-target][tabindex="0"]').count(),0,'Slide elements are not tab stops on '+stage);
-  await page.locator('#btnEditSlide').click();
-  assert.equal(await stepId(page),'slides','Edit this slide opens the slide editor');
+  // Send shows the deck sheet in place of the editing preview; a slide opens only through its own button.
+  assert.equal(await page.locator('#modelStage').isVisible(),false,'The editing preview is not shown on '+stage);
+  assert.equal(await stepId(page),stage,'Opening '+stage+' keeps its place');
+  assert.equal(await page.locator('#sendDeck [data-edit-target][tabindex="0"]').count(),0,'Slide elements are not tab stops on '+stage);
+  assert.equal(await page.locator('#sendDeck .send-open').count(),5,'Each slide on the sheet has one open button');
+  await page.locator('#sendDeck .send-open').first().click();
+  assert.equal(await stepId(page),'slides','Opening a slide goes to the slide editor');
   assert.equal(await page.locator('#workspace').getAttribute('data-editor'),'true');
-  await done();console.log('PASS the '+stage+' stage keeps its place until Edit this slide');
+  await done();console.log('PASS the '+stage+' stage keeps its place until a slide is opened');
  });
  for(const [lw,lh] of [[1000,800],[844,390],[768,900]])await check('layout '+lw,async()=>{
   const {page,done}=await fresh(lw,lh);

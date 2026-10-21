@@ -27,7 +27,7 @@
 /* ---- Pick a look: stage, side column and filmstrip (mockup option A) ----
    The side column keeps one height for every look (one-line name and heading, two reserved detail lines,
    a fixed color row), so a preview never slides the strip out from under the pointer. */
-.workspace[data-stage=start] .chrome-rail{display:none!important}
+.workspace[data-stage=start] .chrome-rail,.workspace[data-stage=review] .chrome-rail{display:none!important}
 .showcase{min-width:0;font-family:"Outfit",system-ui,sans-serif;color:var(--navy)}
 .look-top{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(280px,1fr);gap:28px;align-items:center;padding:24px clamp(16px,2vw,28px) 16px}
 .look-stage{min-width:0;width:min(100%,calc((100dvh - 320px) * 1.7778));justify-self:center}
@@ -96,3 +96,52 @@
 @keyframes rail-glow{0%{box-shadow:0 0 0 4px #d3b25799,0 0 18px #d3b257}100%{box-shadow:0 0 0 0 transparent}}
 /* The similarity meter moves to Send; the drawer drops its repeated stage counter. */
 .workspace[data-stage=slides] .similarity,.workspace[data-stage=slides] .stage-count{display:none}
+
+/* ---- Send: the deck on one sheet beside a summary panel (flow mockup, screen 4) ---- */
+.workspace[data-stage=review]{display:block;max-width:1380px;margin:auto;min-height:0;max-height:none;overflow:visible}
+.workspace[data-stage=review] .slide-rail,.workspace[data-stage=review] .preview-pane,.workspace[data-stage=review] .inspector-followup{display:none!important}
+.surface-navigation:has(+ .workspace[data-stage=review]){display:none}
+.send-body{display:grid;grid-template-columns:minmax(0,1fr) minmax(320px,380px);gap:26px;align-items:start;padding:22px clamp(16px,2vw,28px)}
+.send-deck{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;align-content:start}
+.send-slide{position:relative;min-width:0}
+.send-slide:first-child{grid-column:span 2;grid-row:span 2}
+.send-frame{position:relative;aspect-ratio:16/9;overflow:hidden;border-radius:6px;background:#fff;box-shadow:0 4px 14px #00133f26}
+.send-frame>.bespoke-slide{position:absolute;top:0;left:0;width:960px!important;max-width:none!important;min-height:540px;margin:0!important;box-shadow:none;transform:scale(var(--send-scale,.3));transform-origin:top left}
+.send-open{position:absolute;inset:0;width:100%;border:0;border-radius:6px;background:transparent;cursor:pointer}
+.send-open:hover{box-shadow:inset 0 0 0 3px var(--action)}
+.send-open:focus-visible{outline:3px solid var(--focus);outline-offset:3px}
+#showcase .editor-selected{outline:0!important;box-shadow:none!important}
+.send-panel{display:flex;flex-direction:column;gap:10px;min-width:0;padding:18px;border:1px solid var(--line);border-radius:12px;background:#fff}
+.send-kicker{margin:0;font-size:.75rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.send-heading{margin:0;font-size:1.6rem;font-weight:500;line-height:1.15;letter-spacing:-.02em}
+.send-heading b{font-weight:700}
+.send-heading:focus{outline:0}
+.send-heading:focus-visible{outline:3px solid var(--focus);outline-offset:4px}
+.send-rows{display:grid;grid-template-columns:auto 1fr;gap:6px 12px;margin:0;font-size:.875rem;line-height:1.4}
+.send-rows dt{color:var(--muted)}
+.send-rows dd{margin:0}
+.send-notes{display:flex;flex-direction:column;gap:6px;font-size:.875rem;font-weight:500}
+.send-notes textarea{min-height:64px;padding:8px;border:1px solid #8f9eaf;border-radius:6px;font-weight:400;resize:vertical}
+.send-actions{display:flex;flex-wrap:wrap;gap:8px;justify-content:flex-end}
+.send-actions .btn{min-height:44px}
+.send-feedback{margin:0;font-size:.875rem;text-align:right}
+.send-feedback:empty{display:none}
+.send-similarity{margin:0;font-size:.8125rem;line-height:1.5}
+.send-similarity .text-link{min-height:44px;padding:0 4px}
+.send-comparison{font-size:.79rem;line-height:1.5}
+.send-comparison h3{margin:12px 0 4px;font-size:.83rem}
+.send-fine{margin:0;font-size:.75rem;color:var(--muted)}
+.send-all>summary{display:flex;align-items:center;min-height:44px;font-size:.875rem;font-weight:500;color:var(--blue)}
+.send-all-body{padding-top:8px;font-size:.875rem}
+.send-all-body .review-role dl{display:grid;grid-template-columns:auto 1fr;gap:4px 10px}
+.send-all-body .review-role dd{margin:0}
+@media(min-width:1101px){
+ .send-panel{position:sticky;top:calc(var(--bar-h) + 16px);max-height:calc(100dvh - var(--bar-h) - 32px);overflow:auto}
+}
+@media(max-width:1100px){
+ .send-body{grid-template-columns:minmax(0,1fr)}
+}
+@media(max-width:760px){
+ .send-body{padding:16px}
+ .send-deck{grid-template-columns:repeat(2,minmax(0,1fr))}
+}

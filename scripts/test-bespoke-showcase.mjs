@@ -566,6 +566,97 @@ try {
     await context.close();
     pass('Sample text shows the lesson name until the team types');
   }
+  {
+    const {context, page} = await open(1440, 900);
+    await makeItOurs(page, 'professional');
+    await page.locator('#modelStage .slide-title-text').click();
+    await chooseColor(page, 'Gold');
+    await page.locator('#stage-review').click();
+    assert.equal(await page.locator('#sendDeck .bespoke-slide').count(), 5, 'the deck shows the five slides');
+    assert.equal(await textOf(page, '#sendHeading'), 'Paper & berry, made yours');
+    assert.equal(await textOf(page, '#sendLook'), 'Paper & berry, ' + catalog.presets.find(p => p.id === 'professional').label + ' layout');
+    assert.match(await textOf(page, '#sendFonts'), /^.+ headings with .+ text$/);
+    assert.equal(await textOf(page, '#sendChanges'), 'Title text in Gold · Divider heading in Gold');
+    assert.equal(await page.locator('#showcase .editor-selected').count(), 0, 'the editing outline never shows on Send');
+    assert.match(await textOf(page, '#sendSimilarity'), /^Shares \d+ of \d+ choices with the released lessons/);
+    assert.equal(await page.getByLabel('Anything Britt should know?').count(), 1, 'the notes field has the new label');
+    assert.ok((await textOf(page, '#sendPanel')).includes('This is a suggestion. Britt and the program administrator choose the final design.'));
+    assert.equal(await page.locator('#allSettings').evaluate(el => el.tagName === 'DETAILS' && !el.open), true, 'See every setting starts closed');
+    assert.equal(await textOf(page, '#allSettings > summary'), 'See every setting');
+    assert.equal(await page.locator('#allSettings #effectiveDesignSummary').count(), 1, 'the full review sits inside See every setting');
+    for (const hidden of ['#chromeRail', '#previewPane', '.similarity'])
+      assert.equal(await page.locator(hidden).isVisible(), false, `${hidden} is not shown on Send`);
+    const compare = page.locator('#sendSimilarity button');
+    assert.equal(await textOf(page, '#sendSimilarity button'), 'See the comparison');
+    assert.equal(await page.locator('#sendComparison').isVisible(), false, 'the comparison starts closed');
+    await compare.click();
+    assert.equal(await compare.getAttribute('aria-expanded'), 'true');
+    assert.match(await page.locator('#sendComparison').textContent(), /not a perceptual percentage/);
+    assert.equal(await page.locator('#sendComparison li').count(), 6, 'the comparison lists the six released lessons');
+    await context.close();
+    pass('send shows the deck and a plain summary');
+  }
+  {
+    const {context, page} = await open(1280, 800);
+    await page.locator('#stage-review').click();
+    const box = await rect(page, '#btnSendSave');
+    assert.equal(await page.evaluate(() => scrollY), 0, 'Send opens at the top');
+    assert.ok(box.top >= 0 && box.bottom <= 800, `Save sits in the window without scrolling, top ${box.top}, bottom ${box.bottom}`);
+    assert.ok(box.height >= 44, 'Save is at least 44px tall');
+    assert.equal(await textOf(page, '#btnSendSave'), 'Save test design', 'the local preview keeps its local label');
+    assert.equal(await page.locator('#btnSendToBritt').isVisible(), false, 'the local preview cannot send');
+    await page.evaluate(() => {
+      window.stripShown = 0;
+      new MutationObserver(() => { if (!document.getElementById('fileStatus').hidden) window.stripShown++; })
+        .observe(document.getElementById('fileStatus'), {attributes: true, childList: true, characterData: true, subtree: true});
+    });
+    await page.locator('#btnSendSave').click();
+    await page.locator('#sendFeedback').filter({hasText: /Local test design saved|already up to date/}).waitFor({timeout: 4000});
+    assert.equal(await page.locator('#fileStatus').isVisible(), false, 'save feedback stays out of the page-top strip');
+    assert.equal(await page.evaluate(() => window.stripShown), 0, 'the strip never showed during the save');
+    assert.equal(await page.locator('#sendPanel #sendFeedback').count(), 1, 'feedback sits in the summary panel');
+    await context.close();
+    pass('send actions stay in view');
+  }
+  {
+    const {context, page} = await open(1440, 900);
+    await page.locator('#stage-review').click();
+    await page.locator('#sendDeck .send-open').nth(2).click();
+    assert.equal(await page.locator('#workspace').getAttribute('data-stage'), 'slides');
+    assert.equal(await textOf(page, '#previewName'), 'Text boxes');
+    await context.close();
+    pass('clicking a deck slide opens it');
+  }
+  {
+    const {context, page} = await open(1440, 900);
+    await makeItOurs(page, 'fun');
+    await page.evaluate(() => {
+      const draft = JSON.parse(localStorage.getItem('bespoke-draft-v2'));
+      delete draft.appliedLook;
+      localStorage.setItem('bespoke-draft-v2', JSON.stringify(draft));
+    });
+    await page.reload();
+    await page.locator('#localPreviewNotice').waitFor({state: 'visible'});
+    await page.locator('#stage-review').click();
+    assert.equal(await textOf(page, '#sendHeading'), 'Your design');
+    assert.equal(await page.locator('#sendChanges').count(), 0, 'no changes row for an unknown look');
+    await context.close();
+    pass('unknown look on Send');
+  }
+  {
+    const context = await browser.newContext({viewport: {width: 1440, height: 900}, reducedMotion: 'reduce'});
+    await context.addInitScript(() => { window.__bespokeAutosave = {enabled: false}; });
+    const page = await context.newPage();
+    page.on('pageerror', e => errors.push(e.message));
+    await page.goto(`${server.baseUrl}/bespoke/#view=money-management.${LOCAL_PREVIEW_VIEW_CODE}`);
+    await page.locator('body[data-access=view]').waitFor();
+    await page.locator('#stage-review').click();
+    for (const id of ['#btnSendSave', '#btnSendToBritt', '#reviewNotes'])
+      assert.equal(await page.locator(id).isDisabled(), true, `${id} is locked in a view-only session`);
+    assert.equal(await page.locator('#sendDeck .send-open').first().isDisabled(), false, 'viewers can still open a slide');
+    await context.close();
+    pass('view-only sessions cannot save or send from Send');
+  }
   assert.deepEqual(errors, []);
 } finally {
   await browser.close();

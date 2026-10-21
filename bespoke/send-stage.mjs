@@ -1,0 +1,171 @@
+/**
+ * Send: the team's five slides on one sheet beside a summary panel with the two actions.
+ * Talks to the builder only through its SendHost. Designs from the host are never changed here.
+ */
+const CANVAS = 960;
+const DECK = [['title', 'Title slide'], ['divider', 'Chapter divider'], ['cards', 'Text boxes'], ['video', 'Video slide'], ['activity', 'Activity']];
+const MAX_CHANGES = 3;
+export const SMALL_PRINT = 'This is a suggestion. Britt and the program administrator choose the final design.';
+// Disclosure states outlive a redraw within this page.
+let comparisonOpen = false;
+let settingsOpen = false;
+
+const make = (tag, cls, text) => {
+  const node = document.createElement(tag);
+  if (cls) node.className = cls;
+  if (text !== undefined) node.textContent = text;
+  return node;
+};
+
+function button(id, cls, text, onClick) {
+  const node = make('button', cls, text);
+  node.type = 'button';
+  if (id) node.id = id;
+  node.onclick = onClick;
+  return node;
+}
+
+/** "A · B · C", then "and N more" past three. */
+export function changesText(changes) {
+  const shown = changes.slice(0, MAX_CHANGES), more = changes.length - shown.length;
+  return shown.join(' · ') + (more ? ` and ${more} more` : '');
+}
+
+// Each render is drawn at one size and scaled to its box, so every slide keeps its real layout.
+const sizer = new ResizeObserver(entries => {
+  for (const { target, contentRect } of entries) target.style.setProperty('--send-scale', String(contentRect.width / CANVAS));
+});
+const forget = root => root.querySelectorAll('.send-frame').forEach(node => sizer.unobserve(node));
+
+function deckSlide(host, design, [kind, label]) {
+  const item = make('div', 'send-slide');
+  item.dataset.kind = kind;
+  const frame = make('div', 'send-frame');
+  frame.innerHTML = host.Model.renderSlide(host.catalog, design, kind, host.options(design));
+  frame.inert = true;
+  frame.setAttribute('aria-hidden', 'true');
+  sizer.observe(frame);
+  // One button covers the render, so the whole slide opens it and the render keeps no controls of its own.
+  const open = button('', 'send-open', '', () => host.openKind(kind));
+  open.setAttribute('aria-label', `Open the ${label} in Make it yours`);
+  item.append(frame, open);
+  return item;
+}
+
+function buildDeck(host) {
+  const deck = make('div', 'send-deck');
+  deck.id = 'sendDeck';
+  deck.setAttribute('role', 'group');
+  deck.setAttribute('aria-label', 'Your five slides');
+  const design = host.design();
+  deck.append(...DECK.map(entry => deckSlide(host, design, entry)));
+  return deck;
+}
+
+function buildHeading(look) {
+  const heading = make('h1', 'send-heading');
+  heading.id = 'sendHeading';
+  heading.tabIndex = -1;
+  if (!look) heading.textContent = 'Your design';
+  else heading.append(make('b', '', look.name), ', made yours');
+  return heading;
+}
+
+// The team's shared fonts, which may differ from the starting look's.
+export function fontsText(catalog, design) {
+  const label = id => catalog.fonts.find(font => font.id === id)?.label ?? id;
+  return `${label(design.fonts.heading)} headings with ${label(design.fonts.body)} text`;
+}
+
+function summaryRows(host, look) {
+  const list = make('dl', 'send-rows');
+  const changes = look ? host.changes() : [];
+  const rows = [
+    look && ['sendLook', 'Look', `${look.name}, ${look.layout}`],
+    ['sendFonts', 'Fonts', fontsText(host.catalog, host.design())],
+    changes.length && ['sendChanges', 'Your changes', changesText(changes)]
+  ].filter(Boolean);
+  for (const [id, term, value] of rows) {
+    const dd = make('dd', '', value);
+    dd.id = id;
+    list.append(make('dt', '', term), dd);
+  }
+  return list;
+}
+
+function buildNotes(host) {
+  const label = make('label', 'send-notes', 'Anything Britt should know?');
+  label.append(host.notesField());
+  return label;
+}
+
+function buildActions(host) {
+  const actions = make('div', 'send-actions');
+  const save = button('btnSendSave', 'btn btn-secondary', host.localPreview ? 'Save test design' : 'Save for the team', () => host.save());
+  const send = button('btnSendToBritt', 'btn btn-primary', 'Send to Britt →', () => host.send());
+  send.hidden = host.localPreview;
+  for (const action of [save, send]) action.disabled = !host.editable();
+  actions.append(save, send);
+  const feedback = make('p', 'send-feedback', host.feedback());
+  feedback.id = 'sendFeedback';
+  feedback.setAttribute('role', 'status');
+  return [actions, feedback];
+}
+
+function buildSimilarity(host) {
+  const line = make('p', 'send-similarity');
+  line.id = 'sendSimilarity';
+  const result = host.similarity();
+  if (!result) {
+    line.textContent = 'Reference comparison unavailable';
+    return [line];
+  }
+  const details = make('div', 'send-comparison');
+  details.id = 'sendComparison';
+  details.hidden = !comparisonOpen;
+  host.fillSimilarityDetails(details);
+  const toggle = button('', 'text-link', 'See the comparison', () => {
+    comparisonOpen = !comparisonOpen;
+    details.hidden = !comparisonOpen;
+    toggle.setAttribute('aria-expanded', String(comparisonOpen));
+  });
+  toggle.setAttribute('aria-expanded', String(comparisonOpen));
+  toggle.setAttribute('aria-controls', details.id);
+  line.append(`Shares ${result.shared} of ${result.total} choices with the released lessons `, toggle);
+  return [line, details];
+}
+
+function buildAllSettings(host) {
+  const all = make('details', 'send-all');
+  all.id = 'allSettings';
+  all.open = settingsOpen;
+  all.append(make('summary', '', 'See every setting'));
+  const body = make('div', 'send-all-body');
+  all.append(body);
+  host.fillAllSettings(body);
+  all.addEventListener('toggle', () => { if (all.isConnected) settingsOpen = all.open; });
+  return all;
+}
+
+function buildPanel(host) {
+  const panel = make('aside', 'send-panel');
+  panel.id = 'sendPanel';
+  panel.setAttribute('aria-labelledby', 'sendHeading');
+  const look = host.look();
+  panel.append(make('p', 'send-kicker', 'Your suggestion'), buildHeading(look), summaryRows(host, look), buildNotes(host),
+    ...buildActions(host), ...buildSimilarity(host), make('p', 'send-fine', SMALL_PRINT), buildAllSettings(host));
+  return panel;
+}
+
+/** Draws Send into root. Redrawing replaces everything inside root. */
+export function renderSendStage(root, host) {
+  const body = make('div', 'send-body');
+  body.append(buildDeck(host), buildPanel(host));
+  forget(root);
+  root.replaceChildren(body);
+}
+
+/** Forgets the deck renders when the team leaves Send. */
+export function closeSendStage(root) {
+  forget(root);
+}

@@ -36,7 +36,8 @@ async function pageFor(view) {
   if(view.textScale)await page.addStyleTag({content:`html{font-size:${view.textScale*100}%!important}`});
   await page.evaluate(()=>document.fonts.ready);return page;
 }
-async function surface(page,name) {if(name==='preview'&&['team','start'].includes(await page.locator('#workspace').getAttribute('data-stage')))await page.locator('#stage-slides').click();if(await page.locator('#surface-'+name).isVisible())await page.locator('#surface-'+name).click();}
+// Lesson & team, Pick a look and Send show no editing preview; it lives on Make it yours.
+async function surface(page,name) {if(name==='preview'&&['team','start','review'].includes(await page.locator('#workspace').getAttribute('data-stage')))await page.locator('#stage-slides').click();if(await page.locator('#surface-'+name).isVisible())await page.locator('#surface-'+name).click();}
 function longDesign() {
   const d=defaultDesign(catalog);d.background='crosshatch';
   d.samples.title='A useful next step '.repeat(12).slice(0,catalog.sampleLimits.title);d.samples.subtitle='Long sample copy remains available and readable. '.repeat(15).slice(0,catalog.sampleLimits.subtitle);

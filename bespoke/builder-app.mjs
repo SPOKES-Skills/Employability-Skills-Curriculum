@@ -239,6 +239,7 @@ const findOption=(family,slug)=>state.library?.families?.[family]?.options.find(
     byId("btnLoadLatest")?.toggleAttribute("hidden", !ui.cloudConflict);
     byId("btnKeepLocal")?.toggleAttribute("hidden", !ui.cloudConflict);
     byId("btnCheckStatus")?.toggleAttribute("hidden", !pendingSubmission());
+    refreshNoteButton();
   }
 
   function peekDraft() {
@@ -396,9 +397,18 @@ const findOption=(family,slug)=>state.library?.families?.[family]?.options.find(
     const el = onStage("review") ? byId("sendFeedback") : null;
     ui.sendFeedback = el ? message : "";
     if (el) el.textContent = message;
-    const noteButton = byId("btnSendNote");
-    if (noteButton) noteButton.disabled = !noteReady(byId("sentNote").value);
     return Boolean(el);
+  }
+
+  // Every save, send or open that starts or ends re-checks the follow-up note button, automatic saves included.
+  function setHandoffBusy(value) {
+    handoffBusy = value;
+    refreshNoteButton();
+  }
+
+  function refreshNoteButton() {
+    const button = byId("btnSendNote");
+    if (button) button.disabled = !noteReady(byId("sentNote").value);
   }
 
   // Good news shows as a short toast in view. It clears older messages in the strip and beside the Send buttons.
@@ -736,7 +746,7 @@ const findOption=(family,slug)=>state.library?.families?.[family]?.options.find(
     const session = requireTeamSession();
     if (!session || handoffBusy) return false;
     const generation = draftGeneration, openingKey = currentSelectionKey();
-    handoffBusy = true;
+    setHandoffBusy(true);
     ui.cloudBusy = true;
     if (announce) fileNotice("Checking the latest shared design…");
     try {
@@ -797,7 +807,7 @@ const findOption=(family,slug)=>state.library?.families?.[family]?.options.find(
       else clearStrip();
       return true;
     } finally {
-      handoffBusy = false;
+      setHandoffBusy(false);
       ui.cloudBusy = false;
       updateCloudChrome();
     }
@@ -837,7 +847,7 @@ const findOption=(family,slug)=>state.library?.families?.[family]?.options.find(
     }
     clearTimeout(autosaveTimer);
     autosaveTimer = null;
-    handoffBusy = true;
+    setHandoffBusy(true);
     if (auto) setSaveStatus("Saving to the shared design…");
     else if (!sendFeedback(SAVING_NOTICE)) fileNotice(SAVING_NOTICE);
     try {
@@ -899,7 +909,7 @@ const findOption=(family,slug)=>state.library?.families?.[family]?.options.find(
         }
       }
     } finally {
-      handoffBusy = false;
+      setHandoffBusy(false);
       // A save that ends without a message of its own must not leave "Saving…" beside the buttons.
       if (ui.sendFeedback === SAVING_NOTICE) sendFeedback("");
       updateCloudChrome();
@@ -1000,7 +1010,7 @@ const findOption=(family,slug)=>state.library?.families?.[family]?.options.find(
       designKey: designKey(state.design)
     };
     storePendingSubmission(pending);
-    handoffBusy = true;
+    setHandoffBusy(true);
     pendingNotice("Requesting Britt’s review…");
     try {
       const result = await handoffRequest("send", pending);
@@ -1027,7 +1037,7 @@ const findOption=(family,slug)=>state.library?.families?.[family]?.options.find(
         scheduleSubmissionPoll(receipt, 5000);
       }
     } finally {
-      handoffBusy = false;
+      setHandoffBusy(false);
     }
   }
 
@@ -1078,7 +1088,7 @@ const findOption=(family,slug)=>state.library?.families?.[family]?.options.find(
       if (err) err.textContent = "Enter the 8-character team code from your team's OneDrive folder.";
       return;
     }
-    handoffBusy = true;
+    setHandoffBusy(true);
     ui.cloudBusy = true;
     if (err) err.textContent = "Checking private team access…";
     try {
@@ -1132,7 +1142,7 @@ const findOption=(family,slug)=>state.library?.families?.[family]?.options.find(
       if(result.selection)successNotice("Opened the latest shared design.");
       else clearStrip();
     } finally {
-      handoffBusy = false;
+      setHandoffBusy(false);
       ui.cloudBusy = false;
       updateCloudChrome();
     }

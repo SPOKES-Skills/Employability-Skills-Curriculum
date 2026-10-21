@@ -17,8 +17,9 @@ const selection={schema:'bespoke-selection/v2',date:'2026-10-07',lesson:{id:'mon
 const server=await createDevServer({port:0}),browser=await browserType.launch({headless:true});
 const context=await browser.newContext(),errors=[],receipt=submissionId(selection),url='https://github.com/doclegg05/Curriculum-Employability-Skills/pull/123',artifactUrl='https://github.com/doclegg05/Curriculum-Employability-Skills/blob/'+('a'.repeat(40))+'/docs/phase-2/submissions/money-management/'+receipt+'/review.html';
 // A follow-up note is a new save and a new send; its receipt and review request differ from the first.
-const noteReceipt='2026-10-07-'+'e'.repeat(16),noteUrl='https://github.com/doclegg05/Curriculum-Employability-Skills/pull/124';
-let ready=false,sends=0,saveConflict=false,holdSend=null,shared={revision:'b'.repeat(40),savedAt:'2026-10-07T16:00:00Z',selection};const calls=[],sentNotes=[];
+// Each note's receipt comes from its saved selection, as in the store.
+const noteUrl='https://github.com/doclegg05/Curriculum-Employability-Skills/pull/124',secondNoteUrl='https://github.com/doclegg05/Curriculum-Employability-Skills/pull/125';
+let ready=false,sends=0,noteSends=0,saveConflict=false,holdSave=null,holdSend=null,shared={revision:'b'.repeat(40),savedAt:'2026-10-07T16:00:00Z',selection};const calls=[],sentNotes=[];
 try{
  await context.addInitScript(()=>{window.__bespokeAutosave={enabled:false};if(!localStorage.getItem('bespoke-team-session-v2'))localStorage.setItem('bespoke-team-session-v2',JSON.stringify({lessonId:'money-management',editCode:'synthetic-review-test-access-code',revision:null,savedAt:null,baseSelectionKey:null,pendingSave:null}));});
  await context.route('**/*',async route=>{
@@ -28,10 +29,11 @@ try{
    const body=route.request().postDataJSON();let result;calls.push(body.action);
    if(body.action==='save'&&saveConflict)return route.fulfill({status:409,json:{ok:false,error:'conflict',message:'A newer design is saved.',revision:'d'.repeat(40),savedAt:'2026-10-07T18:00:00Z'}});
    // Like the store, open returns the latest save.
+   if(body.action==='save'&&holdSave)await holdSave;
    if(body.action==='save')result=shared={revision:'c'.repeat(40),savedAt:'2026-10-07T17:00:00Z',selection:body.selection};
    else if(body.action==='open')result=shared;
    else if(body.action==='send'){sends++;assert.deepEqual(body.selection.design,selection.design);assert.deepEqual(body.selection.alternatives,selection.alternatives);assert(!JSON.stringify(body.selection).includes('access-code'));sentNotes.push(body.selection.unspoken);if(holdSend)await holdSend;
-    const note=Boolean(body.selection.unspoken);result={status:ready?'received':'processing',submissionId:note?noteReceipt:receipt,runId:12,url:note?noteUrl:url,artifactUrl,revision:'a'.repeat(40)};}
+    const note=Boolean(body.selection.unspoken);result={status:ready?'received':'processing',submissionId:note?submissionId(shared.selection):receipt,runId:12,url:note?[noteUrl,secondNoteUrl][noteSends++]:url,artifactUrl,revision:'a'.repeat(40)};}
    else if(body.action==='status')result={status:ready?'received':'processing',submissionId:receipt,runId:12,url,artifactUrl,revision:'a'.repeat(40)};
    else throw new Error('Unexpected synthetic action: '+body.action);
    return route.fulfill({json:{ok:true,...result}});
@@ -75,6 +77,7 @@ try{
  const note='Please keep the gold heading on the title slide.';
  await noteBox.fill(note);assert.equal(await noteButton.isDisabled(),false,'a changed note can be sent');
  await noteBox.focus();await page.keyboard.press('Tab');assert.equal(await page.evaluate(()=>document.activeElement?.id),'btnSendNote','Tab moves from the note to its button');assert.equal(await noteButton.evaluate(b=>getComputedStyle(b).outlineStyle),'solid','the note button shows keyboard focus');
+ assert(!calls.includes('save'),'the earlier flows never save');
  let release;holdSend=new Promise(resolve=>{release=resolve;});calls.length=0;
  await noteButton.click();await noteLine.filter({hasText:'Sending to Britt…'}).waitFor();
  assert.equal(await noteButton.isDisabled(),true,'the button waits while the note is in flight');
@@ -83,7 +86,7 @@ try{
  assert.equal(await page.locator('#sentView').isVisible(),true,'the view stays Sent to Britt');
  assert.equal(await noteLine.textContent(),'Note sent.');assert.equal(await noteButton.isDisabled(),true,'the sent note is not sent twice');
  assert.equal(await page.locator('#toast').filter({hasText:'Sent to Britt.'}).count(),0,'on Send the view confirms, not a toast');
- assert.equal((await page.evaluate(()=>JSON.parse(localStorage.getItem('bespoke-team-session-v2')))).lastReceipt.submissionId,noteReceipt);
+ assert.equal((await page.evaluate(()=>JSON.parse(localStorage.getItem('bespoke-team-session-v2')))).lastReceipt.submissionId,submissionId(shared.selection),'the receipt is the saved note');
  await page.reload();await page.locator('#lastReviewReceipt').waitFor({state:'attached'});await sentView();
  assert.equal(await noteBox.inputValue(),note,'after a reload the box shows the note already sent');assert.equal(await noteButton.isDisabled(),true);
  // A save conflict stops before Send: the message shows beside the button and in the strip, and the note is kept.
@@ -93,6 +96,18 @@ try{
  assert.equal(await noteBox.inputValue(),note+' Thank you.','the note text is kept');assert.deepEqual(calls,['save'],'a failed save does not send');
  saveConflict=false;assert.deepEqual(errors,[]);
  console.log('PASS a follow-up note saves then sends, keeps the Sent to Britt view and stops on a save conflict');
+ // With autosave on, a save already in flight disables the note button; when it ends the button returns and the note goes out.
+ await noteBox.fill(note);await context.addInitScript(()=>{window.__bespokeAutosave={enabled:true,idleMs:300};});
+ await page.reload();await page.locator('#lastReviewReceipt').waitFor({state:'attached'});await sentView();
+ let releaseSave;holdSave=new Promise(resolve=>{releaseSave=resolve;});calls.length=0;
+ const followUp=note+' And the berry divider, please.';await noteBox.fill(followUp);
+ for(const start=Date.now();!calls.includes('save');await page.waitForTimeout(50))assert.ok(Date.now()-start<5000,'autosave starts a save');
+ assert.equal(await noteButton.isDisabled(),true,'the note button waits while an automatic save is in flight');
+ releaseSave();holdSave=null;await page.waitForFunction(()=>document.getElementById('btnSendNote')?.disabled===false);
+ calls.length=0;await noteButton.click();await page.locator(`#sentDetails a[href="${secondNoteUrl}"]`).waitFor({state:'attached'});
+ assert.deepEqual(calls,['save','send'],'after the automatic save the note saves, then sends');assert.equal(sentNotes.at(-1),followUp);
+ assert.equal(await noteLine.textContent(),'Note sent.');assert.deepEqual(errors,[]);
+ console.log('PASS an automatic save in flight holds the note button, which returns and sends when it ends');
  await page.locator('#stage-slides').click();await page.locator('#modelStage .slide-title-text').click();
  await page.locator('#context-color-well').click();await page.locator('#context-color-popover [role=radio][aria-checked=false]').first().click();
  await page.locator('#stage-review').click();await page.locator('#sentChangedNote').waitFor();

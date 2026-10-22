@@ -129,7 +129,7 @@ Every BeSpoke design needs Britt's final approval before it is used in a lesson 
 
 ### Converting saved designs
 
-Map each removed value to its nearest compliant one: textures to Plain, a third typeface to the closer of the design's heading and body fonts. Show the team which choices changed, and keep the original in every backup.
+Map each removed value to its nearest compliant one: textures to Plain, a third typeface to the closer of the design's heading and body fonts. Show the team which choices changed. The earlier revision stays in the shared History, so the original can be reopened (Claude's call while planning Part 1; the conversion does not store a second copy).
 
 Remove values in two steps. In Part 1 the controls stop offering them, the page converts them on open, and the schema, the service and `scripts/bespoke_design.py` keep accepting them. Sent proposals still confirm, approved designs not yet built can still be built, and the live page keeps saving while a new service is deployed ahead of its pull request. Narrowing the schema is a later change, made only after Britt confirms no sent or approved design still uses a removed value.
 

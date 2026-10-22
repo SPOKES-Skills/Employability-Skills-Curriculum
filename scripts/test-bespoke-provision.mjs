@@ -7,19 +7,21 @@ import { createHash } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { provision, provisionViewLinks, reissue } from './bespoke-provision.mjs';
-import { CODE_ALPHABET, hashAccessCode, newAccessCode } from '../netlify/functions/_shared/access-code.mjs';
 import { hashViewCode } from '../netlify/functions/bespoke-handoff.mjs';
+import { CODE_ALPHABET, hashAccessCode, newAccessCode } from '../netlify/functions/_shared/access-code.mjs';
+
+function assertTeamLinksWording(page) {
+  assert.match(page, /Put each code only in its own team's OneDrive folder, never this page\./);
+  assert.match(page, /Each code, and the link that carries it, grants editing access\./);
+  assert.match(page, /Pin the team view link in the channel, not this one\./);
+  assert.doesNotMatch(page, /pin it in their Teams channel/i, 'the old instruction to pin edit links is gone');
+}
 
 const wizardUrl = 'https://example.test/bespoke/';
 const CODE = /^[A-HJKMNP-Z2-9]{4}-[A-HJKMNP-Z2-9]{4}$/;
 const LESSONS = ['goal-setting', 'money-management', 'professionalism-and-diversity', 'knowing-your-rights', 'communicating-assertively', 'workplace-ethics'];
 const readJson = (dir, name) => JSON.parse(fs.readFileSync(path.join(dir, name), 'utf8'));
 const mode = file => fs.statSync(file).mode & 0o777;
-function assertTeamLinksWording(page) {
-  assert.match(page, /Put each code only in its own team's OneDrive folder, never this page\./);
-  assert.match(page, /grants editing access\./);
-  assert.doesNotMatch(page, /pin it in their Teams channel/i, 'the old instruction to pin edit links is gone');
-}
 function withTmp(callback) {
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'bespoke-provision-'));
   try { return callback(tmp); } finally { fs.rmSync(tmp, { recursive: true, force: true }); }
@@ -138,7 +140,7 @@ test('a repository path typed in another case is refused before anything is writ
   if (upper === root || !fs.existsSync(upper)) return t.skip('the file system is case-sensitive');
   const wizardUrl = 'https://example.test/bespoke/';
   const scripts = path.join(root, 'scripts');
-  const written = () => [root, scripts].flatMap(dir => [...TEAM_FILES, ...VIEW_FILES, 'team-env.json'].filter(name => fs.existsSync(path.join(dir, name))).map(name => path.join(dir, name)));
+  const written = () => [root, scripts].flatMap(dir => [...TEAM_FILES, 'team-env.json', ...VIEW_FILES].filter(name => fs.existsSync(path.join(dir, name))).map(name => path.join(dir, name)));
   assert.deepEqual(written(), [], 'precondition: no provisioning files in the checkout');
   // Only places where even a build that missed the case change cannot write: two existing directories, and a path under a file.
   for (const output of [upper, path.join(upper, 'SCRIPTS'), path.join(upper, 'SCRIPTS', 'TEST-BESPOKE-PROVISION.MJS', 'private')]) {
@@ -179,6 +181,7 @@ test('reissuing all six writes a fresh team table and never the encryption key',
     assert.equal(hashes[lesson], hashAccessCode(item.code));
     assert.equal(new URL(item.url).hash, `#team=${lesson}.${item.code}`);
   }
+  assertTeamLinksWording(fs.readFileSync(path.join(output, 'team-links.html'), 'utf8'));
   assert.equal(fs.existsSync(path.join(output, 'server-env.json')), false);
   if (process.platform !== 'win32') {
     assert.equal(mode(output), 0o700);

@@ -53,18 +53,21 @@ the review proposal private; never include credentials in selection content.
 ## Provision private team access
 
 Access is assigned by Britt or an administrator before teams begin. Each of the
-six planned lessons gets its own random access code and private link. A code is
-8 characters in two groups of four, like `K7QX-M3PD`, with no 0, O, 1, I or L. There is no
-public first-come claim of a lesson and no teacher-chosen four-character code.
-Anyone with a team's code or link can use that team's design, so share it only in
-that team's private OneDrive folder or another approved private location.
+six planned lessons gets two private links, each with its own random code. A team
+code is 8 characters in two groups of four, like `K7QX-M3PD`, with no 0, O, 1, I or L:
 
-Each team can also have a team view link. It opens the team's latest saved design
-read-only. Pin this link in the team's private Teams channel.
+- The team link, and the code it carries, opens, changes, saves and sends the
+  team's design. Put the code only in that team's private OneDrive folder. The one
+  person who builds the design types it in **Open your team design**.
+- The team view link opens the team's latest saved design read-only. Pin this
+  link in the team's private Teams channel.
 
-Run the first provisioning command once. It creates the access files and the six
-team links. A second command adds the view links, as
-[Add team view links](#add-team-view-links) describes.
+There is no public first-come claim of a lesson and no teacher-chosen
+four-character code. Anyone with a team's code or link can change that team's
+design, so never pin it or share it beyond that team's private OneDrive folder.
+
+The first provisioning command creates the team links and codes. A second command adds
+the view links, as [Add team view links](#add-team-view-links) describes.
 
 ```sh
 node scripts/bespoke-provision.mjs \
@@ -93,8 +96,10 @@ access on shared computers with the same care as the original link.
 
 Put each team's code in that team's private OneDrive folder, and only that team's
 code. Never put `team-links.html` or `team-access.json` there: they hold all six
-codes. A teacher on another computer types the code in Open team design. Ask teams
-to keep one person operating BeSpoke during each meeting.
+codes. A teacher on another computer types the code in Open team design. Pin the
+team view link, never the team link or code, in each team's Teams channel. Ask
+teams to keep one person, the builder, operating BeSpoke during each meeting.
+
 ### Add team view links
 
 Run this once, against the private directory that already holds `team-access.json`:
@@ -174,9 +179,10 @@ Service variables. The first three are required.
 The provisioner supplies the encryption key and team-key map in `server-env.json`,
 and the view-key map in `view-env.json`. After a reissue, the current team-key map
 is in `team-env.json` instead; see [Reissue team codes](#reissue-team-codes).
-The teacher links are in `team-links.html` and the team view links are in
-`view-links.html`. `team-access.json` and `view-access.json` are private
-administrator recovery material. Only access-code hashes go into `BESPOKE_TEAM_KEYS`; keep the original private links outside the
+The team links and codes are in `team-links.html` and the team view links are in
+`view-links.html`.
+`team-access.json` and `view-access.json` are private administrator recovery
+material. Only access-code hashes go into `BESPOKE_TEAM_KEYS`; keep the original private links outside the
 service configuration. Keep a secure backup of `BESPOKE_DRAFT_KEY`: losing it
 makes the stored designs unreadable.
 
@@ -283,7 +289,8 @@ Each run writes `team-env.json`, `team-access.json` and `team-links.html`. It
 first moves the files it replaces into a `previous-<UTC date and time>` folder.
 The old codes stay live until the service is redeployed, so keep that folder
 until the deploy is done. The command never reads or writes `server-env.json`
-or `BESPOKE_DRAFT_KEY`, so every saved design stays readable.
+or `BESPOKE_DRAFT_KEY`, so every saved design stays readable. It never touches the
+`view-*` files, so team view links keep working.
 
 Then:
 

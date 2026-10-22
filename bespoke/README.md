@@ -183,9 +183,9 @@ may have no exact equivalent; chapter-specific styling remains in that original
 backup. Review conversion and readability notes before saving the new design. The
 original wizard remains at `bespoke/legacy.html`; its storage keys are separate.
 
-For the deployed workflow, each team has two private links. The team link and its
-code grant real edit access and stay in the team's private OneDrive folder. The team view
-link is pinned in the team's channel and always opens the latest saved design
+For the deployed workflow, each team has a private team code and a team view link.
+The code, kept in the team's OneDrive folder, grants real edit access; the one
+builder types it in **Open your team design**. The team view link is pinned in the team's channel and always opens the latest saved design
 read-only. It leaves out the Team Leader's email, the review notes and any older
 wizard design kept for recovery. **Leave session** removes
 remembered access and local drafts, not shared work. A snapshot link made by the

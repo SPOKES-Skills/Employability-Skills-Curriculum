@@ -728,7 +728,7 @@ try {
       if (process.env.T8_DEBUG) console.log(moment, JSON.stringify(seen.slice(before)));
       before = seen.length;
     });
-    assert.ok(durations['an apply'].length > 0, 'an apply produces at least one animation');
+    assert.ok(durations['an apply'].length > 0, `an apply produces at least one animation, saw ${JSON.stringify(durations)} around ${JSON.stringify(await page.evaluate(() => window.__tourNotes))}`);
     for (const duration of Object.values(durations).flat()) assert.ok([200, 1000, 180, 400].includes(duration), `motion uses the set durations, saw ${duration}ms in ${JSON.stringify(durations)}`);
     assert.deepEqual(durations['a hover preview'], [200], 'the stage cross-fades in 200ms on a preview');
     assert.ok(durations['an apply'].includes(200), `the stage cross-fades in 200ms on an apply, saw ${durations['an apply']}`);

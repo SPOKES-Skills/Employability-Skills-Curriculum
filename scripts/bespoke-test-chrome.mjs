@@ -89,7 +89,11 @@ export async function motionTour(page, check) {
   await page.locator('#preset-horizon').hover();
   await check('a hover preview');
   // A click that does not move the pointer, as on a touch screen, so the apply itself swaps the stage.
+  const lookState = () => page.evaluate(() => [document.querySelector('#lookStageHeading')?.textContent, document.querySelector('#lookName')?.textContent, document.querySelector('.look-leaving') ? 'leaving' : 'no-layer']);
+  const beforeApply = await lookState();
   await page.locator('#preset-professional').dispatchEvent('click');
+  await page.evaluate(state => { window.__tourNotes = {beforeApply: state}; }, beforeApply);
+  await page.evaluate(async () => { window.__tourNotes.afterApply = [document.querySelector('#lookStageHeading')?.textContent, document.querySelector('#lookName')?.textContent, document.querySelector('.look-leaving') ? 'leaving' : 'no-layer']; });
   await check('an apply');
   await page.locator('#btnMakeItOurs').click();
   await page.locator('#workspace[data-stage=slides]').waitFor();

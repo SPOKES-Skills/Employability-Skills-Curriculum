@@ -6,7 +6,7 @@ Date: 2026-10-22. Owner: Britt. Branch: `claude/bespoke-open-standard`, cut from
 
 The open design standard fixes three things in every lesson: the 11 brand colors, the SPOKES logo and readability. Everything else is open, and lessons should look clearly different from one another. Its spec is `docs/superpowers/specs/2026-10-22-open-design-standard-design.md` on branch `standard/open-design-variety` (worktree `.claude/worktrees/open-design-standard`). That spec lists "Changing BeSpoke" as a non-goal. Britt reversed that on 2026-10-22 and asked that BeSpoke follow the same design.
 
-BeSpoke falls short in two directions. It still offers options the standard rules out (texture backgrounds, gradients, more than two typefaces). It also offers much less variety than the standard opens (four card looks, a left sidebar only).
+BeSpoke falls short in two directions. It still offers options the standard rules out (texture backgrounds and more than two typefaces). It also offers much less variety than the standard opens (four card looks, a left sidebar only).
 
 Britt also wants lessons to feel premium. To her that means smooth transitions and animation, images and video that are well made and sharp, and slides that assemble themselves in a timed sequence ("Transformer style decks that reveal in a timed loadout"). None of this may slow the GitHub Pages site, so Britt capped images and video at 1080p.
 
@@ -68,6 +68,7 @@ Four parts, built in order, each with its own plan and pull request:
 8. Images and video top out at 1080p, for performance and simple hosting on GitHub Pages. No 4K.
 9. BeSpoke does not gate readability. Pickers hide and lock nothing; a person completes the readability review.
 10. The loadout reading in Part 3 stands for now and may change after user review.
+11. Two-color gradients stay on title and divider slides.
 
 ## Variables
 
@@ -94,7 +95,7 @@ The big number or word option builds on the existing watermark and is listed in 
 
 ### Title and divider gradients
 
-Replace the Gradient option on title and divider slides (`slides.title.colors`, `slides.divider.colors`) with a two-tone split: the same two colors (`titleBackground` or `dividerBackground`, and `titleBackgroundEnd`) meeting at a hard edge, straight, diagonal or as a band. This is Claude's recommendation. The standard bans multi-color gradients used for effect, so a two-color gradient may pass; Britt decides (Open questions).
+Keep the Gradient option on title and divider slides (`slides.title.colors`, `slides.divider.colors`). Britt decided on 2026-10-22 that two-color gradients stay; CRD-02 bans multi-color gradients used for effect, and a gradient between two palette colors is not that. The two-tone split (the same two colors meeting at a hard edge) is added as an extra choice in Part 2, not as a replacement.
 
 ### Fonts
 
@@ -114,7 +115,7 @@ Keep the 12 looks as starting points. This is Claude's call: a look is where a t
 
 ### Converting saved designs
 
-Map each removed value to its nearest compliant one: textures to Plain, Gradient to the two-tone split, a third typeface to the closer of the design's heading and body fonts. Show the team which choices changed, and keep the original in every backup.
+Map each removed value to its nearest compliant one: textures to Plain, a third typeface to the closer of the design's heading and body fonts. Show the team which choices changed, and keep the original in every backup.
 
 Remove values in two steps. In Part 1 the controls stop offering them, the page converts them on open, and the schema, the service and `scripts/bespoke_design.py` keep accepting them. Sent proposals still confirm, approved designs not yet built can still be built, and the live page keeps saving while a new service is deployed ahead of its pull request. Narrowing the schema is a later change, made only after Britt confirms no sent or approved design still uses a removed value.
 
@@ -240,7 +241,6 @@ Lesson videos are served from GitHub Pages; the largest is 41 MB (`lesson-interv
 
 ## Calls Claude made
 
-- Two-tone split as the replacement for gradients.
 - The 12 looks stay as starting points.
 - Diagonal and Crosshatch count as texture filler along with Dot grid.
 - Budget numbers: 1.5 MB first slide, 400 KB per 1920-wide image, 50 MB per new file, 900 MB site.
@@ -258,13 +258,12 @@ Lesson videos are served from GitHub Pages; the largest is 41 MB (`lesson-interv
 
 ## Open questions for Britt
 
-1. **Two-color gradients.** Keep a two-color gradient on title and divider slides, or use only the two-tone split.
-2. **Ready-made looks.** Keep the 12 as starting points, or have a look set only layout and card shape while colors and fonts come from the team's design brief.
-3. **Approval wording.** The standard's own open question (every BeSpoke design needs Britt's approval, or only one that breaks a rule) decides how Send describes what happens next.
+1. **Ready-made looks.** Keep the 12 as starting points, or have a look set only layout and card shape while colors and fonts come from the team's design brief.
+2. **Approval wording.** The standard's own open question (every BeSpoke design needs Britt's approval, or only one that breaks a rule) decides how Send describes what happens next.
 
 ## Workflow
 
-1. **Answer.** Britt answers the open questions that block a part before that part is planned. Items 1 and 2 block Part 1.
+1. **Answer.** Britt answers the open questions that block a part before that part is planned. Item 1 blocks Part 1.
 2. **Plan.** Write `PLAN_<n>` for the next part with `superpowers:writing-plans`, and commit it before any implementation change for that part.
 3. **Build.** Test first. Run `GATE` after each task.
 4. **Stage.** For a part that changes a file the service bundles, Claude stages the service and Britt deploys it before the pull request merges.

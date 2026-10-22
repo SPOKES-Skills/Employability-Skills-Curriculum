@@ -208,8 +208,15 @@ try {
             const label = document.querySelector('#modelStage .slide-activity-label');
             const cs = label && getComputedStyle(label);
             const sample = document.querySelector('.guide-sample:hover');
+            const box = (el) => { const r = el?.getBoundingClientRect(); return r ? [Math.round(r.left), Math.round(r.top), Math.round(r.width), Math.round(r.height)] : null; };
+            const r = label?.getBoundingClientRect();
+            const top = r ? document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2) : null;
+            const clips = [];
+            for (let el = label?.parentElement; el && el !== document.body; el = el.parentElement) { const s = getComputedStyle(el); if (s.overflow !== 'visible') clips.push(`${el.className || el.id}:${s.overflow}:${box(el)}`); }
             return JSON.stringify({ active: document.activeElement?.id || document.activeElement?.className || document.activeElement?.tagName, hover: sample?.dataset.choice || null,
-              slide: document.querySelector('#modelStage .bespoke-slide')?.className, label: cs ? [cs.fontFamily, cs.fontSize, cs.textTransform, cs.display, label.getBoundingClientRect().height] : null });
+              slide: document.querySelector('#modelStage .bespoke-slide')?.className, label: cs ? [cs.fontFamily, cs.fontSize, cs.textTransform, cs.display, label.getBoundingClientRect().height] : null,
+              labelBox: box(label), stage: box(document.querySelector('#modelStage')), slideBox: box(label?.closest('.bespoke-slide')), view: innerHeight, scrollY,
+              topEl: top ? `${top.tagName}.${top.className}` : null, clips });
           });
           const beforeProbe = await probe();
           const before = await page.locator('#modelStage').screenshot();

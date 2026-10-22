@@ -97,6 +97,19 @@ try {
       await context.close();
     }
   });
+  await check('the compact band keeps two rows when a classic scrollbar takes 15px at 1024 (Ruling R21)', async () => {
+    // macOS overlay scrollbars hide this; on Linux and Windows the band loses the scrollbar's width.
+    const {context, page} = await open(1009, 768);
+    await page.locator('#stage-slides').click();
+    for (const [view, target] of [['title', '#modelStage .slide-title-text'], ['cards', '#modelStage .slide-card .slide-body']]) {
+      await page.locator(`#previewTabs [data-view=${view}]`).click();
+      await page.locator(target).first().click();
+      if (await page.locator('#workspace').getAttribute('data-options') !== 'true') await page.locator('#btnMoreOptions').click();
+      await settle(page);
+      assert.ok(await toolbarRows(page) <= 2, `1009x768, drawer open, ${view}: the toolbar takes at most two rows, got ${await toolbarRows(page)}`);
+    }
+    await context.close();
+  });
   await check('Make it yours draws the slide on the 960 canvas, shaped as on Send (Ruling R26)', async () => {
     for (const [width, height] of [[1280, 800], [1024, 768]]) {
       const {context, page} = await open(width, height);

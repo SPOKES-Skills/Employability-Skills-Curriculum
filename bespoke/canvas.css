@@ -114,6 +114,9 @@ body:has(.workspace[data-editor=true]) #btnMenuOptions{display:flex}
  /* Docked toolbar: in normal flow above the slide. When it needs more room it wraps and pushes the slide down. */
  .context-toolbar.is-docked{display:flex;flex-wrap:wrap;align-items:end;gap:8px 10px;margin:0;padding:8px 10px;border:1px solid var(--line);border-radius:var(--radius-dialog);background:#fff;box-shadow:0 4px 14px #00133f14}
  .context-toolbar.is-docked .toolbar-field{flex:0 0 auto;max-width:170px;color:var(--muted);font-size:var(--fs-2xs)}
+ /* Rows break on each item's base size, so dropdowns start from 130px and grow back to 170px. Fixed widths
+    fitted the compact band's two rows with 5px to spare, and a classic scrollbar (Linux, Windows) made three. */
+ .context-toolbar.is-docked label.toolbar-field:has(> select){flex:1 1 130px}
  /* builder.css orders .toolbar-copy last for the phone form; docked, DOM order is the visual order. */
  .context-toolbar.is-docked .toolbar-copy{flex:1 1 180px;order:0;max-width:260px;color:var(--muted);font-size:var(--fs-2xs)}
  .context-toolbar.is-docked .toolbar-copy textarea{height:60px;min-height:60px;padding:8px 10px;font-size:var(--fs-sm);line-height:1.35;resize:none}

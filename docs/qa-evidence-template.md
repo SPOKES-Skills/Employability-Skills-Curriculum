@@ -40,7 +40,6 @@ Evidence:
 - [ ] Canonical 11-color palette only
 - [ ] No off-palette hex values
 - [ ] Contrast + anti-clash rules pass
-- [ ] Color schema user approval recorded
 
 Evidence:
 

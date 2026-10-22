@@ -10,7 +10,7 @@
 
 - Strict fixed 11-color palette only -- no non-canonical hex values
 - Per-lesson color mixing allowed within the palette for visual differentiation
-- Each lesson's color schema requires explicit user approval before finalization
+- Builder-made lesson designs need no color sign-off; a BeSpoke design is used only after Britt approves it
 - Contrast and anti-clash guardrails defined in `brand-palette.md`
 
 ## Typography

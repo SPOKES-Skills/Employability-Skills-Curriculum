@@ -30,8 +30,7 @@ Use this checklist before merging or publishing any lesson.
 - [ ] Only canonical 11-color palette values used
 - [ ] No off-palette hex values in CSS/JS
 - [ ] Contrast + anti-clash guardrails honored
-- [ ] Final color schema approved by user (record reference)
-- [ ] Selected font pairing approved by user
+- [ ] Fonts match the lesson's design: self-hosted, at most two typefaces (TYP-02)
 
 ## 5) Interactive Engagement (Gate 5)
 

@@ -1,6 +1,6 @@
 {
   "version": "1.1.0",
-  "description": "SPOKES two-layer theme system registry. Each lesson has Layer 1 (lesson identity) and Layer 2 (chapter variation) configuration. Divider style is uniform per lesson (not rotated per chapter). Agents look up the assigned package and apply it — no guessing, no approval loop.",
+  "description": "SPOKES two-layer theme system registry. Each lesson has Layer 1 (lesson identity) and Layer 2 (chapter variation) configuration. Divider style is uniform per lesson (not rotated per chapter). It records the released lessons' designs. A new lesson gets its own design within SPOKES-STANDARD.md, What Is Fixed and What Is Open.",
   "lessons": {
     "lesson-time-management": {
       "colorLead": "blue",

@@ -17,13 +17,11 @@ Sprinted, agent-driven development with user approval gates. Follows the SPOKES 
 
 ### C. Build
 1. Start from approved template baseline (`SPOKES Builder/template.html`)
-2. Propose lesson color schema -- **user must approve**
-3. Propose Google Font pairing -- **user must approve**
-4. Apply theme per canonical palette policy
-5. Embed YouTube or use placeholder
-6. Add 3+ qualifying interactive elements (tabs, accordion, checkpoint prompt)
-7. Add instructor prompt panels (hidden by default)
-8. Add validated download links
+2. Design the lesson within `SPOKES-STANDARD.md`, What Is Fixed and What Is Open
+3. Embed YouTube or use placeholder
+4. Add 3+ qualifying interactive elements (tabs, accordion, checkpoint prompt)
+5. Add instructor prompt panels (hidden by default)
+6. Add validated download links
 
 ### D. Hard Gate QA (all 5 must pass)
 1. Accessibility and Readability
@@ -35,7 +33,6 @@ Sprinted, agent-driven development with user approval gates. Follows the SPOKES 
 ### E. Release Decision
 - Block if any Critical defects remain
 - Ensure High defects are sprint-committed
-- Confirm color schema has user approval
 - Create fast-follow ticket list for Phase 2 accessibility
 
 ## Severity / SLA
@@ -70,8 +67,7 @@ See `docs/qa-evidence-template.md` for required QA evidence format.
 1. `index.html` (the lesson)
 2. Media and handout link inventory (pass/fail)
 3. Gate report (Gate 1-5 results, defects by severity, release decision)
-4. Color schema approval record
-5. Fast-follow log for deferred Phase 2 items
+4. Fast-follow log for deferred Phase 2 items
 
 ## Document Precedence
 

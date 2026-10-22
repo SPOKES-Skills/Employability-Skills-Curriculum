@@ -414,7 +414,7 @@ Use a short word, a number or a real image in these spots. No emoji or decorativ
 
 ### 7. `split-layout` — Text + Visual Circle
 
-**When to use:** Explanatory text paired with a visual icon/emoji. Good for definitions, key concepts, or single-topic deep dives.
+**When to use:** Explanatory text paired with a real image or a key number. Good for definitions, key concepts, or single-topic deep dives.
 
 ```html
 <div class="split-layout">
@@ -445,7 +445,7 @@ Use a short word, a number or a real image in these spots. No emoji or decorativ
   class="visual-circle"
   style="background: linear-gradient(135deg, var(--accent), var(--primary)); font-size: 3rem;"
 >
-  &#8645;
+  50%
 </div>
 <div
   class="visual-circle"
@@ -572,7 +572,7 @@ Use these inline classes within `<span>` tags to color-code important words:
 | 4-quadrant decision framework             | `matrix-grid`                     |
 | 4-6 dangers/myths/challenges with reveals | `dangers-grid` (flip cards)       |
 | 3 major categories with bullet lists      | `areas-grid`                      |
-| Definition + visual icon                  | `split-layout`                    |
+| Definition + real image or key number     | `split-layout`                    |
 | Group activity or discussion prompt       | `activity-box`                    |
 | Downloadable PDF resource                 | `download-resource`               |
 | Simple bulleted list                      | `content-list`                    |

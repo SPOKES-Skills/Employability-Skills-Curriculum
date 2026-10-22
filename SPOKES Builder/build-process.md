@@ -81,7 +81,7 @@ Additional Presentation chapters (P4, P5, etc.) may be added with sequential dat
 
 **Total target: 25-35 slides**
 
-### Phase 3: Apply Theme Package
+### Phase 3: Apply the Lesson's Design
 
 #### Step A: Get the Lesson's Design
 

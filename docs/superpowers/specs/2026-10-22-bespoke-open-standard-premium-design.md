@@ -70,8 +70,8 @@ Four parts, built in order, each with its own plan and pull request:
 10. The loadout reading in Part 3 stands for now and may change after user review.
 11. Two-color gradients stay on title and divider slides.
 12. Twelve ready-made looks stay. Each shares at most 5 compared choices with each released lesson and, where possible, no color combination.
-14. Between the looks, any two share roughly half or fewer of the compared choices.
-13. Every BeSpoke design needs Britt's final approval.
+13. Between the looks, any two share roughly half or fewer of the compared choices.
+14. Every BeSpoke design needs Britt's final approval.
 
 ## Variables
 

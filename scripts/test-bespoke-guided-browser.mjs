@@ -198,6 +198,7 @@ try {
         questionsWithSamples += 1;
         if (await page.locator('#btnGuideMore').count()) await page.locator('#btnGuideMore').click();
         const ids = await page.locator('.guide-sample').evaluateAll((els) => els.map((e) => e.dataset.choice));
+        const startChanges = (await draft(page)).changes.length;
         for (const id of ids) {
           const button = page.locator(`.guide-sample[data-choice="${id}"]`);
           if ((await button.getAttribute('aria-pressed')) === 'true') continue;
@@ -217,6 +218,11 @@ try {
           if (moved.changedFraction === 0 && moved.meanChannelDelta === 0 && effective(beforeDesign) !== effective(afterDesign)) dead.push(`${title}: ${id}`);
           if (await page.locator('#btnGuideMore').count() && (await page.locator('#btnGuideMore').getAttribute('aria-expanded')) !== 'true') await page.locator('#btnGuideMore').click();
         }
+        // Undo every sample this question tried, so the next question starts from the same design the guide would.
+        // Otherwise the last samples tried carry forward and a later question is judged on text the sweep itself
+        // made invisible (navy text on a navy divider or activity panel), which BeSpoke allows a team to choose.
+        for (let undo = 0; undo < 40 && (await draft(page)).changes.length > startChanges; undo += 1) await page.locator('#btnUndo').click();
+        await page.mouse.move(0, 0);
       }
       if (!(await page.locator('#btnGuideNext').count())) break;
       const last = /Finish/.test(await page.locator('#btnGuideNext').innerText());

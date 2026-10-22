@@ -66,6 +66,8 @@ Four parts, built in order, each with its own plan and pull request:
 6. The performance budget below is approved.
 7. Order: Part 1, then Part 2, then Part 3, then Part 4. Each part gets its own plan and pull request.
 8. Images and video top out at 1080p, for performance and simple hosting on GitHub Pages. No 4K.
+9. BeSpoke does not gate readability. Pickers hide and lock nothing; a person completes the readability review.
+10. The loadout reading in Part 3 stands for now and may change after user review.
 
 ## Variables
 
@@ -104,7 +106,7 @@ The revised TYP-02 allows at most two typefaces per lesson, in any combination o
 
 ### Readability
 
-Pending Britt (Open questions, item 1). The October 7 decision says BeSpoke gathers team opinions and gates nothing on readability; the standard makes readability fixed. Guide me already shows four readable color suggestions first, with the rest behind More colors, and that is the likely pattern whichever way Britt decides.
+BeSpoke stays advisory, as decided on October 7. Pickers hide and lock nothing; a person completes the readability review before a design is used (Britt, 2026-10-22). The existing advisory notes and Guide me's readable suggestions stay as they are.
 
 ### Ready-made looks
 
@@ -191,7 +193,7 @@ Suggestions shown on Send, never blocks:
 
 ### How a loadout behaves
 
-When a slide arrives, its parts enter in a fixed order: background first, then frame and rails, then the heading, then each card or content item, one after another on a set beat. "Transformer style" is Britt's phrase; Claude's reading is parts sliding in and locking into place. Britt confirms or corrects this before Part 3 is planned (Open questions).
+When a slide arrives, its parts enter in a fixed order: background first, then frame and rails, then the heading, then each card or content item, one after another on a set beat. "Transformer style" is Britt's phrase; Claude's reading is parts sliding in and locking into place. Britt accepted this reading for now; it may change after user review. Keep the order, the beat and the total time as settings in one place, so a change after review is a settings change, not a rewrite.
 
 - The whole sequence finishes in about 1.5 seconds.
 - Only `transform` and `opacity` animate, so the browser never recalculates layout and school laptops stay smooth.
@@ -256,15 +258,13 @@ Lesson videos are served from GitHub Pages; the largest is 41 MB (`lesson-interv
 
 ## Open questions for Britt
 
-1. **Readability in BeSpoke.** The standard makes readability fixed; the October 7 decision says BeSpoke is advisory and gates nothing. Choose one: pickers hide unreadable colors, pickers show them locked with a short reason, or BeSpoke stays advisory and Britt's approval catches problems.
-2. **Two-color gradients.** Keep a two-color gradient on title and divider slides, or use only the two-tone split.
-3. **Ready-made looks.** Keep the 12 as starting points, or have a look set only layout and card shape while colors and fonts come from the team's design brief.
-4. **The loadout picture.** Confirm or correct the reading in Part 3 before it is planned.
-5. **Approval wording.** The standard's own open question (every BeSpoke design needs Britt's approval, or only one that breaks a rule) decides how Send describes what happens next.
+1. **Two-color gradients.** Keep a two-color gradient on title and divider slides, or use only the two-tone split.
+2. **Ready-made looks.** Keep the 12 as starting points, or have a look set only layout and card shape while colors and fonts come from the team's design brief.
+3. **Approval wording.** The standard's own open question (every BeSpoke design needs Britt's approval, or only one that breaks a rule) decides how Send describes what happens next.
 
 ## Workflow
 
-1. **Answer.** Britt answers the open questions that block a part before that part is planned. Item 1 blocks Part 1; item 4 blocks Part 3.
+1. **Answer.** Britt answers the open questions that block a part before that part is planned. Items 1 and 2 block Part 1.
 2. **Plan.** Write `PLAN_<n>` for the next part with `superpowers:writing-plans`, and commit it before any implementation change for that part.
 3. **Build.** Test first. Run `GATE` after each task.
 4. **Stage.** For a part that changes a file the service bundles, Claude stages the service and Britt deploys it before the pull request merges.

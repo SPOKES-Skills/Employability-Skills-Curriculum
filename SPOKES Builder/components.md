@@ -342,7 +342,7 @@ Each value gets a unique gradient background and a giant watermark letter.
   <div class="danger-card">
     <div class="danger-card-inner">
       <div class="danger-card-front">
-        <div class="danger-icon">&#128241;</div>
+        <div class="danger-icon">1</div>
         <h4>Card Title</h4>
       </div>
       <div class="danger-card-back">
@@ -355,9 +355,9 @@ Each value gets a unique gradient background and a giant watermark letter.
 </div>
 ```
 
-**Guidelines:** Use 4-6 cards. Use HTML emoji entities for icons. Front shows icon + title, back shows title + description. Cards flip on hover via CSS 3D transform.
+**Guidelines:** Use 4-6 cards. Front shows a number or short word + title, back shows title + description. Cards flip on hover via CSS 3D transform.
 
-**Common emoji entities:** `&#128241;` (phone), `&#9203;` (timer), `&#128260;` (arrows), `&#128587;` (person), `&#128736;` (wrench), `&#128170;` (muscle), `&#128161;` (lightbulb), `&#9888;` (warning)
+Use a short word, a number or a real image in these spots. No emoji or decorative icons (SPOKES-STANDARD.md, CRD-02).
 
 ---
 
@@ -369,7 +369,7 @@ Each value gets a unique gradient background and a giant watermark letter.
 <div class="areas-grid">
   <div class="area-card">
     <div class="area-header">
-      <div class="area-icon">&#9829;</div>
+      <div class="area-icon">1</div>
       <h4>Card Title</h4>
     </div>
     <ul>
@@ -380,7 +380,7 @@ Each value gets a unique gradient background and a giant watermark letter.
   </div>
   <div class="area-card gold-card">
     <div class="area-header">
-      <div class="area-icon">&#9881;</div>
+      <div class="area-icon">2</div>
       <h4>Card Title</h4>
     </div>
     <ul>
@@ -391,7 +391,7 @@ Each value gets a unique gradient background and a giant watermark letter.
   </div>
   <div class="area-card">
     <div class="area-header">
-      <div class="area-icon">&#9734;</div>
+      <div class="area-icon">3</div>
       <h4>Card Title</h4>
     </div>
     <ul>
@@ -427,7 +427,7 @@ Each value gets a unique gradient background and a giant watermark letter.
     </p>
   </div>
   <div class="split-visual">
-    <div class="visual-circle">&#9733;</div>
+    <div class="visual-circle">75%</div>
   </div>
 </div>
 ```
@@ -439,7 +439,7 @@ Each value gets a unique gradient background and a giant watermark letter.
   class="visual-circle"
   style="background: linear-gradient(135deg, var(--gold), var(--muted-gold)); font-size: 3.5rem;"
 >
-  &#9878;
+  2:1
 </div>
 <div
   class="visual-circle"
@@ -451,7 +451,7 @@ Each value gets a unique gradient background and a giant watermark letter.
   class="visual-circle"
   style="background: linear-gradient(135deg, var(--mauve), var(--dark)); font-size: 3.5rem;"
 >
-  &#9888;
+  3
 </div>
 ```
 

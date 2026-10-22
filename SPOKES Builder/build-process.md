@@ -83,12 +83,12 @@ Additional Presentation chapters (P4, P5, etc.) may be added with sequential dat
 
 ### Phase 3: Apply Theme Package
 
-#### Step A: Read Theme Package
+#### Step A: Get the Lesson's Design
 
-1. Look up the lesson in `theme-registry.json`
-2. Read Layer 1 properties: colorLead, sidebarColor, backgroundTexture, titleSlide, fontPairing
-3. Read Layer 2 chapterStyles: per-chapter divider, cards, leadComponent, secondaryAccent
-4. If the lesson is not in the registry, STOP — do not build without a theme package
+1. Use the lesson's design from `theme-registry.json` if there is one.
+2. If not, use an approved BeSpoke proposal for the lesson under `docs/phase-2/submissions/<lesson-id>/` (its `build-contract.json` and `design.css`). A BeSpoke design is used only after Britt approves it.
+3. If neither exists, design one within the fixed rules (`SPOKES-STANDARD.md`, What Is Fixed and What Is Open) and in the spirit of the design rules.
+4. Record the design. A builder-made design lives in full in the lesson's `<style id="theme-override">` block. `theme-registry.json` records what its current format can hold.
 
 #### Step B: Copy Template & Apply Theme
 
@@ -185,8 +185,8 @@ Is there a simple list?
 - Opacity variations of brand colors are OK (e.g., `rgba(0, 123, 175, 0.1)`)
 - Consult `../SPOKES-STANDARD.md` for the full prohibited colors list and contrast reference
 - No colors outside the 11-color palette should exist
-- Verify theme-override block was generated from theme-library.css — no custom CSS outside the library
-- Verify card styles change between chapters (check [data-chapter] scoping)
+- Verify the theme-override block uses only the 11 color variables, keeps text readable (A11Y-20) and leaves the logo unaltered (LOGO-01, LOGO-02)
+- Verify card styles follow THM-04 (one style throughout, or neighboring chapters differ)
 
 ### Phase 7: Set Up Project Structure
 

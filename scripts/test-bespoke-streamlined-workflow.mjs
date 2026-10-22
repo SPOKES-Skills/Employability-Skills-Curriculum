@@ -437,10 +437,13 @@ try {
     assert.equal(await page.locator('#roleEditorTabs [role=tab]').count(), 5);
     await shared(page);
     assert.equal(await page.locator('#colorRole option').count(), 11);
-    assert.equal(await page.locator('#font-heading option').count(), 12);
-    assert.equal(await page.locator('#font-body option').count(), 12);
+    // A slide offers the two lesson fonts as slots; the shared default keeps all twelve fonts.
+    assert.equal(await page.locator('#font-heading option').count(), 2);
+    assert.equal(await page.locator('#font-body option').count(), 2);
     await paint(page, 'sidebar', 'royal');
     await page.locator('#themeScope').selectOption('shared');
+    assert.equal(await page.locator('#font-heading option').count(), 12);
+    assert.equal(await page.locator('#font-body option').count(), 12);
     await page.locator('#font-heading').selectOption('merriweather');
     await page.locator('#font-body').selectOption('raleway');
     await shared(page, false);
@@ -448,9 +451,9 @@ try {
       await editor(page, kind);
       await setField(page, kind, 'backgroundMode', 'solid');
       await setField(page, kind, 'primary', ['primary', 'gold', 'light', 'dark', 'mauve'][i]);
-      await setField(page, kind, 'headingFont', ['bitter', 'inter', 'playfair-display', 'work-sans', 'source-sans-3'][i]);
+      await setField(page, kind, 'headingFont', ['heading', 'body', 'heading', 'body', 'heading'][i]);
       await setField(page, kind, 'bodyVisible', true);
-      await setField(page, kind, 'bodyFont', 'bitter');
+      await setField(page, kind, 'bodyFont', 'heading');
       await setField(page, kind, 'headingText', 'Synthetic ' + kind + ' sample');
       await setField(page, kind, 'watermarkMode', 'text');
       await setField(page, kind, 'watermarkText', 'SAMPLE ' + i);
@@ -519,7 +522,7 @@ try {
     await setField(page, 'title', 'backgroundMode', 'gradient');
     await setField(page, 'title', 'primary', 'gold');
     await setField(page, 'title', 'secondary', 'mauve');
-    await setField(page, 'title', 'headingFont', 'bitter');
+    await setField(page, 'title', 'headingFont', 'body');
     await setField(page, 'title', 'headingText', 'Retain this synthetic title');
     await setField(page, 'title', 'watermarkMode', 'text');
     await setField(page, 'title', 'watermarkText', 'KEEP');
@@ -536,7 +539,7 @@ try {
     await page.locator('#themeScope').selectOption('shared');
     await page.locator('#font-heading').selectOption('inter');
     assert.match(await page.locator('[data-shared-scope=headingFont]').textContent(), /Custom, unchanged.*Title slide/);
-    assert((await page.locator('#modelStage .slide-title-text').evaluate(el => getComputedStyle(el).fontFamily)).includes('Bitter'));
+    assert((await page.locator('#modelStage .slide-title-text').evaluate(el => getComputedStyle(el).fontFamily)).includes('Outfit'));
     await shared(page, false);
     await field(page, 'title', 'primary');
     const beforeReset = await design(page);
@@ -574,11 +577,11 @@ try {
       assert.equal(await page.locator('#modelStage ' + target).first().evaluate(el => getComputedStyle(el).backgroundColor), rgb(newColor));
       evidence.push({ label: role + ' shared-default visible paint', delta });
     }
-    await editor(page, 'title'); await setField(page, 'title', 'bodyFont', 'bitter');
+    await editor(page, 'title'); await setField(page, 'title', 'bodyFont', 'heading');
     await shared(page); await page.locator('#themeScope').selectOption('shared'); await page.locator('#font-body').selectOption('raleway');
     assert.match(await page.locator('[data-shared-scope=bodyFont]').textContent(), /Custom, unchanged.*Title slide/);
     await preview(page, 'title');
-    assert((await page.locator('#modelStage .slide-subtitle').evaluate(el => getComputedStyle(el).fontFamily)).includes('Bitter'));
+    assert((await page.locator('#modelStage .slide-subtitle').evaluate(el => getComputedStyle(el).fontFamily)).includes('Inter'), 'The heading slot follows the shared heading font chosen earlier');
     await preview(page, 'video');
     for (const selector of ['.slide-sidebar', '.slide-button']) assert((await page.locator('#modelStage ' + selector).first().evaluate(el => getComputedStyle(el).fontFamily)).includes('Raleway'), 'Shared body font paints navigation and buttons despite a local text override');
     await shared(page); await page.locator('#colorRole').selectOption('heading');

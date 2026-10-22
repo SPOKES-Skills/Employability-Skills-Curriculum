@@ -1,6 +1,7 @@
 import {isQuickField} from './canvas-toolbar.mjs';
 import {SHARED_LINE_END, renderScopeParts} from './make-it-yours.mjs';
 import {colorWell,segmentedControl,SEGMENTED_FIELDS,MAX_SEGMENTS} from './canvas-controls.mjs';
+import {fontControl} from './font-slots.mjs';
 import {fitCanvas} from './canvas-fit.mjs';
 // Narrower than this, the docked band sends Sample text and Position to the drawer so it keeps two rows.
 const FULL_BAND_MIN=1000;
@@ -111,13 +112,15 @@ export function createPreviewEditor(host) {
   const effective=host.model.effectiveRoleStyle(host.catalog,design,kind);
   const shared=['primary','secondary','headingColor','bodyColor'];
   const apply=(key,value)=>host.change(`${names[kind]}: ${key.replace(/([A-Z])/g,' $1').toLowerCase()}`,d=>Object.assign(d,(shared.includes(key)&&!host.onlySlide()?host.model.setSharedColor:host.model.setRoleStyle)(host.catalog,d,kind,key,value)));
+  // Per-slide and feature fonts offer the two lesson fonts only; a saved font id stays selectable.
+  const fontField=(savedFont,slot,effectiveFont,callback)=>{const f=fontControl(host.catalog,design,{saved:savedFont??'inherit',slot,effective:effectiveFont});field('font','Font',f.value,f.options,callback);};
   const colors=()=>host.catalog.palette.map(c=>({id:c.id,label:c.name}));
   const colorField=(id,title,value,callback)=>{field(id,title,value,colors(),callback,{color:true});const input=document.getElementById('context-'+id);input.style.borderLeft='12px solid '+host.catalog.palette.find(c=>c.id===value).hex;};
   const feature=(id,key,value)=>host.change(label(selected)+': '+key,d=>Object.assign(d,host.model.setFeatureStyle(host.catalog,d,id,key,value)));
   const featureColors=(id,{text=false,border=false}={})=>{
    const values=host.model.effectiveFeatureStyle(host.catalog,design,id);
    colorField('background',id==='video'?'Placeholder color':'Background color',values.background,v=>feature(id,'background',v));
-   if(text){colorField('color','Text color',values.color,v=>feature(id,'color',v));field('font','Font',values.font,host.catalog.fonts.map(f=>({id:f.id,label:f.label})),v=>feature(id,'font',v));}
+   if(text){colorField('color','Text color',values.color,v=>feature(id,'color',v));fontField(design.featureStyles?.[id]?.font,'body',values.font,v=>feature(id,'font',v));}
    if(border)colorField('border','Border color',values.border,v=>feature(id,'border',v));
   };
   const decision=(group,key,title)=>{
@@ -143,7 +146,7 @@ export function createPreviewEditor(host) {
   }else if(selected==='watermark'){
    const mark=(key,value)=>host.change('Watermark: '+key,d=>{Object.assign(d,host.model.setRoleStyle(host.catalog,d,kind,'watermarkMode','text'));Object.assign(d,host.model.setRoleStyle(host.catalog,d,kind,key,value));});
    textField('watermark-text','Watermark text',saved.watermarkText,40,v=>mark('watermarkText',v));
-   field('font','Font',effective.watermarkFont,host.catalog.fonts.map(f=>({id:f.id,label:f.label})),v=>mark('watermarkFont',v));
+   fontField(saved.watermarkFont,'heading',effective.watermarkFont,v=>mark('watermarkFont',v));
    colorField('color','Watermark color',effective.watermarkColor,v=>mark('watermarkColor',v));
    field('size','Size',saved.watermarkSize,['small','medium','large'].map(id=>({id,label:id[0].toUpperCase()+id.slice(1)})),v=>mark('watermarkSize',v));
    field('placement','Position',saved.watermarkPlacement,['top-left','top-right','bottom-left','bottom-right'].map(id=>({id,label:id.replace('-',' ')})),v=>mark('watermarkPlacement',v));
@@ -154,7 +157,7 @@ export function createPreviewEditor(host) {
    const type=selected==='extra'?'extra':selected.startsWith('heading')?'heading':'body';
    scopeKey=type+'Color';
    sampleText(type,{kind,design,editable,saved,effective});
-   field('font','Font',effective[type+'Font'],host.catalog.fonts.map(f=>({id:f.id,label:f.label})),v=>apply(type+'Font',v));
+   fontField(saved[type+'Font'],type==='heading'?'heading':'body',effective[type+'Font'],v=>apply(type+'Font',v));
    field('size','Size',saved[type+'Size'],[{id:'small',label:'Smaller'},{id:'default',label:'Medium'},{id:'large',label:'Larger'}],v=>apply(type+'Size',v));
    colorField('color','Text color',effective[type+'Color'],v=>apply(type+'Color',v));
    check('only-slide','Only this slide',host.onlySlide(),v=>host.setOnlySlide(v));

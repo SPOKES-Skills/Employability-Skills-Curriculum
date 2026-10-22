@@ -38,8 +38,9 @@ try{
   await page.locator('#context-only-slide').check();
   assert.match(await page.locator('#editScope').textContent(),/Title slide only/, 'Only this slide restores the single-slide wording');
   await page.locator('#context-only-slide').uncheck();
-  await page.locator('#context-font').selectOption('inter');
-  assert.equal((await current(page)).roleStyles.title.headingFont,'inter');
+  assert.deepEqual(await page.locator('#context-font option').evaluateAll(nodes=>nodes.map(n=>n.value)),['heading','body'],'Fonts are the two lesson slots');
+  await page.locator('#context-font').selectOption('body');
+  assert.equal((await current(page)).roleStyles.title.headingFont,'body');
   assert.deepEqual((await current(page)).roles,before.roles);
   await page.locator('#context-size').selectOption('large');
   const edited=await current(page);

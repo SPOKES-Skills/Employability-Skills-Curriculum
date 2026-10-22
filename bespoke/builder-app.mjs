@@ -4,6 +4,7 @@ import { readabilitySuggestions } from './readability.mjs';
 import { compareDesign } from './similarity.mjs';
 import { createPreviewEditor } from './preview-editor.mjs';
 import { watchCanvasFit } from './canvas-fit.mjs';
+import { fontControl } from './font-slots.mjs';
 import { syncStageChrome } from './canvas-shell.mjs';
 import { createGuide } from './guide/guide.mjs';
 import { showToast } from './toast.mjs';
@@ -1618,9 +1619,9 @@ function renderFonts(panel){
  const edit=(field,value,label)=>changeDesign((local?VIEW_NAMES[kind]:'Shared default')+' · '+label,d=>{if(local)Object.assign(d,Model.setRoleStyle(catalog,d,kind,field,value));else if(field==='pattern')d.background=value;else d.fonts[field==='headingFont'?'heading':'body']=value;});
  for(const [key,label] of [['heading','Title & heading font'],['body','Body font']]){
   const field=document.createElement('label');field.className='field';field.textContent=label;
-  const select=document.createElement('select');select.id='font-'+key;select.setAttribute('aria-describedby',select.id+'-help');
-  for(const font of catalog.fonts){const o=document.createElement('option');o.value=font.id;o.textContent=font.label;o.selected=(local?effective[key+'Font']:state.design.fonts[key])===font.id;select.append(o);}
-  select.onchange=()=>edit(key+'Font',select.value,label+': '+catalog.fonts.find(f=>f.id===select.value).label);field.append(select);panel.append(field);
+  const select=document.createElement('select');select.id='font-'+key;select.setAttribute('aria-describedby',select.id+'-help');const slots=local&&fontControl(catalog,state.design,{saved:saved[key+'Font'],slot:key,effective:effective[key+'Font']});
+  for(const font of slots?slots.options:catalog.fonts){const o=document.createElement('option');o.value=font.id;o.textContent=font.label;o.selected=(slots?slots.value:state.design.fonts[key])===font.id;select.append(o);}
+  select.onchange=()=>edit(key+'Font',select.value,label+': '+select.selectedOptions[0].textContent);field.append(select);panel.append(field);
   const help=document.createElement('p');help.id=select.id+'-help';help.className='helper';help.textContent=local?(saved[key+'Font']==='inherit'?'Shared':'Custom')+' · '+VIEW_NAMES[kind]+'.':'Shared default · '+label+'.';
   const visible=effective[key+'Visible']||(key==='body'&&kind==='divider'&&effective.labelVisible)||(key==='heading'&&kind==='activity'&&effective.labelVisible);
   if(local&&!visible)help.textContent+=' This text is hidden. The font is kept for when you show it in the slide editor.';
@@ -1690,7 +1691,7 @@ function renderSlideChoices(panel,kind){
  heading(panel,group.label,'Customize this reusable slide design. Local choices affect only '+group.label.toLowerCase()+'. Settings marked “Use shared theme” follow your lesson defaults.');
  const choices=(pairs)=>pairs.map(([id,label])=>({id,label}));
  const colorOptions=key=>[{id:'inherit',label:'Use shared theme · '+catalog.palette.find(c=>c.id===Model.effectiveRoleStyle(catalog,{...state.design,roleStyles:{...state.design.roleStyles,[kind]:{...saved,[key]:'inherit'}}},kind)[key]).name},...catalog.palette.map(c=>({id:c.id,label:c.name}))];
- const fontOptions=key=>[{id:'inherit',label:'Use shared theme · '+catalog.fonts.find(f=>f.id===state.design.fonts[key==='headingFont'?'heading':'body']).label},...catalog.fonts.map(f=>({id:f.id,label:f.label}))];
+ const fontOptions=key=>fontControl(catalog,state.design,{saved:saved[key],slot:key==='headingFont'?'heading':'body',inherit:true}).options;
  const sizes=choices([['small','Smaller'],['default','Default'],['large','Larger']]),alignments=choices([['layout','Default'],['left','Left'],['center','Center'],['right','Right']]);
  const arrangement=roleSection(panel,kind,'arrangement','Arrangement',kind==='cards'?'Boxes, title bar and text treatment':kind==='title'?'Composition and required logo':kind==='video'?'Video frame and heading style':'Layout and structure',{open:true});
  if(saved.headingSize!=='default'||saved.headingAlignment!=='layout'||saved.bodyAlignment!=='layout'){const note=document.createElement('p');note.className='helper';note.textContent='Local Text settings override the arrangement’s text size or alignment. Choose Default in Text to follow it again.';arrangement.append(note);}

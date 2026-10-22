@@ -64,7 +64,8 @@ async function setStyle(page,kind,field,value){
 async function options(page,kind,field){
   const control=await openField(page,kind,field);const actual=await control.locator('option').evaluateAll(nodes=>nodes.map(n=>n.value));
   // The schema keeps accepting retired textures; the controls no longer offer them.
-  const offered=roleStylesSchema(catalog).properties[kind].properties[field].enum.filter(value=>!catalog.retiredBackgrounds.some(item=>item.id===value));
+  // Likewise font ids stay valid, but a slide offers only Use shared font and the two lesson font slots.
+  const offered=roleStylesSchema(catalog).properties[kind].properties[field].enum.filter(value=>!catalog.retiredBackgrounds.some(item=>item.id===value)&&!catalog.fonts.some(item=>item.id===value));
   assert.deepEqual(actual,offered,`${kind}/${field} exposes every approved choice`);
 }
 async function css(page,kind,part,property){return node(page,kind,part).evaluate((el,key)=>getComputedStyle(el)[key],property);}
@@ -114,11 +115,11 @@ async function focusedRegressions(){
   for(const [kind,part,name,selector] of [['activity','heading','Activity label','.slide-activity-label'],['divider','body','Chapter label','.slide-chapter-label']]){
     await go(page,kind);await setStyle(page,kind,'labelText',name+' example');await setStyle(page,kind,part+'Text','Retained main copy');await setStyle(page,kind,part+'Visible',false);
     const label=page.locator('#modelStage '+selector);assert(await label.isVisible());assert(!await page.locator(`#role-${kind}-${part}Text`).isVisible(),'Main sample-copy input stays hidden');
-    for(const [suffix,value] of [['Color','mauve'],['Font','bitter'],['Size','large'],['Alignment','right']]){
+    for(const [suffix,value] of [['Color','mauve'],['Font',part==='heading'?'body':'heading'],['Size','large'],['Alignment','right']]){
       const control=page.getByRole('combobox',{name:name+' '+suffix.toLowerCase(),exact:true});assert.equal(await control.getAttribute('id'),`role-${kind}-${part}${suffix}`,'Label-only typography has its own accurate accessible name');
       await setStyle(page,kind,part+suffix,value);
     }
-    assert.equal(await label.evaluate(el=>getComputedStyle(el).color),rgb('mauve'));assert((await label.evaluate(el=>getComputedStyle(el).fontFamily)).includes('Bitter'));assert.equal(await label.evaluate(el=>getComputedStyle(el).textAlign),'right');
+    assert.equal(await label.evaluate(el=>getComputedStyle(el).color),rgb('mauve'));assert((await label.evaluate(el=>getComputedStyle(el).fontFamily)).includes(part==='heading'?'Outfit':'DM Serif Display'));assert.equal(await label.evaluate(el=>getComputedStyle(el).textAlign),'right');
     const large=await label.evaluate(el=>parseFloat(getComputedStyle(el).fontSize));await setStyle(page,kind,part+'Size','small');assert((await label.evaluate(el=>parseFloat(getComputedStyle(el).fontSize)))<large);
     const retained=await design(page);await setStyle(page,kind,'labelVisible',false);assert(!await page.locator(`#role-${kind}-${part}Color`).isVisible());await setStyle(page,kind,'labelVisible',true);assert.deepEqual(await design(page),retained,'Hidden label typography and main-copy choices survive');
     await setStyle(page,kind,part+'Visible',true);assert.equal(await page.locator(`#role-${kind}-${part}Text`).inputValue(),'Retained main copy');
@@ -168,8 +169,8 @@ try{
       await setStyle(page,kind,part+'Visible',true);
       for(const color of ['light','accent','gold']){await setStyle(page,kind,part+'Color',color);assert.equal(await css(page,kind,part,'color'),rgb(color));stats.typeChecks++;}
       await setStyle(page,kind,part+'Color','inherit');assert.equal(await css(page,kind,part,'color'),rgb((await design(page)).roles[['title','divider'].includes(kind)?part==='heading'?'titleText':'subtitle':part]));await setStyle(page,kind,part+'Color','gold');
-      for(const font of ['bitter','raleway','source-sans-3']){await setStyle(page,kind,part+'Font',font);await page.evaluate(()=>document.fonts.ready);assert((await css(page,kind,part,'fontFamily')).includes(catalog.fonts.find(f=>f.id===font).family));stats.typeChecks++;}
-      await setStyle(page,kind,part+'Font','inherit');const inherited=await design(page);assert((await css(page,kind,part,'fontFamily')).includes(catalog.fonts.find(f=>f.id===inherited.fonts[part]).family));await setStyle(page,kind,part+'Font','source-sans-3');
+      for(const slot of ['heading','body']){await setStyle(page,kind,part+'Font',slot);await page.evaluate(()=>document.fonts.ready);const lessonFont=(await design(page)).fonts[slot];assert((await css(page,kind,part,'fontFamily')).includes(catalog.fonts.find(f=>f.id===lessonFont).family));stats.typeChecks++;}
+      await setStyle(page,kind,part+'Font','inherit');const inherited=await design(page);assert((await css(page,kind,part,'fontFamily')).includes(catalog.fonts.find(f=>f.id===inherited.fonts[part]).family));await setStyle(page,kind,part+'Font',part==='heading'?'body':'heading');
       const sizes=[];for(const value of ['small','default','large']){await setStyle(page,kind,part+'Size',value);sizes.push(parseFloat(await css(page,kind,part,'fontSize')));}assert(sizes[0]<sizes[1]&&sizes[1]<sizes[2],`${kind}/${part}: all three sizes visibly differ`);
       for(const align of ['left','center','right','layout']){await setStyle(page,kind,part+'Alignment',align);if(align!=='layout')assert.equal(await css(page,kind,part,'textAlign'),align);stats.typeChecks++;}
       if(!(kind==='cards'&&part==='body')){const text=`Synthetic ${kind} ${part} <b>sample</b>`;await setStyle(page,kind,part+'Text',text);const copy=page.locator('#modelStage').locator((part==='heading'?headings:bodies)[kind]).filter({hasText:text});assert(await copy.count()>0,`${kind}/${part}: copy is literal text`);assert.equal(await copy.locator('b').count(),0);}
@@ -208,7 +209,7 @@ try{
   await page.locator('#btnUndo').click();assert.deepEqual(await design(page),allLocal);
   await go(page,'Shared typography');await page.locator('#font-heading').selectOption('inter');
   assert.deepEqual((await design(page)).roleStyles,allLocal.roleStyles,'Shared defaults preserve all explicit local styles');
-  for(const kind of Object.keys(labels)){await preview(page,kind);assert((await css(page,kind,'heading','fontFamily')).includes('Source Sans 3'),'Explicit local heading fonts survive shared default changes');}
+  for(const kind of Object.keys(labels)){await preview(page,kind);assert((await css(page,kind,'heading','fontFamily')).includes('Outfit'),'A heading on the body slot keeps the lesson body font when the heading default changes');}
   await surface(page,'design');await page.locator('#btnUndo').click();assert.deepEqual(await design(page),allLocal);
   const cumulative=await design(page);await page.locator('#btnUndo').click();assert.notDeepEqual(await design(page),cumulative);await page.locator('#btnRedo').click();assert.deepEqual(await design(page),cumulative);
   for(const kind of Object.keys(labels)){await go(page,kind);await preview(page,kind);assert.deepEqual(await design(page),cumulative);}

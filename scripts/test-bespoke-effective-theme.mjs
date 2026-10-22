@@ -8,6 +8,7 @@ import path from 'node:path';
 import { browserName, browserType, tabKey } from './bespoke-test-browser.mjs';
 import { createDevServer, LOCAL_PREVIEW_CODE } from './bespoke-dev-server.mjs';
 import { defaultDesign, effectiveRoleStyle, roleStyleDefaults } from '../bespoke/builder-model.mjs';
+import { fontControl } from '../bespoke/font-slots.mjs';
 import { pixelDifference } from './bespoke-pixel-check.mjs';
 import catalog from '../bespoke/builder-catalog.json' with { type: 'json' };
 
@@ -20,6 +21,9 @@ const browser = await browserType.launch({ headless: true });
 let passed = 0;
 const draft = page => page.evaluate(() => JSON.parse(localStorage.getItem('bespoke-draft-v2')));
 const design = async page => (await draft(page)).design;
+// A slide's font select offers the two lesson fonts. Picking the other slot always changes the font.
+const OTHER_SLOT = { heading: 'body', body: 'heading' };
+const slotValue = (d, kind, key) => fontControl(catalog, d, { saved: { ...roleStyleDefaults(catalog, d, kind), ...d.roleStyles?.[kind] }[key + 'Font'], slot: key, effective: effectiveRoleStyle(catalog, d, kind)[key + 'Font'] }).value;
 const labels = { title: 'Title slide', divider: 'Chapter divider', cards: 'Text boxes', video: 'Video slide', activity: 'Activity' };
 const payload = d => ({ schema: 'bespoke-selection/v2', date: '2026-09-24', lesson: { id: 'money-management', title: 'Money Management', displayTitle: 'Synthetic theme sample', subtitle: 'Synthetic only' }, team: { name: 'Synthetic effective theme team', spokesperson: { name: 'Sample Instructor', email: 'sample@example.org' } }, design: d });
 function customFixture() {
@@ -103,8 +107,8 @@ async function selectedTheme(page, kind, scope = 'slide') {
   assert.equal(await page.locator('#themeScope').inputValue(), scope);
   assert.equal(await page.locator('#previewTabs [aria-selected=true]').getAttribute('data-view'), kind);
   if (scope === 'slide') assert((await page.locator('#themeScope option:checked').textContent()).includes(labels[kind]));
-  assert.equal(await page.locator('#font-heading').inputValue(), scope === 'slide' ? effective.headingFont : d.fonts.heading);
-  assert.equal(await page.locator('#font-body').inputValue(), scope === 'slide' ? effective.bodyFont : d.fonts.body);
+  assert.equal(await page.locator('#font-heading').inputValue(), scope === 'slide' ? slotValue(d, kind, 'heading') : d.fonts.heading);
+  assert.equal(await page.locator('#font-body').inputValue(), scope === 'slide' ? slotValue(d, kind, 'body') : d.fonts.body);
   assert.equal(await group(page).locator('[aria-pressed=true]').count(), 1);
   assert.equal(await group(page).locator('[aria-pressed=true]').getAttribute('data-choice'), scope === 'slide' ? effective.pattern : d.background);
 }
@@ -143,8 +147,9 @@ try {
     await shot(page, 'divider-Plain');
     await page.locator('#btnUndo').click(); assert.deepEqual(await design(page), before); await selectedTheme(page, 'divider');
     await page.locator('#btnRedo').click(); assert.deepEqual(await design(page), expected);
-    for (const [key, value] of [['heading', 'inter'], ['body', 'source-sans-3']]) {
-      await page.locator('#font-' + key).selectOption(value); expected.roleStyles.divider[key + 'Font'] = value;
+    for (const key of ['heading', 'body']) {
+      const slot = OTHER_SLOT[key], value = (await design(page)).fonts[slot];
+      await page.locator('#font-' + key).selectOption(slot); expected.roleStyles.divider[key + 'Font'] = slot;
       assert.deepEqual(await design(page), expected); await checkFont(page, 'divider', key, value);
     }
     await page.locator('#btnUndo').click(); const undone = structuredClone(expected); undone.roleStyles.divider.bodyFont = before.roleStyles.divider.bodyFont; assert.deepEqual(await design(page), undone);
@@ -174,10 +179,10 @@ try {
         if (delta) assert(delta.changedFraction > .0001, `${kind}/${pattern}: texture visibly changes the rendered slide`);
         evidence.push({ label: 'local texture', kind, pattern, strength: expected.roleStyles[kind].patternStrength, actual, delta });
       }
-      for (const [key, value] of [['heading', 'inter'], ['body', 'source-sans-3']]) {
-        const before = await design(page), pixels = await previewPixels(page);
-        await page.locator('#font-' + key).selectOption(value);
-        const expected = structuredClone(before); expected.roleStyles[kind][key + 'Font'] = value;
+      for (const key of ['heading', 'body']) {
+        const before = await design(page), pixels = await previewPixels(page), slot = OTHER_SLOT[key], value = before.fonts[slot];
+        await page.locator('#font-' + key).selectOption(slot);
+        const expected = structuredClone(before); expected.roleStyles[kind][key + 'Font'] = slot;
         assert.deepEqual(await design(page), expected, `${kind}/${key}: only the selected local font changes`);
         await selectedTheme(page, kind); const actual = await checkFont(page, kind, key, value), delta = await pixelDifference(page, pixels, await previewPixels(page));
         assert(delta.changedFraction > .0001, `${kind}/${key}: changing the font changes actual rendered text`);
@@ -238,14 +243,14 @@ try {
       assert.deepEqual(await design(page), before, 'Old-v2 preview and scope navigation do not eagerly materialize role styles');
     }
     await view(page, 'video'); await shared(page); assert.match(await page.locator('#font-body-help').textContent(), /Shared.*hidden.*kept/s);
-    await page.locator('#font-body').selectOption('source-sans-3');
-    const expected = structuredClone(before); expected.startingPoint = 'custom'; expected.roleStyles = { video: { ...roleStyleDefaults(catalog, before, 'video'), bodyFont: 'source-sans-3' } };
+    await page.locator('#font-body').selectOption('heading');
+    const expected = structuredClone(before); expected.startingPoint = 'custom'; expected.roleStyles = { video: { ...roleStyleDefaults(catalog, before, 'video'), bodyFont: 'heading' } };
     assert.deepEqual(await design(page), expected); assert.equal(await page.locator('#modelStage .slide-body').count(), 0, 'Changing a hidden font does not show text');
     assert.match(await page.locator('#font-body-help').textContent(), /Custom.*hidden.*kept/s);
     await page.locator('#stage-slides').click(); if (!await page.locator('#roleEditorTabs').isVisible()) await page.locator('#btnMoreOptions').click(); await page.locator('#editor-video').click();
     const text = page.locator('#section-video-text'); if (!await text.evaluate(el => el.open)) await text.locator(':scope > summary').click();
     await page.locator('#role-video-bodyVisible').check(); expected.roleStyles.video.bodyVisible = true; assert.deepEqual(await design(page), expected);
-    await surface(page, 'preview'); await checkFont(page, 'video', 'body', 'source-sans-3'); await start(page);
+    await surface(page, 'preview'); await checkFont(page, 'video', 'body', before.fonts.heading); await start(page);
     await page.locator('#themeScope').focus(); await page.keyboard.press(tabKey); assert.notEqual(await page.evaluate(() => document.activeElement.id), 'themeScope', 'Keyboard leaves the scope selector');
     await patternButton(page, 'edge-rail').focus(); await page.keyboard.press('Space'); expected.roleStyles.video.pattern = 'edge-rail'; assert.deepEqual(await design(page), expected);
     assert.equal(await page.evaluate(() => document.activeElement.id), 'choice-background-edge-rail', 'Keyboard texture activation retains focus after rerender');

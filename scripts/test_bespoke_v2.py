@@ -35,6 +35,11 @@ class V2SubmissionTests(unittest.TestCase):
             "design": deepcopy(self.catalog["defaults"]), "legacySelection": deepcopy(self.legacy),
         }
 
+    def test_build_contract_hashes_the_model_and_its_font_slots(self):
+        import hashlib
+        _, contract = build_design(self.payload)
+        self.assertEqual(contract["fontSlotsSha256"], hashlib.sha256((ROOT / "bespoke/font-slots.mjs").read_text(encoding="utf-8").encode("utf-8")).hexdigest())
+
     def test_build_contract_hashes_the_model_and_its_background_structures(self):
         import hashlib
         _, contract = build_design(self.payload)

@@ -1,5 +1,6 @@
 /** Shared, deterministic BeSpoke model. No DOM, storage, network or hidden defaults. */
 import { STRUCTURE_IDS, structureInk, structureLayers } from './background-structures.mjs';
+import { FONT_SLOTS, ROLE_FONT_FIELDS, resolveFont } from './font-slots.mjs';
 const clone = value => JSON.parse(JSON.stringify(value));
 const own = (object, key) => Object.prototype.hasOwnProperty.call(object, key);
 const object = value => value !== null && typeof value === 'object' && !Array.isArray(value);
@@ -93,7 +94,7 @@ export const ROLE_STYLE_KINDS = ['title', 'divider', 'cards', 'video', 'activity
 // Optional feature overrides preserve the appearance of every older v2 design.
 const FEATURE_FIELDS = {sidebar:['background','color','font'],button:['background','color','font'],box:['background','border'],titlebar:['background','border'],video:['background','border'],activity:['background','border']};
 export function featureStylesSchema(catalog) {
-  return {type:'object',additionalProperties:false,properties:Object.fromEntries(Object.entries(FEATURE_FIELDS).map(([feature,fields])=>[feature,{type:'object',additionalProperties:false,required:fields,properties:Object.fromEntries(fields.map(key=>[key,{enum:['inherit',...(key==='font'?catalog.fonts:catalog.palette).map(item=>item.id)]}]))}]))};
+  return {type:'object',additionalProperties:false,properties:Object.fromEntries(Object.entries(FEATURE_FIELDS).map(([feature,fields])=>[feature,{type:'object',additionalProperties:false,required:fields,properties:Object.fromEntries(fields.map(key=>[key,{enum:['inherit',...(key==='font'?[...FONT_SLOTS,...catalog.fonts.map(item=>item.id)]:catalog.palette.map(item=>item.id))]}]))}]))};
 }
 export function effectiveFeatureStyle(catalog,design,feature) {
   if(!FEATURE_FIELDS[feature])throw new Error('Unknown preview feature.');
@@ -102,6 +103,7 @@ export function effectiveFeatureStyle(catalog,design,feature) {
   const saved=design.featureStyles?.[feature]||{};
   const style={background,color:inkFor(catalog,saved.background&&saved.background!=='inherit'?saved.background:background),font:design.fonts.body,border:design.roles.accent};
   for(const key of FEATURE_FIELDS[feature])if(saved[key]&&saved[key]!=='inherit')style[key]=saved[key];
+  if(style.font)style.font=resolveFont(design,style.font);
   return style;
 }
 export function setFeatureStyle(catalog,design,feature,key,value) {
@@ -122,7 +124,7 @@ export function roleStyleDefaults(catalog, design, kind) {
 export function roleStylesSchema(catalog) {
   const enumeration = values => ({enum:values});
   const color = () => enumeration(['inherit', ...catalog.palette.map(item => item.id)]);
-  const font = () => enumeration(['inherit', ...catalog.fonts.map(item => item.id)]);
+  const font = () => enumeration(['inherit', ...FONT_SLOTS, ...catalog.fonts.map(item => item.id)]);
   const text = maxLength => ({type:['string','null'],maxLength});
   const properties = Object.fromEntries(ROLE_STYLE_KINDS.map(kind => {
     const fields = {
@@ -147,6 +149,7 @@ export function effectiveRoleStyle(catalog, design, kind) {
   const background = kind==='title'?'titleBackground':kind==='divider'?'dividerBackground':'contentBackground';
   for (const [key,value] of Object.entries({primary:design.roles[background],secondary:design.roles.titleBackgroundEnd,headingColor:design.roles[special?'titleText':'heading'],bodyColor:design.roles[special?'subtitle':'body'],extraColor:design.roles[special?'subtitle':'body'],extraFont:design.fonts.body,headingFont:design.fonts.heading,bodyFont:design.fonts.body,pattern:design.background,watermarkColor:design.roles[special?'titleText':'heading']})) if(style[key]==='inherit') style[key]=value;
   if(style.watermarkFont==='inherit')style.watermarkFont=style.headingFont;
+  for(const key of ROLE_FONT_FIELDS)style[key]=resolveFont(design,style[key]);
   if(style.backgroundMode==='inherit') style.backgroundMode=special&&(design.slides[kind].colors==='gradient'||kind==='title'&&design.slides.title.layout==='split')?'gradient':'solid';
   const centered=kind==='title'?['center','frame','horizon'].includes(design.slides.title.layout):kind==='divider'?['center','band'].includes(design.slides.divider.layout):false;
   for(const key of ['headingAlignment','bodyAlignment']) if(style[key]==='layout') style[key]=centered?'center':'left';

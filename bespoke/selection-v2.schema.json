@@ -772,6 +772,8 @@
                 "headingFont": {
                   "enum": [
                     "inherit",
+                    "heading",
+                    "body",
                     "dm-serif-display",
                     "outfit",
                     "playfair-display",
@@ -789,6 +791,8 @@
                 "bodyFont": {
                   "enum": [
                     "inherit",
+                    "heading",
+                    "body",
                     "dm-serif-display",
                     "outfit",
                     "playfair-display",
@@ -859,6 +863,8 @@
                 "extraFont": {
                   "enum": [
                     "inherit",
+                    "heading",
+                    "body",
                     "dm-serif-display",
                     "outfit",
                     "playfair-display",
@@ -970,6 +976,8 @@
                 "watermarkFont": {
                   "enum": [
                     "inherit",
+                    "heading",
+                    "body",
                     "dm-serif-display",
                     "outfit",
                     "playfair-display",
@@ -1141,6 +1149,8 @@
                 "headingFont": {
                   "enum": [
                     "inherit",
+                    "heading",
+                    "body",
                     "dm-serif-display",
                     "outfit",
                     "playfair-display",
@@ -1158,6 +1168,8 @@
                 "bodyFont": {
                   "enum": [
                     "inherit",
+                    "heading",
+                    "body",
                     "dm-serif-display",
                     "outfit",
                     "playfair-display",
@@ -1228,6 +1240,8 @@
                 "extraFont": {
                   "enum": [
                     "inherit",
+                    "heading",
+                    "body",
                     "dm-serif-display",
                     "outfit",
                     "playfair-display",
@@ -1351,6 +1365,8 @@
                 "watermarkFont": {
                   "enum": [
                     "inherit",
+                    "heading",
+                    "body",
                     "dm-serif-display",
                     "outfit",
                     "playfair-display",
@@ -1522,6 +1538,8 @@
                 "headingFont": {
                   "enum": [
                     "inherit",
+                    "heading",
+                    "body",
                     "dm-serif-display",
                     "outfit",
                     "playfair-display",
@@ -1539,6 +1557,8 @@
                 "bodyFont": {
                   "enum": [
                     "inherit",
+                    "heading",
+                    "body",
                     "dm-serif-display",
                     "outfit",
                     "playfair-display",
@@ -1609,6 +1629,8 @@
                 "extraFont": {
                   "enum": [
                     "inherit",
+                    "heading",
+                    "body",
                     "dm-serif-display",
                     "outfit",
                     "playfair-display",
@@ -1724,6 +1746,8 @@
                 "watermarkFont": {
                   "enum": [
                     "inherit",
+                    "heading",
+                    "body",
                     "dm-serif-display",
                     "outfit",
                     "playfair-display",
@@ -1895,6 +1919,8 @@
                 "headingFont": {
                   "enum": [
                     "inherit",
+                    "heading",
+                    "body",
                     "dm-serif-display",
                     "outfit",
                     "playfair-display",
@@ -1912,6 +1938,8 @@
                 "bodyFont": {
                   "enum": [
                     "inherit",
+                    "heading",
+                    "body",
                     "dm-serif-display",
                     "outfit",
                     "playfair-display",
@@ -1982,6 +2010,8 @@
                 "extraFont": {
                   "enum": [
                     "inherit",
+                    "heading",
+                    "body",
                     "dm-serif-display",
                     "outfit",
                     "playfair-display",
@@ -2101,6 +2131,8 @@
                 "watermarkFont": {
                   "enum": [
                     "inherit",
+                    "heading",
+                    "body",
                     "dm-serif-display",
                     "outfit",
                     "playfair-display",
@@ -2272,6 +2304,8 @@
                 "headingFont": {
                   "enum": [
                     "inherit",
+                    "heading",
+                    "body",
                     "dm-serif-display",
                     "outfit",
                     "playfair-display",
@@ -2289,6 +2323,8 @@
                 "bodyFont": {
                   "enum": [
                     "inherit",
+                    "heading",
+                    "body",
                     "dm-serif-display",
                     "outfit",
                     "playfair-display",
@@ -2359,6 +2395,8 @@
                 "extraFont": {
                   "enum": [
                     "inherit",
+                    "heading",
+                    "body",
                     "dm-serif-display",
                     "outfit",
                     "playfair-display",
@@ -2482,6 +2520,8 @@
                 "watermarkFont": {
                   "enum": [
                     "inherit",
+                    "heading",
+                    "body",
                     "dm-serif-display",
                     "outfit",
                     "playfair-display",
@@ -2570,6 +2610,8 @@
                 "font": {
                   "enum": [
                     "inherit",
+                    "heading",
+                    "body",
                     "dm-serif-display",
                     "outfit",
                     "playfair-display",
@@ -2630,6 +2672,8 @@
                 "font": {
                   "enum": [
                     "inherit",
+                    "heading",
+                    "body",
                     "dm-serif-display",
                     "outfit",
                     "playfair-display",
@@ -3506,6 +3550,8 @@
                     "headingFont": {
                       "enum": [
                         "inherit",
+                        "heading",
+                        "body",
                         "dm-serif-display",
                         "outfit",
                         "playfair-display",
@@ -3523,6 +3569,8 @@
                     "bodyFont": {
                       "enum": [
                         "inherit",
+                        "heading",
+                        "body",
                         "dm-serif-display",
                         "outfit",
                         "playfair-display",
@@ -3593,6 +3641,8 @@
                     "extraFont": {
                       "enum": [
                         "inherit",
+                        "heading",
+                        "body",
                         "dm-serif-display",
                         "outfit",
                         "playfair-display",
@@ -3704,6 +3754,8 @@
                     "watermarkFont": {
                       "enum": [
                         "inherit",
+                        "heading",
+                        "body",
                         "dm-serif-display",
                         "outfit",
                         "playfair-display",
@@ -3875,6 +3927,8 @@
                     "headingFont": {
                       "enum": [
                         "inherit",
+                        "heading",
+                        "body",
                         "dm-serif-display",
                         "outfit",
                         "playfair-display",
@@ -3892,6 +3946,8 @@
                     "bodyFont": {
                       "enum": [
                         "inherit",
+                        "heading",
+                        "body",
                         "dm-serif-display",
                         "outfit",
                         "playfair-display",
@@ -3962,6 +4018,8 @@
                     "extraFont": {
                       "enum": [
                         "inherit",
+                        "heading",
+                        "body",
                         "dm-serif-display",
                         "outfit",
                         "playfair-display",
@@ -4085,6 +4143,8 @@
                     "watermarkFont": {
                       "enum": [
                         "inherit",
+                        "heading",
+                        "body",
                         "dm-serif-display",
                         "outfit",
                         "playfair-display",
@@ -4256,6 +4316,8 @@
                     "headingFont": {
                       "enum": [
                         "inherit",
+                        "heading",
+                        "body",
                         "dm-serif-display",
                         "outfit",
                         "playfair-display",
@@ -4273,6 +4335,8 @@
                     "bodyFont": {
                       "enum": [
                         "inherit",
+                        "heading",
+                        "body",
                         "dm-serif-display",
                         "outfit",
                         "playfair-display",
@@ -4343,6 +4407,8 @@
                     "extraFont": {
                       "enum": [
                         "inherit",
+                        "heading",
+                        "body",
                         "dm-serif-display",
                         "outfit",
                         "playfair-display",
@@ -4458,6 +4524,8 @@
                     "watermarkFont": {
                       "enum": [
                         "inherit",
+                        "heading",
+                        "body",
                         "dm-serif-display",
                         "outfit",
                         "playfair-display",
@@ -4629,6 +4697,8 @@
                     "headingFont": {
                       "enum": [
                         "inherit",
+                        "heading",
+                        "body",
                         "dm-serif-display",
                         "outfit",
                         "playfair-display",
@@ -4646,6 +4716,8 @@
                     "bodyFont": {
                       "enum": [
                         "inherit",
+                        "heading",
+                        "body",
                         "dm-serif-display",
                         "outfit",
                         "playfair-display",
@@ -4716,6 +4788,8 @@
                     "extraFont": {
                       "enum": [
                         "inherit",
+                        "heading",
+                        "body",
                         "dm-serif-display",
                         "outfit",
                         "playfair-display",
@@ -4835,6 +4909,8 @@
                     "watermarkFont": {
                       "enum": [
                         "inherit",
+                        "heading",
+                        "body",
                         "dm-serif-display",
                         "outfit",
                         "playfair-display",
@@ -5006,6 +5082,8 @@
                     "headingFont": {
                       "enum": [
                         "inherit",
+                        "heading",
+                        "body",
                         "dm-serif-display",
                         "outfit",
                         "playfair-display",
@@ -5023,6 +5101,8 @@
                     "bodyFont": {
                       "enum": [
                         "inherit",
+                        "heading",
+                        "body",
                         "dm-serif-display",
                         "outfit",
                         "playfair-display",
@@ -5093,6 +5173,8 @@
                     "extraFont": {
                       "enum": [
                         "inherit",
+                        "heading",
+                        "body",
                         "dm-serif-display",
                         "outfit",
                         "playfair-display",
@@ -5216,6 +5298,8 @@
                     "watermarkFont": {
                       "enum": [
                         "inherit",
+                        "heading",
+                        "body",
                         "dm-serif-display",
                         "outfit",
                         "playfair-display",
@@ -5304,6 +5388,8 @@
                     "font": {
                       "enum": [
                         "inherit",
+                        "heading",
+                        "body",
                         "dm-serif-display",
                         "outfit",
                         "playfair-display",
@@ -5364,6 +5450,8 @@
                     "font": {
                       "enum": [
                         "inherit",
+                        "heading",
+                        "body",
                         "dm-serif-display",
                         "outfit",
                         "playfair-display",

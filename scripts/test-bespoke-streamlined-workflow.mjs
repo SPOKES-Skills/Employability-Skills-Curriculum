@@ -396,8 +396,7 @@ try {
     await view.locator('#btnViewRefresh').waitFor();
     assert.equal(await view.locator('#stage-review').getAttribute('aria-current'), 'step', 'the first open lands on Review');
     await stage(view, 'start');
-    await stage(builder, 'team');
-    await builder.locator('#builderName').fill('Dana Builder'); await save(builder);
+    await stage(builder, 'team'); await builder.locator('#builderName').fill('Dana Builder'); await save(builder);
     await view.locator('#btnViewRefresh').click();
     await view.locator('#accessBanner').filter({ hasText: 'Built by Dana Builder' }).waitFor();
     assert.equal(await view.locator('#stage-start').getAttribute('aria-current'), 'step', 'Refresh leaves the viewer on the stage they chose');

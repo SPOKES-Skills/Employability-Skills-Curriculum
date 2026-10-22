@@ -11,6 +11,17 @@ below no longer apply. Team edit codes are main's 8-character codes, and
 branch's hardening: a separate `view:` hash, a broken view table turns off only view
 links, and a view never shows the Team Leader's email, the review notes or the archived
 original. The flow is main's four stages; Quick pick and the step path stay specs.
+## Merge of main into the presets branch, October 15, 2026
+
+Britt directed how pull request #55 combines with main. Where the October 2 rows
+below disagree, this entry wins.
+
+| October 2 row | Now |
+|---|---|
+| Nine presets | Main's twelve layout presets (October 7) stand. |
+| The builder link goes privately to the Team Leader, and `--rotate-team-codes` replaces edit codes | Edit access uses main's 8-character team codes, kept in each team's OneDrive folder (October 13 and 14). `--reissue all` or `--reissue <lesson-id>` replaces codes. `--rotate-team-codes` is withdrawn. |
+| Team view links | Unchanged: hashed with a `view:` prefix, a broken view table turns off only view links, and the viewer copy leaves out contact details, review notes and the archived original. |
+| Sidebar color and text from the preview | The preview's feature inspector (October 7) edits the sidebar. More options on the sidebar opens Shared theme, which keeps the Sidebar text color choice. |
 
 ## Lesson & team stage, October 9, 2026
 

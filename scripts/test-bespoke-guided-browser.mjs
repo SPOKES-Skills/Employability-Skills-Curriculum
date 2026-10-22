@@ -230,7 +230,14 @@ try {
             throw error;
           });
           // A faint change (a 6% watermark) stays under the per-pixel threshold, so require exactly no change at all.
-          if (moved.changedFraction === 0 && moved.meanChannelDelta === 0 && effective(beforeDesign) !== effective(afterDesign)) dead.push(`${title}: ${id}`, `DIAG before ${beforeProbe} after ${afterProbe}`);
+          if (moved.changedFraction === 0 && moved.meanChannelDelta === 0 && effective(beforeDesign) !== effective(afterDesign)) {
+            const { createHash } = await import('node:crypto');
+            const hash = (b) => createHash('sha1').update(b).digest('hex').slice(0, 10);
+            const lb = JSON.parse(afterProbe).labelBox;
+            const again = await page.locator('#modelStage').screenshot();
+            const clip = lb ? await page.screenshot({ clip: { x: lb[0], y: lb[1], width: lb[2], height: lb[3] } }) : null;
+            dead.push(`${title}: ${id}`, `DIAG before ${beforeProbe} after ${afterProbe}`, `DIAG shots before ${hash(before)}/${before.length} after ${hash(after)}/${after.length} again ${hash(again)}/${again.length} moved ${JSON.stringify(moved)} againDiff ${JSON.stringify(await pixelDifference(page, before, again).catch((e) => e.message))} labelClip ${clip ? clip.toString('base64').slice(0, 60) + '…' + clip.length : null}`);
+          }
           if (await page.locator('#btnGuideMore').count() && (await page.locator('#btnGuideMore').getAttribute('aria-expanded')) !== 'true') await page.locator('#btnGuideMore').click();
         }
       }

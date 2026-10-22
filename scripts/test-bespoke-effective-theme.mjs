@@ -84,7 +84,16 @@ const patternButton = (page, id) => group(page).locator(`[data-choice="${id}"]`)
 async function background(locator) {
   return locator.evaluate(el => { const s = getComputedStyle(el); return Object.fromEntries(['backgroundColor', 'backgroundImage', 'backgroundSize', 'backgroundPosition', 'backgroundRepeat'].map(k => [k, s[k]])); });
 }
-async function currentBackground(page) { return background(page.locator('#modelStage .bespoke-slide')); }
+// Content slides paint a structure on the content area beside the sidebar column; the thumbnail shows the whole recipe.
+async function currentBackground(page) {
+  return page.locator('#modelStage .bespoke-slide').evaluate(root => {
+    const read = el => { const s = getComputedStyle(el); return Object.fromEntries(['backgroundColor', 'backgroundImage', 'backgroundSize', 'backgroundPosition', 'backgroundRepeat'].map(k => [k, s[k]])); };
+    const base = read(root), content = root.querySelector('.slide-content'), layers = content && read(content);
+    if (!layers || layers.backgroundImage === 'none') return base;
+    if (base.backgroundImage === 'none') return { ...base, backgroundImage: layers.backgroundImage, backgroundSize: layers.backgroundSize, backgroundPosition: layers.backgroundPosition, backgroundRepeat: layers.backgroundRepeat };
+    return { ...base, ...Object.fromEntries(['backgroundImage', 'backgroundSize', 'backgroundPosition', 'backgroundRepeat'].map(k => [k, layers[k] + ', ' + base[k]])) };
+  });
+}
 function textSelector(kind, key) { return key === 'heading' ? kind === 'title' ? '.slide-title-text' : '.slide-heading' : kind === 'title' ? '.slide-subtitle' : kind === 'cards' ? '.slide-card .slide-body' : '.slide-body'; }
 async function fontComputed(page, kind, key) {
   return page.locator('#modelStage ' + textSelector(kind, key)).first().evaluate(el => getComputedStyle(el).fontFamily);

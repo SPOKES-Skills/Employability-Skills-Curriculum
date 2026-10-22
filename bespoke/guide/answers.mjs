@@ -68,7 +68,7 @@ const textRole = (q) => (['title', 'divider'].includes(q.slide)
   ? (q.field === 'headingColor' ? 'titleText' : 'subtitle')
   : (q.field === 'headingColor' ? 'heading' : 'body'));
 
-// The preview's advisory accounts for textures, gradients and a band divider's outer surface, so on
+// The preview's advisory accounts for background details, gradients and a band divider's outer surface, so on
 // text and background questions the model decides. Passing colors keep the plain contrast ratio for ordering.
 function modelJudge(catalog, design, q, score) {
   const role = q.kind === 'background' ? null : textRole(q);

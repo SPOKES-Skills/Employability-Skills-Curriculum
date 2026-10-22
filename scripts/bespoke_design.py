@@ -122,6 +122,7 @@ def build_design_v2(payload: dict) -> tuple[str, dict]:
         "selectionSha256": selection_digest(payload),
         "catalogSha256": sha((ROOT / "bespoke/builder-catalog.json").read_text(encoding="utf-8")),
         "modelSha256": sha((ROOT / "bespoke/builder-model.mjs").read_text(encoding="utf-8")),
+        "backgroundStructuresSha256": sha((ROOT / "bespoke/background-structures.mjs").read_text(encoding="utf-8")),
         "cssSha256": sha(css),
         "design": design,
         "contrastAdvisories": result["warnings"],

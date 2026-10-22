@@ -49,9 +49,9 @@ export function patternFor(catalog, design, surface) {
   if (!allBackgroundIds(catalog).includes(id)) throw new Error('Unknown background pattern.');
   const peaks = { plain: 0, 'dot-grid': .2, diagonal: .18, crosshatch: 1 - (1 - .14) ** 2, 'soft-gradient': .24 };
   const base = findColor(catalog, design.roles[surface]).hex;
-  if (STRUCTURE_IDS.includes(id)) { const ink = structureInk(catalog, design, base); return { ...structureLayers(id, ink, 'normal'), peakAlpha: 0, ink }; }
   const gradient = surface === 'titleBackground' ? design.slides.title.colors === 'gradient' || design.slides.title.layout === 'split' : surface === 'dividerBackground' && design.slides.divider.colors === 'gradient';
   const bases = gradient ? gradientSamples(base, findColor(catalog, design.roles.titleBackgroundEnd).hex) : [base];
+  if (STRUCTURE_IDS.includes(id)) { const ink = structureInk(catalog, design, bases); return { ...structureLayers(id, ink, 'normal', surface.replace('Background', '')), peakAlpha: 0, ink }; }
   const foregrounds = surface === 'contentBackground' ? [] : [['titleText', 3], ['subtitle', 4.5]].map(([role, minimum]) => ({ hex: findColor(catalog, design.roles[role]).hex, minimum }));
   let ink = findColor(catalog, inkFor(catalog, design.roles[surface])).hex;
   // Prefer visible ink, but choose its opposite when that keeps already-readable
@@ -305,7 +305,7 @@ function rolePattern(catalog, design, kind) {
   const style=effectiveRoleStyle(catalog,design,kind), strength={subtle:.5,normal:1,bold:1.5}[style.patternStrength];
   const a=findColor(catalog,style.primary).hex,b=findColor(catalog,style.secondary).hex;
   const bases=style.backgroundMode==='gradient'?gradientSamples(a,b):[a];
-  if(STRUCTURE_IDS.includes(style.pattern)) { const ink=structureInk(catalog,design,a); return {...structureLayers(style.pattern,ink,style.patternStrength),ink,peakAlpha:0,bases}; }
+  if(STRUCTURE_IDS.includes(style.pattern)) { const ink=structureInk(catalog,design,bases); return {...structureLayers(style.pattern,ink,style.patternStrength,['title','divider'].includes(kind)?kind:'content'),ink,peakAlpha:0,bases}; }
   const alphas={plain:0,'dot-grid':.2*strength,diagonal:.18*strength,crosshatch:1-(1-.14*strength)**2,'soft-gradient':.24*strength};
   let ink=findColor(catalog,inkFor(catalog,style.primary)).hex;
   const preserves=candidate=>['heading','body'].every(type=>!style[type+'Visible']||bases.every(base=>contrast(findColor(catalog,style[type+'Color']).hex,base)<4.5||Array.from({length:9},(_,i)=>contrast(findColor(catalog,style[type+'Color']).hex,blend(base,candidate,alphas[style.pattern]*i/8))).every(r=>r>=4.5)));
@@ -318,8 +318,8 @@ function rolePattern(catalog, design, kind) {
 }
 
 // Pattern-choice thumbnails use the same effective surface recipe as the slide.
-export function roleBackgroundCss(catalog,design,kind) {
-  const style=effectiveRoleStyle(catalog,design,kind), pattern=rolePattern(catalog,design,kind);
+export function roleBackgroundCss(catalog,design,kind,{omitStructure=false}={}) {
+  const style=effectiveRoleStyle(catalog,design,kind), pattern=omitStructure&&STRUCTURE_IDS.includes(style.pattern)?{images:[],sizes:[]}:rolePattern(catalog,design,kind);
   const a=findColor(catalog,style.primary).hex,b=findColor(catalog,style.secondary).hex;
   const split=kind==='title'&&design.slides.title.layout==='split';
   const angle={right:'90deg',down:'180deg',diagonal:'135deg'}[style.direction];
@@ -418,7 +418,14 @@ function roleStyleCss(catalog,design,scope,canonical) {
     if(roleBackgroundChanged(saved)) {
       // Canonical lessons also have highly specific slide background recipes.
       // Only explicit role backgrounds take precedence over those recipes.
-      rule(preview,lesson,roleBackgroundCss(catalog,design,kind).replace(/;/g,'!important;'));
+      const important=css=>css.replace(/;/g,'!important;');
+      if(!['title','divider'].includes(kind)&&STRUCTURE_IDS.includes(style.pattern)) {
+        // Same sidebar rule as the shared structure: the sample slide paints it beside the sidebar column.
+        const layers=rolePattern(catalog,design,kind);
+        blocks.push(`${preview}{${important(roleBackgroundCss(catalog,design,kind,{omitStructure:true}))}}`);
+        if(canonical) blocks.push(`${lesson}{${important(roleBackgroundCss(catalog,design,kind))}}`);
+        blocks.push(`${preview} .slide-content{${important(`background-image:${layers.images.join(', ')};background-size:${layers.sizes.join(', ')};background-position:${layers.positions.join(', ')};background-repeat:${layers.repeats.join(', ')};`)}}`);
+      } else rule(preview,lesson,important(roleBackgroundCss(catalog,design,kind)));
       // Let text and reusable boxes share the chosen role composition. Borders,
       // button colors, video frames and the separate lesson sidebar stay intact.
       if(!['title','divider'].includes(kind)) rule(`${preview} :is(.slide-card,.slide-title-bar,.slide-activity,.slide-heading)`,`${lesson} :is(.card,.activity-box,h2,h3,h4,p,li)`,'background-color:transparent;background-image:none;');
@@ -558,7 +565,13 @@ export function cssForDesign(catalog, design, { scope = '.bespoke-slide', fontBa
   // Keep the decorative chapter mark in one bounded line. Enlarging text must not
   // wrap its digits into a second line beyond the slide or clip meaningful copy.
   rule(selector('.slide-watermark'), '.slide-section::after', `display:${divider.watermark === 'hide' ? 'none' : 'block'}; position:absolute; right:6%; top:5%; max-width:88%; max-height:90%; overflow:hidden; white-space:nowrap; transform:none; font-size:min(${divider.layout === 'number' ? '12rem,56cqw' : '9rem,42cqw'}); line-height:1; color:var(--role-title-text); opacity:.12; pointer-events:none;`);
-  rule(`${kind('cards')}, ${kind('video')}, ${kind('activity')}`, '.slide:not(.slide-title):not(.slide-section)', `background-color:var(--role-content-background); ${patternBackground(catalog, design, 'contentBackground')}`);
+  if (STRUCTURE_IDS.includes(design.background)) {
+    // The sample slide holds a sidebar column, so its structure is painted on the content area beside it.
+    // A lesson slide has no sidebar inside it and carries the structure itself.
+    rule(contentSlides, '', 'background-color:var(--role-content-background);');
+    if (canonical) blocks.push(`.slide:not(.slide-title):not(.slide-section) { background-color:var(--role-content-background); ${patternBackground(catalog, design, 'contentBackground')} }`);
+    rule(selector('.slide-content'), '', patternBackground(catalog, design, 'contentBackground'));
+  } else rule(contentSlides, '.slide:not(.slide-title):not(.slide-section)', `background-color:var(--role-content-background); ${patternBackground(catalog, design, 'contentBackground')}`);
   if (canonical) blocks.push('.main {background-color:var(--role-content-background);background-image:none;}');
   // Content text stays on its chosen opaque surface. Title/divider contrast includes pattern ink.
   rule(`${selector('.slide-card')}, ${selector('.slide-title-bar')}, ${selector('.slide-activity')}, ${selector('.slide-heading')}`, '.slide:not(.slide-title):not(.slide-section) h2, .slide:not(.slide-title):not(.slide-section) h3, .slide:not(.slide-title):not(.slide-section) p, .slide:not(.slide-title):not(.slide-section) li', 'background-color:var(--role-content-background);');

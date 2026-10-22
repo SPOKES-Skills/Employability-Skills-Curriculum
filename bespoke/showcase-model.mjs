@@ -42,7 +42,7 @@ export const KIND_SHORT = { title: 'Title', divider: 'Divider', cards: 'Text box
 const FOLLOWERS = ['watermarkColor', 'watermarkFont', 'extraColor', 'extraFont'];
 const isTracked = key => key !== 'boxHeadings' && !FOLLOWERS.includes(key) && !key.endsWith('Text');
 const isFont = key => key.endsWith('Font');
-const SETTING_LABELS = { secondary: 'second background', pattern: 'texture', patternStrength: 'texture strength', direction: 'gradient direction', headingSize: 'heading size', bodySize: 'text size' };
+const SETTING_LABELS = { secondary: 'second background', pattern: 'background detail', patternStrength: 'detail size', direction: 'gradient direction', headingSize: 'heading size', bodySize: 'text size' };
 const FEATURE_NAMES = { sidebar: 'Sidebar', button: 'Button', box: 'Text box', titlebar: 'Title bar', video: 'Video frame', activity: 'Activity box' };
 const words = key => key.replace(/[A-Z]/g, letter => ` ${letter.toLowerCase()}`);
 

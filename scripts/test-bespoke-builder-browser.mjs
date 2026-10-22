@@ -489,8 +489,8 @@ try {
       }
       for (const pattern of catalog.backgrounds.slice(1)) {
         const pixels = await pixelDifference(page, shots.get('plain'), shots.get(pattern.id));
-        // A color block is a corner square, so it covers less of the slide than a full-width texture did.
-        assert(pixels.changedFraction > .005 && pixels.meanChannelDelta > .5, pattern.id+' must visibly change the actual UI preview.');
+        // Structures stay in the outer margin, so a color block covers far less of the slide than a texture did.
+        assert(pixels.changedFraction > .0002 && pixels.meanChannelDelta > .02, pattern.id+' must visibly change the actual UI preview: '+JSON.stringify(pixels));
       }
       await page.locator('#btnUndo').click(); assert.equal((await design(page)).background, 'edge-rail');
       await page.locator('#btnRedo').click(); assert.equal((await design(page)).background, 'frame');

@@ -5,7 +5,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { STRUCTURE_IDS, RETIRED_IDS, structureInk, structureLayers } from '../bespoke/background-structures.mjs';
+import { STRUCTURE_IDS, RETIRED_IDS, STRUCTURE_MARGIN, structureInk, structureLayers } from '../bespoke/background-structures.mjs';
 import { allBackgroundIds, applyPreset, backgroundEntry, cssForDesign, designSchema, inkFor, patternBackground, patternFor, roleBackgroundCss, roleStylesSchema, setRoleStyle, structuralErrors } from '../bespoke/builder-model.mjs';
 import { selectionErrors } from '../netlify/functions/_shared/selection.mjs';
 
@@ -81,8 +81,6 @@ test('strength sets thickness', () => {
   const ink = hex('mauve');
   const widths = ['subtle', 'normal', 'bold'].map(strength => structureLayers('edge-rail', ink, strength).sizes[0].split(' ')[0]);
   assert.deepEqual(widths, ['6px', '12px', '20px']);
-  const squares = ['subtle', 'normal', 'bold'].map(strength => structureLayers('color-block', ink, strength).sizes[0]);
-  assert.deepEqual(squares, ['64px 64px', '96px 96px', '128px 128px']);
   for (const id of STRUCTURE_IDS) {
     const layers = structureLayers(id, ink, 'normal');
     for (const key of ['images', 'sizes', 'positions', 'repeats']) assert.equal(layers[key].length, layers.images.length, `${id} ${key}`);
@@ -90,14 +88,76 @@ test('strength sets thickness', () => {
   }
 });
 
-test('structures stay inside a 20px outer margin', () => {
-  // Content slides pad at least 20px; a rail or frame ring must fit in it at every strength.
-  for (const strength of ['subtle', 'normal', 'bold']) {
-    const frame = structureLayers('frame', hex('mauve'), strength);
+test('the color block never exceeds the surface margin and sits in the bottom-right corner', () => {
+  assert.deepEqual(STRUCTURE_MARGIN, { title: 24, divider: 20, content: 20 });
+  for (const [kind, margin] of Object.entries(STRUCTURE_MARGIN)) {
+    const sizes = ['subtle', 'normal', 'bold'].map(strength => {
+      const layers = structureLayers('color-block', hex('mauve'), strength, kind);
+      assert.equal(layers.images.length, 1);
+      assert.equal(layers.positions[0], 'right bottom');
+      const [width, height] = layers.sizes[0].split(' ').map(value => Number(value.replace('px', '')));
+      assert.equal(width, height);
+      assert(width <= margin, `${kind} ${strength}: ${width}px fits the ${margin}px margin`);
+      return width;
+    });
+    assert.deepEqual(sizes, [0.5, 0.75, 1].map(share => Math.round(margin * share)), kind);
+  }
+});
+
+test('rails and frames stay inside the surface margin at every strength', () => {
+  for (const [kind, margin] of Object.entries(STRUCTURE_MARGIN)) for (const strength of ['subtle', 'normal', 'bold']) {
+    const rail = structureLayers('edge-rail', hex('mauve'), strength, kind);
+    assert(Number(rail.sizes[0].split(' ')[0].replace('px', '')) <= margin, `${kind} ${strength} rail`);
+    assert.equal(rail.positions[0], 'right top');
+    const frame = structureLayers('frame', hex('mauve'), strength, kind);
+    assert.equal(frame.images.length, 4);
     const thickness = Number(frame.sizes[0].split(' ').pop().replace('px', ''));
     const inset = Number(frame.positions[0].match(/top (\d+)px/)[1]);
-    assert(inset + thickness <= 20, strength);
+    assert(inset >= 0 && inset + thickness <= margin, `${kind} ${strength} frame ring ends at the margin`);
   }
+});
+
+// The rule that paints a structure: the first CSS block whose selector matches and whose body has a background-image.
+const paintingRule = (css, selector) => css.split('\n').find(line => line.startsWith(selector) && line.includes('background-image:linear-gradient'));
+
+test('on the preview, content-slide structures are painted beside the sidebar column, not under it', () => {
+  for (const id of STRUCTURE_IDS) {
+    const design = paperAndBerry(id);
+    const preview = cssForDesign(catalog, design, { canonical: false });
+    // The sample slide is a grid: a sidebar column of min(280px, 100%), then the content area.
+    assert(preview.includes('grid-template-columns:min(280px,100%) minmax(0,1fr)'));
+    const content = paintingRule(preview, '.bespoke-slide .slide-content');
+    assert(content, `${id}: the content area carries the structure`);
+    assert.equal((content.match(/linear-gradient\(#/g) || []).length, id === 'frame' ? 4 : 1);
+    for (const kind of ['cards', 'video', 'activity']) assert(!paintingRule(preview, `.bespoke-slide[data-kind="${kind}"]`), `${id}: the slide root under the sidebar is left plain`);
+    // Title and divider slides have no sidebar, so they keep the structure on the slide itself.
+    assert(paintingRule(preview, '.bespoke-slide[data-kind="title"]') && paintingRule(preview, '.bespoke-slide[data-kind="divider"]'));
+    // Lessons have no sidebar inside the slide: the structure goes on the slide.
+    const lesson = cssForDesign(catalog, design);
+    assert(lesson.split('\n').some(line => line.includes('.slide:not(.slide-title):not(.slide-section)') && line.includes('background-image:linear-gradient(#')), `${id}: canonical content slide`);
+  }
+});
+
+test('a local content-slide structure follows the same sidebar rule', () => {
+  const design = setRoleStyle(catalog, setRoleStyle(catalog, paperAndBerry('plain'), 'cards', 'pattern', 'frame'), 'cards', 'patternStrength', 'bold');
+  const preview = cssForDesign(catalog, design, { canonical: false });
+  const content = paintingRule(preview, '.bespoke-slide[data-kind="cards"] .slide-content');
+  assert(content && (content.match(/linear-gradient\(#/g) || []).length === 4 && content.includes('!important'));
+  assert(!paintingRule(preview, '.bespoke-slide[data-kind="cards"]{') && !paintingRule(preview, '.bespoke-slide[data-kind="cards"] {'), 'root of the cards slide is not painted');
+});
+
+test('structure ink checks the accent against every gradient sample', () => {
+  const design = paperAndBerry('edge-rail');
+  design.slides.title.colors = 'gradient';
+  design.roles = { ...design.roles, accent: 'mauve', titleBackground: 'light', titleBackgroundEnd: 'mauve' };
+  // Start color alone would accept the accent.
+  assert.equal(structureInk(catalog, design, hex('light')), hex('mauve'));
+  assert.notEqual(structureInk(catalog, design, [hex('light'), hex('primary'), hex('mauve')]), hex('mauve'));
+  // The real path samples the whole gradient, so the accent is rejected where it matches the end color.
+  assert.notEqual(patternFor(catalog, design, 'titleBackground').ink, hex('mauve'));
+  // A solid surface keeps the accent.
+  design.slides.title.colors = 'solid'; design.slides.title.layout = 'left';
+  assert.equal(patternFor(catalog, design, 'titleBackground').ink, hex('mauve'));
 });
 
 test('retired textures render exactly as before', () => {
@@ -131,4 +191,12 @@ test('the service accepts an old proposal', () => {
   assert.deepEqual(selectionErrors(selection, selection.lesson.id), []);
   const rail = { ...selection, design: paperAndBerry('edge-rail') };
   assert.deepEqual(selectionErrors(rail, rail.lesson.id), []);
+});
+
+test('user-facing copy says background detail, not texture', () => {
+  for (const file of ['bespoke/team-guide.html', 'bespoke/guide/copy.mjs', 'bespoke/similarity.mjs', 'bespoke/showcase-model.mjs']) {
+    assert.doesNotMatch(fs.readFileSync(path.join(root, file), 'utf8'), /textur/i, file);
+  }
+  assert.match(fs.readFileSync(path.join(root, 'bespoke/guide/copy.mjs'), 'utf8'), /'shared\.pattern': \['Background detail'/);
+  assert.match(fs.readFileSync(path.join(root, 'bespoke/team-guide.html'), 'utf8'), /Fonts &amp; background detail/);
 });

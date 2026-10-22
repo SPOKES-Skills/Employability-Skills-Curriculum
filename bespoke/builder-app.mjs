@@ -1533,7 +1533,7 @@ function appendSharedScope(host,key){
 }
 function renderSharedTheme(panel){
  const details=document.createElement('details');details.id='sharedTheme';details.className='shared-theme';details.open=ui.sharedThemeOpen;
- details.innerHTML='<summary>Shared theme · optional</summary><p class="helper">Edit the slide in the preview, or choose Shared default to coordinate slides that use it. Colors and Fonts &amp; texture each show their scope. Sidebar, Accent and Buttons are always shared.</p>';
+ details.innerHTML='<summary>Shared theme · optional</summary><p class="helper">Edit the slide in the preview, or choose Shared default to coordinate slides that use it. Colors and Fonts &amp; background detail each show their scope. Sidebar, Accent and Buttons are always shared.</p>';
  details.addEventListener('toggle',()=>{if(details.isConnected&&ui.sharedThemeOpen!==details.open){ui.sharedThemeOpen=details.open;updatePreview();if(isLeadSession())saveDraft();}});panel.append(details);
  const colors=document.createElement('section');colors.setAttribute('aria-labelledby','sharedColorsTitle');colors.innerHTML='<h2 id="sharedColorsTitle">Paint colors</h2>';details.append(colors);addColorControls(colors,catalog.roles.map(r=>r.id));
  const type=document.createElement('section');type.setAttribute('aria-labelledby','sharedTypeTitle');details.append(type);renderFonts(type);
@@ -1609,12 +1609,12 @@ function addColorControls(panel,roleIds){
 }
 function renderFonts(panel){
  const kind=state.previewView,local=ui.themeScope==='slide',effective=Model.effectiveRoleStyle(catalog,state.design,kind),saved=savedRoleStyle(kind);
- panel.innerHTML='<h2 id="sharedTypeTitle">Fonts &amp; texture</h2>';
- const scopeLabel=document.createElement('label');scopeLabel.className='field';scopeLabel.textContent='Apply fonts & texture to';
+ panel.innerHTML='<h2 id="sharedTypeTitle">Fonts &amp; background detail</h2>';
+ const scopeLabel=document.createElement('label');scopeLabel.className='field';scopeLabel.textContent='Apply fonts & background detail to';
  const scope=document.createElement('select');scope.id='themeScope';scope.setAttribute('aria-describedby','themeScopeHelp');
  for(const [id,label] of [['slide','This slide · '+VIEW_NAMES[kind]],['shared','Shared default']]){const option=document.createElement('option');option.value=id;option.textContent=label;option.selected=ui.themeScope===id;scope.append(option);}
  scope.onchange=()=>{ui.themeScope=scope.value;render(false);};scopeLabel.append(scope);panel.append(scopeLabel);
- const scopeHelp=document.createElement('p');scopeHelp.id='themeScopeHelp';scopeHelp.className='helper';scopeHelp.textContent=local?'Each choice changes just that setting on '+VIEW_NAMES[kind]+'.':'Each choice changes its shared default. Slides with a custom font or texture keep it.';panel.append(scopeHelp);
+ const scopeHelp=document.createElement('p');scopeHelp.id='themeScopeHelp';scopeHelp.className='helper';scopeHelp.textContent=local?'Each choice changes just that setting on '+VIEW_NAMES[kind]+'.':'Each choice changes its shared default. Slides with a custom font or background detail keep it.';panel.append(scopeHelp);
  const edit=(field,value,label)=>changeDesign((local?VIEW_NAMES[kind]:'Shared default')+' · '+label,d=>{if(local)Object.assign(d,Model.setRoleStyle(catalog,d,kind,field,value));else if(field==='pattern')d.background=value;else d.fonts[field==='headingFont'?'heading':'body']=value;});
  for(const [key,label] of [['heading','Title & heading font'],['body','Body font']]){
   const field=document.createElement('label');field.className='field';field.textContent=label;

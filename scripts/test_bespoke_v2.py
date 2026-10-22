@@ -35,6 +35,21 @@ class V2SubmissionTests(unittest.TestCase):
             "design": deepcopy(self.catalog["defaults"]), "legacySelection": deepcopy(self.legacy),
         }
 
+    def test_build_contract_hashes_the_model_and_its_background_structures(self):
+        import hashlib
+        _, contract = build_design(self.payload)
+        digest = lambda name: hashlib.sha256((ROOT / name).read_text(encoding="utf-8").encode("utf-8")).hexdigest()
+        self.assertEqual(contract["modelSha256"], digest("bespoke/builder-model.mjs"))
+        self.assertEqual(contract["backgroundStructuresSha256"], digest("bespoke/background-structures.mjs"))
+
+    def test_edge_rail_design_builds_and_a_retired_texture_still_builds(self):
+        for background in ("edge-rail", "frame", "color-block", "dot-grid"):
+            payload = deepcopy(self.payload)
+            payload["design"]["background"] = background
+            css, contract = build_design(payload)
+            self.assertEqual(contract["design"]["background"], background)
+            self.assertIn("background-image", css)
+
     def test_full_model_and_legacy_recovery_survive_immutable_proposal(self):
         self.payload["design"]["samples"]["boxes"][3] = "Hidden but recoverable 🎓 <script>alert(1)</script>"
         self.payload["design"]["slides"]["cards"]["count"] = "1"

@@ -255,7 +255,9 @@ Lesson videos are served from GitHub Pages; the largest is 41 MB (`lesson-interv
 
 ## Calls Claude made
 
-- The 12 looks stay as starting points.
+- "Color combination" means the same palette color in the same role.
+- The 1080p cap covers images as well as video.
+- "Half the meter" between looks means at most 16 of the 32 compared choices.
 - Diagonal and Crosshatch count as texture filler along with Dot grid.
 - Budget numbers: 1.5 MB first slide, 400 KB per 1920-wide image, 50 MB per new file, 900 MB site.
 - Motion style names: none, subtle and loadout.

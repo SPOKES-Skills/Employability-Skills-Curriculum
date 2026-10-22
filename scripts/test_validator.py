@@ -1,4 +1,7 @@
 """Tests for validate-lesson.py — SPOKES lesson quality validator."""
+import base64
+import shutil
+import tempfile
 import unittest
 import subprocess
 import sys
@@ -6,6 +9,8 @@ from pathlib import Path
 
 VALIDATOR = Path(__file__).parent / "validate-lesson.py"
 FIXTURES = Path(__file__).parent / "test-fixtures"
+OFFICIAL_LOGO = Path(__file__).resolve().parent.parent / "SPOKES-Logo.png"
+OTHER_IMAGE = FIXTURES / "test.png"
 
 
 def run_validator(fixture_name, extra_args=None):
@@ -15,6 +20,27 @@ def run_validator(fixture_name, extra_args=None):
         cmd.extend(extra_args)
     result = subprocess.run(cmd, capture_output=True, text=True, timeout=10)
     return result.returncode, result.stdout, result.stderr
+
+
+def run_validator_on_lesson(body_extra: str = "", css_extra: str = "",
+                            files: dict[str, Path] | None = None) -> tuple[int, str]:
+    """Validate minimal-pass.html as a temporary lesson with extra markup, CSS and files."""
+    html = (FIXTURES / "minimal-pass.html").read_text(encoding="utf-8")
+    if css_extra:
+        html = html.replace("</head>", f"<style>\n{css_extra}\n</style>\n</head>", 1)
+    if body_extra:
+        html = html.replace("</body>", f"{body_extra}\n</body>", 1)
+    with tempfile.TemporaryDirectory() as tmp:
+        lesson = Path(tmp) / "lesson-test"
+        lesson.mkdir()
+        (lesson / "index.html").write_text(html, encoding="utf-8")
+        for name in ("test.mp4", "test.vtt"):
+            shutil.copy(FIXTURES / name, lesson / name)
+        for name, source in (files or {}).items():
+            shutil.copy(source, lesson / name)
+        result = subprocess.run([sys.executable, str(VALIDATOR), str(lesson / "index.html")],
+                                capture_output=True, text=True, timeout=10)
+    return result.returncode, result.stdout
 
 
 class TestValidatorPassingFixture(unittest.TestCase):
@@ -592,6 +618,59 @@ class TestPrintRule(unittest.TestCase):
                       '<script src="print/manifest.js"></script>\n</body></html>')
         self.assertEqual(r.status, "WARN")
         self.assertIn("after", r.message)
+
+
+class TestLogoRules(unittest.TestCase):
+    LOGO_IMG = '<img src="SPOKES-Logo.png" alt="SPOKES" class="logo" />'
+
+    def test_logo01_passes_with_official_copy(self):
+        code, out = run_validator_on_lesson(self.LOGO_IMG, files={"SPOKES-Logo.png": OFFICIAL_LOGO})
+        self.assertIn("[PASS] LOGO-01", out)
+        self.assertEqual(code, 0, out)
+
+    def test_logo01_fails_when_logo_file_differs(self):
+        _, out = run_validator_on_lesson(self.LOGO_IMG, files={"SPOKES-Logo.png": OTHER_IMAGE})
+        self.assertIn("[FAIL] LOGO-01", out)
+
+    def test_logo01_fails_when_logo_class_points_at_other_image(self):
+        _, out = run_validator_on_lesson('<img src="badge.png" alt="Badge" class="logo" />',
+                                         files={"badge.png": OTHER_IMAGE})
+        self.assertIn("[FAIL] LOGO-01", out)
+
+    def test_logo01_fails_when_alt_names_spokes_but_image_differs(self):
+        _, out = run_validator_on_lesson('<img src="mark.png" alt="SPOKES" />',
+                                         files={"mark.png": OTHER_IMAGE})
+        self.assertIn("[FAIL] LOGO-01", out)
+
+    def test_logo_rules_ignore_images_that_only_mention_spokes(self):
+        code, out = run_validator_on_lesson('<img src="game.png" alt="SPOKES Jeopardy Review Game thumbnail" />',
+                                            files={"game.png": OTHER_IMAGE})
+        self.assertIn("[PASS] LOGO-01", out)
+        self.assertEqual(code, 0, out)
+
+    def test_logo01_checks_css_url_reference(self):
+        _, out = run_validator_on_lesson(css_extra=".hero { background-image: url('SPOKES-Logo.png'); }",
+                                         files={"SPOKES-Logo.png": OTHER_IMAGE})
+        self.assertIn("[FAIL] LOGO-01", out)
+
+    def test_logo01_checks_embedded_data_uri(self):
+        data = base64.b64encode(OTHER_IMAGE.read_bytes()).decode("ascii")
+        _, out = run_validator_on_lesson(f'<img src="data:image/png;base64,{data}" alt="SPOKES" class="logo" />')
+        self.assertIn("[FAIL] LOGO-01", out)
+
+    def test_logo01_resolves_query_string(self):
+        _, out = run_validator_on_lesson('<img src="SPOKES-Logo.png?v=2" alt="SPOKES" class="logo" />',
+                                         files={"SPOKES-Logo.png": OFFICIAL_LOGO})
+        self.assertIn("[PASS] LOGO-01", out)
+
+    def test_logo01_reports_missing_file(self):
+        _, out = run_validator_on_lesson(self.LOGO_IMG)
+        self.assertRegex(out, r"\[FAIL\] LOGO-01 .*missing")
+
+    def test_logo01_passes_when_no_logo(self):
+        code, out = run_validator_on_lesson()
+        self.assertIn("[PASS] LOGO-01", out)
+        self.assertEqual(code, 0, out)
 
 
 if __name__ == "__main__":

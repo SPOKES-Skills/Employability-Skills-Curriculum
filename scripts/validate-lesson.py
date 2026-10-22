@@ -2,6 +2,9 @@
 from __future__ import annotations
 
 import argparse
+import base64
+import binascii
+import hashlib
 import re
 import sys
 from collections import namedtuple
@@ -35,6 +38,16 @@ PROHIBITED_COLORS: list[str] = [
     "#4c1d95", "#6c23b5", "#2e1065", "#e0e0e0", "#e5e7eb",
     "#5a6a7a", "#2d6db5", "#1e4a7d", "#1a365d", "#2b6cb0",
 ]
+
+# The official logo (LOGO-01, LOGO-02). Lessons may resize it but never swap, recolor or crop it.
+OFFICIAL_LOGO_PATH: Path = Path(__file__).resolve().parent.parent / "SPOKES-Logo.png"
+LOGO_FILE_RE = re.compile(r"spokes-logo", re.IGNORECASE)
+# The logo's own alt text. An alt that only mentions SPOKES (a game thumbnail) is not the logo.
+LOGO_ALT_RE = re.compile(
+    r"^\s*spokes(\s+logo)?\s*$|^\s*spokes\s*(?:—|&mdash;|–|-)\s*strategic planning",
+    re.IGNORECASE,
+)
+CSS_URL_RE = re.compile(r"""url\(\s*['"]?([^'")]+)['"]?\s*\)""", re.IGNORECASE)
 
 # ---------------------------------------------------------------------------
 # Result type
@@ -308,6 +321,72 @@ def check_colors(doc: Document) -> list[Result]:
         results.append(Result("CLR-08", "PASS", "No prohibited colors found", 0))
 
     return results
+
+
+# ---------------------------------------------------------------------------
+# Check: Logo (LOGO-01, LOGO-02)
+# ---------------------------------------------------------------------------
+def _logo_elements(doc: Document) -> list[Element]:
+    """Elements that show the logo: by file name, logo class, the logo's own alt, or as a poster."""
+    found: list[Element] = []
+    for elem in doc.elements:
+        if LOGO_FILE_RE.search(elem.attrs.get("poster") or ""):
+            found.append(elem)
+        elif elem.tag == "img" and (
+            LOGO_FILE_RE.search(elem.attrs.get("src") or "")
+            or _class_contains(elem, "logo")
+            or LOGO_ALT_RE.search(elem.attrs.get("alt") or "")
+        ):
+            found.append(elem)
+    return found
+
+
+def _reference_sha256(doc: Document, value: str) -> str | None:
+    """SHA-256 of a data: URI's bytes or of the local file a reference resolves to; None if missing."""
+    ref = value.strip()
+    if ref.lower().startswith("data:"):
+        header, _, payload = ref.partition(",")
+        try:
+            data = base64.b64decode(payload) if header.lower().endswith(";base64") else unquote(payload).encode("utf-8")
+        except (binascii.Error, ValueError):
+            return None
+        return hashlib.sha256(data).hexdigest()
+    if ref.lower().startswith(("http://", "https://")) or doc.source_path is None:
+        return None
+    target = doc.source_path.parent / _local_reference_path(ref)
+    return hashlib.sha256(target.read_bytes()).hexdigest() if target.is_file() else None
+
+
+def _check_logo_file(doc: Document) -> Result:
+    """LOGO-01: every logo image is byte-for-byte the official SPOKES-Logo.png."""
+    if doc.source_path is None:
+        return Result("LOGO-01", "PASS", "Logo check skipped (source path unavailable)", 0)
+    references: list[tuple[str, int]] = [
+        (elem.attrs[attr] or "", elem.line)
+        for elem in _logo_elements(doc)
+        for attr in ("src", "poster")
+        if elem.attrs.get(attr)
+    ]
+    for match in CSS_URL_RE.finditer(_all_css_with_override(doc)):
+        if LOGO_FILE_RE.search(match.group(1)):
+            references.append((match.group(1), _find_css_line(doc, re.escape(match.group(1)))))
+    if not references:
+        return Result("LOGO-01", "PASS", "No logo images found", 0)
+    official = hashlib.sha256(OFFICIAL_LOGO_PATH.read_bytes()).hexdigest()
+    for ref, line in references:
+        digest = _reference_sha256(doc, ref)
+        if digest == official:
+            continue
+        label = "embedded image" if ref.strip().lower().startswith("data:") else ref
+        is_local = not ref.strip().lower().startswith(("data:", "http://", "https://"))
+        if digest is None and is_local:
+            return Result("LOGO-01", "FAIL", f"Logo file missing: {label}", line)
+        return Result("LOGO-01", "FAIL", f"Logo image is not the official SPOKES-Logo.png: {label}", line)
+    return Result("LOGO-01", "PASS", "All logo images match the official SPOKES-Logo.png", 0)
+
+
+def check_logo(doc: Document) -> list[Result]:
+    return [_check_logo_file(doc)]
 
 
 # ---------------------------------------------------------------------------
@@ -1162,7 +1241,7 @@ def main() -> None:
     doc.source_path = filepath
 
     results: list[Result] = []
-    for check_fn in [check_colors, check_typography, check_accessibility,
+    for check_fn in [check_colors, check_logo, check_typography, check_accessibility,
                      check_components, check_navigation, check_theme,
                      check_mobile, check_performance, check_references, check_engagement,
                      check_reduced_motion, check_print]:

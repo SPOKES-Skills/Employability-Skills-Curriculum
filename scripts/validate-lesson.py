@@ -385,8 +385,68 @@ def _check_logo_file(doc: Document) -> Result:
     return Result("LOGO-01", "PASS", "All logo images match the official SPOKES-Logo.png", 0)
 
 
+CSS_LENGTH_RE = re.compile(r"[\d.]+(?:px|rem|em|%|vw|vh|vmin|vmax|pt|cm|mm|in)")
+
+
+def _css_value(declarations: str, prop: str) -> str | None:
+    """Last value set for a property in one declaration block; `max-width` never counts as `width`."""
+    values = re.findall(rf"(?<![-\w]){re.escape(prop)}\s*:\s*([^;]+)", declarations.lower())
+    return values[-1].replace("!important", "").strip() if values else None
+
+
+def _logo_style_problems(declarations: str) -> list[str]:
+    """Declarations in one block that would recolor, crop or distort the logo."""
+    problems = [
+        prop
+        for prop, harmless in (("filter", "none"), ("mix-blend-mode", "normal"), ("clip-path", "none"))
+        if _css_value(declarations, prop) not in (None, harmless)
+    ]
+    fit = _css_value(declarations, "object-fit")
+    if fit == "cover":
+        problems.append("object-fit: cover")
+    width, height = _css_value(declarations, "width"), _css_value(declarations, "height")
+    if (width and height and CSS_LENGTH_RE.fullmatch(width) and CSS_LENGTH_RE.fullmatch(height)
+            and fit != "contain"):
+        problems.append("fixed width and height")
+    return problems
+
+
+def _is_marked_logo(elem: Element) -> bool:
+    return _class_contains(elem, "logo") or bool(LOGO_ALT_RE.search(elem.attrs.get("alt") or ""))
+
+
+def _rule_targets_logo(selector: str, logo_classes: set[str]) -> bool:
+    """True when the last compound of any selector in the list names `logo` or a logo element's class."""
+    for part in selector.lower().split(","):
+        last = re.split(r"\s*[>+~]\s*|\s+", part.strip())[-1]
+        if "logo" in last or any(f".{cls}" in last for cls in logo_classes):
+            return True
+    return False
+
+
+def _check_logo_display(doc: Document) -> Result:
+    """LOGO-02: the logo may be resized, never recolored, cropped, distorted or used as stand-in art."""
+    for elem in doc.elements:
+        shows_logo_file = any(LOGO_FILE_RE.search(elem.attrs.get(attr) or "") for attr in ("src", "poster"))
+        if shows_logo_file and not _is_marked_logo(elem):
+            return Result("LOGO-02", "FAIL", f"Official logo used as stand-in art on <{elem.tag}>", elem.line)
+    logos = _logo_elements(doc)
+    for elem in logos:
+        problems = _logo_style_problems(elem.attrs.get("style") or "")
+        if problems:
+            return Result("LOGO-02", "FAIL", f"Logo altered by inline style ({', '.join(problems)})", elem.line)
+    logo_classes = {cls for elem in logos for cls in (elem.attrs.get("class") or "").lower().split()}
+    for selector, block in re.findall(r"([^{}]+)\{([^{}]*)\}", _all_css_with_override(doc)) if logos else []:
+        problems = _logo_style_problems(block)
+        if problems and _rule_targets_logo(selector, logo_classes):
+            shown = " ".join(selector.split())
+            return Result("LOGO-02", "FAIL", f"Logo altered by CSS ({', '.join(problems)}): {shown}",
+                          _find_css_line(doc, re.escape(shown)))
+    return Result("LOGO-02", "PASS", "Logo shown unaltered", 0)
+
+
 def check_logo(doc: Document) -> list[Result]:
-    return [_check_logo_file(doc)]
+    return [_check_logo_file(doc), _check_logo_display(doc)]
 
 
 # ---------------------------------------------------------------------------
@@ -873,7 +933,7 @@ def check_theme(doc: Document) -> list[Result]:
     # THM-02/03/04: data-chapter scoping (heuristic — PASS by default)
     results.append(Result("THM-02", "PASS", "Chapter scoping check (heuristic pass)", 0))
     results.append(Result("THM-03", "PASS", "Chapter scoping check (heuristic pass)", 0))
-    results.append(Result("THM-04", "PASS", "Chapter scoping check (heuristic pass)", 0))
+    results.append(Result("THM-04", "PASS", "Guideline: one card style or per-chapter variety are both allowed", 0))
 
     # THM-05: Dark theme lessons must put class="theme-dark" on the .main
     # element, with supporting .theme-dark CSS (which lives in theme-override).

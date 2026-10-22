@@ -672,6 +672,60 @@ class TestLogoRules(unittest.TestCase):
         self.assertIn("[PASS] LOGO-01", out)
         self.assertEqual(code, 0, out)
 
+    def _styled(self, css):
+        return run_validator_on_lesson(self.LOGO_IMG, css_extra=css, files={"SPOKES-Logo.png": OFFICIAL_LOGO})
+
+    def test_logo02_fails_on_filter(self):
+        self.assertIn("[FAIL] LOGO-02", self._styled(".logo { filter: grayscale(1); }")[1])
+
+    def test_logo02_fails_on_mix_blend_mode(self):
+        self.assertIn("[FAIL] LOGO-02", self._styled(".logo { mix-blend-mode: multiply; }")[1])
+
+    def test_logo02_fails_on_clip_path(self):
+        self.assertIn("[FAIL] LOGO-02", self._styled(".logo { clip-path: circle(40%); }")[1])
+
+    def test_logo02_fails_on_object_fit_cover(self):
+        self.assertIn("[FAIL] LOGO-02", self._styled(".logo { width: 80px; height: 80px; object-fit: cover; }")[1])
+
+    def test_logo02_fails_on_fixed_width_and_height(self):
+        self.assertIn("[FAIL] LOGO-02", self._styled(".logo { width: 120px; height: 40px; }")[1])
+
+    def test_logo02_passes_with_object_fit_contain(self):
+        code, out = self._styled(".logo { width: 120px; height: 120px; object-fit: contain; }")
+        self.assertIn("[PASS] LOGO-02", out)
+        self.assertEqual(code, 0, out)
+
+    def test_logo02_passes_with_max_width_only(self):
+        code, out = self._styled(".logo { max-width: 150px; max-height: 80px; }")
+        self.assertIn("[PASS] LOGO-02", out)
+        self.assertEqual(code, 0, out)
+
+    def test_logo02_checks_rules_inside_media_queries(self):
+        out = self._styled("@media (max-width: 600px) { .logo { width: 40px; height: 40px; } }")[1]
+        self.assertIn("[FAIL] LOGO-02", out)
+
+    def test_logo02_fails_on_inline_style_filter(self):
+        _, out = run_validator_on_lesson(
+            '<img src="SPOKES-Logo.png" alt="SPOKES" class="logo" style="filter: invert(1)" />',
+            files={"SPOKES-Logo.png": OFFICIAL_LOGO})
+        self.assertIn("[FAIL] LOGO-02", out)
+
+    def test_logo02_fails_when_logo_is_stand_in_art(self):
+        _, out = run_validator_on_lesson('<img src="SPOKES-Logo.png" alt="{{chapter image description}}" />',
+                                         files={"SPOKES-Logo.png": OFFICIAL_LOGO})
+        self.assertIn("[FAIL] LOGO-02", out)
+
+
+class TestReleasedLessonsLogo(unittest.TestCase):
+    def test_released_lessons_pass_logo_rules(self):
+        lessons = sorted((Path(__file__).resolve().parent.parent).glob("lesson-*/index.html"))
+        self.assertEqual(len(lessons), 6)
+        for lesson in lessons:
+            out = subprocess.run([sys.executable, str(VALIDATOR), str(lesson)],
+                                 capture_output=True, text=True).stdout
+            self.assertIn("[PASS] LOGO-01", out, lesson.parent.name)
+            self.assertIn("[PASS] LOGO-02", out, lesson.parent.name)
+
 
 if __name__ == "__main__":
     unittest.main()

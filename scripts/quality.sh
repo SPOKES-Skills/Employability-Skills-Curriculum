@@ -15,7 +15,7 @@ echo "==> SPOKES validator: canonical builder template"
 python3 scripts/validate-lesson.py "SPOKES Builder/template.html"
 
 echo "==> validator test suite"
-python3 -m unittest discover -s scripts -p 'test_validator.py' -v
+python3 -m unittest discover -s scripts -p 'test_validator*.py' -v
 
 echo "==> offline lessons package builder"
 python3 -m unittest discover -s scripts -p 'test_offline_package.py' -v

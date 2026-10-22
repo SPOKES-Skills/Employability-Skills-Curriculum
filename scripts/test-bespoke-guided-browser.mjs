@@ -215,6 +215,9 @@ try {
             for (let el = label?.parentElement; el && el !== document.body; el = el.parentElement) { const s = getComputedStyle(el); if (s.overflow !== 'visible') clips.push(`${el.className || el.id}:${s.overflow}:${box(el)}`); }
             return JSON.stringify({ active: document.activeElement?.id || document.activeElement?.className || document.activeElement?.tagName, hover: sample?.dataset.choice || null,
               slide: document.querySelector('#modelStage .bespoke-slide')?.className, label: cs ? [cs.fontFamily, cs.fontSize, cs.textTransform, cs.display, label.getBoundingClientRect().height] : null,
+              color: cs?.color, opacity: cs?.opacity, visibility: cs?.visibility, fillColor: cs?.webkitTextFillColor,
+              bgs: (() => { const out = []; for (let el = label; el && out.length < 4; el = el.parentElement) { const s = getComputedStyle(el); if (s.backgroundColor !== 'rgba(0, 0, 0, 0)' || s.backgroundImage !== 'none') out.push(`${el.className}:${s.backgroundColor}:${s.backgroundImage.slice(0, 60)}`); } return out; })(),
+              fonts: [...document.fonts].filter((f) => /Bitter|Raleway/.test(f.family)).map((f) => `${f.family}:${f.weight}:${f.status}`),
               labelBox: box(label), stage: box(document.querySelector('#modelStage')), slideBox: box(label?.closest('.bespoke-slide')), view: innerHeight, scrollY,
               topEl: top ? `${top.tagName}.${top.className}` : null, clips });
           });
@@ -223,6 +226,7 @@ try {
           await button.click();
           await page.mouse.move(0, 0);
           const afterProbe = await probe();
+          if (/Activity label/.test(title)) console.log(`DIAGLOG ${id} before ${beforeProbe} after ${afterProbe}`);
           const after = await page.locator('#modelStage').screenshot();
           const afterDesign = await design(page);
           const moved = await pixelDifference(page, before, after).catch((error) => {

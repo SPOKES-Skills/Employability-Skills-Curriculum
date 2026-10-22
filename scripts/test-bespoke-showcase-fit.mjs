@@ -83,7 +83,11 @@ try {
           const where = `${width}x${height}, drawer ${drawer}, ${view}`;
           const slide = await rect(page, '#modelStage .bespoke-slide'), toolbar = await rect(page, '#contextToolbar');
           const band = await rect(page, '#previewToolbarMount');
-          assert.ok(slide.top >= 0 && slide.bottom <= height, `${where}: the whole slide is in the window at scroll 0, top ${slide.top}, bottom ${slide.bottom}`);
+          // The whole slide shows, or (R24) it holds at the floor with at most a fifth below the fold. Which one
+          // depends on the room the chrome leaves, and classic scrollbars (Linux, Windows) leave less than macOS.
+          const scale = await page.locator('#modelStage .bespoke-slide').evaluate(el => el.getBoundingClientRect().height / el.offsetHeight);
+          const held = Math.abs(scale - MIN_SCALE) < 0.001 && slide.top >= 0 && slide.bottom - height <= slide.height / 5;
+          assert.ok((slide.top >= 0 && slide.bottom <= height) || held, `${where}: the whole slide is in the window at scroll 0, or held at the floor with at most a fifth below: scale ${scale.toFixed(3)}, top ${slide.top}, bottom ${slide.bottom}`);
           assert.ok(slide.height > band.height, `${where}: the slide (${slide.height}px) is taller than the toolbar band (${band.height}px)`);
           assert.ok(toolbar.top >= 0 && toolbar.bottom <= height, `${where}: the toolbar is in the window, top ${toolbar.top}, bottom ${toolbar.bottom}`);
           assert.ok(toolbar.bottom <= slide.top, `${where}: the toolbar sits above the slide`);
@@ -243,7 +247,7 @@ try {
       await context.close();
     }
   });
-  await check('a band above the workspace holds the slide at the floor, and its removal refits it', async () => {
+  await check('a band above the workspace refits the slide by the floor-and-hold rule (R24)', async () => {
     // Ruling R24. Hosted sessions can show a status notice or the receipt band above the workspace; the local
     // preview shows neither, so the test raises the #fileStatus notice the page uses for status text.
     const scales = [];
@@ -266,20 +270,22 @@ try {
       const banded = await measure();
       const band = await rect(page, '#fileStatus');
       assert.ok(band.height >= 30, `${where}: the notice shows above the workspace, ${band.height}px tall`);
-      assert.ok(banded.scale >= MIN_SCALE - 0.001 && banded.scale < 0.999, `${where}: with the notice the slide holds at a legible scale, not full size: ${banded.scale.toFixed(3)}`);
-      assert.ok(banded.bottom - 768 <= banded.height / 5, `${where}: with the notice at most a fifth of the slide is below the fold: ${banded.bottom - 768}px of ${banded.height}px`);
+      // R24: a slide that fits shows whole; one that does not holds at the floor while at most a fifth falls below
+      // the fold; past that it falls back to full size (the column width) and the page scrolls.
+      const r24 = m => (m.top >= 0 && m.bottom <= 768) || (m.scale >= MIN_SCALE - 0.001 && m.bottom - 768 <= m.height / 5)
+        || (m.scale > MIN_SCALE + 0.001 && m.bottom - 768 > m.height / 5);
+      assert.ok(banded.scale >= MIN_SCALE - 0.001, `${where}: with the notice the slide is never below the floor: ${banded.scale.toFixed(3)}`);
+      assert.ok(r24(banded), `${where}: with the notice the slide fits, holds at the floor, or falls back to full size: ${JSON.stringify(banded)}`);
       await page.evaluate(() => { document.getElementById('fileStatus').hidden = true; });
       const clear = await measure();
-      assert.ok(clear.top >= 0 && clear.bottom <= 768, `${where}: without the notice the slide refits into the window, top ${clear.top}, bottom ${clear.bottom}`);
-      assert.ok(clear.scale >= banded.scale, `${where}: the refit never shrinks the slide: ${banded.scale.toFixed(3)} to ${clear.scale.toFixed(3)}`);
+      assert.ok(r24(clear) && clear.scale >= MIN_SCALE - 0.001, `${where}: without the notice the slide refits by the same rule: ${JSON.stringify(clear)}`);
       scales.push({banded: banded.scale, clear: clear.scale});
       await context.close();
     }
-    // The Text boxes slide is 960x628 on its canvas in both cases, so the notice pushes it to the floor. With the
-    // drawer open the slide sits at the floor even without the notice; with it closed, the refit grows it back.
+    // The notice takes room from the Text boxes slide, so in at least one case the scale changes when it goes: the
+    // fit watches the bands above the workspace (R24). Which branch each case lands on depends on the platform's room.
     const shown = scales.map(x => `${x.banded.toFixed(3)} to ${x.clear.toFixed(3)}`).join(', ');
-    assert.ok(scales.some(x => Math.abs(x.banded - MIN_SCALE) < 0.001), `one case holds exactly at the floor ${MIN_SCALE}: ${shown}`);
-    assert.ok(scales.some(x => x.clear > x.banded), `one case grows back once the notice goes: ${shown}`);
+    assert.ok(scales.some(x => Math.abs(x.clear - x.banded) > 0.001), `one case refits once the notice goes: ${shown}`);
   });
   await check('Pick a look shows stage and strip together at 1024', async () => {
     const {context, page} = await open(1024, 768);

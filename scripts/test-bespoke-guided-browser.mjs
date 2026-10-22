@@ -199,34 +199,15 @@ try {
         questionsWithSamples += 1;
         if (await page.locator('#btnGuideMore').count()) await page.locator('#btnGuideMore').click();
         const ids = await page.locator('.guide-sample').evaluateAll((els) => els.map((e) => e.dataset.choice));
+        const start = await page.locator('.guide-sample[aria-pressed="true"]').evaluateAll((els) => els[0]?.dataset.choice);
         for (const id of ids) {
           const button = page.locator(`.guide-sample[data-choice="${id}"]`);
           if ((await button.getAttribute('aria-pressed')) === 'true') continue;
           await page.mouse.move(0, 0);
           const beforeDesign = await design(page);
-          const probe = () => page.evaluate(() => {
-            const label = document.querySelector('#modelStage .slide-activity-label');
-            const cs = label && getComputedStyle(label);
-            const sample = document.querySelector('.guide-sample:hover');
-            const box = (el) => { const r = el?.getBoundingClientRect(); return r ? [Math.round(r.left), Math.round(r.top), Math.round(r.width), Math.round(r.height)] : null; };
-            const r = label?.getBoundingClientRect();
-            const top = r ? document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2) : null;
-            const clips = [];
-            for (let el = label?.parentElement; el && el !== document.body; el = el.parentElement) { const s = getComputedStyle(el); if (s.overflow !== 'visible') clips.push(`${el.className || el.id}:${s.overflow}:${box(el)}`); }
-            return JSON.stringify({ active: document.activeElement?.id || document.activeElement?.className || document.activeElement?.tagName, hover: sample?.dataset.choice || null,
-              slide: document.querySelector('#modelStage .bespoke-slide')?.className, label: cs ? [cs.fontFamily, cs.fontSize, cs.textTransform, cs.display, label.getBoundingClientRect().height] : null,
-              color: cs?.color, opacity: cs?.opacity, visibility: cs?.visibility, fillColor: cs?.webkitTextFillColor,
-              bgs: (() => { const out = []; for (let el = label; el && out.length < 4; el = el.parentElement) { const s = getComputedStyle(el); if (s.backgroundColor !== 'rgba(0, 0, 0, 0)' || s.backgroundImage !== 'none') out.push(`${el.className}:${s.backgroundColor}:${s.backgroundImage.slice(0, 60)}`); } return out; })(),
-              fonts: [...document.fonts].filter((f) => /Bitter|Raleway/.test(f.family)).map((f) => `${f.family}:${f.weight}:${f.status}`),
-              labelBox: box(label), stage: box(document.querySelector('#modelStage')), slideBox: box(label?.closest('.bespoke-slide')), view: innerHeight, scrollY,
-              topEl: top ? `${top.tagName}.${top.className}` : null, clips });
-          });
-          const beforeProbe = await probe();
           const before = await page.locator('#modelStage').screenshot();
           await button.click();
           await page.mouse.move(0, 0);
-          const afterProbe = await probe();
-          if (/Activity label/.test(title)) console.log(`DIAGLOG ${id} before ${beforeProbe} after ${afterProbe}`);
           const after = await page.locator('#modelStage').screenshot();
           const afterDesign = await design(page);
           const moved = await pixelDifference(page, before, after).catch((error) => {
@@ -234,16 +215,12 @@ try {
             throw error;
           });
           // A faint change (a 6% watermark) stays under the per-pixel threshold, so require exactly no change at all.
-          if (moved.changedFraction === 0 && moved.meanChannelDelta === 0 && effective(beforeDesign) !== effective(afterDesign)) {
-            const { createHash } = await import('node:crypto');
-            const hash = (b) => createHash('sha1').update(b).digest('hex').slice(0, 10);
-            const lb = JSON.parse(afterProbe).labelBox;
-            const again = await page.locator('#modelStage').screenshot();
-            const clip = lb ? await page.screenshot({ clip: { x: lb[0], y: lb[1], width: lb[2], height: lb[3] } }) : null;
-            dead.push(`${title}: ${id}`, `DIAG before ${beforeProbe} after ${afterProbe}`, `DIAG shots before ${hash(before)}/${before.length} after ${hash(after)}/${after.length} again ${hash(again)}/${again.length} moved ${JSON.stringify(moved)} againDiff ${JSON.stringify(await pixelDifference(page, before, again).catch((e) => e.message))} labelClip ${clip ? clip.toString('base64').slice(0, 60) + '…' + clip.length : null}`);
-          }
+          if (moved.changedFraction === 0 && moved.meanChannelDelta === 0 && effective(beforeDesign) !== effective(afterDesign)) dead.push(`${title}: ${id}`);
           if (await page.locator('#btnGuideMore').count() && (await page.locator('#btnGuideMore').getAttribute('aria-expanded')) !== 'true') await page.locator('#btnGuideMore').click();
         }
+        // Leave the question on its starting choice. Otherwise the last sample tried carries forward, and a later
+        // question can be judged on text the sweep itself made invisible (navy activity text on a navy panel).
+        if (start) { await page.locator(`.guide-sample[data-choice="${start}"]`).click(); await page.mouse.move(0, 0); }
       }
       if (!(await page.locator('#btnGuideNext').count())) break;
       const last = /Finish/.test(await page.locator('#btnGuideNext').innerText());

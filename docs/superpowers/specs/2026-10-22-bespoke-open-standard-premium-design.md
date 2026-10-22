@@ -8,7 +8,7 @@ The open design standard fixes three things in every lesson: the 11 brand colors
 
 BeSpoke falls short in two directions. It still offers options the standard rules out (texture backgrounds, gradients, more than two typefaces). It also offers much less variety than the standard opens (four card looks, a left sidebar only).
 
-Britt also wants lessons to feel premium. To her that means smooth transitions and animation, images and video that are well made and sharp up to 4K, and slides that assemble themselves in a timed sequence ("Transformer style decks that reveal in a timed loadout"). None of this may slow the GitHub Pages site.
+Britt also wants lessons to feel premium. To her that means smooth transitions and animation, images and video that are well made and sharp, and slides that assemble themselves in a timed sequence ("Transformer style decks that reveal in a timed loadout"). None of this may slow the GitHub Pages site, so Britt capped images and video at 1080p.
 
 ## Solution
 
@@ -24,7 +24,7 @@ Four parts, built in order, each with its own plan and pull request:
 1. BeSpoke offers nothing the open design standard rules out.
 2. BeSpoke offers the wider variety the standard opens, plus finishing details that make a design look polished.
 3. Lessons can use a timed loadout: each slide's parts enter in a set order on arrival, smoothly, without making anyone wait.
-4. Images look sharp on large screens without sending 4K files to small ones.
+4. Images and video look sharp at up to 1080p, without sending large files to small screens.
 5. A quality-gate check keeps the Pages site within a fixed performance budget.
 6. Every design a team already saved still opens, converted to compliant choices, with the change explained.
 
@@ -33,7 +33,7 @@ Four parts, built in order, each with its own plan and pull request:
 - Changing the 11 colors or rules CLR-01 to CLR-08.
 - Changing the six released lessons.
 - Building the six Round 2 lessons.
-- 4K video. It waits until Britt chooses a host outside GitHub Pages (Open questions).
+- 4K images or video, and any video host outside GitHub Pages.
 - Image or video uploads in BeSpoke. Teams choose how media is treated; media itself is production work.
 - Editing the lesson navigation engine (`CLAUDE.md`: defined in SPOKES-STANDARD.md Section 5).
 
@@ -61,10 +61,11 @@ Four parts, built in order, each with its own plan and pull request:
 1. BeSpoke follows the open design standard.
 2. Conflicting options are replaced with compliant ones, not just removed.
 3. Add all the variety and polish elements discussed: whole-lesson choices, sidebar, title, divider, text box, video and activity additions, typography and spacing craft, finishing details and advisory polish notes (Part 2).
-4. Premium means smooth transitions and animation, well-made images and video up to 4K, and a timed loadout reveal.
+4. Premium means smooth transitions and animation, well-made images and video, and a timed loadout reveal.
 5. Keep the risks in view. GitHub Pages must not perform poorly.
 6. The performance budget below is approved.
 7. Order: Part 1, then Part 2, then Part 3, then Part 4. Each part gets its own plan and pull request.
+8. Images and video top out at 1080p, for performance and simple hosting on GitHub Pages. No 4K.
 
 ## Variables
 
@@ -218,14 +219,14 @@ Part 3 proposes motion rules (for example a MOT section) for the open design sta
 
 ### What exists today
 
-Lesson videos are served from GitHub Pages; the largest is 41 MB (`lesson-interview-skills/videos/what-to-wear.mp4`). The packed repository is 680 MB. GitHub Pages caps a published site at about 1 GB and refuses files over 100 MB, so 4K video cannot live on Pages.
+Lesson videos are served from GitHub Pages; the largest is 41 MB (`lesson-interview-skills/videos/what-to-wear.mp4`). The packed repository is 680 MB. GitHub Pages caps a published site at about 1 GB and refuses files over 100 MB.
 
 ### Performance budget (approved)
 
 - **First slide.** The page, styles, fonts and first-slide images come to under about 1.5 MB before the first slide shows. Images and video on later slides load only as the learner nears them.
-- **Images.** AVIF or WebP in three widths: 960, 1920 and 3840 pixels, with `srcset` and `sizes` so the browser picks the smallest that looks sharp. Each 3840-wide file stays under about 1.5 MB.
+- **Images.** AVIF or WebP in two widths, 960 and 1920 pixels, with `srcset` and `sizes` so the browser picks the smaller one when it looks sharp. 1920 is double the 960 slide canvas, so slides stay sharp on high-density screens. Each 1920-wide file stays under about 400 KB.
 - **Animation.** As in Part 3: moving and fading only, about 1.5 seconds, skippable, still under reduced motion.
-- **Video.** 1080p files stay on Pages with no preloading (PRF-01). 4K video waits for a host outside Pages, with 1080p as its fallback.
+- **Video.** 1080p at most, served from Pages with no preloading (PRF-01).
 - **Budget guard.** A script in `scripts/quality.sh` fails the gate when a new file passes 50 MB, a lesson's first-slide payload passes 1.5 MB, or the published site passes 900 MB, which leaves room under the 1 GB cap. Files already in the repository count toward the site total but are not failed individually.
 
 ### Image treatment
@@ -237,11 +238,10 @@ Lesson videos are served from GitHub Pages; the largest is 41 MB (`lesson-interv
 
 ## Calls Claude made
 
-- 4K images first; 4K video waits for a host.
 - Two-tone split as the replacement for gradients.
 - The 12 looks stay as starting points.
 - Diagonal and Crosshatch count as texture filler along with Dot grid.
-- Budget numbers: 1.5 MB first slide, 1.5 MB per 3840-wide image, 50 MB per new file, 900 MB site.
+- Budget numbers: 1.5 MB first slide, 400 KB per 1920-wide image, 50 MB per new file, 900 MB site.
 - Motion style names: none, subtle and loadout.
 - Removed values leave the controls first and the schema later, after Britt confirms no live design uses them.
 - `cssForDesign` is the single source of lesson-side styles; `theme-library.css` stays untouched.
@@ -260,8 +260,7 @@ Lesson videos are served from GitHub Pages; the largest is 41 MB (`lesson-interv
 2. **Two-color gradients.** Keep a two-color gradient on title and divider slides, or use only the two-tone split.
 3. **Ready-made looks.** Keep the 12 as starting points, or have a look set only layout and card shape while colors and fonts come from the team's design brief.
 4. **The loadout picture.** Confirm or correct the reading in Part 3 before it is planned.
-5. **4K video host.** Later: a paid video host, an unlisted YouTube or Vimeo channel, or none.
-6. **Approval wording.** The standard's own open question (every BeSpoke design needs Britt's approval, or only one that breaks a rule) decides how Send describes what happens next.
+5. **Approval wording.** The standard's own open question (every BeSpoke design needs Britt's approval, or only one that breaks a rule) decides how Send describes what happens next.
 
 ## Workflow
 

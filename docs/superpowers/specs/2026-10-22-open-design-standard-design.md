@@ -350,11 +350,29 @@ Replace decorative content icons in the examples (danger-icon `&#128241;`, area-
   - Check: `git diff --stat BASE -- 'lesson-*/'`
     Expected: no output.
 
+### Rollback point
+
+- The archive tag holds the old rules.
+  - Check: `git cat-file -t archive/design-rules-v1; git show archive/design-rules-v1:"SPOKES Builder/AGENT_THEMING_GUIDELINES.md" | grep -c 'pre-defined and pre-approved'`
+    Expected: `tag`, then `1`.
+
 ### Rendered check
 
 - New lessons look right after the template changes.
   - Check: Britt reviews a rendered preview of `SPOKES Builder/template.html` with a sample theme.
     Expected: approved.
+
+## Rollback
+
+The design rules as they stood before this change are kept in the annotated tag `archive/design-rules-v1`, on `9bd8b2e` (the `origin/main` this branch starts from, fetched 2026-10-22). It holds the predefined theme packages, catalog-only styles, the required THM-04, the template with its logo stand-ins, and the validator without LOGO checks. The tag lives in this Mac's repository until Britt pushes it: `git push origin archive/design-rules-v1`.
+
+To roll back after this branch merges, on a new branch:
+
+1. Restore every file this branch edits: `git restore --source=archive/design-rules-v1 -- SPOKES-STANDARD.md "SPOKES Builder/CLAUDE.md" "SPOKES Builder/AGENT_THEMING_GUIDELINES.md" "SPOKES Builder/build-process.md" "SPOKES Builder/font-pairings.md" "SPOKES Builder/components.md" "SPOKES Builder/template.html" SPOKES-Agent-Execution-Spec.md SPOKES-Agent-Runbook.md scripts/validate-lesson.py scripts/test_validator.py`
+2. Delete `SPOKES Builder/images/chapter-placeholder.svg`.
+3. Run `bash scripts/quality.sh`, then commit.
+
+Reverting the merge commit (`git revert -m 1 <merge commit>`) does the same in one step while nothing else has changed those files. The six released lessons never change on this branch, so they need no rollback. A lesson built under the open rules keeps its own design; rolling back the rules does not restyle it.
 
 ## Follow-ups (outside this branch)
 

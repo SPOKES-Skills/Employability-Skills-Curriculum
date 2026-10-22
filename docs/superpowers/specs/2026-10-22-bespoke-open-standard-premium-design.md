@@ -69,7 +69,8 @@ Four parts, built in order, each with its own plan and pull request:
 9. BeSpoke does not gate readability. Pickers hide and lock nothing; a person completes the readability review.
 10. The loadout reading in Part 3 stands for now and may change after user review.
 11. Two-color gradients stay on title and divider slides.
-12. Twelve ready-made looks stay. Each shares at most 5 compared choices with other lessons and, where possible, no color combination.
+12. Twelve ready-made looks stay. Each shares at most 5 compared choices with each released lesson and, where possible, no color combination.
+14. Between the looks, any two share roughly half or fewer of the compared choices.
 13. Every BeSpoke design needs Britt's final approval.
 
 ## Variables
@@ -120,7 +121,7 @@ Keep 12 ready-made looks (Britt, 2026-10-22), redesigned so that each one:
 
 Measured on `1e5ce9d`, six of today's 12 looks already stay within 5 shared choices of every released lesson. Corner shares 9 with Controlling Anger, and Fun, Outspoken and Horizon share 8. Several looks share up to 5 colors with one lesson.
 
-Whether the limit also applies between the looks themselves is open (Open questions). With today's options it cannot: 12 looks must share at least 340 choice matches across their 66 pairs, and a limit of 5 per pair allows 330. Two-option choices such as logo position or solid versus gradient force about 30 matching pairs each. Part 2's new options lower that floor.
+Between the looks themselves the limit is looser (Britt, 2026-10-22): any two looks share roughly half or fewer of the choices the meter compares, which is at most 16 of 32 when both designs are fully known. Measured on `1e5ce9d`, 44 of the 66 pairs share more than 16; Modern and Plaque share 25. Half is reachable with today's options: the floor for 12 looks is 340 matches, and half allows 1,056.
 
 ### Approval
 
@@ -271,11 +272,11 @@ Lesson videos are served from GitHub Pages; the largest is 41 MB (`lesson-interv
 
 ## Open questions for Britt
 
-1. **Looks compared with each other.** Does the limit of 5 shared choices also apply between the 12 looks, or only between each look and the released lessons? Between the looks it cannot be met until Part 2 adds options (Part 1, Ready-made looks).
+None remain. The calls above are Claude's and open to Britt's correction.
 
 ## Workflow
 
-1. **Answer.** Britt answers the open questions that block a part before that part is planned. Item 1 decides whether the looks are redesigned in Part 1 against the released lessons only, or again after Part 2 against each other.
+1. **Approve.** Britt approves this design before any part is planned.
 2. **Plan.** Write `PLAN_<n>` for the next part with `superpowers:writing-plans`, and commit it before any implementation change for that part.
 3. **Build.** Test first. Run `GATE` after each task.
 4. **Stage.** For a part that changes a file the service bundles, Claude stages the service and Britt deploys it before the pull request merges.
@@ -299,6 +300,9 @@ Each part's plan adds its own checks. These hold for the whole project.
 - Every ready-made look stays within 5 shared choices of each released lesson.
   - Check: a Node test runs `compareDesign` on each of the 12 looks.
     Expected: every result's `shared` is 5 or less, and color matches are listed for any look above 0.
+- Any two ready-made looks share half or fewer of the compared choices.
+  - Check: the same test compares every pair of looks on the 32 compared choices.
+    Expected: no pair shares more than 16.
 - Removed values still pass the service until the schema is narrowed.
   - Check: a contract test saves a design that uses each removed value through the service handler.
     Expected: accepted.

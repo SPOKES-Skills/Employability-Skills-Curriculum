@@ -425,7 +425,11 @@ function roleStyleCss(catalog,design,scope,canonical) {
         blocks.push(`${preview}{${important(roleBackgroundCss(catalog,design,kind,{omitStructure:true}))}}`);
         if(canonical) blocks.push(`${lesson}{${important(roleBackgroundCss(catalog,design,kind))}}`);
         blocks.push(`${preview} .slide-content{${important(`background-image:${layers.images.join(', ')};background-size:${layers.sizes.join(', ')};background-position:${layers.positions.join(', ')};background-repeat:${layers.repeats.join(', ')};`)}}`);
-      } else rule(preview,lesson,important(roleBackgroundCss(catalog,design,kind)));
+      } else {
+        rule(preview,lesson,important(roleBackgroundCss(catalog,design,kind)));
+        // A local Plain or retired texture replaces the shared structure the sample content area would paint.
+        if(!['title','divider'].includes(kind)&&STRUCTURE_IDS.includes(design.background)) blocks.push(`${preview} .slide-content{background-image:none!important;}`);
+      }
       // Let text and reusable boxes share the chosen role composition. Borders,
       // button colors, video frames and the separate lesson sidebar stay intact.
       if(!['title','divider'].includes(kind)) rule(`${preview} :is(.slide-card,.slide-title-bar,.slide-activity,.slide-heading)`,`${lesson} :is(.card,.activity-box,h2,h3,h4,p,li)`,'background-color:transparent;background-image:none;');

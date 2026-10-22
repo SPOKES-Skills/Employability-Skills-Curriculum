@@ -217,6 +217,19 @@ try {
     evidence.push({ label: 'explicit shared defaults', localOverridesPreserved: true, sharedMini, scopeReload: true, scopeIndependent: true });
   });
 
+  await scenario('a local Plain or retired texture clears the shared frame on content slides', async ({ makePage }) => {
+    // The other fixtures set a structure on every kind, so only a shared structure with local exceptions can show a leak.
+    const page = await makePage(), d = defaultDesign(catalog); d.startingPoint = 'custom'; d.background = 'frame';
+    d.roleStyles = { cards: { ...roleStyleDefaults(catalog, d, 'cards'), pattern: 'plain' }, video: { ...roleStyleDefaults(catalog, d, 'video'), pattern: 'dot-grid' } };
+    await importDesign(page, d); await start(page);
+    const area = () => page.locator('#modelStage .bespoke-slide .slide-content').evaluate(el => getComputedStyle(el).backgroundImage);
+    const root = () => page.locator('#modelStage .bespoke-slide').evaluate(el => getComputedStyle(el).backgroundImage);
+    await view(page, 'cards'); assert.equal(await area(), 'none', 'Plain on Text boxes removes the shared frame from the content area'); assert.equal(await root(), 'none');
+    await view(page, 'video'); assert.equal(await area(), 'none', 'A retired texture on Video replaces the shared frame'); assert(/radial-gradient/.test(await root()), 'the retired dot grid still paints');
+    await view(page, 'activity'); assert.equal(((await area()).match(/linear-gradient/g) || []).length, 4, 'A slide that inherits the shared frame still shows its four bars');
+    evidence.push({ label: 'local Plain and retired texture clear the shared frame', cards: 'none', video: 'none', activity: 4 });
+  });
+
   await scenario('old-v2 navigation hidden body and phone keyboard accessibility', async ({ makePage }) => {
     const page = await makePage(390, 844), before = defaultDesign(catalog); delete before.roleStyles; await importDesign(page, before); await start(page);
     for (const kind of kinds) {

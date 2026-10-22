@@ -146,6 +146,20 @@ test('a local content-slide structure follows the same sidebar rule', () => {
   assert(!paintingRule(preview, '.bespoke-slide[data-kind="cards"]{') && !paintingRule(preview, '.bespoke-slide[data-kind="cards"] {'), 'root of the cards slide is not painted');
 });
 
+test('a local plain or retired texture on a content slide clears the shared structure', () => {
+  for (const pattern of ['plain', 'dot-grid']) {
+    const design = setRoleStyle(catalog, paperAndBerry('frame'), 'cards', 'pattern', pattern);
+    const preview = cssForDesign(catalog, design, { canonical: false });
+    const own = preview.split('\n').filter(line => line.startsWith('.bespoke-slide[data-kind="cards"] .slide-content{'));
+    assert(own.length > 0 && own.every(line => line.includes('background-image:none!important')), `cards/${pattern}: the shared frame is cleared on the content area`);
+    assert(!own.some(line => line.includes('linear-gradient(#')), `cards/${pattern}: no frame bars remain`);
+    // Slides that inherit the shared frame still carry it.
+    assert(paintingRule(preview, '.bespoke-slide .slide-content'), `${pattern}: other content slides keep the shared frame`);
+    // The retired texture still paints on the slide root, as before.
+    if (pattern === 'dot-grid') assert(preview.split('\n').some(line => line.startsWith('.bespoke-slide[data-kind="cards"]{') && line.includes('radial-gradient')));
+  }
+});
+
 test('structure ink checks the accent against every gradient sample', () => {
   const design = paperAndBerry('edge-rail');
   design.slides.title.colors = 'gradient';

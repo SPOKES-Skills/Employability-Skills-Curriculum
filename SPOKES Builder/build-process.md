@@ -262,8 +262,7 @@ Run through this checklist before delivering:
 - [ ] **Brand colors only** — no reds, oranges, maroons, or off-palette colors
 - [ ] **Controlled color mixing applied** — lesson uses a differentiated major/minor palette emphasis vs adjacent lessons
 - [ ] **No clashing color pairings** — avoids accent-on-accent clash combinations; contrast and harmony checks pass
-- [ ] **Final color schema approved by user** — explicit sign-off recorded before release
-- [ ] **Font pairing** matches the approved selection
+- [ ] **Fonts** match the lesson's design: self-hosted, at most two typefaces (TYP-02)
 - [ ] **Component mix** differs from other lessons in the curriculum
 - [ ] **Responsive** layout works at 768px and 480px widths
 - [ ] **Reduced motion** tested — toggle `prefers-reduced-motion: reduce` in DevTools; verify no animations, no confetti, no sounds, all content visible immediately

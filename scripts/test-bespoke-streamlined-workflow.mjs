@@ -8,7 +8,7 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import { browserType, browserName } from './bespoke-test-browser.mjs';
 import { createDevServer, LOCAL_PREVIEW_CODE, LOCAL_PREVIEW_VIEW_CODE } from './bespoke-dev-server.mjs';
-import { defaultDesign, effectiveRoleStyle, roleStyleDefaults } from '../bespoke/builder-model.mjs';
+import { cssForDesign, defaultDesign, effectiveRoleStyle, roleStyleDefaults } from '../bespoke/builder-model.mjs';
 import { pixelDifference } from './bespoke-pixel-check.mjs';
 import catalog from '../bespoke/builder-catalog.json' with { type: 'json' };
 
@@ -628,6 +628,55 @@ try {
     evidence.push({ label: 'synthetic conflict/recovery', staleStatus: 409, historyCount: history.length, menuDismissal: ['file action', 'Escape', 'outside action'] });
   });
 
+  await scenario('standard conversion on open', async ({ makePage, server }) => {
+    // A design saved before the SPOKES standard: Dot grid behind everything and a third typeface on the text boxes.
+    const base = defaultDesign(catalog);
+    const third = catalog.fonts.find(f => ![base.fonts.heading, base.fonts.body].includes(f.id));
+    const retired = { ...base, background: 'dot-grid', roleStyles: { cards: { ...roleStyleDefaults(catalog, base, 'cards'), headingFont: third.id } } };
+    const expected = { ...base, background: 'plain', roleStyles: { cards: { ...roleStyleDefaults(catalog, base, 'cards'), headingFont: 'heading' } } };
+    const css = value => cssForDesign(catalog, value, { scope: '.bespoke-slide', fontBase: '../fonts', canonical: false });
+    const dotGrid = 'radial-gradient(circle, rgba(255, 255, 255, 0.2) 2.5px';
+    assert(css(retired).includes(dotGrid), 'the saved design really holds Dot grid');
+    const builder = await makePage(); await team(builder); await builder.locator('#preset-fun').click(); await save(builder);
+    const first = await remote(server);
+    const seeded = await fetch(server.baseUrl + '/api/bespoke', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'save', lessonId: legacy.lesson.id, editCode: LOCAL_PREVIEW_CODE, selection: payload(retired), expectedRevision: first.revision, mutationId: crypto.randomUUID() }) });
+    assert.equal(seeded.status, 200, 'the service still saves the retired values');
+    const stored = (await remote(server)).selection.design;
+    assert.equal(stored.background, 'dot-grid', 'the shared design keeps Dot grid until a team saves again');
+    const notice = [
+      'Updated this design to the SPOKES design standard: Background Dot grid is now Plain.',
+      `Text boxes heading font ${third.label} is now the lesson heading font. Review it before saving.`
+    ].join(' ');
+    // Open dialog: the converted design is the open design, the notice lists both changes, and History keeps the earlier revision.
+    // The local preview gives every editing tab a session, so the Open dialog is reached from a read-only snapshot tab.
+    const opener = await makePage({ hash: snapshotHash() }); await openDialog(opener, LOCAL_PREVIEW_CODE);
+    await opener.locator('#restoreNotice').filter({ hasText: 'Background Dot grid is now Plain.' }).waitFor();
+    assert.equal((await opener.locator('#restoreNotice').innerText()).trim(), notice);
+    assert.deepEqual(await design(opener), expected, 'the open design is the converted one');
+    const openerCss = await opener.locator('#designStyle').textContent();
+    assert.equal(openerCss, css(expected), 'the preview renders Plain');
+    assert(!openerCss.includes(dotGrid));
+    await clickMenuItem(opener, '#btnHistory'); await opener.locator('#historyPanel li').first().waitFor();
+    assert.equal(await opener.locator('#historyPanel li').count(), (await remote(server, 'history')).history.length, 'History lists every earlier revision');
+    assert((await remote(server, 'history')).history.length >= 2);
+    assert.equal((await remote(server)).selection.design.background, 'dot-grid', 'opening saved nothing');
+    // A backup file opened from disk is converted the same way and keeps the notice.
+    const filed = await makePage(); await upload(filed, payload(retired));
+    assert.equal((await filed.locator('#restoreNotice').innerText()).trim(), notice);
+    assert.deepEqual(await design(filed), expected);
+    // A view-only tab shows the converted preview and never saves.
+    const before = actions.length;
+    const view = await makePage({ hash: viewHash() });
+    await view.locator('body[data-access=view]').waitFor(); await view.locator('#btnViewRefresh').waitFor();
+    await view.locator('#accessBanner').filter({ hasText: 'Built by' }).waitFor();
+    assert.equal(await view.locator('#designStyle').textContent(), css(expected), 'the view-only preview renders Plain');
+    await view.locator('#btnViewRefresh').click(); await view.locator('#accessBanner').filter({ hasText: 'Built by' }).waitFor();
+    assert.equal(await view.locator('#designStyle').textContent(), css(expected), 'Refresh keeps the converted preview');
+    assert.deepEqual(actions.slice(before).filter(a => a.action === 'save'), [], 'a view-only tab sends no save request');
+    assert.equal((await remote(server)).selection.design.background, 'dot-grid', 'the shared design is untouched by viewing');
+    evidence.push({ label: 'standard conversion on open', changes: notice });
+  });
+
   await scenario('legacy UI steps and selection recovery', async ({ makePage }) => {
     const oldIds = ['welcome', 'team', 'colors', 'fonts', ...kinds, 'review'];
     const storedDesign = defaultDesign(catalog);
@@ -652,7 +701,10 @@ try {
     await upload(page, payload(oldV2)); assert.deepEqual(await design(page), oldV2);
     assert(!Object.hasOwn(await design(page), 'roleStyles'), 'Old v2 does not eagerly acquire local styles');
     const oldBackup = await backup(page); assert.deepEqual(oldBackup.design, oldV2);
-    await upload(page, payload(storedDesign)); assert.deepEqual(await design(page), storedDesign);
+    // A third typeface in a backup follows the lesson's heading font once the backup is opened; the browser drafts above keep what was stored.
+    const standard = { ...storedDesign, roleStyles: { title: { ...storedDesign.roleStyles.title, headingFont: 'heading' } } };
+    await upload(page, payload(storedDesign)); assert.deepEqual(await design(page), standard);
+    assert.match(await page.locator('#restoreNotice').textContent(), /Title slide heading font Bitter is now the lesson heading font/);
     await upload(page, legacy, 'synthetic-v1.json');
     assert.match(await page.locator('#restoreNotice').textContent(), /older|convert/i);
     assert.deepEqual((await backup(page)).legacySelection, legacy, 'V1 archive survives conversion exactly');

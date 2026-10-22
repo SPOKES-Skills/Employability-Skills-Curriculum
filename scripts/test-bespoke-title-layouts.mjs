@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // Actual editor geometry plus generated/canonical title layouts. Synthetic state only.
-import { builderDestination, switchSurface } from './bespoke-test-navigation.mjs';
+import { builderDestination, restoreDraft, switchSurface } from './bespoke-test-navigation.mjs';
 import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
 import path from 'node:path';
@@ -102,8 +102,7 @@ async function seam(page, locator) {
 try {
   for(const width of [1920,1100,390]) {
     const page=await editor(width);
-    await page.locator('#teamFileInput').setInputFiles({name:'synthetic-title.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(payload(initial)))});
-    await page.locator('#fileStatus').filter({hasText:'Opened synthetic-title.json.'}).waitFor();
+    await restoreDraft(page,payload(initial));
     await go(page,'Title slide');
     let canvasWidth;
     for(const logo of logos) {
@@ -137,7 +136,8 @@ try {
     await page.locator('#btnSave').click();assert.equal((await response).status(),200);
     await page.locator('#toast').filter({hasText:/Local test design saved|already up to date/}).waitFor();
     await page.reload();await page.locator('#localPreviewNotice').waitFor();assert.deepEqual(await saved(page),final);
-    const reopen=await editor(width);await go(reopen,'Title slide');assert.deepEqual(await saved(reopen),final);
+    // A fresh editor opens the shared design, which applies the standard: the retired Crosshatch becomes Plain.
+    const reopen=await editor(width);await go(reopen,'Title slide');assert.deepEqual(await saved(reopen),{...final,background:'plain'});
 
     // Same semantics in generated sample markup and the actual canonical title markup/base CSS.
     const generatedPage=await page.context().newPage();

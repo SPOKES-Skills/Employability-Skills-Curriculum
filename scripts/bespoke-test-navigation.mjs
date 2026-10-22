@@ -72,3 +72,16 @@ export async function clickMenuItem(page, selector) {
 
 // Save lives in the top bar, except on Send, where the summary panel holds it.
 export const saveControl = page => page.locator('#btnSave:visible, #btnSendSave:visible');
+
+/**
+ * Loads a fixture design as the browser draft and reloads. Opening a backup or a shared design converts retired
+ * backgrounds and third typefaces to the SPOKES standard; a browser draft is restored as stored, so fixtures that
+ * keep those values on purpose use this. `selection` is a bespoke-selection/v2 payload.
+ */
+export async function restoreDraft(page, selection) {
+  const { lesson, team, design } = selection;
+  const draft = { step: 0, stepId: 'start', lessonId: lesson.id, teamName: team.name, spokespersonName: team.spokesperson.name, spokespersonEmail: team.spokesperson.email, unspoken: '', design, changes: [], redo: [], meaningfulDesign: true, autosavePaused: true };
+  await page.evaluate(value => localStorage.setItem('bespoke-draft-v2', JSON.stringify(value)), draft);
+  await page.reload();
+  await page.locator('#stage-start').waitFor();
+}

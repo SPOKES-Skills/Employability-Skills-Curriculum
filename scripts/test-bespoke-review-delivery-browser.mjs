@@ -13,7 +13,7 @@ import catalog from '../bespoke/builder-catalog.json' with {type:'json'};
 import {defaultDesign,applyPreset,setFeatureStyle} from '../bespoke/builder-model.mjs';
 import {submissionId} from '../netlify/functions/bespoke-handoff.mjs';
 import {designKey} from '../bespoke/showcase-model.mjs';
-const selection={schema:'bespoke-selection/v2',date:'2026-10-07',lesson:{id:'money-management',title:'Money Management'},team:{name:'Synthetic team',spokesperson:{name:'Synthetic reviewer',email:'synthetic@example.org'}},design:setFeatureStyle(catalog,defaultDesign(catalog),'sidebar','font','bitter'),alternatives:{active:'B',otherDesign:applyPreset(catalog,'modern')}};
+const selection={schema:'bespoke-selection/v2',date:'2026-10-07',lesson:{id:'money-management',title:'Money Management'},team:{name:'Synthetic team',spokesperson:{name:'Synthetic reviewer',email:'synthetic@example.org'}},design:(base=>setFeatureStyle(catalog,{...base,fonts:{...base.fonts,body:'bitter'}},'sidebar','font','body'))(defaultDesign(catalog)),alternatives:{active:'B',otherDesign:applyPreset(catalog,'modern')}};
 const server=await createDevServer({port:0}),browser=await browserType.launch({headless:true});
 const context=await browser.newContext(),errors=[],receipt=submissionId(selection),url='https://github.com/doclegg05/Curriculum-Employability-Skills/pull/123',artifactUrl='https://github.com/doclegg05/Curriculum-Employability-Skills/blob/'+('a'.repeat(40))+'/docs/phase-2/submissions/money-management/'+receipt+'/review.html';
 // A follow-up note is a new save and a new send; its receipt and review request differ from the first.

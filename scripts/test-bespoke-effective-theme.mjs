@@ -2,7 +2,7 @@
 // Regression for changing the visible effective fonts and texture with a local
 // override. Isolated browsers + in-memory loopback services only; no user state.
 import assert from 'node:assert/strict';
-import {clickMenuItem} from './bespoke-test-navigation.mjs';
+import {clickMenuItem, restoreDraft} from './bespoke-test-navigation.mjs';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { browserName, browserType, tabKey } from './bespoke-test-browser.mjs';
@@ -67,8 +67,8 @@ async function shared(page) {
 async function start(page) { await surface(page, 'design'); await page.locator('#stage-start').click(); await shared(page); }
 async function view(page, kind) {if(['team','start'].includes(await page.locator('#workspace').getAttribute('data-stage'))){await page.locator('#stage-slides').click();if(!await page.locator('#detailControls').isVisible())await page.locator('#btnMoreOptions').click();} await surface(page, 'preview'); await page.locator(`#previewTabs [data-view="${kind}"]`).click(); await page.evaluate(() => document.fonts.ready); }
 async function importDesign(page, d) {
-  await page.locator('#teamFileInput').setInputFiles({ name: 'synthetic-effective-theme.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(payload(d))) });
-  await page.locator('#fileStatus').filter({ hasText: 'Opened synthetic-effective-theme.json.' }).waitFor();
+  // Opening a backup converts retired textures and third typefaces; these fixtures keep them on purpose, so restore them as a browser draft.
+  await restoreDraft(page, payload(d)); await ready(page);
 }
 async function save(page) {
   const reply = page.waitForResponse(r => r.url().endsWith('/api/bespoke') && r.request().postDataJSON()?.action === 'save'); await page.locator('#btnSave').click(); assert.equal((await reply).status(), 200);
@@ -156,11 +156,13 @@ try {
     await page.locator('#btnRedo').click(); assert.deepEqual(await design(page), expected);
     await page.reload(); await ready(page); assert.deepEqual(await design(page), expected); await selectedTheme(page, 'divider');
     await save(page); const saved = (await openRemote(server)).selection; assert.deepEqual(saved.design, expected); noUiFields(saved);
-    const fresh = await makePage(); assert.deepEqual(await design(fresh), expected); await clickMenuItem(fresh, '#btnOpen');
-    await fresh.locator('#toast').filter({ hasText: /Opened|latest|up to date/i }).waitFor(); assert.deepEqual(await design(fresh), expected);
-    const copied = await backup(fresh); assert.deepEqual(copied.design, expected); noUiFields(copied);
+    // Opening the shared design applies the SPOKES standard: the fixture's third typefaces follow the lesson fonts.
+    const opened = structuredClone(expected); for (const style of Object.values(opened.roleStyles)) { if (style.headingFont === 'bitter') style.headingFont = 'heading'; if (style.bodyFont === 'raleway') style.bodyFont = 'body'; }
+    const fresh = await makePage(); assert.deepEqual(await design(fresh), opened); await clickMenuItem(fresh, '#btnOpen');
+    await fresh.locator('#toast').filter({ hasText: /Opened|latest|up to date/i }).waitFor(); assert.deepEqual(await design(fresh), opened);
+    const copied = await backup(fresh); assert.deepEqual(copied.design, opened); noUiFields(copied);
     await importDesign(fresh, before); await fresh.locator('#teamFileInput').setInputFiles({ name: 'synthetic-theme-backup.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(copied)) });
-    await fresh.locator('#fileStatus').filter({ hasText: 'Opened synthetic-theme-backup.json.' }).waitFor(); assert.deepEqual(await design(fresh), expected);
+    await fresh.locator('#fileStatus').filter({ hasText: 'Opened synthetic-theme-backup.json.' }).waitFor(); assert.deepEqual(await design(fresh), opened);
     evidence.push({ label: 'reported divider Plain', before: oldBackground, actual, delta, undoRedoReloadSaveOpenBackup: true });
   });
 

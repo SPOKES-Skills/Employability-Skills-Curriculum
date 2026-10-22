@@ -2,7 +2,7 @@
 // Regression for painting the visible effective element when it has a local
 // override. Isolated browsers + in-memory loopback services only; no user state.
 import assert from 'node:assert/strict';
-import {clickMenuItem} from './bespoke-test-navigation.mjs';
+import {clickMenuItem, restoreDraft} from './bespoke-test-navigation.mjs';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { browserName, browserType, tabKey } from './bespoke-test-browser.mjs';
@@ -67,8 +67,8 @@ async function start(page) { await surface(page, 'design'); await page.locator('
 async function view(page, kind) {if(['team','start'].includes(await page.locator('#workspace').getAttribute('data-stage'))){await page.locator('#stage-slides').click();if(!await page.locator('#detailControls').isVisible())await page.locator('#btnMoreOptions').click();} await surface(page, 'preview'); await page.locator(`#previewTabs [data-view="${kind}"]`).click(); await page.evaluate(() => document.fonts.ready); }
 async function element(page, role) { await shared(page); await page.locator('#colorRole').selectOption(role); }
 async function importDesign(page, d) {
-  await page.locator('#teamFileInput').setInputFiles({ name: 'synthetic-effective-paint.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(payload(d))) });
-  await page.locator('#fileStatus').filter({ hasText: 'Opened synthetic-effective-paint.json.' }).waitFor();
+  // Opening a backup converts retired textures and third typefaces; these fixtures keep them on purpose, so restore them as a browser draft.
+  await restoreDraft(page, payload(d)); await ready(page);
 }
 async function selected(page, role, color, scope = 'slide', kind) {
   assert.equal(await page.locator('.paint-chip[aria-pressed=true]').count(), 1, 'Exactly one current color is selected');
@@ -129,12 +129,14 @@ try {
     await page.reload(); await ready(page); assert.deepEqual(await design(page), expected); await selected(page, 'dividerBackground', 'accent', 'slide', 'divider');
     await save(page); const saved = (await openRemote(server)).selection; assert.deepEqual(saved.design, expected);
     for (const key of ['colorScope', 'paintScope', 'activeRole', 'previewView']) assert(!Object.hasOwn(saved, key), 'UI-only paint scope must not enter saved selection');
-    const fresh = await makePage(); assert.deepEqual(await design(fresh), expected, 'Fresh-context automatic Open preserves exact painted design');
-    await clickMenuItem(fresh, '#btnOpen'); await fresh.locator('#toast').filter({ hasText: /Opened|latest|up to date/i }).waitFor(); assert.deepEqual(await design(fresh), expected);
-    const copied = await backup(fresh); assert.deepEqual(copied.design, expected);
+    // Opening the shared design applies the SPOKES standard: the fixture's third typefaces follow the lesson fonts and its Diagonal texture becomes Plain.
+    const opened = structuredClone(expected); for (const style of Object.values(opened.roleStyles)) { if (style.headingFont === 'bitter') style.headingFont = 'heading'; if (style.bodyFont === 'raleway') style.bodyFont = 'body'; if (style.pattern === 'diagonal') style.pattern = 'plain'; }
+    const fresh = await makePage(); assert.deepEqual(await design(fresh), opened, 'Fresh-context automatic Open preserves exact painted design');
+    await clickMenuItem(fresh, '#btnOpen'); await fresh.locator('#toast').filter({ hasText: /Opened|latest|up to date/i }).waitFor(); assert.deepEqual(await design(fresh), opened);
+    const copied = await backup(fresh); assert.deepEqual(copied.design, opened);
     for (const key of ['colorScope', 'paintScope', 'activeRole', 'previewView']) assert(!Object.hasOwn(copied, key), 'UI-only paint scope must not enter backup selection');
     await importDesign(fresh, before); await fresh.locator('#teamFileInput').setInputFiles({ name: 'synthetic-painted-backup.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(copied)) });
-    await fresh.locator('#fileStatus').filter({ hasText: 'Opened synthetic-painted-backup.json.' }).waitFor(); assert.deepEqual(await design(fresh), expected);
+    await fresh.locator('#fileStatus').filter({ hasText: 'Opened synthetic-painted-backup.json.' }).waitFor(); assert.deepEqual(await design(fresh), opened);
     evidence.push({ label: 'reported divider reproduction', intendedDifference: 'roleStyles.divider.primary: primary → accent', visible, delta, undoReloadSaveOpenBackup: true });
   });
 

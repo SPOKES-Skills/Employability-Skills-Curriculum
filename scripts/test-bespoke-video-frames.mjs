@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // Real editor controls and inert generated/canonical media; never touches user state.
-import { builderDestination, switchSurface } from './bespoke-test-navigation.mjs';
+import { builderDestination, restoreDraft, switchSurface } from './bespoke-test-navigation.mjs';
 import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
 import path from 'node:path';
@@ -97,8 +97,7 @@ try {
       const design=defaultDesign(catalog);const {name,...roles}=scenario;Object.assign(design.roles,roles);
       design.fonts={heading:'raleway',body:'source-sans-3'};design.background='crosshatch';
       await designSurface(page);
-      await page.locator('#teamFileInput').setInputFiles({name:'synthetic-video.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(payload(design)))});
-      await page.locator('#fileStatus').filter({hasText:'Opened synthetic-video.json.'}).waitFor();await go(page,'Video slide');
+      await restoreDraft(page,payload(design));await go(page,'Video slide');
       for(const layout of layouts) {
         await choose(page,'Arrangement',layout);let plain;
         for(const frame of ['plain','accent']) {
@@ -141,8 +140,9 @@ try {
     const response=page.waitForResponse(r=>r.url().endsWith('/api/bespoke')&&r.request().postDataJSON()?.action==='save');await page.locator('#btnSave').click();assert.equal((await response).status(),200);
     await page.locator('#toast').filter({hasText:/Local test design saved|already up to date/}).waitFor();
     await page.reload();await page.locator('#localPreviewNotice').waitFor();await go(page,'Video slide');assert.deepEqual(await saved(page),final);
-    const reopened=await editor(width);await go(reopened,'Video slide');assert.deepEqual(await saved(reopened),final);
-    await preview(reopened,width);check(await measure(reopened.locator('#modelStage .slide-video-frame')),final,'reopened');
+    // A fresh editor opens the shared design, which applies the standard: the retired Crosshatch becomes Plain.
+    const standard={...final,background:'plain'},reopened=await editor(width);await go(reopened,'Video slide');assert.deepEqual(await saved(reopened),standard);
+    await preview(reopened,width);check(await measure(reopened.locator('#modelStage .slide-video-frame')),standard,'reopened');
     console.log(`PASS video frames at ${width}px: all arrangements, matching colors, real pixels, media containment and durable recovery`);
   }
   assert.deepEqual(errors,[],'No browser runtime errors');

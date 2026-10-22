@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // Synthetic responsive/editor checks, independent of the user's browser or preview service.
-import { builderDestination, EDITOR_DESTINATIONS } from './bespoke-test-navigation.mjs';
+import { builderDestination, EDITOR_DESTINATIONS, restoreDraft } from './bespoke-test-navigation.mjs';
 import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
 import path from 'node:path';
@@ -110,8 +110,7 @@ try {
     const canvas=await page.locator('#modelStage').evaluate(el=>el.getBoundingClientRect().width&&el.offsetWidth);assert(canvas>0,'Measure a visible preview canvas, not the layout gallery');
     const samplePage=await page.context().newPage();
     const fixture=longDesign();await surface(page,'design');
-    await page.locator('#teamFileInput').setInputFiles({name:'synthetic-visual.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify({schema:'bespoke-selection/v2',date:'2026-09-24',submittedAt:'2026-09-24T16:30:00.000Z',lesson:legacy.lesson,team:legacy.team,design:fixture}))});
-    await page.locator('#fileStatus').filter({hasText:'Opened synthetic-visual.json.'}).waitFor();
+    await restoreDraft(page,{schema:'bespoke-selection/v2',date:'2026-09-24',submittedAt:'2026-09-24T16:30:00.000Z',lesson:legacy.lesson,team:legacy.team,design:fixture});
     await builderDestination(page, 'Text boxes');
     for(const layout of ['columns','grid','rows']) {
       await surface(page,'design');await page.getByRole('group',{name:/Arrangement/}).locator(`[data-choice="${layout}"]`).click();

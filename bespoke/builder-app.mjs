@@ -5,6 +5,7 @@ import { compareDesign } from './similarity.mjs';
 import { createPreviewEditor } from './preview-editor.mjs';
 import { watchCanvasFit } from './canvas-fit.mjs';
 import { fontControl } from './font-slots.mjs';
+import { convertToStandard, convertAlternatives, conversionNote } from './standard-conversion.mjs';
 import { syncStageChrome } from './canvas-shell.mjs';
 import { createGuide } from './guide/guide.mjs';
 import { showToast } from './toast.mjs';
@@ -476,7 +477,6 @@ const findOption=(family,slug)=>state.library?.families?.[family]?.options.find(
       state.step = stepIndex("review");
       ui.restoredFromLink = false;
       ui.editCodeHash = "";
-      if (!state.legacySelection) ui.restoreNote = "";
       history.replaceState(null, "", location.pathname + location.search);
       render();
       fileNotice(`Opened ${file.name}. Check the lesson and choices. This is your browser draft; ${ui.localPreview ? 'choose Save test design to save it to the local test service.' : 'choose Save for the team when team access is open.'}`);
@@ -1396,17 +1396,17 @@ function resetDesignForLesson(lessonId){
 function applySelectionPayload(payload){
  validateSelectionPayload(payload,{draft:true});
  const migrated=payload.schema==='bespoke-selection/v1'?Model.migrateV1(payload,catalog,state.meta):null;
- const nextDesign=migrated?.design||clone(payload.design), issues=Model.validateDesign(catalog,nextDesign);
+ const {design:nextDesign,changes:designChanges}=convertToStandard(catalog,migrated?.design||payload.design), other=convertAlternatives(catalog,payload.alternatives), standardNote=conversionNote([...designChanges,...other.changes]), issues=Model.validateDesign(catalog,nextDesign);
  if(issues.length)throw new Error(issues[0]);
  const team=payload.team||{};
  ui.meaningfulDesign=true;ui.appliedLook=null;ui.lookSnapshot=null;
  if(!keepsGuide({fromLesson:state.lessonId,toLesson:payload.lesson.id,fromDesign:state.design,toDesign:nextDesign}))ui.guide=null;
  draftGeneration++;
- Object.assign(state,{lessonId:payload.lesson.id,teamName:team.name||'',spokespersonName:team.spokesperson?.name||'',spokespersonEmail:team.spokesperson?.email||'',builderName:team.builder?.name||'',unspoken:payload.unspoken||'',changes:[],redo:[],alternatives:payload.alternatives?clone(payload.alternatives):null});
+ Object.assign(state,{lessonId:payload.lesson.id,teamName:team.name||'',spokespersonName:team.spokesperson?.name||'',spokespersonEmail:team.spokesperson?.email||'',builderName:team.builder?.name||'',unspoken:payload.unspoken||'',changes:[],redo:[],alternatives:other.alternatives});
  if(payload.schema==='bespoke-selection/v1'){
-  state.design=migrated.design;state.legacySelection=clone(payload);ui.autosavePaused=true;
-  ui.restoreNote='Converted a copy of the older design. '+migrated.warnings.join(' ')+' The original is included in every backup and can be downloaded on Review. Review this conversion before saving.';
- }else{state.design=nextDesign;state.legacySelection=payload.legacySelection?clone(payload.legacySelection):null;ui.restoreNote='';}
+  state.design=nextDesign;state.legacySelection=clone(payload);ui.autosavePaused=true;
+  ui.restoreNote=['Converted a copy of the older design. '+migrated.warnings.join(' ')+' The original is included in every backup and can be downloaded on Review. Review this conversion before saving.',standardNote].filter(Boolean).join(' ');
+ }else{state.design=nextDesign;state.legacySelection=payload.legacySelection?clone(payload.legacySelection):null;ui.restoreNote=standardNote;}
 }
 function recordChange(label,before){
  const entry={label,design:before,alternatives:clone(state.alternatives||null),look:ui.appliedLook};

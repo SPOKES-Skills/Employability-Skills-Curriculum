@@ -204,9 +204,18 @@ try {
           if ((await button.getAttribute('aria-pressed')) === 'true') continue;
           await page.mouse.move(0, 0);
           const beforeDesign = await design(page);
+          const probe = () => page.evaluate(() => {
+            const label = document.querySelector('#modelStage .slide-activity-label');
+            const cs = label && getComputedStyle(label);
+            const sample = document.querySelector('.guide-sample:hover');
+            return JSON.stringify({ active: document.activeElement?.id || document.activeElement?.className || document.activeElement?.tagName, hover: sample?.dataset.choice || null,
+              slide: document.querySelector('#modelStage .bespoke-slide')?.className, label: cs ? [cs.fontFamily, cs.fontSize, cs.textTransform, cs.display, label.getBoundingClientRect().height] : null });
+          });
+          const beforeProbe = await probe();
           const before = await page.locator('#modelStage').screenshot();
           await button.click();
           await page.mouse.move(0, 0);
+          const afterProbe = await probe();
           const after = await page.locator('#modelStage').screenshot();
           const afterDesign = await design(page);
           const moved = await pixelDifference(page, before, after).catch((error) => {
@@ -214,7 +223,7 @@ try {
             throw error;
           });
           // A faint change (a 6% watermark) stays under the per-pixel threshold, so require exactly no change at all.
-          if (moved.changedFraction === 0 && moved.meanChannelDelta === 0 && effective(beforeDesign) !== effective(afterDesign)) dead.push(`${title}: ${id}`);
+          if (moved.changedFraction === 0 && moved.meanChannelDelta === 0 && effective(beforeDesign) !== effective(afterDesign)) dead.push(`${title}: ${id}`, `DIAG before ${beforeProbe} after ${afterProbe}`);
           if (await page.locator('#btnGuideMore').count() && (await page.locator('#btnGuideMore').getAttribute('aria-expanded')) !== 'true') await page.locator('#btnGuideMore').click();
         }
       }

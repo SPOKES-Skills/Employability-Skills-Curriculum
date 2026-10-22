@@ -1,4 +1,5 @@
 /** Shared, deterministic BeSpoke model. No DOM, storage, network or hidden defaults. */
+import { STRUCTURE_IDS, structureInk, structureLayers } from './background-structures.mjs';
 const clone = value => JSON.parse(JSON.stringify(value));
 const own = (object, key) => Object.prototype.hasOwnProperty.call(object, key);
 const object = value => value !== null && typeof value === 'object' && !Array.isArray(value);
@@ -25,6 +26,9 @@ export function inkFor(catalog, id) {
 }
 
 const optionalRoles = catalog => catalog.optionalRoles || [];
+/** Offered backgrounds plus retired textures, which saved designs may still use and which still render. */
+export const allBackgroundIds = catalog => [...catalog.backgrounds, ...(catalog.retiredBackgrounds || [])].map(item => item.id);
+export const backgroundEntry = (catalog, id) => [...catalog.backgrounds, ...(catalog.retiredBackgrounds || [])].find(item => item.id === id);
 
 /** Sidebar text is Automatic unless the design names a color. */
 export function sidebarInk(catalog, design) {
@@ -42,9 +46,10 @@ const blend = (base, ink, alpha) => '#' + rgb(base).map((v, channel) => Math.rou
 /** Decorative ink adapts to the surface; saved base/text colors are never modified. */
 export function patternFor(catalog, design, surface) {
   const id = design.background;
-  if (!catalog.backgrounds.some(item => item.id === id)) throw new Error('Unknown background pattern.');
+  if (!allBackgroundIds(catalog).includes(id)) throw new Error('Unknown background pattern.');
   const peaks = { plain: 0, 'dot-grid': .2, diagonal: .18, crosshatch: 1 - (1 - .14) ** 2, 'soft-gradient': .24 };
   const base = findColor(catalog, design.roles[surface]).hex;
+  if (STRUCTURE_IDS.includes(id)) { const ink = structureInk(catalog, design, base); return { ...structureLayers(id, ink, 'normal'), peakAlpha: 0, ink }; }
   const gradient = surface === 'titleBackground' ? design.slides.title.colors === 'gradient' || design.slides.title.layout === 'split' : surface === 'dividerBackground' && design.slides.divider.colors === 'gradient';
   const bases = gradient ? gradientSamples(base, findColor(catalog, design.roles.titleBackgroundEnd).hex) : [base];
   const foregrounds = surface === 'contentBackground' ? [] : [['titleText', 3], ['subtitle', 4.5]].map(([role, minimum]) => ({ hex: findColor(catalog, design.roles[role]).hex, minimum }));
@@ -77,8 +82,8 @@ export function patternBackground(catalog, design, surface, baseImage, baseSize 
   const pattern = patternFor(catalog, design, surface);
   const images = [...pattern.images, ...(baseImage ? [baseImage] : [])];
   const sizes = [...pattern.sizes, ...(baseImage ? [baseSize] : [])];
-  const positions = [...pattern.images.map(() => 'left top'), ...(baseImage ? ['center'] : [])];
-  const repeats = [...pattern.images.map(() => 'repeat'), ...(baseImage ? ['no-repeat'] : [])];
+  const positions = [...(pattern.positions || pattern.images.map(() => 'left top')), ...(baseImage ? ['center'] : [])];
+  const repeats = [...(pattern.repeats || pattern.images.map(() => 'repeat')), ...(baseImage ? ['no-repeat'] : [])];
   return `background-image:${images.join(', ') || 'none'}; background-size:${sizes.join(', ') || 'auto'}; background-position:${positions.join(', ') || 'left top'}; background-repeat:${repeats.join(', ') || 'no-repeat'};`;
 }
 
@@ -122,7 +127,7 @@ export function roleStylesSchema(catalog) {
   const properties = Object.fromEntries(ROLE_STYLE_KINDS.map(kind => {
     const fields = {
       backgroundMode:enumeration(['inherit','solid','gradient']), primary:color(), secondary:color(), direction:enumeration(['right','down','diagonal']),
-      pattern:enumeration(['inherit',...catalog.backgrounds.map(item=>item.id)]), patternStrength:enumeration(['subtle','normal','bold']),
+      pattern:enumeration(['inherit',...allBackgroundIds(catalog)]), patternStrength:enumeration(['subtle','normal','bold']),
       headingColor:color(),bodyColor:color(),headingFont:font(),bodyFont:font(),headingSize:enumeration(['small','default','large']),bodySize:enumeration(['small','default','large']),
       headingAlignment:enumeration(['layout','left','center','right']),bodyAlignment:enumeration(['layout','left','center','right']),
       headingPlacement:enumeration(['layout','top','middle','bottom']),bodyPlacement:enumeration(['layout','top','middle','bottom']),
@@ -225,7 +230,7 @@ export function designSchema(catalog) {
     roles: record(Object.fromEntries(catalog.roles.map(role => [role.id, enumeration(catalog.palette.map(color => color.id))]))),
     fonts: record(Object.fromEntries(['heading', 'body'].map(role => [role, enumeration(catalog.fonts.map(font => font.id))]))),
     slides: record(Object.fromEntries(catalog.slideGroups.map(group => [group.id, record(Object.fromEntries(group.decisions.map(decision => [decision.id, enumeration(decision.options.map(option => option.id))])))]))),
-    background: enumeration(catalog.backgrounds.map(item => item.id)),
+    background: enumeration(allBackgroundIds(catalog)),
     samples: record({ title: { type: 'string', maxLength: catalog.sampleLimits.title }, subtitle: { type: 'string', maxLength: catalog.sampleLimits.subtitle }, boxes: { type: 'array', minItems: 4, maxItems: 4, items: { type: 'string', maxLength: catalog.sampleLimits.box } } }),
     startingPoint: enumeration(['custom', ...catalog.presets.map(item => item.id)])
   });
@@ -259,7 +264,7 @@ export function structuralErrors(catalog, design) {
       for (const decision of group.decisions) if (!decision.options.some(option => option.id === design.slides[group.id][decision.id])) errors.push(`${group.label}, ${decision.label}: choose an available option.`);
     }
   }
-  if (!catalog.backgrounds.some(item => item.id === design.background)) errors.push('Choose an available background finish.');
+  if (!allBackgroundIds(catalog).includes(design.background)) errors.push('Choose an available background finish.');
   if (!['custom', ...catalog.presets.map(item => item.id)].includes(design.startingPoint)) errors.push('Unknown starting point.');
   if (keys(design.samples, ['title', 'subtitle', 'boxes'], 'Sample text')) {
     for (const key of ['title', 'subtitle']) if (typeof design.samples[key] !== 'string' || design.samples[key].length > catalog.sampleLimits[key]) errors.push(`Sample ${key} must be text with at most ${catalog.sampleLimits[key]} characters.`);
@@ -300,6 +305,7 @@ function rolePattern(catalog, design, kind) {
   const style=effectiveRoleStyle(catalog,design,kind), strength={subtle:.5,normal:1,bold:1.5}[style.patternStrength];
   const a=findColor(catalog,style.primary).hex,b=findColor(catalog,style.secondary).hex;
   const bases=style.backgroundMode==='gradient'?gradientSamples(a,b):[a];
+  if(STRUCTURE_IDS.includes(style.pattern)) { const ink=structureInk(catalog,design,a); return {...structureLayers(style.pattern,ink,style.patternStrength),ink,peakAlpha:0,bases}; }
   const alphas={plain:0,'dot-grid':.2*strength,diagonal:.18*strength,crosshatch:1-(1-.14*strength)**2,'soft-gradient':.24*strength};
   let ink=findColor(catalog,inkFor(catalog,style.primary)).hex;
   const preserves=candidate=>['heading','body'].every(type=>!style[type+'Visible']||bases.every(base=>contrast(findColor(catalog,style[type+'Color']).hex,base)<4.5||Array.from({length:9},(_,i)=>contrast(findColor(catalog,style[type+'Color']).hex,blend(base,candidate,alphas[style.pattern]*i/8))).every(r=>r>=4.5)));
@@ -321,8 +327,8 @@ export function roleBackgroundCss(catalog,design,kind) {
   const band=kind==='divider'&&design.slides.divider.layout==='band';
   const baseImage=gradient||(band?`linear-gradient(${a},${a})`:'');
   const images=[...pattern.images,...(baseImage?[baseImage]:[])],sizes=[...pattern.sizes,...(baseImage?[band?'100% 70%':'100% 100%']:[])];
-  const positions=[...pattern.images.map(()=>'left top'),...(baseImage?['center']:[])];
-  return `background-color:${band?findColor(catalog,design.roles.contentBackground).hex:a};background-image:${images.join(', ')||'none'};background-size:${sizes.join(', ')||'auto'};background-position:${positions.join(', ')||'left top'};background-repeat:${[...pattern.images.map(()=>'repeat'),...(baseImage?['no-repeat']:[])].join(', ')||'no-repeat'};`;
+  const positions=[...(pattern.positions||pattern.images.map(()=>'left top')),...(baseImage?['center']:[])];
+  return `background-color:${band?findColor(catalog,design.roles.contentBackground).hex:a};background-image:${images.join(', ')||'none'};background-size:${sizes.join(', ')||'auto'};background-position:${positions.join(', ')||'left top'};background-repeat:${[...(pattern.repeats||pattern.images.map(()=>'repeat')),...(baseImage?['no-repeat']:[])].join(', ')||'no-repeat'};`;
 }
 
 function roleContrastIssues(catalog,design,kind) {
@@ -360,7 +366,7 @@ export function contrastIssues(catalog, design) {
     const bases = gradientEnd ? gradientSamples(bg.hex, color(gradientEnd).hex) : [bg.hex];
     const surfaces = patterned ? patternedSurfaces(catalog, design, surface, bases) : bases;
     const ratio = Math.min(...surfaces.map(hex => contrast(fg.hex, hex)));
-    if (ratio + 1e-9 < minimum) issues.push({ role, surface, ratio, minimum, related: [role, surface, ...(gradientEnd ? [gradientEnd] : []), ...(patterned ? ['background'] : [])], message: `${catalog.roles.find(r => r.id === role).label}: ${fg.name} on ${catalog.roles.find(r => r.id === surface).label.toLowerCase()} (${bg.name}${gradientEnd ? ` to ${color(gradientEnd).name}` : ''}${patterned && design.background !== 'plain' ? `, ${catalog.backgrounds.find(item => item.id === design.background).label}` : ''}) measures ${ratio.toFixed(2)}:1, below the ${minimum}:1 guideline for ${minimum === 3 ? 'headings' : 'supporting and body text'}.` });
+    if (ratio + 1e-9 < minimum) issues.push({ role, surface, ratio, minimum, related: [role, surface, ...(gradientEnd ? [gradientEnd] : []), ...(patterned ? ['background'] : [])], message: `${catalog.roles.find(r => r.id === role).label}: ${fg.name} on ${catalog.roles.find(r => r.id === surface).label.toLowerCase()} (${bg.name}${gradientEnd ? ` to ${color(gradientEnd).name}` : ''}${patterned && design.background !== 'plain' ? `, ${backgroundEntry(catalog, design.background).label}` : ''}) measures ${ratio.toFixed(2)}:1, below the ${minimum}:1 guideline for ${minimum === 3 ? 'headings' : 'supporting and body text'}.` });
   };
   const end = design.slides.title.colors === 'gradient' || design.slides.title.layout === 'split' ? 'titleBackgroundEnd' : undefined;
   if(!design.roleStyles?.title) { textPair('titleText', 'titleBackground', 3, end, true); textPair('subtitle', 'titleBackground', 4.5, end, true); }
@@ -725,7 +731,7 @@ export function migrateV1(payload, catalog, meta = {}) {
   const pair = (meta.fontPairings || catalog.fontPairings || []).find(item => item.id === theme.fontPairing);
   if (pair) for (const role of ['heading', 'body']) { const font = catalog.fonts.find(item => item.family === pair[role]); if (font) design.fonts[role] = font.id; }
   else warnings.push('The old font pairing could not be resolved; review the independent font choices.');
-  if (catalog.backgrounds.some(item => item.id === theme.backgroundTexture)) design.background = theme.backgroundTexture;
+  if (allBackgroundIds(catalog).includes(theme.backgroundTexture)) design.background = theme.backgroundTexture;
   else if (theme.backgroundTexture === 'dark-royal') { design.background = 'plain'; design.roles.contentBackground = 'royal'; design.roles.heading = 'light'; design.roles.body = 'light'; warnings.push('Dark Royal was converted to a plain Royal surface with White text. Review the new component styling.'); }
   const titles = { 'centered-gradient': 'center', 'split-hero': 'split', 'offset-left': 'left', 'bottom-anchored': 'bottom' };
   design.slides.title.layout = titles[theme.titleSlide] || 'center';

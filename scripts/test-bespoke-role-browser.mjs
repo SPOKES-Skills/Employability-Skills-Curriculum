@@ -63,7 +63,9 @@ async function setStyle(page,kind,field,value){
 }
 async function options(page,kind,field){
   const control=await openField(page,kind,field);const actual=await control.locator('option').evaluateAll(nodes=>nodes.map(n=>n.value));
-  assert.deepEqual(actual,roleStylesSchema(catalog).properties[kind].properties[field].enum,`${kind}/${field} exposes every approved choice`);
+  // The schema keeps accepting retired textures; the controls no longer offer them.
+  const offered=roleStylesSchema(catalog).properties[kind].properties[field].enum.filter(value=>!catalog.retiredBackgrounds.some(item=>item.id===value));
+  assert.deepEqual(actual,offered,`${kind}/${field} exposes every approved choice`);
 }
 async function css(page,kind,part,property){return node(page,kind,part).evaluate((el,key)=>getComputedStyle(el)[key],property);}
 async function visible(page,kind,part){return node(page,kind,part).isVisible();}
@@ -160,8 +162,8 @@ try{
       if(pattern==='plain'){plain=png;assert(!/radial-gradient|repeating-linear-gradient/.test(image));}
       else {const delta=await pixelDifference(page,plain,png);assert(delta.changedFraction>.001,`${kind}/${pattern}: texture visibly changes canvas`);evidence.push({kind,pattern,delta});stats.pixelChecks++;}
     }
-    await setStyle(page,kind,'pattern','crosshatch');await options(page,kind,'patternStrength');
-    const strengths=[];for(const value of ['subtle','normal','bold']){await setStyle(page,kind,'patternStrength',value);strengths.push(await layer(page,kind).evaluate(el=>getComputedStyle(el).backgroundImage));}assert.equal(new Set(strengths).size,3,'Texture strength has three distinct painted treatments');await setStyle(page,kind,'pattern','inherit');assert.equal((await layer(page).evaluate(el=>getComputedStyle(el).backgroundImage)).match(/linear-gradient/g)?.length,1,'Shared plain texture removes the local pattern');await setStyle(page,kind,'pattern','crosshatch');
+    await setStyle(page,kind,'pattern','edge-rail');await options(page,kind,'patternStrength');
+    const strengths=[];for(const value of ['subtle','normal','bold']){await setStyle(page,kind,'patternStrength',value);strengths.push(await layer(page,kind).evaluate(el=>getComputedStyle(el).backgroundSize));}assert.equal(new Set(strengths).size,3,'Detail size has three distinct painted treatments');await setStyle(page,kind,'pattern','inherit');assert.equal((await layer(page).evaluate(el=>getComputedStyle(el).backgroundImage)).match(/linear-gradient/g)?.length,1,'Shared plain texture removes the local pattern');await setStyle(page,kind,'pattern','edge-rail');
     for(const part of ['heading','body']){
       await setStyle(page,kind,part+'Visible',true);
       for(const color of ['light','accent','gold']){await setStyle(page,kind,part+'Color',color);assert.equal(await css(page,kind,part,'color'),rgb(color));stats.typeChecks++;}

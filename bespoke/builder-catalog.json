@@ -398,6 +398,20 @@
       "label": "Plain"
     },
     {
+      "id": "color-block",
+      "label": "Color block"
+    },
+    {
+      "id": "edge-rail",
+      "label": "Edge rail"
+    },
+    {
+      "id": "frame",
+      "label": "Frame"
+    }
+  ],
+  "retiredBackgrounds": [
+    {
       "id": "dot-grid",
       "label": "Dot grid"
     },

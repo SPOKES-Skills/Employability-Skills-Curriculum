@@ -68,7 +68,8 @@ try {
       }
       for (let i = 0; i < patterns.length; i++) for (let j = i+1; j < patterns.length; j++) {
         const diff = await pixelDifference(page, shots.get(patterns[i]), shots.get(patterns[j]));
-        assert(diff.changedFraction >= .018 && diff.meanChannelDelta >= .5, `${mobile?'phone':'desktop'} ${base} ${patterns[i]} vs ${patterns[j]}: ${JSON.stringify(diff)}`);
+        // Thin structures (a 12px rail on a 720px slide) cover about 1.7% of the canvas.
+        assert(diff.changedFraction >= .01 && diff.meanChannelDelta >= .5, `${mobile?'phone':'desktop'} ${base} ${patterns[i]} vs ${patterns[j]}: ${JSON.stringify(diff)}`);
         evidence.push({ mobile, base, first: patterns[i], second: patterns[j], ...diff });
       }
       design.background = 'plain';

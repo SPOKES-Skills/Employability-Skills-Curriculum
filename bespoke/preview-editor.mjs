@@ -169,7 +169,7 @@ export function createPreviewEditor(host) {
    colorField('background',effective.backgroundMode==='gradient'?'Start color':'Background color',effective.primary,v=>apply('primary',v));
    if(effective.backgroundMode==='gradient')colorField('second','End color',effective.secondary,v=>apply('secondary',v));
    check('only-slide','Only this slide',host.onlySlide(),v=>host.setOnlySlide(v));
-   field('pattern','Texture',effective.pattern,host.catalog.backgrounds.map(p=>({id:p.id,label:p.label})),v=>apply('pattern',v));
+   field('pattern','Background detail',effective.pattern,host.catalog.backgrounds.map(p=>({id:p.id,label:p.label})),v=>apply('pattern',v));
    decision(kind,'layout');
   }
   const addText=document.createElement('button');addText.type='button';addText.id='btnAddText';addText.className='btn btn-secondary';addText.textContent=effective.extraText===null?'Add text':'Select added text';addText.disabled=!editable;addText.onclick=()=>{selected='extra';if(effective.extraText===null)apply('extraText','Your text here');else refreshSelection();document.getElementById('context-text')?.focus();};if(selected==='background'||selected==='extra'||selected.startsWith('heading')||selected.startsWith('body'))toolbar.append(addText);

@@ -305,7 +305,7 @@ test('a view-only session disables every guide control and never saves guide sta
 });
 
 test('the guide agrees with the model on every background pattern and on a band divider', () => {
-  const variants = catalog.backgrounds.map((b) => ({ label: `pattern ${b.id}`, design: { ...base(), background: b.id } }));
+  const variants = [...catalog.backgrounds, ...catalog.retiredBackgrounds].map((b) => ({ label: `pattern ${b.id}`, design: { ...base(), background: b.id } }));
   const band = base();
   band.slides.divider.layout = 'band';
   variants.push({ label: 'band divider', design: band });

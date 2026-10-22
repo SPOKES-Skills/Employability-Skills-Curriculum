@@ -174,11 +174,13 @@ check('patterns retain roles and cover their rendered ink in title/divider contr
   const design = defaultDesign(catalog);
   design.roles.titleBackground = design.roles.titleBackgroundEnd = design.roles.dividerBackground = 'primary';
   design.slides.title.colors = design.slides.divider.colors = 'solid';
-  for (const pattern of catalog.backgrounds) {
+  for (const pattern of [...catalog.backgrounds, ...catalog.retiredBackgrounds]) {
     design.background = pattern.id;
     const before = JSON.stringify(design);
     assert.deepEqual(contrastIssues(catalog, design), [], 'White on Blue stays readable through adaptive decorative ink.');
-    if (pattern.id !== 'plain') assert.equal(patternFor(catalog, design, 'dividerBackground').ink, '#00133f');
+    // Retired textures keep their adaptive ink; solid structures draw one palette color at full strength.
+    if (catalog.retiredBackgrounds.some(item => item.id === pattern.id)) assert.equal(patternFor(catalog, design, 'dividerBackground').ink, '#00133f');
+    else if (pattern.id !== 'plain') assert.equal(patternFor(catalog, design, 'dividerBackground').peakAlpha, 0);
     assert.equal(JSON.stringify(design), before);
   }
   design.roles.dividerBackground = 'accent';

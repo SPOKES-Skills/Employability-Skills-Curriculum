@@ -252,7 +252,7 @@ try {
     });
     assert.match(actualFonts.heading, /Bitter/); assert.match(actualFonts.body, /Crimson Pro/);
     assert(actualFonts.headingLoaded && actualFonts.bodyLoaded, 'Both independently chosen local webfonts load.');
-    await choose(page, 'Background pattern', 'crosshatch');
+    await choose(page, '^Background$', 'frame');
     await go(page, 'Title slide');
     await choose(page, 'Arrangement', 'bottom');
     const combined = await design(page);
@@ -474,11 +474,11 @@ try {
       if (mobile) await switchSurface(page,'preview');
       await page.locator('#previewTabs [data-view="divider"]').click();
       if (mobile) await switchSurface(page,'design');
-      assert.equal(await page.locator('.pattern-mini').count(), 5);
-      await choose(page, 'Background pattern', 'plain');
+      assert.equal(await page.locator('.pattern-mini').count(), catalog.backgrounds.length);
+      await choose(page, '^Background$', 'plain');
       const original = await design(page), shots = new Map();
       for (const pattern of catalog.backgrounds) {
-        const button = page.getByRole('group', { name: 'Background pattern' }).locator(`[data-choice="${pattern.id}"]`);
+        const button = page.getByRole('group', { name: 'Background', exact: true }).locator(`[data-choice="${pattern.id}"]`);
         await button.focus(); await page.keyboard.press('Enter');
         assert.equal(await button.evaluate(el => el === document.activeElement), true);
         assert.equal(await page.locator('#previewTabs [aria-selected="true"]').getAttribute('data-view'), 'divider');
@@ -489,17 +489,18 @@ try {
       }
       for (const pattern of catalog.backgrounds.slice(1)) {
         const pixels = await pixelDifference(page, shots.get('plain'), shots.get(pattern.id));
-        assert(pixels.changedFraction > .018 && pixels.meanChannelDelta > .5, pattern.id+' must visibly change the actual UI preview.');
+        // A color block is a corner square, so it covers less of the slide than a full-width texture did.
+        assert(pixels.changedFraction > .005 && pixels.meanChannelDelta > .5, pattern.id+' must visibly change the actual UI preview.');
       }
-      await page.locator('#btnUndo').click(); assert.equal((await design(page)).background, 'crosshatch');
-      await page.locator('#btnRedo').click(); assert.equal((await design(page)).background, 'soft-gradient');
+      await page.locator('#btnUndo').click(); assert.equal((await design(page)).background, 'edge-rail');
+      await page.locator('#btnRedo').click(); assert.equal((await design(page)).background, 'frame');
       const saved = await draft(page);
       await page.reload(); await ready(page);
       assert.deepEqual((await draft(page)).changes, saved.changes);
       assert.deepEqual(await design(page), saved.design);
       assert.equal(await page.locator('#previewTabs [aria-selected="true"]').getAttribute('data-view'), 'divider');
       await go(page, 'Text boxes'); await go(page, 'Shared typography');
-      assert.equal((await design(page)).background, 'soft-gradient');
+      assert.equal((await design(page)).background, 'frame');
       await save(page);
       const reopened = await makePage({ mobile });
       assert.deepEqual(await design(reopened), saved.design);
@@ -507,7 +508,7 @@ try {
       await axe(reopened, 'Pattern miniatures '+(mobile?'phone':'desktop'));
       if(process.env.BESPOKE_REVIEW_DIR){await fs.mkdir(process.env.BESPOKE_REVIEW_DIR,{recursive:true});await reopened.screenshot({path:path.join(process.env.BESPOKE_REVIEW_DIR,'pattern-controls-'+(mobile?'phone':'desktop')+'.png'),fullPage:true});}
       await assertNoOverflow(reopened, 'Pattern choices');
-      await choose(page, 'Background pattern', 'plain');
+      await choose(page, '^Background$', 'plain');
       assert.deepEqual(await design(page), original);
     }
   });
@@ -548,7 +549,7 @@ try {
   await scenario('low-contrast text remains a team choice through preview, review, history and shared recovery', async ({ makePage, server }) => {
     for (const mobile of [false, true]) {
       const page = await makePage({ mobile }); await fillTeam(page);
-      await go(page, 'Shared typography'); await choose(page, 'Background pattern', 'plain');
+      await go(page, 'Shared typography'); await choose(page, '^Background$', 'plain');
       await paint(page, 'titleBackground', 'mauve'); await paint(page, 'titleBackgroundEnd', 'accent');
       await paint(page, 'titleText', 'royal');
       const before = await design(page);

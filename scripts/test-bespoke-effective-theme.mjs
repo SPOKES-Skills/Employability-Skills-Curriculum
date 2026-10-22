@@ -26,7 +26,7 @@ function customFixture() {
   const d = defaultDesign(catalog); d.startingPoint = 'custom';
   d.slides.title.layout = 'left'; d.slides.divider.layout = 'left';
   d.roleStyles = Object.fromEntries(kinds.map((kind, i) => [kind, {
-    ...roleStyleDefaults(catalog, d, kind), backgroundMode: 'gradient', primary: 'primary', secondary: 'muted', direction: 'diagonal', pattern: 'diagonal', patternStrength: ['subtle', 'bold', 'normal', 'bold', 'subtle'][i],
+    ...roleStyleDefaults(catalog, d, kind), backgroundMode: 'gradient', primary: 'primary', secondary: 'muted', direction: 'diagonal', pattern: 'edge-rail', patternStrength: ['subtle', 'bold', 'normal', 'bold', 'subtle'][i],
     headingColor: 'muted-gold', bodyColor: 'royal', headingFont: 'bitter', bodyFont: 'raleway', bodyVisible: true,
     watermarkMode: 'text', watermarkText: 'SAMPLE ' + i, watermarkColor: 'muted-gold', watermarkPlacement: 'bottom-right', watermarkSize: 'small', watermarkOpacity: 'medium'
   }]));
@@ -78,8 +78,8 @@ async function backup(page) {
 async function shot(page, name) { if (output) { await page.screenshot({ path: path.join(output, browserName + '-' + name + '.png') }); await page.locator('#modelStage').screenshot({ path: path.join(output, browserName + '-' + name + '-preview.png') }); } }
 
 async function previewPixels(page) { await page.locator('#modelStage').scrollIntoViewIfNeeded(); await page.evaluate(() => document.fonts.ready); return page.locator('#modelStage').screenshot(); }
-const patterns = ['plain', 'dot-grid', 'diagonal', 'crosshatch', 'soft-gradient'];
-const group = page => page.getByRole('group', { name: 'Background pattern', exact: true });
+const patterns = ['plain', 'color-block', 'edge-rail', 'frame'];
+const group = page => page.getByRole('group', { name: 'Background', exact: true });
 const patternButton = (page, id) => group(page).locator(`[data-choice="${id}"]`);
 async function background(locator) {
   return locator.evaluate(el => { const s = getComputedStyle(el); return Object.fromEntries(['backgroundColor', 'backgroundImage', 'backgroundSize', 'backgroundPosition', 'backgroundRepeat'].map(k => [k, s[k]])); });
@@ -121,16 +121,16 @@ try {
   await scenario('reported divider Plain override persists with fonts and saved strength', async ({ makePage, server }) => {
     const page = await makePage(), before = customFixture(); before.background = 'plain';
     await importDesign(page, before); await start(page); await view(page, 'divider'); await shared(page);
-    await selectedTheme(page, 'divider'); assert.match(await page.locator('#patternScopeHelp').textContent(), /Custom.*Stronger/s);
+    await selectedTheme(page, 'divider'); assert.match(await page.locator('#patternScopeHelp').textContent(), /Custom.*Thick/s);
     const oldPixels = await previewPixels(page), oldBackground = await currentBackground(page);
-    assert(oldBackground.backgroundImage.includes('repeating-linear-gradient'));
+    assert(oldBackground.backgroundSize.includes('20px'), 'The saved bold edge rail paints a 20px stripe');
     await patternButton(page, 'plain').click();
     const expected = structuredClone(before); expected.roleStyles.divider.pattern = 'plain';
     assert.deepEqual(await design(page), expected, 'Plain changes only divider.pattern, keeping bold strength and all custom fields');
     await selectedTheme(page, 'divider'); const actual = await thumbnailMatches(page, 'plain');
-    assert(!actual.backgroundImage.includes('repeating-linear-gradient') && !actual.backgroundImage.includes('radial-gradient'));
+    assert(!actual.backgroundSize.includes('20px'), 'Plain removes the edge rail');
     assert(actual.backgroundImage.includes('135deg') && actual.backgroundImage.includes('rgb(0, 123, 175)') && actual.backgroundImage.includes('rgb(237, 243, 247)'), 'Plain keeps the Blue-to-Mist gradient');
-    const delta = await pixelDifference(page, oldPixels, await previewPixels(page)); assert(delta.changedFraction > .005, 'Plain visibly removes the diagonal texture');
+    const delta = await pixelDifference(page, oldPixels, await previewPixels(page)); assert(delta.changedFraction > .005, 'Plain visibly removes the edge rail');
     await shot(page, 'divider-Plain');
     await page.locator('#btnUndo').click(); assert.deepEqual(await design(page), before); await selectedTheme(page, 'divider');
     await page.locator('#btnRedo').click(); assert.deepEqual(await design(page), expected);
@@ -150,7 +150,7 @@ try {
     evidence.push({ label: 'reported divider Plain', before: oldBackground, actual, delta, undoRedoReloadSaveOpenBackup: true });
   });
 
-  await scenario('twenty-five local texture and ten font cases match the actual preview', async ({ makePage }) => {
+  await scenario('twenty local background and ten font cases match the actual preview', async ({ makePage }) => {
     const page = await makePage(); await importDesign(page, customFixture()); await start(page);
     for (const kind of kinds) {
       await view(page, kind); await shared(page); await selectedTheme(page, kind);
@@ -177,11 +177,11 @@ try {
       }
     }
     const beforeNavigation = await design(page);
-    for (const kind of [...kinds].reverse()) { await view(page, kind); await shared(page); await selectedTheme(page, kind); await thumbnailMatches(page, 'soft-gradient'); assert.deepEqual(await design(page), beforeNavigation, 'Preview navigation does not alter any design'); }
+    for (const kind of [...kinds].reverse()) { await view(page, kind); await shared(page); await selectedTheme(page, kind); await thumbnailMatches(page, 'frame'); assert.deepEqual(await design(page), beforeNavigation, 'Preview navigation does not alter any design'); }
     for (const [kind, layout] of [['title', 'split'], ['divider', 'band']]) {
       const special = customFixture(); special.slides[kind].layout = layout; special.roleStyles[kind].direction = 'down';
       await importDesign(page, special); await start(page); await view(page, kind); await shared(page);
-      for (const pattern of ['plain', 'diagonal']) { await patternButton(page, pattern).click(); const actual = await thumbnailMatches(page, pattern); evidence.push({ label: 'special arrangement thumbnail', kind, layout, pattern, actual }); }
+      for (const pattern of ['plain', 'edge-rail']) { await patternButton(page, pattern).click(); const actual = await thumbnailMatches(page, pattern); evidence.push({ label: 'special arrangement thumbnail', kind, layout, pattern, actual }); }
     }
   });
 
@@ -191,7 +191,7 @@ try {
     await selectedTheme(page, 'divider'); await page.locator('#themeScope').selectOption('shared');
     await page.locator('#colorScope').selectOption('slide'); assert.equal(await page.locator('#themeScope').inputValue(), 'shared');
     const localBackground = await currentBackground(page), localHeading = await fontComputed(page, 'divider', 'heading'), localBody = await fontComputed(page, 'divider', 'body');
-    for (const [field, value] of [['pattern', 'crosshatch'], ['headingFont', 'inter'], ['bodyFont', 'source-sans-3']]) {
+    for (const [field, value] of [['pattern', 'frame'], ['headingFont', 'inter'], ['bodyFont', 'source-sans-3']]) {
       const before = await design(page); if (field === 'pattern') await patternButton(page, value).click(); else await page.locator('#font-' + (field === 'headingFont' ? 'heading' : 'body')).selectOption(value);
       const expected = structuredClone(before); if (field === 'pattern') expected.background = value; else expected.fonts[field === 'headingFont' ? 'heading' : 'body'] = value;
       assert.deepEqual(await design(page), expected, `Shared ${field} preserves every local record`); await selectedTheme(page, 'divider', 'shared');
@@ -199,11 +199,11 @@ try {
       assert.match(await page.locator(`[data-shared-scope="${field}"]`).textContent(), /custom.*unchanged/i);
     }
     const chosen = await design(page); await page.reload(); await ready(page); assert.deepEqual(await design(page), chosen); await selectedTheme(page, 'divider', 'shared'); assert.equal(await page.locator('#colorScope').inputValue(), 'slide');
-    const sharedMini = await background(patternButton(page, 'crosshatch').locator('.pattern-mini'));
-    assert.match(await page.locator('#patternScopeHelp').textContent(), /shared colors at Standard texture strength/);
+    const sharedMini = await background(patternButton(page, 'frame').locator('.pattern-mini'));
+    assert.match(await page.locator('#patternScopeHelp').textContent(), /shared colors at Standard detail size/);
     const inherited = structuredClone(chosen); delete inherited.roleStyles;
     await importDesign(page, inherited); await start(page); await view(page, 'divider'); await shared(page); await page.locator('#themeScope').selectOption('slide');
-    await patternButton(page, 'crosshatch').click(); assert.deepEqual(await currentBackground(page), sharedMini, 'Shared thumbnail matches an actual slide using shared colors and standard texture strength');
+    await patternButton(page, 'frame').click(); assert.deepEqual(await currentBackground(page), sharedMini, 'Shared thumbnail matches an actual slide using shared colors and standard detail size');
     await checkFont(page, 'divider', 'heading', chosen.fonts.heading); await checkFont(page, 'divider', 'body', chosen.fonts.body);
     evidence.push({ label: 'explicit shared defaults', localOverridesPreserved: true, sharedMini, scopeReload: true, scopeIndependent: true });
   });
@@ -225,11 +225,11 @@ try {
     await page.locator('#role-video-bodyVisible').check(); expected.roleStyles.video.bodyVisible = true; assert.deepEqual(await design(page), expected);
     await surface(page, 'preview'); await checkFont(page, 'video', 'body', 'source-sans-3'); await start(page);
     await page.locator('#themeScope').focus(); await page.keyboard.press(tabKey); assert.notEqual(await page.evaluate(() => document.activeElement.id), 'themeScope', 'Keyboard leaves the scope selector');
-    await patternButton(page, 'diagonal').focus(); await page.keyboard.press('Space'); expected.roleStyles.video.pattern = 'diagonal'; assert.deepEqual(await design(page), expected);
-    assert.equal(await page.evaluate(() => document.activeElement.id), 'choice-background-pattern-diagonal', 'Keyboard texture activation retains focus after rerender');
+    await patternButton(page, 'edge-rail').focus(); await page.keyboard.press('Space'); expected.roleStyles.video.pattern = 'edge-rail'; assert.deepEqual(await design(page), expected);
+    assert.equal(await page.evaluate(() => document.activeElement.id), 'choice-background-edge-rail', 'Keyboard texture activation retains focus after rerender');
     await selectedTheme(page, 'video'); await page.locator('#font-heading').focus(); await page.keyboard.press(tabKey); assert.notEqual(await page.evaluate(() => document.activeElement.id), 'font-heading');
     const heights = {};
-    for (const selector of ['#themeScope', '#font-heading', '#font-body', '#choice-background-pattern-plain']) { const control = page.locator(selector); await control.scrollIntoViewIfNeeded(); heights[selector] = (await control.boundingBox()).height; assert(heights[selector] >= 44, 'Phone native controls and texture choices retain 44px targets'); }
+    for (const selector of ['#themeScope', '#font-heading', '#font-body', '#choice-background-plain']) { const control = page.locator(selector); await control.scrollIntoViewIfNeeded(); heights[selector] = (await control.boundingBox()).height; assert(heights[selector] >= 44, 'Phone native controls and texture choices retain 44px targets'); }
     await page.locator('#themeScope').scrollIntoViewIfNeeded(); assert(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1));
     const source = await fs.readFile(path.resolve(import.meta.dirname, '../node_modules/axe-core/axe.min.js'), 'utf8'); await page.addScriptTag({ content: source });
     const scan = await page.evaluate(async () => { const r = await axe.run({ exclude: [['#modelStage'], ['.button-color-sample']] }); return { violations: r.violations.map(v => ({ id: v.id, targets: v.nodes.map(n => n.target) })), region: r.passes.some(v => v.id === 'region') }; });

@@ -580,6 +580,9 @@
           "type": "string",
           "enum": [
             "plain",
+            "color-block",
+            "edge-rail",
+            "frame",
             "dot-grid",
             "diagonal",
             "crosshatch",
@@ -718,6 +721,9 @@
                   "enum": [
                     "inherit",
                     "plain",
+                    "color-block",
+                    "edge-rail",
+                    "frame",
                     "dot-grid",
                     "diagonal",
                     "crosshatch",
@@ -1084,6 +1090,9 @@
                   "enum": [
                     "inherit",
                     "plain",
+                    "color-block",
+                    "edge-rail",
+                    "frame",
                     "dot-grid",
                     "diagonal",
                     "crosshatch",
@@ -1462,6 +1471,9 @@
                   "enum": [
                     "inherit",
                     "plain",
+                    "color-block",
+                    "edge-rail",
+                    "frame",
                     "dot-grid",
                     "diagonal",
                     "crosshatch",
@@ -1832,6 +1844,9 @@
                   "enum": [
                     "inherit",
                     "plain",
+                    "color-block",
+                    "edge-rail",
+                    "frame",
                     "dot-grid",
                     "diagonal",
                     "crosshatch",
@@ -2206,6 +2221,9 @@
                   "enum": [
                     "inherit",
                     "plain",
+                    "color-block",
+                    "edge-rail",
+                    "frame",
                     "dot-grid",
                     "diagonal",
                     "crosshatch",
@@ -3296,6 +3314,9 @@
               "type": "string",
               "enum": [
                 "plain",
+                "color-block",
+                "edge-rail",
+                "frame",
                 "dot-grid",
                 "diagonal",
                 "crosshatch",
@@ -3434,6 +3455,9 @@
                       "enum": [
                         "inherit",
                         "plain",
+                        "color-block",
+                        "edge-rail",
+                        "frame",
                         "dot-grid",
                         "diagonal",
                         "crosshatch",
@@ -3800,6 +3824,9 @@
                       "enum": [
                         "inherit",
                         "plain",
+                        "color-block",
+                        "edge-rail",
+                        "frame",
                         "dot-grid",
                         "diagonal",
                         "crosshatch",
@@ -4178,6 +4205,9 @@
                       "enum": [
                         "inherit",
                         "plain",
+                        "color-block",
+                        "edge-rail",
+                        "frame",
                         "dot-grid",
                         "diagonal",
                         "crosshatch",
@@ -4548,6 +4578,9 @@
                       "enum": [
                         "inherit",
                         "plain",
+                        "color-block",
+                        "edge-rail",
+                        "frame",
                         "dot-grid",
                         "diagonal",
                         "crosshatch",
@@ -4922,6 +4955,9 @@
                       "enum": [
                         "inherit",
                         "plain",
+                        "color-block",
+                        "edge-rail",
+                        "frame",
                         "dot-grid",
                         "diagonal",
                         "crosshatch",

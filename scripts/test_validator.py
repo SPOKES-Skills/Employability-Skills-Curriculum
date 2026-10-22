@@ -726,6 +726,14 @@ class TestReleasedLessonsLogo(unittest.TestCase):
             self.assertIn("[PASS] LOGO-01", out, lesson.parent.name)
             self.assertIn("[PASS] LOGO-02", out, lesson.parent.name)
 
+    def test_template_passes_logo_rules(self):
+        template = Path(__file__).resolve().parent.parent / "SPOKES Builder" / "template.html"
+        out = subprocess.run([sys.executable, str(VALIDATOR), str(template)],
+                             capture_output=True, text=True).stdout
+        self.assertIn("[PASS] LOGO-01", out)
+        self.assertIn("[PASS] LOGO-02", out)
+        self.assertNotIn("[FAIL]", out)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -28,13 +28,13 @@ These files are in this directory (`SPOKES Builder/`):
 
 Each SPOKES lesson has a unique visual identity created by the **two-layer theme system**:
 
-- **Layer 1 (Lesson Identity):** Color lead, sidebar color, background texture, title slide design, and font pairing stay constant across the entire lesson.
-- **Layer 2 (Chapter Variation):** Card styles, section divider styles, lead components, and secondary accents rotate between chapters for visual freshness.
+- **Layer 1 (Lesson Identity):** The lesson's own color choices, sidebar design and side, background, title slide design and fonts stay constant across the entire lesson.
+- **Layer 2 (Chapter Variation):** Card styles, section divider styles, lead components, and secondary accents may change between chapters for visual freshness.
 
-Theme packages are pre-defined in `theme-registry.json` and pre-approved in bulk. The agent applies the assigned package — no design proposals or approval loops at build time.
+There are no predefined theme packages. Each lesson gets its own design, using any combination of the 11 colors, the installed fonts, and card, divider, title-slide and sidebar designs. Only the 11 colors, the logo and readability are fixed (`SPOKES-STANDARD.md`, What Is Fixed and What Is Open). The lesson's design is recorded in `theme-registry.json`.
 
 **Reference files:**
-- `theme-registry.json` — Per-lesson theme assignments
+- `theme-registry.json`: per-lesson design record
 - `theme-library.css` — All reusable CSS snippets
 - `SPOKES-STANDARD.md` (project root) — Canonical 11-color system and all design rules
 - `font-pairings.md` — Pre-curated font library
@@ -68,18 +68,18 @@ Additional Presentation chapters (P4, P5, etc.) may be added if the lesson has m
 
 **Target: 25-35 slides total.**
 
-### Step 3: Read Theme Package
+### Step 3: Get the Lesson's Design
 
-1. Look up the lesson in `theme-registry.json` (the entry may originate from a **merged Bespoke PR** that ran `bespoke-apply-selection.py` — honor `varyByChapter` card styles when present)
-2. Read Layer 1 properties: colorLead, sidebarColor, backgroundTexture, titleSlide, fontPairing
-3. Read Layer 2 chapterStyles: per-chapter divider, cards, leadComponent, secondaryAccent
-4. If the lesson is not in the registry, STOP — do not build without a theme package
+1. Use the lesson's design from `theme-registry.json` if there is one.
+2. If not, use an approved BeSpoke proposal for the lesson under `docs/phase-2/submissions/<lesson-id>/` (its `build-contract.json` and `design.css`). A BeSpoke design is used only after Britt approves it.
+3. If neither exists, design one within the fixed rules (`SPOKES-STANDARD.md`, What Is Fixed and What Is Open) and in the spirit of the design rules.
+4. Record the design. A builder-made design lives in full in the lesson's `<style id="theme-override">` block. `theme-registry.json` records what its current format can hold.
 
 ### Step 4: Copy Template & Apply Theme
 
-1. Copy `template.html` to the new project directory as `index.html`, and copy `SPOKES Builder/print/manifest.js` to `print/manifest.js` in the new project. The template loads that placeholder, and the validator's REF-01 rule blocks every edit to `index.html` while it is missing.
+1. Copy `template.html` to the new project directory as `index.html`, and copy `SPOKES Builder/print/manifest.js` to `print/manifest.js` in the new project. The template loads that placeholder, and the validator's REF-01 rule blocks every edit to `index.html` while it is missing. For the same reason, copy `SPOKES Builder/images/chapter-placeholder.svg` to `images/` or replace the chapter images.
 2. Add lesson-specific **self-hosted** `@font-face` rules in `<head>` (or a local CSS block) for the assigned pairing — look up file names in `font-pairings.md` / the repo `fonts/` directory. **Do not** add Google Fonts `<link>` tags (TYP-05). Use `font-display: swap`.
-3. Generate a `<style id="theme-override">` block AFTER the main CSS block by assembling snippets from `theme-library.css` (generated from `theme-options.json`):
+3. Generate a `<style id="theme-override">` block AFTER the main CSS block. It may combine snippets from `theme-library.css` (generated from `theme-options.json`) with custom CSS within the fixed rules. It typically covers:
    - Font family overrides
    - Background texture for the assigned `backgroundTexture`
    - Color lead overrides for the assigned `colorLead`
@@ -168,7 +168,7 @@ Acronym breakdown (letter per row)?    --> smart-stack
 4-quadrant decision framework?         --> matrix-grid
 4-6 items with hidden details?         --> dangers-grid (flip cards)
 3 major categories with bullets?       --> areas-grid
-Definition + visual emoji?             --> split-layout
+Definition + real image or key number? --> split-layout
 Group activity or discussion prompt?   --> activity-box (inside another component)
 Downloadable PDF reference?            --> download-resource (inside another component)
 Simple arrow-pointed list?             --> content-list
@@ -176,12 +176,12 @@ Simple arrow-pointed list?             --> content-list
 
 ## Design System Rules
 
-See `SPOKES-STANDARD.md` for the complete rule inventory covering colors (Section 1), typography (Section 2), accessibility (Section 3), components (Section 4), navigation engine (Section 5), theme system (Section 6), mobile/touch (Section 7), performance (Section 8), engagement (Section 9), reduced motion (Section 10), and print (Section 11).
+See `SPOKES-STANDARD.md` for the complete rule inventory covering colors and the logo (Section 1), typography (Section 2), accessibility (Section 3), components (Section 4), navigation engine (Section 5), theme system (Section 6), mobile/touch (Section 7), performance (Section 8), engagement (Section 9), reduced motion (Section 10), print (Section 11), and design elements (Section 12). Its opening section, What Is Fixed and What Is Open, says what every lesson keeps and what may vary.
 
 ### Global Design Standards
 
-- **Faded chapter watermark on section dividers:** Every `slide-section` must display a large, faded chapter identifier (letter or number) as a background watermark using the `::after` pseudo-element with `content: attr(data-chapter-num)`. This is a signature SPOKES design element and must appear in ALL template variants.
-- **Chapter image circle on section dividers (REQUIRED):** Every `slide-section` must include a `.section-circle` div containing an `<img>` with a relevant chapter illustration. The circle appears at the left side of the slide with a gold border and animated reveal. Images should be placed in the `images/` folder and relate to the chapter topic. This is mandatory for all lessons.
+- **Faded chapter watermark on section dividers (optional, DSN-04):** A `slide-section` may display a large, faded chapter identifier (letter or number) as a background watermark using the `::after` pseudo-element with `content: attr(data-chapter-num)`.
+- **Chapter image circle on section dividers (optional, DSN-04):** A `slide-section` may include a `.section-circle` div containing an `<img>` with a relevant chapter illustration. Images go in the `images/` folder and relate to the chapter topic.
 
 ### Animations
 
@@ -200,7 +200,7 @@ Design constraints are in `SPOKES-STANDARD.md`. Build-process-specific rules:
 7. **SPOKES-Logo.png** must be in the project root (same directory as index.html).
 8. **File paths in links** must be relative to index.html (e.g., `Handouts/file.pdf`).
 9. **File nesting** must not exceed 3 levels from project root.
-10. **Font pairings require user approval** before applying to any lesson.
+10. **Fonts:** any self-hosted family in `fonts/`, at most two per lesson (TYP-02).
 
 ## File Naming Conventions
 

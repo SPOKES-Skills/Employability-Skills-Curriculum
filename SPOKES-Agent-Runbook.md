@@ -46,23 +46,22 @@ Output:
 ### Step C: Build
 
 1. Start from approved template baseline.
-2. Propose lesson color schema to user; do not finalize theme until approved.
-3. Propose Google Font pairing to user; do not proceed until approved.
-4. Apply lesson theme per canonical palette policy:
+2. Design the lesson within `SPOKES-STANDARD.md`, What Is Fixed and What Is Open.
+3. Apply lesson theme per canonical palette policy:
    - Use only canonical 11-color values.
    - Mix major/minor color emphasis per lesson for differentiation.
    - Validate planned foreground/background pairings against contrast and anti-clash guardrails in `brand-palette.md`.
-5. Apply media rule:
+4. Apply media rule:
    - Embed YouTube if URL exists.
    - Use placeholder if URL is missing.
-6. Add interactive elements per lesson requirements:
+5. Add interactive elements per lesson requirements:
    - Minimum 3 required qualifying interactions per lesson (tabs, accordion, checkpoint prompt); optional 4th+ only when it adds clear value.
    - Required interactions: tabs, accordion, checkpoint prompt (non-graded).
    - Optional 4th+ interaction only when it adds clear instructional value.
    - Candidate optional upgrades are tracked in `docs/future-upgrades.md`.
    - Interactions must be functionally interactive, keyboard-usable, and designed for instructor-led facilitation.
    - Next/prev navigation does not count toward this minimum.
-7. Add validated download links.
+6. Add validated download links.
 
 Output:
 - Updated `index.html`
@@ -87,10 +86,9 @@ Output:
 
 1. Block release if any Critical defects remain.
 2. Ensure High defects are sprint-committed.
-3. Confirm final color schema has explicit user approval.
-4. Publish release decision with rationale.
-5. Create fast-follow ticket list for Phase 2 accessibility work.
-6. If first three current project lessons are finalized, activate Phase 2 accessibility remediation workflow.
+3. Publish release decision with rationale.
+4. Create fast-follow ticket list for Phase 2 accessibility work.
+5. If first three current project lessons are finalized, activate Phase 2 accessibility remediation workflow.
 
 Output:
 - Release decision record.
@@ -103,23 +101,21 @@ Each lesson must include:
 
 1. Link validation results.
 2. Contrast validation results.
-3. Color schema approval evidence:
-   - User-approved color schema snapshot or explicit sign-off record.
-4. Color-role validation results:
+3. Color-role validation results:
    - Confirm per-lesson color mix is unique enough to differentiate from adjacent lessons.
    - Confirm no disallowed accent-on-accent clash pairings are used.
-5. Device responsiveness checks using locked matrix:
+4. Device responsiveness checks using locked matrix:
    - 360x800 (mobile portrait)
    - 768x1024 (tablet portrait)
    - 1920x1080 (desktop landscape)
-6. One-screen layout checks:
+5. One-screen layout checks:
    - Desktop/tablet: sidebar + active slide visible together on one screen.
    - Mobile: active slide visible on one screen; sidebar accessible via toggle/drawer.
-7. Horizontal overflow checks:
+6. Horizontal overflow checks:
    - No horizontal scrolling/panning at any required viewport.
-8. Keyboard navigation checks.
-9. WIPPEA stage compliance notes.
-10. Interaction-facilitation evidence:
+7. Keyboard navigation checks.
+8. WIPPEA stage compliance notes.
+9. Interaction-facilitation evidence:
    - Instructor prompt panel present on each interaction card.
    - View Prompt/Hide Prompt toggle works.
    - Prompt panel is hidden by default.

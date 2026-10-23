@@ -10,16 +10,15 @@
 
 - Strict fixed 11-color palette only -- no non-canonical hex values
 - Per-lesson color mixing allowed within the palette for visual differentiation
-- Each lesson's color schema requires explicit user approval before finalization
+- Builder-made lesson designs need no color sign-off; a BeSpoke design is used only after Britt approves it
 - Contrast and anti-clash guardrails defined in `brand-palette.md`
 
 ## Typography
 
-- Each lesson gets a unique Google Font pairing (heading + body)
+- Fonts: any self-hosted family in `fonts/`, at most two per lesson (TYP-02); sharing a pairing with another lesson is fine
 - Heading fonts must be legible at 4-5rem
 - Body fonts must be readable at 1.5-2rem
 - Minimum text size: 1.1rem (no sub-1rem text)
-- Font pairings approved by user before applying
 
 ## Terminology
 

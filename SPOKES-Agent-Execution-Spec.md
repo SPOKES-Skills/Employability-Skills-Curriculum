@@ -41,7 +41,7 @@ If documents conflict, use this precedence:
    - Theme variation should come from combinatorial design: template variants, CSS background textures, typography, accent emphasis, component composition, and optional per-lesson effects — all within the palette.
    - All color usage must follow the contrast and anti-clash guardrails in `SPOKES-STANDARD.md`.
    - Combinatorial design choices are documented in `SPOKES Builder/AGENT_THEMING_GUIDELINES.md` and tracked in the `combinatorics` field of `lesson-registry.json`.
-   - Theme variation is defined in `SPOKES Builder/theme-registry.json` and applied via `theme-library.css`. Agents do not make design decisions.
+   - Agents design each lesson within `SPOKES-STANDARD.md`, What Is Fixed and What Is Open.
 6. Agent concurrency:
    - 1 to 8 agents depending on sprint scope.
 7. Capacity:
@@ -70,10 +70,10 @@ If documents conflict, use this precedence:
      - Desktop and tablet: sidebar and active slide must be fully visible together on one screen.
      - Mobile: active slide must be fully visible on one screen; sidebar may be collapsed by default and accessed via toggle/drawer.
    - At all three viewports: no horizontal scrolling/panning is allowed.
-15. Color schema approval:
-   - Theme packages are pre-approved in bulk when the user signs off on the complete theme registry. No per-lesson color or font approval gates at build time.
+15. Lesson design:
+   - There are no predefined theme packages. Each lesson's design follows `SPOKES-STANDARD.md`, What Is Fixed and What Is Open. No per-lesson color or font approval gates.
 16. Theme registry:
-   - Theme registry (`SPOKES Builder/theme-registry.json`) is the single source of truth for per-lesson design choices. Agents read the assigned package and apply it without modification.
+   - `SPOKES Builder/theme-registry.json` records each lesson's design. When a lesson has a recorded design or an approved BeSpoke design, apply it.
 
 ---
 
@@ -118,7 +118,6 @@ Phase 2 fast-follow:
 - Must retain SPOKES structural shell (sidebar, progress, typography hierarchy, component system).
 - Theme styling must conform to canonical palette policy, contrast constraints, and anti-clash guardrails.
 - Per-lesson color differentiation is required, but only via controlled mixing of canonical palette colors.
-- Final color schema must have explicit user approval.
 
 ### Gate 5: Interactive Engagement (Retention)
 
@@ -158,8 +157,6 @@ For each lesson:
    - Map content to WIPPEA stages.
 2. Build:
    - Apply template shell.
-   - Propose lesson color schema and receive user approval before finalizing theme choices.
-   - Propose Google Font pairing to user and receive approval before applying.
    - Apply lesson theme within allowed palette policy.
    - Add components and resources.
 3. QA:
@@ -187,8 +184,7 @@ For each sprint:
    - Gate 1-5 results
    - Defects by severity
    - Release decision
-4. Color schema approval record (approved proposal snapshot or explicit sign-off note)
-5. Fast-follow log for any deferred Phase 2 items
+4. Fast-follow log for any deferred Phase 2 items
 
 ---
 

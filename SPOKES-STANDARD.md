@@ -15,7 +15,25 @@ Each rule has:
 
 ---
 
-## Section 1: Color System
+## What Is Fixed and What Is Open
+
+Three things are fixed in every lesson:
+
+1. **The 11 brand colors** (Section 1). No other colors, and each keeps its exact value.
+2. **The SPOKES logo** (LOGO-01, LOGO-02). Always the official image. It may be shown at any size, from a small corner mark to a large title-slide logo, but never altered. Where the image cannot load, the text-only SPOKES wordmark may stand in.
+3. **Readability** (Section 3, including A11Y-20). Every learner can read every slide.
+
+Everything else is open to variety: how a lesson combines the 11 colors, which installed fonts it uses for headings and body, and the design of its cards, chapter dividers, title slide and sidebar, including whether the sidebar sits on the left or the right. Whatever its design or side, the sidebar keeps working the same way (A11Y-17, MOB-02, NAV-13).
+
+A lesson's design usually draws on 5 or 6 of the 11 colors, with one accent used with restraint, spread across roles such as the sidebar, title and divider backgrounds, headings, accents and buttons. That leaves room for every lesson to look different.
+
+There are no predefined theme packages. Each lesson's design is made for that lesson, and lessons should look different from one another. Variety never overrides the three fixed items.
+
+**BeSpoke designs.** A design submitted through BeSpoke must follow these rules. It is used in a lesson only after Britt approves it. A design that breaks a rule is not used; it goes back to Britt.
+
+---
+
+## Section 1: Color System and Logo
 
 ### CLR-01 — Canonical CSS Variables
 - **Severity:** CRITICAL
@@ -65,6 +83,18 @@ Each rule has:
 - **Rule:** Prohibited colors from brand-palette.md must not appear anywhere in the file. The prohibited list includes: bright reds (`#DC2626`, `#991b1b`, `#FF6B6B`), oranges (`#EA580C`, `#ff6b35`), purples (`#4C1D95`, `#6c23b5`, `#2E1065`), off-palette grays (`#E0E0E0`, `#E5E7EB`, `#5A6A7A`), off-palette blues (`#2D6DB5`, `#1E4A7D`, `#1A365D`, `#2B6CB0`), and any hex value not listed in the Complete Palette (CLR-01).
 - **Rationale:** These specific colors were identified in brand-palette.md as explicitly prohibited. They conflict with the SPOKES brand identity and introduce visual inconsistency across lessons.
 
+### LOGO-01 — Official Logo Image
+- **Severity:** CRITICAL
+- **Validation:** deterministic
+- **Rule:** Every SPOKES logo in a lesson must be the official image, `SPOKES-Logo.png` at the repository root. A lesson's own copy must be byte-for-byte identical to it. It may not be swapped for a different, redrawn, recolored or cropped image. Where the logo image cannot load, the text-only SPOKES wordmark (live text, not an image or SVG) may stand in for it.
+- **Rationale:** Lessons now vary in color and type, so the logo is the constant that marks every lesson as SPOKES.
+
+### LOGO-02 — Logo Resizing Allowed
+- **Severity:** CRITICAL
+- **Validation:** deterministic
+- **Rule:** The logo may be resized to any size that suits the layout, from a small corner mark to a large title-slide logo. Resizing keeps its shape: set the width or the height and leave the other `auto`, or use `object-fit: contain`. No `filter` or `mix-blend-mode` on logo images or on any element around them (a `drop-shadow` filter on a surrounding element is fine), and no `object-fit: cover` or clipping that crops it. The logo is never used as stand-in art for another image.
+- **Rationale:** Resizing fits the logo to each layout. Stretching or recoloring it on screen would show a different-looking logo even though the file is the official one.
+
 ---
 
 ## Section 2: Typography
@@ -78,8 +108,8 @@ Each rule has:
 ### TYP-02 — Font Overrides in Theme Block
 - **Severity:** CRITICAL
 - **Validation:** deterministic
-- **Rule:** Lesson-specific font overrides go in `<style id="theme-override">`, never in `:root`.
-- **Rationale:** `:root` defines the canonical defaults. Lesson-specific font pairings (from theme-registry.json) must override in the theme block to maintain clean separation between defaults and customizations, and to ensure the override cascade works correctly.
+- **Rule:** Lesson-specific font overrides go in `<style id="theme-override">`, never in `:root`. A lesson may use any self-hosted font family in `fonts/` for headings or body, in any combination, with at most two typefaces per lesson.
+- **Rationale:** `:root` defines the canonical defaults. Lesson-specific font pairings (chosen in the lesson's design) must override in the theme block to maintain clean separation between defaults and customizations, and to ensure the override cascade works correctly.
 
 ### TYP-03 — Heading Selectors Use Variable
 - **Severity:** WARN
@@ -217,6 +247,12 @@ Each rule has:
 - **Rule:** `<title>` element must be present and match the lesson name. This is also required for the sessionStorage keying mechanism (NAV-06).
 - **Rationale:** WCAG 2.4.2 (Level A) requires descriptive page titles. Additionally, NAV-06 uses `document.title` as the sessionStorage key, so the title must be present and unique per lesson to prevent cross-lesson state collisions.
 
+### A11Y-20 — Readable Text Contrast
+- **Severity:** CRITICAL
+- **Validation:** computed. `scripts/a11y-check.mjs` measures the first slide of every deck. Other slides need review until that check covers them.
+- **Rule:** All text must reach WCAG AA contrast against the background behind it: 4.5:1, or 3:1 for text at least 24px (19px if bold). On a gradient or texture, the ratio must hold against every color in it. This applies to every slide, including title, chapter-divider and closing slides. The six lessons released on September 23, 2026 are measured against the committed baseline in `scripts/a11y-baseline.json`; new lessons must have no contrast failures.
+- **Rationale:** Color combinations are open, so a combination can put a palette color on a background where it can't be read. The fixed palette alone doesn't guarantee readable slides.
+
 ---
 
 ## Section 4: Components
@@ -236,8 +272,30 @@ Each rule has:
 ### CMP-03 — Custom Component Documentation
 - **Severity:** INFO
 - **Validation:** heuristic
-- **Rule:** Lesson-specific components (Jeopardy, spin wheel, etc.) are permitted but must be documented in this spec before use in new lessons.
+- **Rule:** New card designs and lesson-specific components may be used right away. Add each to `SPOKES Builder/components.md` when the lesson ships, so later lessons can reuse it.
 - **Rationale:** Custom components add maintenance burden and cross-lesson inconsistency. Requiring documentation before reuse ensures deliberate adoption rather than ad-hoc proliferation.
+
+### CRD-01 — Card Design Is Open
+- **Severity:** INFO
+- **Validation:** guideline
+- **Rule:** Card design is open within the fixed rules. A card may vary in:
+  - surface: a filled palette color, outline only, or a photo of the subject under a solid band that keeps text readable
+  - shape: square to fully rounded corners, cut corners, tabs, ribbons, stamp frames
+  - edges: accent rails on any side, double rails, corner marks
+  - header: a title band, an eyebrow label, a number badge
+  - depth: flat, soft shadow, hard offset shadow, stacked-paper layers
+  - layout: chosen from the content, with the most important card getting the most room (rows, columns, a timeline, a side-by-side comparison, or one large card with smaller ones)
+  - content: paragraph, bullets, numbered steps, a big number or statistic, a quote, a checklist
+  - interaction: flip, expand, reveal on tap
+
+  Cards may also vary from slide to slide, as long as the lesson still reads as one design (THM-02). Interactive cards follow A11Y-03, MOB-01 and RDM-01.
+- **Rationale:** With 18 or more lessons drawing on the same 11 colors, cards carry much of each lesson's character.
+
+### CRD-02 — No Generic Design Defaults
+- **Severity:** WARN
+- **Validation:** review
+- **Rule:** New designs avoid the defaults that make a design look machine-made: no frosted glass or blurred panels, no emoji or decorative icons in headings, card text or list markers (a plain arrow or bullet is fine), and three equal cards in a row or a bento grid only when the content calls for it. Words, numbers and real images carry the point. Any of these may stay only when the lesson's content calls for it and the reason can be given in one sentence. These are allowed: cards that lift on hover (with a matching `:active` state, MOB-04), background textures including dot-grid, grain, gradient-fill cards, and a soft radial glow behind big statements or a title. Gradients use only the 11 colors, and text on any gradient, texture or glow meets A11Y-20. Instructor-authored wording stays exactly as written (see `docs/briefs/instructor-to-html-intake-2026-09-17.md`, KEEP VERBATIM); this rule governs text and design the builder adds.
+- **Rationale:** Variety should come from deliberate choices, not from defaults. The six lessons released on September 23, 2026 are not reopened by this rule.
 
 ---
 
@@ -345,7 +403,7 @@ Generation D merges the best features from three incompatible navigation engine 
 ### THM-02 — Layer 1 Consistency
 - **Severity:** WARN
 - **Validation:** heuristic
-- **Rule:** Layer 1 (lesson identity) properties — color lead, sidebar color, font pairing, background texture, title slide — must be constant across all slides in a lesson. Font pairing overrides are governed by TYP-02 (must be in `<style id="theme-override">`, never in `:root`).
+- **Rule:** Layer 1 (lesson identity) properties, meaning its color choices, fonts, background, sidebar design and side, and title slide design, must be constant across all slides in a lesson. Font pairing overrides are governed by TYP-02 (must be in `<style id="theme-override">`, never in `:root`).
 - **Rationale:** Layer 1 defines the lesson's identity. If these properties change mid-lesson, the presentation feels disjointed and breaks the two-layer theme architecture where Layer 1 is constant and Layer 2 provides chapter-level variation.
 
 ### THM-03 — Layer 2 Chapter Scoping
@@ -354,11 +412,11 @@ Generation D merges the best features from three incompatible navigation engine 
 - **Rule:** Layer 2 (chapter variation) must be scoped via `[data-chapter="N"]` selectors.
 - **Rationale:** Without chapter-scoped selectors, chapter-specific card styles and accents bleed across the entire lesson. `data-chapter` scoping ensures each chapter has its own visual treatment while Layer 1 remains constant.
 
-### THM-04 — Adjacent Chapter Differentiation
-- **Severity:** WARN
-- **Validation:** heuristic
-- **Rule:** No two adjacent chapters may share the same card style.
-- **Rationale:** Visual freshness is a core design principle — repeating the same card style in consecutive chapters makes the lesson feel monotonous. The theme registry pre-assigns different styles per chapter, and this rule enforces that contract.
+### THM-04 — Card Style Variety
+- **Severity:** INFO
+- **Validation:** guideline
+- **Rule:** A lesson may use one card style throughout or vary card styles by chapter. When it varies them, neighboring chapters should use different styles.
+- **Rationale:** Variety is a choice made for each lesson. One strong card style can carry a lesson. Rotating styles keeps a long lesson fresh.
 
 ### THM-05 — Dark Theme Class
 - **Severity:** CRITICAL
@@ -494,3 +552,76 @@ Generation D merges the best features from three incompatible navigation engine 
 - **Validation:** deterministic
 - **Rule:** Every lesson loads `print/manifest.js` and then `../scripts/print-slides.js`, after its other scripts. Freshness is separate: `node scripts/capture-print-slides.mjs --check` in `scripts/quality.sh` fails when `index.html` changed after the print pictures were taken.
 - **Rationale:** Teachers print lessons as stapled or binder workbooks in a Student version and a Teacher version with answers. The Print slides button prints saved pictures of each slide, because the live slides size themselves from the screen and do not survive a paper page.
+
+---
+
+## Section 12: Design Elements
+
+Premium comes from craft and restraint: a few deliberate choices, applied the same way across the whole lesson. Premium never costs speed: every premium element stays within the performance rules (Section 8).
+
+### DSN-01 — Whole-Lesson Choices
+- **Severity:** INFO
+- **Validation:** guideline
+- **Rule:** These choices are made once and applied across the whole lesson (THM-02):
+  - corner shape: square, soft, rounded or cut, applied to cards, frames and buttons together
+  - signature mark: one repeated accent, such as a rule under headings, a corner bracket, a side tab or an underline bar
+  - rule weight: hairline, medium or bold, for rails, frames and divider lines
+  - heading style: sentence case, capitals or small capitals, with weight and letter spacing
+  - number style: plain, badge, large outline numeral or tab, for numbered items, chapters and steps
+  - buttons: solid, outline or underlined link, in the lesson's corner shape. Hover effects are fine because buttons are controls.
+
+### DSN-02 — Sidebar Options
+- **Severity:** INFO
+- **Validation:** guideline
+- **Rule:** The sidebar may sit on the left or the right. Its style may be solid, a slim rail with chapter numbers, a two-tone split, or an outline with a rule. The current-chapter marker may be a bar, a filled block, a number or an underline. Navigation behavior stays the same (A11Y-17, MOB-02, NAV-13).
+
+### DSN-03 — Title Slide Options
+- **Severity:** INFO
+- **Validation:** guideline
+- **Rule:** Beyond the existing layouts, a title slide may use an oversized title word set large and cropped by the slide edge, an offset color block that crosses the edge, a ribbon or tab, a stamp frame, a big lesson number, or a two-tone diagonal cut. A cropped title word is decoration: the full title must also appear whole and readable on the slide.
+
+### DSN-04 — Chapter Divider Options
+- **Severity:** INFO
+- **Validation:** guideline
+- **Rule:** Beyond the existing layouts (center, left, band, number), a divider may use a giant chapter numeral, a two-tone split, a rail with the chapter name, a ribbon or tab, or a progress strip of solid segments showing "chapter 2 of 5". The faded chapter watermark and the image circle are optional.
+
+### DSN-05 — Video Slide Options
+- **Severity:** INFO
+- **Validation:** guideline
+- **Rule:** Video frames may use a thick border, an offset shadow, corner marks or a caption band. The video may sit left, right, or full width with a solid band.
+
+### DSN-06 — Activity Options
+- **Severity:** INFO
+- **Validation:** guideline
+- **Rule:** Activity labels may be a tab, a ribbon or a stamp. Layouts may be a checklist, numbered steps, or a prompt-and-response split.
+
+### DSN-07 — Typography Craft
+- **Severity:** INFO
+- **Validation:** guideline
+- **Rule:**
+  - Use one type scale (compact, balanced or dramatic) so headings, subheads and body step down in fixed proportions.
+  - Balance headline line breaks, avoid single-word last lines, keep heading line spacing tight, and widen letter spacing on capital-letter labels.
+  - Keep body lines to about 60 to 70 characters.
+  - Set big statistics in the heading font with matching-height numerals; use tabular digits where numbers line up in columns.
+  - Optional: a drop cap on an opening paragraph, and pull quotes with a large quotation mark in the heading font. The quotation mark is a letter, not an icon, so CRD-02 allows it.
+  - These touches change how text is set, never the words. Instructor wording stays exactly as written (KEEP VERBATIM).
+
+### DSN-08 — Layout and Spacing
+- **Severity:** INFO
+- **Validation:** guideline
+- **Rule:** Choose one spacing setting (airy, balanced or compact) and apply it to every margin and gap. Use one alignment grid across all slides, so edges line up from slide to slide. Prefer asymmetric layouts, such as one-third and two-thirds splits, over centering everything.
+
+### DSN-09 — Color Proportion
+- **Severity:** INFO
+- **Validation:** guideline
+- **Rule:** Aim for about 60% dominant color, 30% secondary and 10% accent. Prefer solid palette colors. Use transparency (CLR-04) for overlays that help text read, such as a band over a photo.
+
+### DSN-10 — Finishing Details
+- **Severity:** INFO
+- **Validation:** guideline
+- **Rule:**
+  - Give the logo clear space and a set size relative to the title (LOGO-02 allows the resizing).
+  - A running footer may show the lesson name, chapter and slide number in small capitals.
+  - Motion is deliberate and quick: one easing curve and one timing system for every entrance, and each slide's entrance finishes within about 1.5 seconds. Elements only move and fade, so layout never recalculates and motion stays smooth on school laptops. A timed per-slide assembly is welcome within these limits. Pressing Next or a key completes it at once, content is never hidden until an animation ends, and reduced motion gets everything instantly (RDM-01, RDM-02, RDM-06). The motion project will set the details.
+  - Images use one crop shape across the lesson, and text on a photo always sits on a solid band.
+  - The print workbook carries the same design (PRT-01).

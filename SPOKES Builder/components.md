@@ -342,7 +342,7 @@ Each value gets a unique gradient background and a giant watermark letter.
   <div class="danger-card">
     <div class="danger-card-inner">
       <div class="danger-card-front">
-        <div class="danger-icon">&#128241;</div>
+        <div class="danger-icon">1</div>
         <h4>Card Title</h4>
       </div>
       <div class="danger-card-back">
@@ -355,9 +355,9 @@ Each value gets a unique gradient background and a giant watermark letter.
 </div>
 ```
 
-**Guidelines:** Use 4-6 cards. Use HTML emoji entities for icons. Front shows icon + title, back shows title + description. Cards flip on hover via CSS 3D transform.
+**Guidelines:** Use 4-6 cards. Front shows a number or short word + title, back shows title + description. Cards flip on hover via CSS 3D transform.
 
-**Common emoji entities:** `&#128241;` (phone), `&#9203;` (timer), `&#128260;` (arrows), `&#128587;` (person), `&#128736;` (wrench), `&#128170;` (muscle), `&#128161;` (lightbulb), `&#9888;` (warning)
+Use a short word, a number or a real image in these spots. No emoji or decorative icons (SPOKES-STANDARD.md, CRD-02).
 
 ---
 
@@ -369,7 +369,7 @@ Each value gets a unique gradient background and a giant watermark letter.
 <div class="areas-grid">
   <div class="area-card">
     <div class="area-header">
-      <div class="area-icon">&#9829;</div>
+      <div class="area-icon">1</div>
       <h4>Card Title</h4>
     </div>
     <ul>
@@ -380,7 +380,7 @@ Each value gets a unique gradient background and a giant watermark letter.
   </div>
   <div class="area-card gold-card">
     <div class="area-header">
-      <div class="area-icon">&#9881;</div>
+      <div class="area-icon">2</div>
       <h4>Card Title</h4>
     </div>
     <ul>
@@ -391,7 +391,7 @@ Each value gets a unique gradient background and a giant watermark letter.
   </div>
   <div class="area-card">
     <div class="area-header">
-      <div class="area-icon">&#9734;</div>
+      <div class="area-icon">3</div>
       <h4>Card Title</h4>
     </div>
     <ul>
@@ -414,7 +414,7 @@ Each value gets a unique gradient background and a giant watermark letter.
 
 ### 7. `split-layout` — Text + Visual Circle
 
-**When to use:** Explanatory text paired with a visual icon/emoji. Good for definitions, key concepts, or single-topic deep dives.
+**When to use:** Explanatory text paired with a real image or a key number. Good for definitions, key concepts, or single-topic deep dives.
 
 ```html
 <div class="split-layout">
@@ -427,7 +427,7 @@ Each value gets a unique gradient background and a giant watermark letter.
     </p>
   </div>
   <div class="split-visual">
-    <div class="visual-circle">&#9733;</div>
+    <div class="visual-circle">75%</div>
   </div>
 </div>
 ```
@@ -439,19 +439,19 @@ Each value gets a unique gradient background and a giant watermark letter.
   class="visual-circle"
   style="background: linear-gradient(135deg, var(--gold), var(--muted-gold)); font-size: 3.5rem;"
 >
-  &#9878;
+  2:1
 </div>
 <div
   class="visual-circle"
   style="background: linear-gradient(135deg, var(--accent), var(--primary)); font-size: 3rem;"
 >
-  &#8645;
+  50%
 </div>
 <div
   class="visual-circle"
   style="background: linear-gradient(135deg, var(--mauve), var(--dark)); font-size: 3.5rem;"
 >
-  &#9888;
+  3
 </div>
 ```
 
@@ -519,7 +519,7 @@ Each value gets a unique gradient background and a giant watermark letter.
 
 ### 10. `content-list` — Arrow-Prefixed List
 
-**When to use:** Simple bulleted lists with arrow or warning icons.
+**When to use:** Simple bulleted lists with arrow markers.
 
 ```html
 <ul class="content-list">
@@ -529,7 +529,7 @@ Each value gets a unique gradient background and a giant watermark letter.
 </ul>
 ```
 
-**Danger variant (warning icons instead of arrows):**
+**Danger variant (mauve arrows for cautions):**
 
 ```html
 <ul class="content-list danger">
@@ -572,15 +572,13 @@ Use these inline classes within `<span>` tags to color-code important words:
 | 4-quadrant decision framework             | `matrix-grid`                     |
 | 4-6 dangers/myths/challenges with reveals | `dangers-grid` (flip cards)       |
 | 3 major categories with bullet lists      | `areas-grid`                      |
-| Definition + visual icon                  | `split-layout`                    |
+| Definition + real image or key number     | `split-layout`                    |
 | Group activity or discussion prompt       | `activity-box`                    |
 | Downloadable PDF resource                 | `download-resource`               |
 | Simple bulleted list                      | `content-list`                    |
 | Key quote or transition                   | `big-statement` (slide type)      |
 | YouTube video                             | `slide-video` (slide type)        |
-| Overlay / feature highlight               | `card-glass`                      |
 | Grid items revealing in sequence          | `grid-stagger` with `reveal-item` |
-| Animated section boundary                 | `gradient-divider`                |
 | Content revealed on scroll/hover          | `clip-reveal`                     |
 | High-emphasis CTA button                  | `btn-magnetic`                    |
 | Statistic / percentage display            | `counter-item`                    |
@@ -590,35 +588,6 @@ Use these inline classes within `<span>` tags to color-code important words:
 ## Advanced Components (Phase 2)
 
 These components use modern CSS/JS techniques from the advanced design system. All respect `prefers-reduced-motion` and degrade gracefully in older browsers.
-
-### Glass Card
-
-**When to use:** Overlay content on gradient backgrounds, feature highlights, or translucent panels.
-
-```html
-<div class="card card-glass reveal-item">
-  <h4>Feature Title</h4>
-  <p>Description over a frosted translucent background.</p>
-</div>
-```
-
-**CSS (add to theme-override):**
-
-```css
-.card-glass {
-  background: rgba(237, 243, 247, 0.6);
-  backdrop-filter: blur(16px) saturate(1.8);
-  -webkit-backdrop-filter: blur(16px) saturate(1.8);
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  border-left: none;
-  border-radius: 16px;
-  box-shadow: 0 8px 32px rgba(0, 64, 113, 0.08);
-}
-```
-
-**Guidelines:** Best on slides with gradient or image backgrounds. Ensure text meets WCAG AA contrast against blurred background — use `--dark` or `--gray` text. Fallback: browsers without `backdrop-filter` show the solid rgba background.
-
----
 
 ### Staggered Grid Reveal
 
@@ -634,55 +603,6 @@ These components use modern CSS/JS techniques from the advanced design system. A
 ```
 
 **No additional CSS needed** — the `.reveal-item` class and `--reveal-i` variable are set by the IntersectionObserver in the template's navigation engine. Items animate with 60ms stagger between each.
-
----
-
-### Animated Gradient Divider
-
-**When to use:** Visual section boundaries within a slide, replacing plain `<hr>` or static dividers.
-
-```html
-<div class="gradient-divider"></div>
-```
-
-**CSS (add to theme-override):**
-
-```css
-@property --gradient-angle {
-  syntax: "<angle>";
-  initial-value: 0deg;
-  inherits: false;
-}
-
-.gradient-divider {
-  height: 4px;
-  background: linear-gradient(
-    var(--gradient-angle),
-    var(--primary),
-    var(--accent),
-    var(--gold),
-    var(--primary)
-  );
-  background-size: 300% 100%;
-  animation: gradient-shift 4s ease-in-out infinite;
-  border-radius: 2px;
-  margin: 2rem 0;
-}
-
-@keyframes gradient-shift {
-  0% {
-    --gradient-angle: 0deg;
-  }
-  50% {
-    --gradient-angle: 180deg;
-  }
-  100% {
-    --gradient-angle: 360deg;
-  }
-}
-```
-
-**Guidelines:** Fallback: browsers without `@property` support show a static gradient. The `prefers-reduced-motion` blanket rule handles animation disabling automatically.
 
 ---
 

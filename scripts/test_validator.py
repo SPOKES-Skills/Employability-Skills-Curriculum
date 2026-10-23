@@ -1,4 +1,6 @@
 """Tests for validate-lesson.py — SPOKES lesson quality validator."""
+import shutil
+import tempfile
 import unittest
 import subprocess
 import sys
@@ -6,6 +8,8 @@ from pathlib import Path
 
 VALIDATOR = Path(__file__).parent / "validate-lesson.py"
 FIXTURES = Path(__file__).parent / "test-fixtures"
+OFFICIAL_LOGO = Path(__file__).resolve().parent.parent / "SPOKES-Logo.png"
+OTHER_IMAGE = FIXTURES / "test.png"
 
 
 def run_validator(fixture_name, extra_args=None):
@@ -15,6 +19,27 @@ def run_validator(fixture_name, extra_args=None):
         cmd.extend(extra_args)
     result = subprocess.run(cmd, capture_output=True, text=True, timeout=10)
     return result.returncode, result.stdout, result.stderr
+
+
+def run_validator_on_lesson(body_extra: str = "", css_extra: str = "",
+                            files: dict[str, Path] | None = None) -> tuple[int, str]:
+    """Validate minimal-pass.html as a temporary lesson with extra markup, CSS and files."""
+    html = (FIXTURES / "minimal-pass.html").read_text(encoding="utf-8")
+    if css_extra:
+        html = html.replace("</head>", f"<style>\n{css_extra}\n</style>\n</head>", 1)
+    if body_extra:
+        html = html.replace("</body>", f"{body_extra}\n</body>", 1)
+    with tempfile.TemporaryDirectory() as tmp:
+        lesson = Path(tmp) / "lesson-test"
+        lesson.mkdir()
+        (lesson / "index.html").write_text(html, encoding="utf-8")
+        for name in ("test.mp4", "test.vtt"):
+            shutil.copy(FIXTURES / name, lesson / name)
+        for name, source in (files or {}).items():
+            shutil.copy(source, lesson / name)
+        result = subprocess.run([sys.executable, str(VALIDATOR), str(lesson / "index.html")],
+                                capture_output=True, text=True, timeout=10)
+    return result.returncode, result.stdout
 
 
 class TestValidatorPassingFixture(unittest.TestCase):

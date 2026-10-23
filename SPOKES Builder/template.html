@@ -601,9 +601,12 @@
       }
 
       .card:hover,
+      .card:active,
       .area-card:hover,
+      .area-card:active,
       .danger-card:hover,
-      .matrix-cell:hover {
+      .matrix-cell:hover,
+      .matrix-cell:active {
         transform: translateY(-5px);
         box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
       }
@@ -1136,7 +1139,7 @@
         background: radial-gradient(
           ellipse at 50% 40%,
           var(--muted) 0%,
-          #ffffff 60%
+          var(--light) 60%
         );
       }
 
@@ -1276,8 +1279,7 @@
       }
 
       .content-list.danger li::before {
-        content: "\26A0";
-        color: var(--gold);
+        color: var(--mauve);
       }
 
       /* Background Variation */
@@ -1917,7 +1919,7 @@
         >
           <div class="section-circle">
             <img
-              src="../SPOKES-Logo.png"
+              src="images/chapter-placeholder.svg"
               alt="{{warm-up image description}}"
               loading="lazy"
             />
@@ -1980,7 +1982,7 @@
         >
           <div class="section-circle">
             <img
-              src="../SPOKES-Logo.png"
+              src="images/chapter-placeholder.svg"
               alt="{{image description}}"
               loading="lazy"
             />
@@ -2035,7 +2037,7 @@
         >
           <div class="section-circle">
             <img
-              src="../SPOKES-Logo.png"
+              src="images/chapter-placeholder.svg"
               alt="{{image description}}"
               loading="lazy"
             />
@@ -2057,7 +2059,8 @@
               <p style="font-size: 1.6rem">{{Supporting text}}</p>
             </div>
             <div class="split-visual">
-              <div class="visual-circle">&#9733;</div>
+              <!-- visual-circle: a key number or short word, such as 75% -->
+              <div class="visual-circle">{{N}}</div>
             </div>
           </div>
         </section>
@@ -2084,7 +2087,6 @@
                 border-radius: 12px;
                 box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
               "
-              poster="../SPOKES-Logo.png"
             >
               <source src="../scripts/test-fixtures/test.mp4" type="video/mp4" />
               <track kind="captions" src="../scripts/test-fixtures/test.vtt" srclang="en" label="English" />
@@ -2104,7 +2106,7 @@
         >
           <div class="section-circle">
             <img
-              src="../SPOKES-Logo.png"
+              src="images/chapter-placeholder.svg"
               alt="{{image description}}"
               loading="lazy"
             />
@@ -2127,7 +2129,7 @@
         >
           <div class="section-circle">
             <img
-              src="../SPOKES-Logo.png"
+              src="images/chapter-placeholder.svg"
               alt="{{image description}}"
               loading="lazy"
             />
@@ -2150,7 +2152,7 @@
         >
           <div class="section-circle">
             <img
-              src="../SPOKES-Logo.png"
+              src="images/chapter-placeholder.svg"
               alt="{{image description}}"
               loading="lazy"
             />
@@ -2207,7 +2209,7 @@
         >
           <div class="section-circle">
             <img
-              src="../SPOKES-Logo.png"
+              src="images/chapter-placeholder.svg"
               alt="{{image description}}"
               loading="lazy"
             />

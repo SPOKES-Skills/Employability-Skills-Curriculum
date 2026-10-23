@@ -1,6 +1,6 @@
 # SPOKES Font Pairing Library
 
-**Purpose:** Pre-curated Google Font pairings for lesson differentiation. Each lesson gets a unique pairing — no repeats across the curriculum.
+**Purpose:** Curated pairings to start from. Any self-hosted family may be used (TYP-02), and sharing a pairing with another lesson is fine.
 
 **Last updated:** 2026-04-02
 
@@ -10,8 +10,7 @@
 
 1. Check the **Assignment Tracker** at the bottom to see what's taken
 2. Choose a pairing that fits the lesson's tone (see mood tags)
-3. Propose to the user for approval before applying
-4. After approval, update the Assignment Tracker and `lesson-registry.json`
+3. Update the Assignment Tracker and `lesson-registry.json`
 
 ## Font Import Pattern
 

@@ -2,6 +2,9 @@
 from __future__ import annotations
 
 import argparse
+import base64
+import binascii
+import hashlib
 import re
 import sys
 from collections import namedtuple
@@ -9,6 +12,8 @@ from html.parser import HTMLParser
 from pathlib import Path
 from typing import Any
 from urllib.parse import unquote, urlparse
+
+from css_select import selector_matches
 
 # ---------------------------------------------------------------------------
 # Constants
@@ -36,6 +41,19 @@ PROHIBITED_COLORS: list[str] = [
     "#5a6a7a", "#2d6db5", "#1e4a7d", "#1a365d", "#2b6cb0",
 ]
 
+# The official logo (LOGO-01, LOGO-02). Lessons may resize it but never swap, recolor or crop it.
+OFFICIAL_LOGO_PATH: Path = Path(__file__).resolve().parent.parent / "SPOKES-Logo.png"
+LOGO_FILE_RE = re.compile(r"spokes-logo", re.IGNORECASE)
+# The logo's own alt text, such as "SPOKES", "SPOKES logo." or "SPOKES program logo".
+# An alt that only mentions SPOKES (a game thumbnail) is not the logo.
+LOGO_ALT_RE = re.compile(
+    r"^\s*spokes\s*$|^\s*spokes\b.*\blogo\b|^\s*spokes\s*(?:—|&mdash;|–|-)\s*strategic planning",
+    re.IGNORECASE,
+)
+CSS_URL_RE = re.compile(r"""url\(\s*['"]?([^'")]+)['"]?\s*\)""", re.IGNORECASE)
+CSS_RULE_RE = re.compile(r"([^{}]+)\{([^{}]*)\}")
+VOID_TAGS = {"area", "base", "br", "col", "embed", "hr", "img", "input", "link", "meta", "source", "track", "wbr"}
+
 # ---------------------------------------------------------------------------
 # Result type
 # ---------------------------------------------------------------------------
@@ -46,12 +64,14 @@ Result = namedtuple("Result", ["rule_id", "status", "message", "line"])
 # Document model
 # ---------------------------------------------------------------------------
 class Element:
-    __slots__ = ("tag", "attrs", "line")
+    __slots__ = ("tag", "attrs", "line", "ancestors")
 
-    def __init__(self, tag: str, attrs: dict[str, str | None], line: int) -> None:
+    def __init__(self, tag: str, attrs: dict[str, str | None], line: int,
+                 ancestors: tuple[Element, ...] = ()) -> None:
         self.tag = tag
         self.attrs = attrs
         self.line = line
+        self.ancestors = ancestors  # open elements around this one, outermost first
 
 
 class Document:
@@ -82,12 +102,15 @@ class LessonHTMLParser(HTMLParser):
         self._in_script = False
         self._script_start_line = 0
         self._script_buf: list[str] = []
+        self._open: list[Element] = []
 
     def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
         attrs_dict: dict[str, str | None] = dict(attrs)
         line = self.getpos()[0]
-        elem = Element(tag, attrs_dict, line)
+        elem = Element(tag, attrs_dict, line, tuple(self._open))
         self.doc.elements.append(elem)
+        if tag not in VOID_TAGS:
+            self._open.append(elem)
 
         if tag == "html":
             self.doc.html_attrs = attrs_dict
@@ -104,6 +127,10 @@ class LessonHTMLParser(HTMLParser):
             self._script_buf = []
 
     def handle_endtag(self, tag: str) -> None:
+        for i in range(len(self._open) - 1, -1, -1):
+            if self._open[i].tag == tag:
+                del self._open[i:]
+                break
         if tag == "style" and self._in_style:
             css_text = "".join(self._style_buf)
             if self._style_id == "theme-override":
@@ -308,6 +335,225 @@ def check_colors(doc: Document) -> list[Result]:
         results.append(Result("CLR-08", "PASS", "No prohibited colors found", 0))
 
     return results
+
+
+# ---------------------------------------------------------------------------
+# Check: Logo (LOGO-01, LOGO-02)
+# ---------------------------------------------------------------------------
+def _logo_elements(doc: Document) -> list[Element]:
+    """Elements that show the logo: by file name, logo class, the logo's own alt, or as a poster."""
+    found: list[Element] = []
+    for elem in doc.elements:
+        if LOGO_FILE_RE.search(elem.attrs.get("poster") or ""):
+            found.append(elem)
+        elif elem.tag == "img" and (
+            LOGO_FILE_RE.search((elem.attrs.get("src") or "") + (elem.attrs.get("srcset") or ""))
+            or _class_contains(elem, "logo")
+            or LOGO_ALT_RE.search(elem.attrs.get("alt") or "")
+        ):
+            found.append(elem)
+    return found
+
+
+def _script_classes(doc: Document) -> set[str]:
+    """Class names the lesson's script adds at runtime, such as `active` on the current slide."""
+    calls = re.findall(r"classList\.(?:add|toggle|replace)\(([^)]*)\)", _all_script(doc))
+    return {name for call in calls for name in re.findall(r"""['"]([\w-]+)['"]""", call)}
+
+
+def _css_rules(doc: Document) -> list[tuple[str, str]]:
+    """(selector, declarations) for every innermost CSS rule, with comments removed."""
+    css = re.sub(r"/\*.*?\*/", "", _all_css_with_override(doc), flags=re.DOTALL)
+    return [(" ".join(selector.split()), block) for selector, block in CSS_RULE_RE.findall(css)]
+
+
+def _srcset_urls(srcset: str) -> list[str]:
+    """Image URLs in a srcset, split the way browsers split them, so data: URIs keep their commas."""
+    urls: list[str] = []
+    pos = 0
+    while match := re.compile(r"[\s,]*(\S+)").match(srcset, pos):
+        url, pos = match.group(1), match.end()
+        if url.endswith(","):
+            urls.append(url.rstrip(","))
+            continue
+        urls.append(url)
+        comma = srcset.find(",", pos)
+        pos = len(srcset) if comma < 0 else comma + 1
+    return [url for url in urls if url]
+
+
+def _logo_references(doc: Document) -> list[tuple[str, int]]:
+    """Every image reference shown as the logo, with its line."""
+    logos = _logo_elements(doc)
+    pictures = {anc for elem in logos for anc in elem.ancestors if anc.tag == "picture"}
+    refs = [(elem.attrs[attr] or "", elem.line) for elem in logos for attr in ("src", "poster") if elem.attrs.get(attr)]
+    for elem in doc.elements:
+        if elem in logos or (elem.tag == "source" and pictures.intersection(elem.ancestors)):
+            refs.extend((url, elem.line) for url in _srcset_urls(elem.attrs.get("srcset") or ""))
+        for url in CSS_URL_RE.findall(elem.attrs.get("style") or ""):
+            if LOGO_FILE_RE.search(url) or (url.lower().startswith("data:") and _class_contains(elem, "logo")):
+                refs.append((url, elem.line))
+    marked = [elem for elem in doc.elements if _class_contains(elem, "logo")]
+    dynamic = _script_classes(doc)
+    for selector, block in _css_rules(doc):
+        for url in CSS_URL_RE.findall(block):
+            if LOGO_FILE_RE.search(url) or (url.lower().startswith("data:") and any(
+                    selector_matches(selector, elem, elem.ancestors, dynamic) for elem in marked)):
+                refs.append((url, _find_css_line(doc, re.escape(url[:80]))))
+    return refs
+
+
+def _reference_sha256(doc: Document, value: str) -> str | None:
+    """SHA-256 of a data: URI's bytes or of the local file a reference resolves to; None if missing."""
+    ref = value.strip()
+    if ref.lower().startswith("data:"):
+        header, _, payload = ref.partition(",")
+        try:
+            data = base64.b64decode(payload) if header.lower().endswith(";base64") else unquote(payload).encode("utf-8")
+        except (binascii.Error, ValueError):
+            return None
+        return hashlib.sha256(data).hexdigest()
+    if ref.lower().startswith(("http://", "https://")) or doc.source_path is None:
+        return None
+    target = doc.source_path.parent / _local_reference_path(ref)
+    return hashlib.sha256(target.read_bytes()).hexdigest() if target.is_file() else None
+
+
+def _check_logo_file(doc: Document) -> Result:
+    """LOGO-01: every logo image is byte-for-byte the official SPOKES-Logo.png."""
+    if doc.source_path is None:
+        return Result("LOGO-01", "PASS", "Logo check skipped (source path unavailable)", 0)
+    for elem in doc.elements:
+        if elem.tag in ("svg", "object", "embed", "canvas") and _class_contains(elem, "logo"):
+            return Result("LOGO-01", "FAIL", f"Logo redrawn as <{elem.tag}>: show the official SPOKES-Logo.png",
+                          elem.line)
+    references = _logo_references(doc)
+    if not references:
+        return Result("LOGO-01", "PASS", "No logo images found", 0)
+    official = hashlib.sha256(OFFICIAL_LOGO_PATH.read_bytes()).hexdigest()
+    for ref, line in references:
+        digest = _reference_sha256(doc, ref)
+        if digest == official:
+            continue
+        label = "embedded image" if ref.strip().lower().startswith("data:") else ref
+        is_local = not ref.strip().lower().startswith(("data:", "http://", "https://"))
+        if digest is None and is_local:
+            return Result("LOGO-01", "FAIL", f"Logo file missing: {label}", line)
+        return Result("LOGO-01", "FAIL", f"Logo image is not the official SPOKES-Logo.png: {label}", line)
+    return Result("LOGO-01", "PASS", "All logo images match the official SPOKES-Logo.png", 0)
+
+
+CSS_LENGTH_RE = re.compile(r"[\d.]+(?:px|rem|em|%|vw|vh|vmin|vmax|pt|cm|mm|in)")
+
+
+def _css_value(declarations: str, prop: str) -> str | None:
+    """Last value set for a property in one declaration block; `max-width` never counts as `width`."""
+    values = re.findall(rf"(?<![-\w]){re.escape(prop)}\s*:\s*([^;]+)", declarations.lower())
+    return values[-1].replace("!important", "").strip() if values else None
+
+
+RECOLOR_OR_CROP = (("filter", "none"), ("-webkit-filter", "none"), ("mix-blend-mode", "normal"),
+                   ("clip-path", "none"), ("mask", "none"), ("mask-image", "none"),
+                   ("-webkit-mask", "none"), ("-webkit-mask-image", "none"))
+
+
+def _recolor_or_crop(declarations: str) -> list[str]:
+    return [prop for prop, harmless in RECOLOR_OR_CROP if _css_value(declarations, prop) not in (None, harmless)]
+
+
+def _logo_style_problems(declarations: str) -> list[str]:
+    """Declarations on the logo element that would recolor, crop, distort or replace it."""
+    problems = _recolor_or_crop(declarations)
+    if _css_value(declarations, "content") not in (None, "normal", "none"):
+        problems.append("content")
+    fit = _css_value(declarations, "object-fit")
+    if fit == "cover":
+        problems.append("object-fit: cover")
+    width, height = _css_value(declarations, "width"), _css_value(declarations, "height")
+    if (width and height and CSS_LENGTH_RE.fullmatch(width) and CSS_LENGTH_RE.fullmatch(height)
+            and fit != "contain"):
+        problems.append("fixed width and height")
+    return problems
+
+
+def _is_marked_logo(elem: Element) -> bool:
+    """Marked by a logo class, the logo's own alt text, or an empty alt that marks it decorative."""
+    alt = elem.attrs.get("alt")
+    decorative = "alt" in elem.attrs and not (alt or "").strip()
+    return _class_contains(elem, "logo") or bool(LOGO_ALT_RE.search(alt or "")) or decorative
+
+
+def _wrapper_recolor(declarations: str) -> list[str]:
+    """Declarations on an element around the logo that recolor it too; a drop-shadow only adds a shadow."""
+    problems = ["mix-blend-mode"] if _css_value(declarations, "mix-blend-mode") not in (None, "normal") else []
+    for prop in ("filter", "-webkit-filter"):
+        value = _css_value(declarations, prop)
+        if value not in (None, "none") and re.sub(r"drop-shadow\((?:[^()]|\([^()]*\))*\)", "", value).strip():
+            problems.append(prop)
+    return problems
+
+
+def _wrapper_recolor_result(doc: Document, logos: list[Element], dynamic: set[str]) -> Result | None:
+    """LOGO-02 for the elements around the logo: a filter or blend mode there recolors the logo with them."""
+    wrappers = list(dict.fromkeys(anc for elem in logos for anc in elem.ancestors))
+    for elem in wrappers:
+        problems = _wrapper_recolor(elem.attrs.get("style") or "")
+        if problems:
+            return Result("LOGO-02", "FAIL", f"Logo recolored by inline style on <{elem.tag}> around it "
+                          f"({', '.join(problems)})", elem.line)
+    for selector, block in _css_rules(doc):
+        problems = _wrapper_recolor(block)
+        if problems and any(selector_matches(selector, elem, elem.ancestors, dynamic) for elem in wrappers):
+            return Result("LOGO-02", "FAIL", f"Logo recolored by CSS on an element around it "
+                          f"({', '.join(problems)}): {selector}", _find_css_line(doc, re.escape(selector)))
+    return None
+
+
+def _painted_logo_problems(declarations: str) -> list[str]:
+    """Declarations that paint the logo file as a background and would recolor, crop or stretch it."""
+    problems = _recolor_or_crop(declarations)
+    size = _css_value(declarations, "background-size")
+    if size is None:
+        shorthand = re.sub(r"url\([^)]*\)", "", _css_value(declarations, "background") or "")
+        match = re.search(r"/\s*((?:[\d.]+[a-z%]*|auto|cover|contain)(?:\s+(?:[\d.]+[a-z%]*|auto))?)", shorthand)
+        size = match.group(1) if match else None
+    parts = (size or "").split()
+    if parts == ["cover"] or (len(parts) == 2 and "auto" not in parts):
+        problems.append(f"background-size: {size}")
+    return problems
+
+
+def _check_logo_display(doc: Document) -> Result:
+    """LOGO-02: the logo may be resized, never recolored, cropped, distorted or used as stand-in art."""
+    for elem in doc.elements:
+        shows_logo_file = any(LOGO_FILE_RE.search(elem.attrs.get(attr) or "") for attr in ("src", "poster"))
+        if shows_logo_file and not _is_marked_logo(elem):
+            return Result("LOGO-02", "FAIL", f'Official logo used as stand-in art on <{elem.tag}>: if it is the logo, '
+                          f'add "logo" to its class or set alt="SPOKES logo"', elem.line)
+    logos = _logo_elements(doc)
+    for elem in doc.elements:
+        style = elem.attrs.get("style") or ""
+        problems = _logo_style_problems(style) if elem in logos else []
+        if any(LOGO_FILE_RE.search(url) for url in CSS_URL_RE.findall(style)):
+            problems = problems + _painted_logo_problems(style)
+        if problems:
+            return Result("LOGO-02", "FAIL", f"Logo altered by inline style ({', '.join(dict.fromkeys(problems))})",
+                          elem.line)
+    dynamic = _script_classes(doc)
+    for selector, block in _css_rules(doc):
+        problems = _logo_style_problems(block)
+        if not any(selector_matches(selector, elem, elem.ancestors, dynamic) for elem in logos):
+            problems = []
+        if any(LOGO_FILE_RE.search(url) for url in CSS_URL_RE.findall(block)):
+            problems = problems + _painted_logo_problems(block)
+        if problems:
+            return Result("LOGO-02", "FAIL", f"Logo altered by CSS ({', '.join(dict.fromkeys(problems))}): {selector}",
+                          _find_css_line(doc, re.escape(selector)))
+    return _wrapper_recolor_result(doc, logos, dynamic) or Result("LOGO-02", "PASS", "Logo shown unaltered", 0)
+
+
+def check_logo(doc: Document) -> list[Result]:
+    return [_check_logo_file(doc), _check_logo_display(doc)]
 
 
 # ---------------------------------------------------------------------------
@@ -794,7 +1040,7 @@ def check_theme(doc: Document) -> list[Result]:
     # THM-02/03/04: data-chapter scoping (heuristic — PASS by default)
     results.append(Result("THM-02", "PASS", "Chapter scoping check (heuristic pass)", 0))
     results.append(Result("THM-03", "PASS", "Chapter scoping check (heuristic pass)", 0))
-    results.append(Result("THM-04", "PASS", "Chapter scoping check (heuristic pass)", 0))
+    results.append(Result("THM-04", "PASS", "Guideline: one card style or per-chapter variety are both allowed", 0))
 
     # THM-05: Dark theme lessons must put class="theme-dark" on the .main
     # element, with supporting .theme-dark CSS (which lives in theme-override).
@@ -1162,7 +1408,7 @@ def main() -> None:
     doc.source_path = filepath
 
     results: list[Result] = []
-    for check_fn in [check_colors, check_typography, check_accessibility,
+    for check_fn in [check_colors, check_logo, check_typography, check_accessibility,
                      check_components, check_navigation, check_theme,
                      check_mobile, check_performance, check_references, check_engagement,
                      check_reduced_motion, check_print]:

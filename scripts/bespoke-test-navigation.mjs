@@ -6,14 +6,15 @@ const roles = {
 };
 
 export const EDITOR_DESTINATIONS = [
-  'Start', 'Shared colors', 'Shared typography', ...Object.keys(roles), 'Review & save'
+  'Start', 'Shared colors', 'Shared typography', ...Object.keys(roles), 'Send'
 ];
 
 export async function builderDestination(page, destination) {
   const designSurface = page.locator('#surface-design');
   if (await designSurface.isVisible()) await designSurface.click();
   if (destination === 'Shared colors' || destination === 'Shared typography') {
-    if (!await page.locator('#sharedTheme').count()) await page.locator('#stage-slides').click();
+    // Send also holds the Shared theme, inside See every setting; the drawer lives on Make it yours.
+    if (await page.locator('#workspace').getAttribute('data-stage') !== 'slides') await page.locator('#stage-slides').click();
     if (!await page.locator('#detailControls').isVisible()) await page.locator('#btnMoreOptions').click();
     const theme = page.locator('#sharedTheme');
     if (!await theme.evaluate(el => el.open)) await theme.locator(':scope > summary').click();
@@ -28,20 +29,18 @@ export async function builderDestination(page, destination) {
     await page.locator('#editor-'+roles[destination]).click();
     return;
   }
-  // Lesson & team is its own first stage; the starting looks are the second.
+  // Lesson & team is its own first stage; Pick a look is the second.
   if (destination === 'Start') {
     await page.locator('#stage-team').click();
     await page.locator('#teamName').waitFor({state: 'visible'});
     return;
   }
-  if (destination === 'Starting look') {
+  if (destination === 'Pick a look') {
     await page.locator('#stage-start').click();
-    if (!await page.locator('[data-preset]').first().isVisible()) {
-      await page.locator('#btnChangeStartingLook').click();
-    }
+    await page.locator('#lookStrip').waitFor({state: 'visible'});
     return;
   }
-  if (destination === 'Review & save') {
+  if (destination === 'Send') {
     await page.locator('#stage-review').click();
     return;
   }
@@ -58,11 +57,6 @@ export async function switchSurface(page, surface) {
   if(await tab.isVisible())await tab.click();
 }
 
-export async function otherStartingPaths(page) {
- const section=page.locator('#otherStartingPaths');
- if(!await section.evaluate(n=>n.open))await section.locator('summary').click();
-}
-
 // Header actions other than Save, Undo and Redo live in the top bar's ⋯ menu.
 export async function openMoreMenu(page) {
   const menu = page.locator('.more-menu');
@@ -75,3 +69,6 @@ export async function clickMenuItem(page, selector) {
   if (!await target.isVisible()) await openMoreMenu(page);
   await target.click();
 }
+
+// Save lives in the top bar, except on Send, where the summary panel holds it.
+export const saveControl = page => page.locator('#btnSave:visible, #btnSendSave:visible');

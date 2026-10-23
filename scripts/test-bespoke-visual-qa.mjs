@@ -27,18 +27,19 @@ let axes=0, editorChecks=0, geometryChecks=0, canonicalChecks=0;
 const report=(name,details)=>{failures.push({name,...details});console.error('FAIL '+name+': '+JSON.stringify(details));};
 async function pageFor(view) {
   const context=await browser.newContext({viewport:{width:view.width,height:view.height},reducedMotion:'reduce'});contexts.push(context);
-  await context.addInitScript(()=>window.__bespokeAutosave={enabled:false});
+  await context.addInitScript(()=>{window.__bespokeAutosave={enabled:false};});
   await context.route(/^https?:/,route=>{if(new URL(route.request().url()).origin===server.baseUrl)return route.continue();external.push(route.request().url());return route.abort();});
   const page=await context.newPage();page.on('pageerror',error=>errors.push(error.message));
   page.on('dialog',async dialog=>{if(dialog.message().startsWith('Open this copy instead'))await dialog.accept();else {errors.push('Unexpected dialog: '+dialog.message());await dialog.dismiss();}});
   await page.goto(server.baseUrl+'/bespoke/');await page.locator('#localPreviewNotice').waitFor();
-  await page.locator('#btnSave').filter({hasText:'Save test design'}).waitFor();
+  await page.locator('#btnSave').filter({hasText:'Save test design'}).waitFor({state:'attached'});
   if(view.textScale)await page.addStyleTag({content:`html{font-size:${view.textScale*100}%!important}`});
   await page.evaluate(()=>document.fonts.ready);return page;
 }
-async function surface(page,name) {if(name==='preview'&&['team','start'].includes(await page.locator('#workspace').getAttribute('data-stage')))await page.locator('#stage-slides').click();if(await page.locator('#surface-'+name).isVisible())await page.locator('#surface-'+name).click();}
+// Lesson & team, Pick a look and Send show no editing preview; it lives on Make it yours.
+async function surface(page,name) {if(name==='preview'&&['team','start','review'].includes(await page.locator('#workspace').getAttribute('data-stage')))await page.locator('#stage-slides').click();if(await page.locator('#surface-'+name).isVisible())await page.locator('#surface-'+name).click();}
 function longDesign() {
-  const d=defaultDesign(catalog);d.background='crosshatch';
+  const d=defaultDesign(catalog);d.background='edge-rail';
   d.samples.title='A useful next step '.repeat(12).slice(0,catalog.sampleLimits.title);d.samples.subtitle='Long sample copy remains available and readable. '.repeat(15).slice(0,catalog.sampleLimits.subtitle);
   d.samples.boxes=Array.from({length:4},(_,i)=>`${i+1}. `+'Make a practical plan. Reflect and adjust. '.repeat(40).slice(0,catalog.sampleLimits.box-3));
   d.slides.cards.count='4';d.slides.cards.treatment='numbered';d.slides.activity.labelStyle='pill';d.slides.video.frame='accent';return d;
@@ -51,16 +52,17 @@ async function overflow(page,label) {
 async function axe(page,label) {
   await page.addScriptTag({content:axeSource});
   // User-authored preview contrast is advisory; this scan covers editor controls.
-  const violations=await page.evaluate(async()=> (await window.axe.run({exclude:[['#modelStage'],['.button-color-sample']]},{runOnly:{type:'tag',values:['wcag2a','wcag2aa','wcag21aa','wcag22aa']}})).violations.map(v=>({id:v.id,impact:v.impact,nodes:v.nodes.map(n=>({target:n.target,summary:n.failureSummary}))})));
+  const violations=await page.evaluate(async()=> (await window.axe.run({exclude:[['#modelStage'],['.button-color-sample'],['#lookStage'],['.look-deck'],['.look-thumb']]},{runOnly:{type:'tag',values:['wcag2a','wcag2aa','wcag21aa','wcag22aa']}})).violations.map(v=>({id:v.id,impact:v.impact,nodes:v.nodes.map(n=>({target:n.target,summary:n.failureSummary}))})));
   axes++;if(violations.length)report('editor axe '+label,{violations});
 }
 async function geometry(page,label) {
   const m=await page.locator('.bespoke-slide,.slide.active').evaluate(el=>{
-    const r=el.getBoundingClientRect();
+    // Make it yours scales its 960 canvas to fit the window (Ruling R26), so on-screen boxes are read back in the slide's own px.
+    const r=el.getBoundingClientRect(),k=el.offsetWidth/r.width;
     // Native details can expose layout rectangles for content that is not painted.
-    const boxes=[...el.querySelectorAll('h1,h2,h3,h4,p,li,.slide-logo,.slide-card,.card,.slide-activity,.slide-video-frame,.slide-video-frame>span')].filter(n=>!n.closest('details:not([open])')&&n.getBoundingClientRect().width).map(n=>{const b=n.getBoundingClientRect();return {name:n.className||n.tagName,x:b.x-r.x,y:b.y-r.y,w:b.width,h:b.height,scrollW:n.scrollWidth,clientW:n.clientWidth};});
+    const boxes=[...el.querySelectorAll('h1,h2,h3,h4,p,li,.slide-logo,.slide-card,.card,.slide-activity,.slide-video-frame,.slide-video-frame>span')].filter(n=>!n.closest('details:not([open])')&&n.getBoundingClientRect().width).map(n=>{const b=n.getBoundingClientRect();return {name:n.className||n.tagName,x:(b.x-r.x)*k,y:(b.y-r.y)*k,w:b.width*k,h:b.height*k,scrollW:n.scrollWidth,clientW:n.clientWidth};});
     const grid=el.querySelector('.slide-cards,.cards-grid');
-    return {w:r.width,h:r.height,scrollW:el.scrollWidth,scrollH:el.scrollHeight,canonical:el.matches('.slide.active'),columns:grid?getComputedStyle(grid).gridTemplateColumns:null,boxes};
+    return {w:el.offsetWidth,h:el.offsetHeight,scale:1/k,scrollW:el.scrollWidth,scrollH:el.scrollHeight,canonical:el.matches('.slide.active'),columns:grid?getComputedStyle(grid).gridTemplateColumns:null,boxes};
   });
   const maxHeight=m.canonical?m.scrollH:m.h;
   const escaped=m.boxes.filter(b=>b.x<-.5||b.y<-.5||b.x+b.w>m.w+.5||b.y+b.h>maxHeight+.5||b.scrollW>b.clientW+1);
@@ -85,22 +87,17 @@ try {
         await page.keyboard.press('Tab');assert(await page.locator('#teamName').evaluate(el=>el===document.activeElement),'Tab leaves the native selector for the next field');
         await lesson.selectOption(chosen);assert.equal(await lesson.inputValue(),chosen,'Native select preserves its chosen value');
       }
-      if(/Start|Shared colors|Text boxes|Video slide|Review & save/.test(name))await axe(page,`${label}/${name}`);
+      if(/Start|Shared colors|Text boxes|Video slide|Send/.test(name))await axe(page,`${label}/${name}`);
     }
     await surface(page,'preview');
     for(const kind of ['title','divider','cards','video','activity']) {
       await page.locator(`#previewTabs [data-view="${kind}"]`).click();await overflow(page,`${label}/preview-${kind}`);await geometry(page,`${label}/preview-${kind}`);
     }
-    await surface(page,'design');await builderDestination(page, 'Starting look');
-    await page.locator('[data-preset="modern"]').click();
-    if(!await page.locator('#presetDialog').isVisible()){await builderDestination(page,'Starting look');await page.locator('[data-preset="professional"]').click();}
-    await page.locator('#presetDialog').waitFor({state:'visible'});await axe(page,label+'/preset dialog');
-    const dialog=await page.locator('#presetDialog').evaluate(el=>{const r=el.getBoundingClientRect();return {x:r.x,y:r.y,w:r.width,h:r.height,sw:el.scrollWidth,cw:el.clientWidth};});
-    if(dialog.x<0||dialog.y<0||dialog.x+dialog.w>view.width+1||dialog.y+dialog.h>view.height+1||dialog.sw>dialog.cw+1)report('dialog containment '+label,dialog);
-    for(const id of ['presetCancel','presetSkipConfirmation','presetApply']) {const node=page.locator('#'+id);await node.focus();assert(await node.evaluate(el=>el===document.activeElement),'Dialog control keyboard focus');}
-    await page.keyboard.press('Tab');assert(await page.locator('#presetSkipConfirmation').evaluate(el=>el===document.activeElement),'Dialog forward focus wraps');
-    await page.keyboard.press('Shift+Tab');assert(await page.locator('#presetApply').evaluate(el=>el===document.activeElement),'Dialog backward focus wraps');
-    await page.keyboard.press('Escape');assert(!await page.locator('#presetDialog').isVisible());
+    await surface(page,'design');await builderDestination(page, 'Pick a look');
+    await axe(page,label+'/Pick a look');
+    const pick=await page.evaluate(()=>{const r=document.getElementById('btnMakeItOurs').getBoundingClientRect();return {sw:document.documentElement.scrollWidth,x:r.x,w:r.width};});
+    if(pick.sw>view.width+1||pick.x<0||pick.x+pick.w>view.width+1)report('Pick a look containment '+label,pick);
+    for(const id of ['preset-modern','btnMakeItOurs','btnBuildOwn']) {const node=page.locator('#'+id);await node.focus();assert(await node.evaluate(el=>el===document.activeElement),'Pick a look keyboard focus');}
     await surface(page,'design');await builderDestination(page, 'Video slide');
     if(output&&[320,390,768,1920].includes(view.width))await page.screenshot({path:path.join(output,`editor-${label}.png`),fullPage:true});
     console.log('CHECK editor '+label);
@@ -109,7 +106,8 @@ try {
   // frame and pattern suites own broad color/pixel matrices and canonical parity.
   for(const view of [{width:320,height:800},{width:768,height:900},{width:1100,height:700},{width:1920,height:1080},{width:844,height:390},{width:390,height:800,textScale:2}]) {
     const page=await pageFor(view);await surface(page,'preview');
-    const canvas=await page.locator('#modelStage').evaluate(el=>el.getBoundingClientRect().width);assert(canvas>0,'Measure a visible preview canvas, not the layout gallery');
+    // The slide's own layout width: the 960 canvas above phone width (Ruling R26), the column on phones.
+    const canvas=await page.locator('#modelStage').evaluate(el=>el.getBoundingClientRect().width&&el.offsetWidth);assert(canvas>0,'Measure a visible preview canvas, not the layout gallery');
     const samplePage=await page.context().newPage();
     const fixture=longDesign();await surface(page,'design');
     await page.locator('#teamFileInput').setInputFiles({name:'synthetic-visual.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify({schema:'bespoke-selection/v2',date:'2026-09-24',submittedAt:'2026-09-24T16:30:00.000Z',lesson:legacy.lesson,team:legacy.team,design:fixture}))});

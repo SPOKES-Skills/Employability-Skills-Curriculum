@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // Independent role-control acceptance: actual UI, computed paint/type, isolated
 // synthetic service persistence. Never accesses a user's Safari or saved runtime.
-import {builderDestination, clickMenuItem, openMoreMenu, recoveryMenu} from './bespoke-test-navigation.mjs';
+import {builderDestination, clickMenuItem, openMoreMenu, recoveryMenu, saveControl} from './bespoke-test-navigation.mjs';
 import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
 import path from 'node:path';
@@ -30,10 +30,10 @@ const slide=page=>page.locator('#modelStage .bespoke-slide');
 const layer=page=>page.locator('#modelStage .bespoke-slide');
 const node=(page,kind,part)=>page.locator('#modelStage').locator((part==='heading'?headings:bodies)[kind]).first();
 const payload=d=>({schema:'bespoke-selection/v2',date:'2026-09-24',lesson:legacy.lesson,team:{name:'Synthetic role QA',spokesperson:{name:'Sample Instructor',email:'sample@example.org'}},design:d});
-async function ready(page){await page.locator('#localPreviewNotice').waitFor();await page.locator('#btnSave').filter({hasText:'Save test design'}).waitFor();}
+async function ready(page){await page.locator('#localPreviewNotice').waitFor();await page.locator('#btnSave').filter({hasText:'Save test design'}).waitFor({state:'attached'});}
 async function pageFor(width=1440,height=1000,scale=1){
   const context=await browser.newContext({viewport:{width,height},acceptDownloads:true,reducedMotion:'reduce'});contexts.push(context);
-  await context.addInitScript(()=>window.__bespokeAutosave={enabled:false});
+  await context.addInitScript(()=>{window.__bespokeAutosave={enabled:false};});
   await context.route(/^https?:/,route=>{if(new URL(route.request().url()).origin===server.baseUrl)return route.continue();external.push(route.request().url());return route.abort();});
   const page=await context.newPage();page.on('pageerror',error=>errors.push(error.message));page.on('dialog',dialog=>dialog.accept());
   page.on('response',response=>{if(!response.url().endsWith('/api/bespoke')&&response.status()>=400)missing.push([response.url(),response.status()]);});
@@ -63,7 +63,10 @@ async function setStyle(page,kind,field,value){
 }
 async function options(page,kind,field){
   const control=await openField(page,kind,field);const actual=await control.locator('option').evaluateAll(nodes=>nodes.map(n=>n.value));
-  assert.deepEqual(actual,roleStylesSchema(catalog).properties[kind].properties[field].enum,`${kind}/${field} exposes every approved choice`);
+  // The schema keeps accepting retired textures; the controls no longer offer them.
+  // Likewise font ids stay valid, but a slide offers only Use shared font and the two lesson font slots.
+  const offered=roleStylesSchema(catalog).properties[kind].properties[field].enum.filter(value=>!catalog.retiredBackgrounds.some(item=>item.id===value)&&!catalog.fonts.some(item=>item.id===value));
+  assert.deepEqual(actual,offered,`${kind}/${field} exposes every approved choice`);
 }
 async function css(page,kind,part,property){return node(page,kind,part).evaluate((el,key)=>getComputedStyle(el)[key],property);}
 async function visible(page,kind,part){return node(page,kind,part).isVisible();}
@@ -78,9 +81,9 @@ async function upload(page,value,name='synthetic-role-design.json'){
   await page.locator('#fileStatus').filter({hasText:`Opened ${name}.`}).waitFor();
 }
 async function save(page){
-  const request=page.waitForResponse(r=>r.url().endsWith('/api/bespoke')&&r.request().postDataJSON()?.action==='save');await page.locator('#btnSave').click();
+  const request=page.waitForResponse(r=>r.url().endsWith('/api/bespoke')&&r.request().postDataJSON()?.action==='save');await saveControl(page).click();
   const response=await request;assert.equal(response.status(),200,await response.text());
-  await page.locator('#fileStatus').filter({hasText:/Local test design saved|already up to date/}).waitFor();
+  await page.locator('#toast').filter({hasText:/Local test design saved|already up to date/}).waitFor();
 }
 async function remote(action='open'){
   const response=await fetch(server.baseUrl+'/api/bespoke',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action,lessonId:'money-management',editCode:LOCAL_PREVIEW_CODE})});
@@ -88,9 +91,10 @@ async function remote(action='open'){
 }
 async function geometry(page,label){
   const m=await slide(page).evaluate(el=>{
-    const root=el.getBoundingClientRect(),visible=n=>{const s=getComputedStyle(n);return s.display!=='none'&&s.visibility!=='hidden'&&n.getBoundingClientRect().width&&!n.closest('details:not([open])');};
-    const boxes=[...el.querySelectorAll('h1,h2,h3,p,li,.slide-logo,.role-watermark,.slide-card,.slide-video-frame,.slide-activity')].filter(visible).map(n=>{const r=n.getBoundingClientRect();return {name:n.className||n.tagName,x:r.x-root.x,y:r.y-root.y,w:r.width,h:r.height,sw:n.scrollWidth,cw:n.clientWidth};});
-    return {w:root.width,h:root.height,sw:el.scrollWidth,sh:el.scrollHeight,viewport:innerWidth,pageWidth:document.documentElement.scrollWidth,boxes};
+    // Make it yours scales its 960 canvas to fit the window (Ruling R26), so on-screen boxes are read back in the slide's own px.
+    const root=el.getBoundingClientRect(),k=el.offsetWidth/root.width,visible=n=>{const s=getComputedStyle(n);return s.display!=='none'&&s.visibility!=='hidden'&&n.getBoundingClientRect().width&&!n.closest('details:not([open])');};
+    const boxes=[...el.querySelectorAll('h1,h2,h3,p,li,.slide-logo,.role-watermark,.slide-card,.slide-video-frame,.slide-activity')].filter(visible).map(n=>{const r=n.getBoundingClientRect();return {name:n.className||n.tagName,x:(r.x-root.x)*k,y:(r.y-root.y)*k,w:r.width*k,h:r.height*k,sw:n.scrollWidth,cw:n.clientWidth};});
+    return {w:el.offsetWidth,h:el.offsetHeight,scale:1/k,sw:el.scrollWidth,sh:el.scrollHeight,viewport:innerWidth,pageWidth:document.documentElement.scrollWidth,boxes};
   });
   const escaped=m.boxes.filter(b=>b.x<-.75||b.y<-.75||b.x+b.w>m.w+.75||b.y+b.h>m.h+.75||b.sw>b.cw+1);
   assert(m.pageWidth<=m.viewport+1,`${label}: document overflow`);assert(m.sw<=m.w+1&&m.sh<=m.h+1,`${label}: slide overflow`);assert.deepEqual(escaped,[],`${label}: visible sample copy/decoration stays contained`);
@@ -105,23 +109,25 @@ async function axe(page,label){
 async function focusedRegressions(){
   const page=await pageFor();await upload(page,payload(defaultDesign(catalog)));
   assert.match(await page.locator('#fileStatus').textContent(),/choose Save test design to save it to the local test service/);
-  assert.doesNotMatch(await page.locator('#fileStatus').textContent(),/team access|Save shared design/);
-  await save(page);assert.equal(await page.locator('#fileStatus').textContent(),'Local test design saved.');
-  await save(page);await page.locator('#fileStatus').filter({hasText:'The local test design was already up to date.'}).waitFor();
+  assert.doesNotMatch(await page.locator('#fileStatus').textContent(),/team access|Save shared design|Save for the team/);
+  await save(page);assert.equal(await page.locator('#toast').textContent(),'Local test design saved.');
+  await save(page);await page.locator('#toast').filter({hasText:'The local test design was already up to date.'}).waitFor();
   for(const [kind,part,name,selector] of [['activity','heading','Activity label','.slide-activity-label'],['divider','body','Chapter label','.slide-chapter-label']]){
     await go(page,kind);await setStyle(page,kind,'labelText',name+' example');await setStyle(page,kind,part+'Text','Retained main copy');await setStyle(page,kind,part+'Visible',false);
     const label=page.locator('#modelStage '+selector);assert(await label.isVisible());assert(!await page.locator(`#role-${kind}-${part}Text`).isVisible(),'Main sample-copy input stays hidden');
-    for(const [suffix,value] of [['Color','mauve'],['Font','bitter'],['Size','large'],['Alignment','right']]){
+    for(const [suffix,value] of [['Color','mauve'],['Font',part==='heading'?'body':'heading'],['Size','large'],['Alignment','right']]){
       const control=page.getByRole('combobox',{name:name+' '+suffix.toLowerCase(),exact:true});assert.equal(await control.getAttribute('id'),`role-${kind}-${part}${suffix}`,'Label-only typography has its own accurate accessible name');
       await setStyle(page,kind,part+suffix,value);
     }
-    assert.equal(await label.evaluate(el=>getComputedStyle(el).color),rgb('mauve'));assert((await label.evaluate(el=>getComputedStyle(el).fontFamily)).includes('Bitter'));assert.equal(await label.evaluate(el=>getComputedStyle(el).textAlign),'right');
+    assert.equal(await label.evaluate(el=>getComputedStyle(el).color),rgb('mauve'));assert((await label.evaluate(el=>getComputedStyle(el).fontFamily)).includes(part==='heading'?'Outfit':'DM Serif Display'));assert.equal(await label.evaluate(el=>getComputedStyle(el).textAlign),'right');
     const large=await label.evaluate(el=>parseFloat(getComputedStyle(el).fontSize));await setStyle(page,kind,part+'Size','small');assert((await label.evaluate(el=>parseFloat(getComputedStyle(el).fontSize)))<large);
     const retained=await design(page);await setStyle(page,kind,'labelVisible',false);assert(!await page.locator(`#role-${kind}-${part}Color`).isVisible());await setStyle(page,kind,'labelVisible',true);assert.deepEqual(await design(page),retained,'Hidden label typography and main-copy choices survive');
     await setStyle(page,kind,part+'Visible',true);assert.equal(await page.locator(`#role-${kind}-${part}Text`).inputValue(),'Retained main copy');
   }
   await go(page,'activity');await setStyle(page,'activity','backgroundMode','solid');await setStyle(page,'activity','primary','dark');await setStyle(page,'activity','headingColor','dark');
   const text=page.locator('#section-activity-text');await text.locator(':scope > summary').click();assert.equal(await text.evaluate(el=>el.open),false);
+  // The advisory notes fold into one line under the slide; open it to reach the shortcut.
+  if(!await page.locator('#readabilityDetails').evaluate(d=>d.open))await page.locator('#readabilitySummary').click();
   const unchanged=await design(page);await page.locator('#readabilityNotes').getByRole('button',{name:'Edit activity colors',exact:true}).click();
   assert.equal(await text.evaluate(el=>el.open),true,'Same-step contrast edit shortcut opens the previously closed Text section');assert.equal(await page.evaluate(()=>document.activeElement.id),'role-activity-headingColor');assert(await page.locator('#role-activity-headingColor').evaluate(el=>{const r=el.getBoundingClientRect();return r.top>=0&&r.bottom<=innerHeight;}),'Explicit contrast edit jump scrolls the focused color control into view');assert.deepEqual(await design(page),unchanged,'Contrast shortcut does not rewrite selected colors');
   console.log('PASS focused label-only typography, same-step contrast editing, and local-mode import/save wording');
@@ -130,8 +136,8 @@ async function focusedRegressions(){
 try{
   await focusedRegressions();
   if(!focusOnly){
-  const page=await pageFor();await upload(page,payload(defaultDesign(catalog)));await go(page,'Starting look');
-  assert(await page.locator('#startingLookChoices').isVisible(),'Beginner introduction is on the first step');
+  const page=await pageFor();await upload(page,payload(defaultDesign(catalog)));await go(page,'Pick a look');
+  assert(await page.locator('#lookStrip').isVisible(),'Beginner introduction is on the first step');
   const beforeHelp=await design(page);await clickMenuItem(page, '#btnHelp');
   const help=await page.locator('#builderHelp').textContent();
   for(const pattern of [/editable/i,/sample/i,/eleven/i,/two or three/i,/twelve/i,/four/i,/logo/i,/leader/i,/Undo/i,/Previous versions/i,/six/i,/unmeasured/i,/private/i,/test space/i])assert.match(help,pattern);
@@ -155,16 +161,16 @@ try{
       await setStyle(page,kind,'pattern',pattern);await preview(page,kind);const png=await slide(page).screenshot();
       const image=await layer(page,kind).evaluate(el=>getComputedStyle(el).backgroundImage);
       if(pattern==='plain'){plain=png;assert(!/radial-gradient|repeating-linear-gradient/.test(image));}
-      else {const delta=await pixelDifference(page,plain,png);assert(delta.changedFraction>.001,`${kind}/${pattern}: texture visibly changes canvas`);evidence.push({kind,pattern,delta});stats.pixelChecks++;}
+      else {const delta=await pixelDifference(page,plain,png);assert(delta.changedFraction>.0003,`${kind}/${pattern}: background detail visibly changes canvas`);evidence.push({kind,pattern,delta});stats.pixelChecks++;}
     }
-    await setStyle(page,kind,'pattern','crosshatch');await options(page,kind,'patternStrength');
-    const strengths=[];for(const value of ['subtle','normal','bold']){await setStyle(page,kind,'patternStrength',value);strengths.push(await layer(page,kind).evaluate(el=>getComputedStyle(el).backgroundImage));}assert.equal(new Set(strengths).size,3,'Texture strength has three distinct painted treatments');await setStyle(page,kind,'pattern','inherit');assert.equal((await layer(page).evaluate(el=>getComputedStyle(el).backgroundImage)).match(/linear-gradient/g)?.length,1,'Shared plain texture removes the local pattern');await setStyle(page,kind,'pattern','crosshatch');
+    await setStyle(page,kind,'pattern','edge-rail');await options(page,kind,'patternStrength');
+    const strengths=[];for(const value of ['subtle','normal','bold']){await setStyle(page,kind,'patternStrength',value);strengths.push(await layer(page,kind).evaluate(el=>getComputedStyle(el.querySelector('.slide-content')||el).backgroundSize));}assert.equal(new Set(strengths).size,3,'Detail size has three distinct painted treatments');await setStyle(page,kind,'pattern','inherit');assert.equal((await layer(page).evaluate(el=>getComputedStyle(el).backgroundImage)).match(/linear-gradient/g)?.length,1,'Shared plain texture removes the local pattern');await setStyle(page,kind,'pattern','edge-rail');
     for(const part of ['heading','body']){
       await setStyle(page,kind,part+'Visible',true);
       for(const color of ['light','accent','gold']){await setStyle(page,kind,part+'Color',color);assert.equal(await css(page,kind,part,'color'),rgb(color));stats.typeChecks++;}
       await setStyle(page,kind,part+'Color','inherit');assert.equal(await css(page,kind,part,'color'),rgb((await design(page)).roles[['title','divider'].includes(kind)?part==='heading'?'titleText':'subtitle':part]));await setStyle(page,kind,part+'Color','gold');
-      for(const font of ['bitter','raleway','source-sans-3']){await setStyle(page,kind,part+'Font',font);await page.evaluate(()=>document.fonts.ready);assert((await css(page,kind,part,'fontFamily')).includes(catalog.fonts.find(f=>f.id===font).family));stats.typeChecks++;}
-      await setStyle(page,kind,part+'Font','inherit');const inherited=await design(page);assert((await css(page,kind,part,'fontFamily')).includes(catalog.fonts.find(f=>f.id===inherited.fonts[part]).family));await setStyle(page,kind,part+'Font','source-sans-3');
+      for(const slot of ['heading','body']){await setStyle(page,kind,part+'Font',slot);await page.evaluate(()=>document.fonts.ready);const lessonFont=(await design(page)).fonts[slot];assert((await css(page,kind,part,'fontFamily')).includes(catalog.fonts.find(f=>f.id===lessonFont).family));stats.typeChecks++;}
+      await setStyle(page,kind,part+'Font','inherit');const inherited=await design(page);assert((await css(page,kind,part,'fontFamily')).includes(catalog.fonts.find(f=>f.id===inherited.fonts[part]).family));await setStyle(page,kind,part+'Font',part==='heading'?'body':'heading');
       const sizes=[];for(const value of ['small','default','large']){await setStyle(page,kind,part+'Size',value);sizes.push(parseFloat(await css(page,kind,part,'fontSize')));}assert(sizes[0]<sizes[1]&&sizes[1]<sizes[2],`${kind}/${part}: all three sizes visibly differ`);
       for(const align of ['left','center','right','layout']){await setStyle(page,kind,part+'Alignment',align);if(align!=='layout')assert.equal(await css(page,kind,part,'textAlign'),align);stats.typeChecks++;}
       if(!(kind==='cards'&&part==='body')){const text=`Synthetic ${kind} ${part} <b>sample</b>`;await setStyle(page,kind,part+'Text',text);const copy=page.locator('#modelStage').locator((part==='heading'?headings:bodies)[kind]).filter({hasText:text});assert(await copy.count()>0,`${kind}/${part}: copy is literal text`);assert.equal(await copy.locator('b').count(),0);}
@@ -203,7 +209,7 @@ try{
   await page.locator('#btnUndo').click();assert.deepEqual(await design(page),allLocal);
   await go(page,'Shared typography');await page.locator('#font-heading').selectOption('inter');
   assert.deepEqual((await design(page)).roleStyles,allLocal.roleStyles,'Shared defaults preserve all explicit local styles');
-  for(const kind of Object.keys(labels)){await preview(page,kind);assert((await css(page,kind,'heading','fontFamily')).includes('Source Sans 3'),'Explicit local heading fonts survive shared default changes');}
+  for(const kind of Object.keys(labels)){await preview(page,kind);assert((await css(page,kind,'heading','fontFamily')).includes('Outfit'),'A heading on the body slot keeps the lesson body font when the heading default changes');}
   await surface(page,'design');await page.locator('#btnUndo').click();assert.deepEqual(await design(page),allLocal);
   const cumulative=await design(page);await page.locator('#btnUndo').click();assert.notDeepEqual(await design(page),cumulative);await page.locator('#btnRedo').click();assert.deepEqual(await design(page),cumulative);
   for(const kind of Object.keys(labels)){await go(page,kind);await preview(page,kind);assert.deepEqual(await design(page),cumulative);}
@@ -213,7 +219,7 @@ try{
   const reopened=await pageFor();assert.deepEqual(await design(reopened),cumulative);await go(reopened,'activity');await setStyle(reopened,'activity','bodyColor','mauve');await save(reopened);
   await clickMenuItem(reopened, '#btnHistory');await reopened.locator('#historyPanel button').nth(1).click();await reopened.locator('#fileStatus').filter({hasText:'Previous choices loaded'}).waitFor();assert.deepEqual(await design(reopened),cumulative);assert.equal((await draft(reopened)).autosavePaused,true);await save(reopened);
   const recovered=await pageFor();await upload(recovered,exported);assert.deepEqual(await design(recovered),cumulative);
-  await go(recovered,'Starting look');await recovered.locator('[data-preset="professional"]').click();if(await recovered.locator('#presetDialog').isVisible())await recovered.locator('#presetApply').click();
+  await go(recovered,'Pick a look');await recovered.locator('#preset-professional').click();
   const preset=await design(recovered);assert.deepEqual(preset.samples,cumulative.samples);
   for(const kind of Object.keys(labels)){assert.equal(preset.roleStyles[kind].headingText,cumulative.roleStyles[kind].headingText);assert.equal(preset.roleStyles[kind].bodyText,cumulative.roleStyles[kind].bodyText);assert.equal(preset.roleStyles[kind].labelText,cumulative.roleStyles[kind].labelText);assert.equal(preset.roleStyles[kind].watermarkText,cumulative.roleStyles[kind].watermarkText);assert.equal(preset.roleStyles[kind].primary,'inherit');}
   const old=defaultDesign(catalog);delete old.roleStyles;await upload(recovered,payload(old),'old-v2.json');assert.deepEqual(await design(recovered),old,'Old v2 opens without materializing role overrides');

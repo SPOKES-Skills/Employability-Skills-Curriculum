@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // Synthetic workflow races only. An ephemeral loopback service and isolated browser
 // contexts cannot access the user's preview, remembered team, or browser draft.
-import {builderDestination, clickMenuItem, recoveryMenu} from './bespoke-test-navigation.mjs';
+import {builderDestination, clickMenuItem, recoveryMenu, saveControl} from './bespoke-test-navigation.mjs';
 import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
 import { browserType, browserName } from './bespoke-test-browser.mjs';
@@ -36,7 +36,7 @@ async function scenario(name, run) {
 }
 async function ready(page) {
   await page.locator('#localPreviewNotice').waitFor({ state: 'visible' });
-  await page.locator('#btnSave').filter({ hasText: 'Save test design' }).waitFor();
+  await page.locator('#btnSave').filter({hasText:'Save test design'}).waitFor({state:'attached'});
 }
 const draft = page => page.evaluate(() => JSON.parse(localStorage.getItem('bespoke-draft-v2')));
 const design = async page => (await draft(page)).design;
@@ -53,8 +53,8 @@ async function paint(page, color) {
 }
 async function save(page) {
   const reply = page.waitForResponse(response => response.url().endsWith('/api/bespoke') && response.request().postDataJSON()?.action === 'save');
-  await page.locator('#btnSave').click(); const response = await reply;
-  assert.equal(response.status(), 200); await page.locator('#fileStatus').filter({ hasText: /Local test design saved|already up to date/ }).waitFor();
+  await saveControl(page).click(); const response = await reply;
+  assert.equal(response.status(), 200); await page.locator('#toast').filter({ hasText: /Local test design saved|already up to date/ }).waitFor();
 }
 async function api(server, action = 'open') {
   const response = await fetch(server.baseUrl + '/api/bespoke', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action, lessonId: 'money-management', editCode: LOCAL_PREVIEW_CODE }) });
@@ -75,7 +75,7 @@ try {
       if (route.request().postDataJSON()?.action !== 'save' || intercepted) return route.fallback();
       intercepted = true; const response = await route.fetch(); pending.resolve(); await release.promise; await route.fulfill({ response });
     });
-    await page.locator('#btnSave').click(); await pending.promise; await paint(page, 'accent');
+    await saveControl(page).click(); await pending.promise; await paint(page, 'accent');
     const latest = await design(page); release.resolve();
     await page.locator('#fileStatus').filter({ hasText: 'You made newer changes while it saved' }).waitFor();
     assert.deepEqual((await api(server)).selection.design, first);
@@ -93,7 +93,7 @@ try {
       if (lose) { lose = false; await route.fetch(); return route.abort('failed'); }
       return route.fallback();
     });
-    await page.locator('#btnSave').click(); await page.locator('#fileStatus').filter({ hasText: /did not finish|not reach|could not|network/i }).waitFor();
+    await saveControl(page).click(); await page.locator('#fileStatus').filter({ hasText: /did not finish|not reach|could not|network/i }).waitFor();
     const saved = await api(server), before = (await api(server, 'history')).history;
     assert.deepEqual(saved.selection.design, expected);
     await save(page);
@@ -115,7 +115,7 @@ try {
     await clickMenuItem(first, '#btnOpen');
     await first.locator('#fileStatus').filter({ hasText: 'A newer shared version exists' }).waitFor();
     await first.locator('#btnLoadLatest').click();
-    await first.locator('#fileStatus').filter({ hasText: 'Opened the latest shared design.' }).waitFor();
+    await first.locator('#toast').filter({ hasText: 'Opened the latest shared design.' }).waitFor();
     const recovery = await first.evaluate(() => JSON.parse(localStorage.getItem('bespoke-previous-draft-v2')));
     assert.deepEqual(recovery.design, firstDesign, 'Recovery must retain the design being replaced in this tab, not a different tab’s storage.');
     assert.deepEqual(await design(first), (await api(server)).selection.design);
@@ -131,7 +131,7 @@ try {
       if (route.request().postDataJSON()?.action !== 'save' || intercepted) return route.fallback();
       intercepted = true; const response = await route.fetch(); pending.resolve(); await release.promise; await route.fulfill({ response });
     });
-    await paint(page, 'mauve'); await page.locator('#btnSave').click(); await pending.promise;
+    await paint(page, 'mauve'); await saveControl(page).click(); await pending.promise;
     const saved = await api(server);
     if (replacement === 'new draft') {
       await page.locator('.more-menu > summary').click(); await page.locator('#btnClear').click();

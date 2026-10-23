@@ -5,7 +5,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import catalog from '../bespoke/builder-catalog.json' with { type: 'json' };
 import original from '../bespoke/selection.schema.json' with { type: 'json' };
-import { roleStylesSchema, featureStylesSchema } from '../bespoke/builder-model.mjs';
+import { allBackgroundIds, roleStylesSchema, featureStylesSchema } from '../bespoke/builder-model.mjs';
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const object = properties => ({ type: 'object', additionalProperties: false, required: Object.keys(properties), properties });
 const choice = values => ({ type: 'string', enum: values });
@@ -17,7 +17,7 @@ const slides = object(Object.fromEntries(catalog.slideGroups.map(group => [group
 const design = object({
   version: { type: 'string', const: '2' }, roles,
   fonts: object({ heading: choice(catalog.fonts.map(font => font.id)), body: choice(catalog.fonts.map(font => font.id)) }),
-  slides, background: choice(catalog.backgrounds.map(item => item.id)),
+  slides, background: choice(allBackgroundIds(catalog)),
   samples: object({ title: boundedText(catalog.sampleLimits.title), subtitle: boundedText(catalog.sampleLimits.subtitle), boxes: { type: 'array', minItems: 4, maxItems: 4, items: boundedText(catalog.sampleLimits.box) } }),
   startingPoint: choice(['custom', ...catalog.presets.map(preset => preset.id)]),
 });

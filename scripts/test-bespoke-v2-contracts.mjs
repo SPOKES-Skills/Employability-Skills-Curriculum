@@ -46,6 +46,18 @@ test('the service accepts a design with or without a sidebar text color and reje
   assert.notDeepEqual(selectionErrors(unknown, unknown.lesson.id), []);
 });
 
+test('the service accepts a role style that still holds a retired font id', () => {
+  const selection = payload();
+  assert.notEqual(selection.design.fonts.heading, 'inter');
+  assert.notEqual(selection.design.fonts.body, 'inter');
+  selection.design = setRoleStyle(catalog, selection.design, 'cards', 'headingFont', 'inter');
+  assert.equal(selection.design.roleStyles.cards.headingFont, 'inter');
+  assert.deepEqual(selectionErrors(selection, selection.lesson.id), []);
+  const unknown = structuredClone(selection);
+  unknown.design.roleStyles.cards.headingFont = 'comic-sans';
+  assert.notDeepEqual(selectionErrors(unknown, unknown.lesson.id), [], 'an unknown font id is still rejected');
+});
+
 test('a builder name is optional, bounded, and round-trips through save and open', async () => {
   const plain = payload();
   assert.equal(Object.hasOwn(plain.team, 'builder'), false);

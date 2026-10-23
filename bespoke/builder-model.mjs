@@ -1,4 +1,6 @@
 /** Shared, deterministic BeSpoke model. No DOM, storage, network or hidden defaults. */
+import { STRUCTURE_IDS, structureInk, structureLayers } from './background-structures.mjs';
+import { FONT_SLOTS, ROLE_FONT_FIELDS, resolveFont } from './font-slots.mjs';
 const clone = value => JSON.parse(JSON.stringify(value));
 const own = (object, key) => Object.prototype.hasOwnProperty.call(object, key);
 const object = value => value !== null && typeof value === 'object' && !Array.isArray(value);
@@ -25,6 +27,9 @@ export function inkFor(catalog, id) {
 }
 
 const optionalRoles = catalog => catalog.optionalRoles || [];
+/** Offered backgrounds plus retired textures, which saved designs may still use and which still render. */
+export const allBackgroundIds = catalog => [...catalog.backgrounds, ...(catalog.retiredBackgrounds || [])].map(item => item.id);
+export const backgroundEntry = (catalog, id) => [...catalog.backgrounds, ...(catalog.retiredBackgrounds || [])].find(item => item.id === id);
 
 /** Sidebar text is Automatic unless the design names a color. */
 export function sidebarInk(catalog, design) {
@@ -42,11 +47,12 @@ const blend = (base, ink, alpha) => '#' + rgb(base).map((v, channel) => Math.rou
 /** Decorative ink adapts to the surface; saved base/text colors are never modified. */
 export function patternFor(catalog, design, surface) {
   const id = design.background;
-  if (!catalog.backgrounds.some(item => item.id === id)) throw new Error('Unknown background pattern.');
+  if (!allBackgroundIds(catalog).includes(id)) throw new Error('Unknown background pattern.');
   const peaks = { plain: 0, 'dot-grid': .2, diagonal: .18, crosshatch: 1 - (1 - .14) ** 2, 'soft-gradient': .24 };
   const base = findColor(catalog, design.roles[surface]).hex;
   const gradient = surface === 'titleBackground' ? design.slides.title.colors === 'gradient' || design.slides.title.layout === 'split' : surface === 'dividerBackground' && design.slides.divider.colors === 'gradient';
   const bases = gradient ? gradientSamples(base, findColor(catalog, design.roles.titleBackgroundEnd).hex) : [base];
+  if (STRUCTURE_IDS.includes(id)) { const ink = structureInk(catalog, design, bases); return { ...structureLayers(id, ink, 'normal', surface.replace('Background', '')), peakAlpha: 0, ink }; }
   const foregrounds = surface === 'contentBackground' ? [] : [['titleText', 3], ['subtitle', 4.5]].map(([role, minimum]) => ({ hex: findColor(catalog, design.roles[role]).hex, minimum }));
   let ink = findColor(catalog, inkFor(catalog, design.roles[surface])).hex;
   // Prefer visible ink, but choose its opposite when that keeps already-readable
@@ -77,8 +83,8 @@ export function patternBackground(catalog, design, surface, baseImage, baseSize 
   const pattern = patternFor(catalog, design, surface);
   const images = [...pattern.images, ...(baseImage ? [baseImage] : [])];
   const sizes = [...pattern.sizes, ...(baseImage ? [baseSize] : [])];
-  const positions = [...pattern.images.map(() => 'left top'), ...(baseImage ? ['center'] : [])];
-  const repeats = [...pattern.images.map(() => 'repeat'), ...(baseImage ? ['no-repeat'] : [])];
+  const positions = [...(pattern.positions || pattern.images.map(() => 'left top')), ...(baseImage ? ['center'] : [])];
+  const repeats = [...(pattern.repeats || pattern.images.map(() => 'repeat')), ...(baseImage ? ['no-repeat'] : [])];
   return `background-image:${images.join(', ') || 'none'}; background-size:${sizes.join(', ') || 'auto'}; background-position:${positions.join(', ') || 'left top'}; background-repeat:${repeats.join(', ') || 'no-repeat'};`;
 }
 
@@ -88,7 +94,7 @@ export const ROLE_STYLE_KINDS = ['title', 'divider', 'cards', 'video', 'activity
 // Optional feature overrides preserve the appearance of every older v2 design.
 const FEATURE_FIELDS = {sidebar:['background','color','font'],button:['background','color','font'],box:['background','border'],titlebar:['background','border'],video:['background','border'],activity:['background','border']};
 export function featureStylesSchema(catalog) {
-  return {type:'object',additionalProperties:false,properties:Object.fromEntries(Object.entries(FEATURE_FIELDS).map(([feature,fields])=>[feature,{type:'object',additionalProperties:false,required:fields,properties:Object.fromEntries(fields.map(key=>[key,{enum:['inherit',...(key==='font'?catalog.fonts:catalog.palette).map(item=>item.id)]}]))}]))};
+  return {type:'object',additionalProperties:false,properties:Object.fromEntries(Object.entries(FEATURE_FIELDS).map(([feature,fields])=>[feature,{type:'object',additionalProperties:false,required:fields,properties:Object.fromEntries(fields.map(key=>[key,{enum:['inherit',...(key==='font'?[...FONT_SLOTS,...catalog.fonts.map(item=>item.id)]:catalog.palette.map(item=>item.id))]}]))}]))};
 }
 export function effectiveFeatureStyle(catalog,design,feature) {
   if(!FEATURE_FIELDS[feature])throw new Error('Unknown preview feature.');
@@ -97,6 +103,7 @@ export function effectiveFeatureStyle(catalog,design,feature) {
   const saved=design.featureStyles?.[feature]||{};
   const style={background,color:inkFor(catalog,saved.background&&saved.background!=='inherit'?saved.background:background),font:design.fonts.body,border:design.roles.accent};
   for(const key of FEATURE_FIELDS[feature])if(saved[key]&&saved[key]!=='inherit')style[key]=saved[key];
+  if(style.font)style.font=resolveFont(design,style.font);
   return style;
 }
 export function setFeatureStyle(catalog,design,feature,key,value) {
@@ -117,12 +124,12 @@ export function roleStyleDefaults(catalog, design, kind) {
 export function roleStylesSchema(catalog) {
   const enumeration = values => ({enum:values});
   const color = () => enumeration(['inherit', ...catalog.palette.map(item => item.id)]);
-  const font = () => enumeration(['inherit', ...catalog.fonts.map(item => item.id)]);
+  const font = () => enumeration(['inherit', ...FONT_SLOTS, ...catalog.fonts.map(item => item.id)]);
   const text = maxLength => ({type:['string','null'],maxLength});
   const properties = Object.fromEntries(ROLE_STYLE_KINDS.map(kind => {
     const fields = {
       backgroundMode:enumeration(['inherit','solid','gradient']), primary:color(), secondary:color(), direction:enumeration(['right','down','diagonal']),
-      pattern:enumeration(['inherit',...catalog.backgrounds.map(item=>item.id)]), patternStrength:enumeration(['subtle','normal','bold']),
+      pattern:enumeration(['inherit',...allBackgroundIds(catalog)]), patternStrength:enumeration(['subtle','normal','bold']),
       headingColor:color(),bodyColor:color(),headingFont:font(),bodyFont:font(),headingSize:enumeration(['small','default','large']),bodySize:enumeration(['small','default','large']),
       headingAlignment:enumeration(['layout','left','center','right']),bodyAlignment:enumeration(['layout','left','center','right']),
       headingPlacement:enumeration(['layout','top','middle','bottom']),bodyPlacement:enumeration(['layout','top','middle','bottom']),
@@ -142,6 +149,7 @@ export function effectiveRoleStyle(catalog, design, kind) {
   const background = kind==='title'?'titleBackground':kind==='divider'?'dividerBackground':'contentBackground';
   for (const [key,value] of Object.entries({primary:design.roles[background],secondary:design.roles.titleBackgroundEnd,headingColor:design.roles[special?'titleText':'heading'],bodyColor:design.roles[special?'subtitle':'body'],extraColor:design.roles[special?'subtitle':'body'],extraFont:design.fonts.body,headingFont:design.fonts.heading,bodyFont:design.fonts.body,pattern:design.background,watermarkColor:design.roles[special?'titleText':'heading']})) if(style[key]==='inherit') style[key]=value;
   if(style.watermarkFont==='inherit')style.watermarkFont=style.headingFont;
+  for(const key of ROLE_FONT_FIELDS)style[key]=resolveFont(design,style[key]);
   if(style.backgroundMode==='inherit') style.backgroundMode=special&&(design.slides[kind].colors==='gradient'||kind==='title'&&design.slides.title.layout==='split')?'gradient':'solid';
   const centered=kind==='title'?['center','frame','horizon'].includes(design.slides.title.layout):kind==='divider'?['center','band'].includes(design.slides.divider.layout):false;
   for(const key of ['headingAlignment','bodyAlignment']) if(style[key]==='layout') style[key]=centered?'center':'left';
@@ -173,6 +181,35 @@ export function setRoleStyle(catalog, design, kind, key, value) {
   return next;
 }
 
+// The shared roles a slide's color field reads while it follows the shared look. Title and divider
+// share one background pair so a background pick colors both; content slides share one tint and text colors.
+const SHARED_COLOR_ROLES = {
+  primary: { title: ['titleBackground', 'dividerBackground'], divider: ['titleBackground', 'dividerBackground'], content: ['contentBackground'] },
+  secondary: { title: ['titleBackgroundEnd'], divider: ['titleBackgroundEnd'] },
+  headingColor: { title: ['titleText'], divider: ['titleText'], content: ['heading'] },
+  bodyColor: { title: ['subtitle'], divider: ['subtitle'], content: ['body'] }
+};
+const SLIDE_KINDS = ['title', 'divider', 'cards', 'video', 'activity'];
+const sharedRolesFor = (key, kind) => SHARED_COLOR_ROLES[key]?.[kind === 'title' || kind === 'divider' ? kind : 'content'];
+
+/** Applies a color to every slide that uses it, and clears per-slide overrides that would hide it.
+ *  keepOnSlide also records the pick on the answered slide, so a guide can show which color was chosen. */
+export function setSharedColor(catalog, design, kind, key, value, { keepOnSlide = false } = {}) {
+  const roles = sharedRolesFor(key, kind);
+  if (!roles || value === 'inherit') return setRoleStyle(catalog, design, kind, key, value);
+  const next = clone(design);
+  for (const role of roles) next.roles[role] = value;
+  for (const other of SLIDE_KINDS) {
+    const overrides = next.roleStyles?.[other];
+    if (overrides && overrides[key] !== 'inherit' && sharedRolesFor(key, other)?.some(role => roles.includes(role))) next.roleStyles[other] = { ...overrides, [key]: 'inherit' };
+  }
+  if (keepOnSlide) next.roleStyles = { ...next.roleStyles, [kind]: { ...roleStyleDefaults(catalog, next, kind), ...next.roleStyles?.[kind], [key]: value } };
+  const errors = structuralErrors(catalog, next);
+  if (errors.length) throw new Error(errors.join(' '));
+  next.startingPoint = 'custom';
+  return next;
+}
+
 export function applyPreset(catalog, id, currentDesign) {
   const preset = catalog.presets.find(item => item.id === id);
   if (!preset) throw new Error(`Unknown starting point: ${id}`);
@@ -196,7 +233,7 @@ export function designSchema(catalog) {
     roles: record(Object.fromEntries(catalog.roles.map(role => [role.id, enumeration(catalog.palette.map(color => color.id))]))),
     fonts: record(Object.fromEntries(['heading', 'body'].map(role => [role, enumeration(catalog.fonts.map(font => font.id))]))),
     slides: record(Object.fromEntries(catalog.slideGroups.map(group => [group.id, record(Object.fromEntries(group.decisions.map(decision => [decision.id, enumeration(decision.options.map(option => option.id))])))]))),
-    background: enumeration(catalog.backgrounds.map(item => item.id)),
+    background: enumeration(allBackgroundIds(catalog)),
     samples: record({ title: { type: 'string', maxLength: catalog.sampleLimits.title }, subtitle: { type: 'string', maxLength: catalog.sampleLimits.subtitle }, boxes: { type: 'array', minItems: 4, maxItems: 4, items: { type: 'string', maxLength: catalog.sampleLimits.box } } }),
     startingPoint: enumeration(['custom', ...catalog.presets.map(item => item.id)])
   });
@@ -230,7 +267,7 @@ export function structuralErrors(catalog, design) {
       for (const decision of group.decisions) if (!decision.options.some(option => option.id === design.slides[group.id][decision.id])) errors.push(`${group.label}, ${decision.label}: choose an available option.`);
     }
   }
-  if (!catalog.backgrounds.some(item => item.id === design.background)) errors.push('Choose an available background finish.');
+  if (!allBackgroundIds(catalog).includes(design.background)) errors.push('Choose an available background finish.');
   if (!['custom', ...catalog.presets.map(item => item.id)].includes(design.startingPoint)) errors.push('Unknown starting point.');
   if (keys(design.samples, ['title', 'subtitle', 'boxes'], 'Sample text')) {
     for (const key of ['title', 'subtitle']) if (typeof design.samples[key] !== 'string' || design.samples[key].length > catalog.sampleLimits[key]) errors.push(`Sample ${key} must be text with at most ${catalog.sampleLimits[key]} characters.`);
@@ -271,6 +308,7 @@ function rolePattern(catalog, design, kind) {
   const style=effectiveRoleStyle(catalog,design,kind), strength={subtle:.5,normal:1,bold:1.5}[style.patternStrength];
   const a=findColor(catalog,style.primary).hex,b=findColor(catalog,style.secondary).hex;
   const bases=style.backgroundMode==='gradient'?gradientSamples(a,b):[a];
+  if(STRUCTURE_IDS.includes(style.pattern)) { const ink=structureInk(catalog,design,bases); return {...structureLayers(style.pattern,ink,style.patternStrength,['title','divider'].includes(kind)?kind:'content'),ink,peakAlpha:0,bases}; }
   const alphas={plain:0,'dot-grid':.2*strength,diagonal:.18*strength,crosshatch:1-(1-.14*strength)**2,'soft-gradient':.24*strength};
   let ink=findColor(catalog,inkFor(catalog,style.primary)).hex;
   const preserves=candidate=>['heading','body'].every(type=>!style[type+'Visible']||bases.every(base=>contrast(findColor(catalog,style[type+'Color']).hex,base)<4.5||Array.from({length:9},(_,i)=>contrast(findColor(catalog,style[type+'Color']).hex,blend(base,candidate,alphas[style.pattern]*i/8))).every(r=>r>=4.5)));
@@ -283,8 +321,8 @@ function rolePattern(catalog, design, kind) {
 }
 
 // Pattern-choice thumbnails use the same effective surface recipe as the slide.
-export function roleBackgroundCss(catalog,design,kind) {
-  const style=effectiveRoleStyle(catalog,design,kind), pattern=rolePattern(catalog,design,kind);
+export function roleBackgroundCss(catalog,design,kind,{omitStructure=false}={}) {
+  const style=effectiveRoleStyle(catalog,design,kind), pattern=omitStructure&&STRUCTURE_IDS.includes(style.pattern)?{images:[],sizes:[]}:rolePattern(catalog,design,kind);
   const a=findColor(catalog,style.primary).hex,b=findColor(catalog,style.secondary).hex;
   const split=kind==='title'&&design.slides.title.layout==='split';
   const angle={right:'90deg',down:'180deg',diagonal:'135deg'}[style.direction];
@@ -292,8 +330,8 @@ export function roleBackgroundCss(catalog,design,kind) {
   const band=kind==='divider'&&design.slides.divider.layout==='band';
   const baseImage=gradient||(band?`linear-gradient(${a},${a})`:'');
   const images=[...pattern.images,...(baseImage?[baseImage]:[])],sizes=[...pattern.sizes,...(baseImage?[band?'100% 70%':'100% 100%']:[])];
-  const positions=[...pattern.images.map(()=>'left top'),...(baseImage?['center']:[])];
-  return `background-color:${band?findColor(catalog,design.roles.contentBackground).hex:a};background-image:${images.join(', ')||'none'};background-size:${sizes.join(', ')||'auto'};background-position:${positions.join(', ')||'left top'};background-repeat:${[...pattern.images.map(()=>'repeat'),...(baseImage?['no-repeat']:[])].join(', ')||'no-repeat'};`;
+  const positions=[...(pattern.positions||pattern.images.map(()=>'left top')),...(baseImage?['center']:[])];
+  return `background-color:${band?findColor(catalog,design.roles.contentBackground).hex:a};background-image:${images.join(', ')||'none'};background-size:${sizes.join(', ')||'auto'};background-position:${positions.join(', ')||'left top'};background-repeat:${[...(pattern.repeats||pattern.images.map(()=>'repeat')),...(baseImage?['no-repeat']:[])].join(', ')||'no-repeat'};`;
 }
 
 function roleContrastIssues(catalog,design,kind) {
@@ -331,7 +369,7 @@ export function contrastIssues(catalog, design) {
     const bases = gradientEnd ? gradientSamples(bg.hex, color(gradientEnd).hex) : [bg.hex];
     const surfaces = patterned ? patternedSurfaces(catalog, design, surface, bases) : bases;
     const ratio = Math.min(...surfaces.map(hex => contrast(fg.hex, hex)));
-    if (ratio + 1e-9 < minimum) issues.push({ role, surface, ratio, minimum, related: [role, surface, ...(gradientEnd ? [gradientEnd] : []), ...(patterned ? ['background'] : [])], message: `${catalog.roles.find(r => r.id === role).label}: ${fg.name} on ${catalog.roles.find(r => r.id === surface).label.toLowerCase()} (${bg.name}${gradientEnd ? ` to ${color(gradientEnd).name}` : ''}${patterned && design.background !== 'plain' ? `, ${catalog.backgrounds.find(item => item.id === design.background).label}` : ''}) measures ${ratio.toFixed(2)}:1, below the ${minimum}:1 guideline for ${minimum === 3 ? 'headings' : 'supporting and body text'}.` });
+    if (ratio + 1e-9 < minimum) issues.push({ role, surface, ratio, minimum, related: [role, surface, ...(gradientEnd ? [gradientEnd] : []), ...(patterned ? ['background'] : [])], message: `${catalog.roles.find(r => r.id === role).label}: ${fg.name} on ${catalog.roles.find(r => r.id === surface).label.toLowerCase()} (${bg.name}${gradientEnd ? ` to ${color(gradientEnd).name}` : ''}${patterned && design.background !== 'plain' ? `, ${backgroundEntry(catalog, design.background).label}` : ''}) measures ${ratio.toFixed(2)}:1, below the ${minimum}:1 guideline for ${minimum === 3 ? 'headings' : 'supporting and body text'}.` });
   };
   const end = design.slides.title.colors === 'gradient' || design.slides.title.layout === 'split' ? 'titleBackgroundEnd' : undefined;
   if(!design.roleStyles?.title) { textPair('titleText', 'titleBackground', 3, end, true); textPair('subtitle', 'titleBackground', 4.5, end, true); }
@@ -383,7 +421,18 @@ function roleStyleCss(catalog,design,scope,canonical) {
     if(roleBackgroundChanged(saved)) {
       // Canonical lessons also have highly specific slide background recipes.
       // Only explicit role backgrounds take precedence over those recipes.
-      rule(preview,lesson,roleBackgroundCss(catalog,design,kind).replace(/;/g,'!important;'));
+      const important=css=>css.replace(/;/g,'!important;');
+      if(!['title','divider'].includes(kind)&&STRUCTURE_IDS.includes(style.pattern)) {
+        // Same sidebar rule as the shared structure: the sample slide paints it beside the sidebar column.
+        const layers=rolePattern(catalog,design,kind);
+        blocks.push(`${preview}{${important(roleBackgroundCss(catalog,design,kind,{omitStructure:true}))}}`);
+        if(canonical) blocks.push(`${lesson}{${important(roleBackgroundCss(catalog,design,kind))}}`);
+        blocks.push(`${preview} .slide-content{${important(`background-image:${layers.images.join(', ')};background-size:${layers.sizes.join(', ')};background-position:${layers.positions.join(', ')};background-repeat:${layers.repeats.join(', ')};`)}}`);
+      } else {
+        rule(preview,lesson,important(roleBackgroundCss(catalog,design,kind)));
+        // A local Plain or retired texture replaces the shared structure the sample content area would paint.
+        if(!['title','divider'].includes(kind)&&STRUCTURE_IDS.includes(design.background)) blocks.push(`${preview} .slide-content{background-image:none!important;}`);
+      }
       // Let text and reusable boxes share the chosen role composition. Borders,
       // button colors, video frames and the separate lesson sidebar stay intact.
       if(!['title','divider'].includes(kind)) rule(`${preview} :is(.slide-card,.slide-title-bar,.slide-activity,.slide-heading)`,`${lesson} :is(.card,.activity-box,h2,h3,h4,p,li)`,'background-color:transparent;background-image:none;');
@@ -523,7 +572,13 @@ export function cssForDesign(catalog, design, { scope = '.bespoke-slide', fontBa
   // Keep the decorative chapter mark in one bounded line. Enlarging text must not
   // wrap its digits into a second line beyond the slide or clip meaningful copy.
   rule(selector('.slide-watermark'), '.slide-section::after', `display:${divider.watermark === 'hide' ? 'none' : 'block'}; position:absolute; right:6%; top:5%; max-width:88%; max-height:90%; overflow:hidden; white-space:nowrap; transform:none; font-size:min(${divider.layout === 'number' ? '12rem,56cqw' : '9rem,42cqw'}); line-height:1; color:var(--role-title-text); opacity:.12; pointer-events:none;`);
-  rule(`${kind('cards')}, ${kind('video')}, ${kind('activity')}`, '.slide:not(.slide-title):not(.slide-section)', `background-color:var(--role-content-background); ${patternBackground(catalog, design, 'contentBackground')}`);
+  if (STRUCTURE_IDS.includes(design.background)) {
+    // The sample slide holds a sidebar column, so its structure is painted on the content area beside it.
+    // A lesson slide has no sidebar inside it and carries the structure itself.
+    rule(contentSlides, '', 'background-color:var(--role-content-background);');
+    if (canonical) blocks.push(`.slide:not(.slide-title):not(.slide-section) { background-color:var(--role-content-background); ${patternBackground(catalog, design, 'contentBackground')} }`);
+    rule(selector('.slide-content'), '', patternBackground(catalog, design, 'contentBackground'));
+  } else rule(contentSlides, '.slide:not(.slide-title):not(.slide-section)', `background-color:var(--role-content-background); ${patternBackground(catalog, design, 'contentBackground')}`);
   if (canonical) blocks.push('.main {background-color:var(--role-content-background);background-image:none;}');
   // Content text stays on its chosen opaque surface. Title/divider contrast includes pattern ink.
   rule(`${selector('.slide-card')}, ${selector('.slide-title-bar')}, ${selector('.slide-activity')}, ${selector('.slide-heading')}`, '.slide:not(.slide-title):not(.slide-section) h2, .slide:not(.slide-title):not(.slide-section) h3, .slide:not(.slide-title):not(.slide-section) p, .slide:not(.slide-title):not(.slide-section) li', 'background-color:var(--role-content-background);');
@@ -696,7 +751,7 @@ export function migrateV1(payload, catalog, meta = {}) {
   const pair = (meta.fontPairings || catalog.fontPairings || []).find(item => item.id === theme.fontPairing);
   if (pair) for (const role of ['heading', 'body']) { const font = catalog.fonts.find(item => item.family === pair[role]); if (font) design.fonts[role] = font.id; }
   else warnings.push('The old font pairing could not be resolved; review the independent font choices.');
-  if (catalog.backgrounds.some(item => item.id === theme.backgroundTexture)) design.background = theme.backgroundTexture;
+  if (allBackgroundIds(catalog).includes(theme.backgroundTexture)) design.background = theme.backgroundTexture;
   else if (theme.backgroundTexture === 'dark-royal') { design.background = 'plain'; design.roles.contentBackground = 'royal'; design.roles.heading = 'light'; design.roles.body = 'light'; warnings.push('Dark Royal was converted to a plain Royal surface with White text. Review the new component styling.'); }
   const titles = { 'centered-gradient': 'center', 'split-hero': 'split', 'offset-left': 'left', 'bottom-anchored': 'bottom' };
   design.slides.title.layout = titles[theme.titleSlide] || 'center';

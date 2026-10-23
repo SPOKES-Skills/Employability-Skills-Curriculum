@@ -37,26 +37,28 @@ local webfont package was found.
 
 ## Instructor workflow
 
-The current builder uses **Choose a layout → Customize → Review & save**.
-The layout gallery offers twelve presets and a Lesson & team disclosure. A preset
-opens Customize and can then go directly to review or receive a small edit. Title, Chapter divider, Text boxes, Video and
-Activity are direct, optional editors; there is no requirement to visit them all.
-Returning teams resume the current look with Continue editing or Review & save.
-The gallery remains available; applying another preset asks for replacement
-confirmation for an existing design, even after a fresh load.
+The current builder uses four stages: **Lesson & team → Pick a look → Make it
+yours → Send** (internal ids `team`, `start`, `slides`, `review`). Pick a look shows
+the current look on a large stage above a filmstrip of the twelve presets. Hover or
+focus previews a look; a click applies it as one Undo step, with no confirmation
+dialog. **Make it ours** opens Make it yours, where a toolbar band above the slide
+edits the selected part. Title, Chapter divider, Text boxes, Video and Activity are
+direct, optional editors; there is no requirement to visit them all. Returning teams
+keep their design and can choose **Swap starting look**. Send shows the deck, a short
+summary and both actions; a confirmed receipt shows the Sent to Britt view.
 
-The optional **Shared theme** disclosure in More options and Review & save groups
-shared colors, fonts and texture. Preserve Sidebar, Accent and Buttons colors,
+The optional **Shared theme** disclosure in the Slide options drawer and in Send's
+See every setting groups shared colors, fonts and background detail. Preserve Sidebar, Accent and Buttons colors,
 navigation/button typography, and the shared canvas/Band exterior bindings. A
 color element starts in **This slide** scope: its selected swatch and paint action
 use the current preview's effective local field. **Shared default** explicitly
 edits the separate global value and retains custom exceptions. Choosing another
 element returns to This slide; preview tabs follow the equivalent local field.
-Sidebar, Accent and Buttons remain shared-only. **Fonts & texture** has its own
+Sidebar, Accent and Buttons remain shared-only. **Fonts & background detail** has its own
 This slide / Shared default scope. Its controls read the effective fonts and
-pattern; local edits change just that field. Pattern thumbnails reuse the model's
-background recipe with the selected slide's colors, gradient and texture strength.
-Plain removes texture without clearing strength. Hidden text retains font edits
+background detail; local edits change just that field. Thumbnails reuse the model's
+background recipe with the selected slide's colors, gradient and detail strength.
+Plain removes the detail without clearing strength. Hidden text retains font edits
 without becoming visible. Scope is browser UI state, never part of a selection
 or shared record. A slide field marked Shared follows the current default; Custom records an explicit
 exception. Use shared theme restores only that field's inheritance on that slide.
@@ -73,7 +75,7 @@ The local preview uses Save test design/Open test design and blocks review deliv
 A `bespoke-selection/v2` contains the same lesson/team metadata, date and optional
 submission timestamp, plus a complete `design`:
 
-- Eleven role colors, independent heading/body font IDs and background pattern.
+- Eleven role colors, independent heading/body font IDs and background detail.
 - Title arrangement, logo position and background finish.
 - Divider arrangement, watermark and background finish.
 - One to four text boxes, optional shared title bar, paragraph/bullet/numbered
@@ -87,7 +89,7 @@ submission timestamp, plus a complete `design`:
   text color and font. These closed records use `inherit` for defaults, and are
   applied consistently to preview, component markup and generated CSS.
 - Optional `design.roleStyles` records for title, divider, cards, video and activity:
-  independent background/gradient, texture strength, heading/body typography and
+  independent background/gradient, detail strength, heading/body typography and
   visibility, sample words, chapter/activity labels and decorative watermarks.
   Explicit inherit values follow shared defaults. Hidden choices retain their values.
 - `design.roles.sidebarText` is optional. When present it is one of the eleven color ids and the generated CSS sets `--role-sidebar-ink` to it. When absent the model picks White or Royal for the sidebar text, as before. Do not add the field to a design that lacks it.

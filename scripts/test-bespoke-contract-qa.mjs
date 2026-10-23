@@ -11,12 +11,13 @@ import { randomUUID } from 'node:crypto';
 import { browserType } from './bespoke-test-browser.mjs';
 import catalog from '../bespoke/builder-catalog.json' with { type: 'json' };
 import meta from '../bespoke/catalog.json' with { type: 'json' };
-import { contrastIssues, cssForDesign, migrateV1, renderSlide } from '../bespoke/builder-model.mjs';
+import { allBackgroundIds, contrastIssues, cssForDesign, migrateV1, renderSlide } from '../bespoke/builder-model.mjs';
 import { selectionErrors, digest } from '../netlify/functions/_shared/selection.mjs';
 import { handleAction, hashEditCode, LESSON_IDS } from '../netlify/functions/bespoke-handoff.mjs';
 import { createDevServer, LOCAL_PREVIEW_CODE } from './bespoke-dev-server.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+const allBackgrounds = allBackgroundIds(catalog);
 const payload = () => ({ schema: 'bespoke-selection/v2', date: '2026-09-24', lesson: { id: 'money-management', title: 'Synthetic boundary QA' }, team: { spokesperson: { name: 'Synthetic reviewer' } }, design: structuredClone(catalog.defaults) });
 const pythonBatch = selections => JSON.parse(execFileSync('python3', ['-c', `
 import json,sys
@@ -37,7 +38,7 @@ test('12 rotating designs preserve every brand color and independent font throug
     const p = payload();
     for (const [roleIndex, role] of catalog.roles.entries()) p.design.roles[role.id] = catalog.palette[(index + roleIndex) % 11].id;
     p.design.fonts = { heading: catalog.fonts[index].id, body: catalog.fonts[(index + 5) % 12].id };
-    p.design.background = catalog.backgrounds[index % catalog.backgrounds.length].id;
+    p.design.background = allBackgrounds[index % allBackgrounds.length];
     return p;
   });
   const before = structuredClone(selections), results = pythonBatch(selections);

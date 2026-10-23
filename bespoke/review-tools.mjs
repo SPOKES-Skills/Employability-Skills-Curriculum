@@ -29,7 +29,7 @@ export function createReviewTools(host){
   // A fresh document preserves actual responsive layouts and isolates duplicate IDs.
   const base=new URL('./',location.href).href;
   const css=Model.cssForDesign(host.catalog,design,{canonical:false});
-  const markup=Model.renderSlide(host.catalog,design,kind,{title:design.samples.title,subtitle:design.samples.subtitle,lessonTitle:host.context().lessonTitle,logoUrl:'../SPOKES-Logo.png'});
+  const markup=Model.renderSlide(host.catalog,design,kind,host.options(design));
   frame.srcdoc=`<!doctype html><html lang="en"><head><meta http-equiv="Content-Security-Policy" content="script-src 'none'; object-src 'none'; frame-src 'none'"><title>BeSpoke design preview</title><meta name="viewport" content="width=device-width,initial-scale=1"><base href="${base}"><style>html,body{margin:0;background:#fff} .bespoke-slide{min-height:100vh!important;box-sizing:border-box} ${css}</style></head><body>${markup}</body></html>`;
   section.append(frame);return section;
  }

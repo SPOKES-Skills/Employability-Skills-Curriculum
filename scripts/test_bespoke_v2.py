@@ -35,6 +35,46 @@ class V2SubmissionTests(unittest.TestCase):
             "design": deepcopy(self.catalog["defaults"]), "legacySelection": deepcopy(self.legacy),
         }
 
+    def test_build_contract_hashes_the_model_and_its_font_slots(self):
+        import hashlib
+        _, contract = build_design(self.payload)
+        self.assertEqual(contract["fontSlotsSha256"], hashlib.sha256((ROOT / "bespoke/font-slots.mjs").read_text(encoding="utf-8").encode("utf-8")).hexdigest())
+
+    def test_build_contract_hashes_the_model_and_its_background_structures(self):
+        import hashlib
+        _, contract = build_design(self.payload)
+        digest = lambda name: hashlib.sha256((ROOT / name).read_text(encoding="utf-8").encode("utf-8")).hexdigest()
+        self.assertEqual(contract["modelSha256"], digest("bespoke/builder-model.mjs"))
+        self.assertEqual(contract["backgroundStructuresSha256"], digest("bespoke/background-structures.mjs"))
+
+    def test_edge_rail_design_builds_and_a_retired_texture_still_builds(self):
+        for background in ("edge-rail", "frame", "color-block", "dot-grid"):
+            payload = deepcopy(self.payload)
+            payload["design"]["background"] = background
+            css, contract = build_design(payload)
+            self.assertEqual(contract["design"]["background"], background)
+            self.assertIn("background-image", css)
+
+    def test_retired_font_id_in_a_role_style_still_builds_and_ships_that_font(self):
+        # Saved designs may name a font id where a slot now goes; the build keeps rendering it.
+        payload = deepcopy(self.payload)
+        cards = {
+            "backgroundMode": "inherit", "primary": "inherit", "secondary": "inherit", "direction": "diagonal", "pattern": "inherit",
+            "patternStrength": "normal", "headingColor": "inherit", "bodyColor": "inherit", "headingFont": "inter", "bodyFont": "inherit",
+            "headingSize": "default", "bodySize": "default", "headingAlignment": "layout", "bodyAlignment": "layout",
+            "headingPlacement": "layout", "bodyPlacement": "layout", "extraText": None, "extraFont": "inherit", "extraColor": "inherit",
+            "extraSize": "default", "extraAlignment": "left", "extraPlacement": "bottom", "boxHeadings": None, "headingVisible": True,
+            "bodyVisible": True, "headingText": None, "bodyText": None, "labelText": None, "labelVisible": True, "watermarkMode": "inherit",
+            "watermarkText": "SPOKES", "watermarkColor": "inherit", "watermarkFont": "inherit", "watermarkSize": "medium",
+            "watermarkPlacement": "bottom-right", "watermarkOpacity": "low",
+        }
+        self.assertNotIn("inter", payload["design"]["fonts"].values())
+        payload["design"]["roleStyles"] = {"cards": cards}
+        css, contract = build_design(payload)
+        self.assertEqual(contract["design"]["roleStyles"]["cards"]["headingFont"], "inter")
+        self.assertIn("inter", [font if isinstance(font, str) else font.get("id") for font in contract["fonts"]])
+        self.assertIn("Inter", css)
+
     def test_full_model_and_legacy_recovery_survive_immutable_proposal(self):
         self.payload["design"]["samples"]["boxes"][3] = "Hidden but recoverable 🎓 <script>alert(1)</script>"
         self.payload["design"]["slides"]["cards"]["count"] = "1"
@@ -122,6 +162,16 @@ class V2SubmissionTests(unittest.TestCase):
             self.assertIn("The team leader can keep this choice", (destination / "component-samples.html").read_text())
             self.assertIn("--role-body: var(--gold)", (destination / "design.css").read_text())
             self.assertEqual(self.payload, original)
+
+    def test_sidebar_text_and_builder_reach_the_build_contract(self):
+        preset = next(item for item in self.catalog["presets"] if item["id"] == "professional")
+        self.payload["design"] = deepcopy(preset["design"])
+        self.payload["design"]["roles"]["sidebarText"] = "gold"
+        self.payload["team"]["builder"] = {"name": "Dana Builder"}
+        require_valid_selection(self.payload)
+        css, contract = build_design(self.payload)
+        self.assertEqual(contract["design"]["roles"]["sidebarText"], "gold")
+        self.assertRegex(css, r"--role-sidebar-ink:\s*var\(--gold\)")
 
     def test_legacy_registry_cannot_silently_flatten_v2_design(self):
         themes, lessons = {"lessons": {}}, {"lessons": []}

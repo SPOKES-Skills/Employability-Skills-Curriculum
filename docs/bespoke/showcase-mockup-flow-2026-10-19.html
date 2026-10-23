@@ -1,0 +1,340 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BeSpoke showcase: carried through</title>
+<style>
+@font-face{font-family:Outfit;src:url("../../fonts/outfit-latin.woff2") format("woff2");font-weight:100 900}
+@font-face{font-family:"DM Serif Display";src:url("../../fonts/dm-serif-display-latin.woff2") format("woff2")}
+@font-face{font-family:"Playfair Display";src:url("../../fonts/playfair-display-latin.woff2") format("woff2");font-weight:400 900}
+@font-face{font-family:"Work Sans";src:url("../../fonts/work-sans-latin.woff2") format("woff2");font-weight:100 900}
+@font-face{font-family:Vollkorn;src:url("../../fonts/vollkorn-latin.woff2") format("woff2");font-weight:400 900}
+@font-face{font-family:Raleway;src:url("../../fonts/raleway-latin.woff2") format("woff2");font-weight:100 900}
+@font-face{font-family:Bitter;src:url("../../fonts/bitter-latin.woff2") format("woff2");font-weight:100 900}
+@font-face{font-family:Merriweather;src:url("../../fonts/merriweather-latin.woff2") format("woff2")}
+
+:root{
+  --royal:#00133f;--dark:#004071;--primary:#007baf;--green:#37b550;--gold:#d3b257;--dgold:#ad8806;
+  --mauve:#a7253f;--gray:#60636b;--silver:#d1d3d4;--mist:#edf3f7;--white:#fff;
+  --ink:#00133f;--muted:#526273;--line:#cad5df;--canvas:#e9eef2;
+}
+*{box-sizing:border-box;margin:0}
+body{font-family:Outfit,system-ui,sans-serif;background:#f4f6f8;color:var(--ink);padding:32px 28px 80px}
+.intro{max-width:1180px;margin:0 auto 28px}
+.intro h1{font-size:1.9rem;font-weight:600;letter-spacing:-.03em}
+.intro p{color:var(--muted);font-size:1.02rem;line-height:1.5;margin-top:8px;max-width:72ch}
+.option{max-width:1180px;margin:0 auto 56px}
+.option-head{display:flex;align-items:baseline;gap:14px;margin-bottom:12px}
+.letter{flex:none;width:38px;height:38px;border-radius:50%;background:var(--royal);color:#fff;display:grid;place-items:center;font-weight:600;font-size:1.1rem}
+.option-head h2{font-size:1.35rem;font-weight:600}
+.option-head p{color:var(--muted);font-size:.95rem}
+.rec{background:var(--green);color:#fff;font-size:.75rem;font-weight:600;padding:3px 9px;border-radius:99px;letter-spacing:.02em}
+.notes{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:14px;font-size:.92rem;line-height:1.45}
+.notes div{background:#fff;border:1px solid var(--line);border-radius:8px;padding:12px 14px}
+.notes h4{font-size:.78rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:6px}
+.notes ul{padding-left:18px}
+
+/* Screen frame */
+.screen{background:var(--canvas);border:1px solid #c2ccd6;border-radius:12px;overflow:hidden;box-shadow:0 18px 40px #00133f1f;min-height:640px;display:flex;flex-direction:column}
+.bar{flex:none;height:46px;background:#fff;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:18px;padding:0 18px}
+.brand{font-weight:700;font-size:1.05rem;letter-spacing:-.02em}
+.brand span{color:var(--green)}
+.pills{display:flex;gap:6px;margin-left:8px}
+.pill{font-size:.72rem;padding:5px 11px;border-radius:99px;border:1px solid var(--line);color:var(--muted)}
+.pill.on{background:var(--royal);border-color:var(--royal);color:#fff}
+.pill.done{color:var(--ink)}
+.bar .sp{flex:1}
+.ghost{font-size:.72rem;color:var(--muted)}
+.btn{font-family:inherit;font-size:.8rem;font-weight:600;border-radius:8px;padding:9px 16px;border:0;background:var(--dark);color:#fff;white-space:nowrap}
+.btn.big{font-size:.95rem;padding:12px 22px}
+.btn.light{background:#fff;color:var(--ink);border:1px solid var(--line)}
+.lesson-tag{font-size:.72rem;color:var(--muted)}
+.lesson-tag b{color:var(--ink)}
+
+/* Mini slide renderer */
+.slide{aspect-ratio:16/9;position:relative;overflow:hidden;border-radius:4px;container-type:inline-size;box-shadow:0 2px 8px #00133f26}
+.slide .txt{position:absolute;left:8%;right:8%;top:50%;transform:translateY(-50%);display:flex;flex-direction:column;gap:2.2cqw}
+.slide .t{font-size:8cqw;line-height:1.04;letter-spacing:-.01em}
+.slide .s{font-size:3.2cqw;opacity:.9}
+.slide .rule{width:14%;height:1.2cqw}
+.slide .logo{position:absolute;right:5%;top:7%;width:9%;aspect-ratio:1;border-radius:50%;opacity:.85}
+.slide.framed::after{content:"";position:absolute;inset:5%;border:.7cqw solid var(--fr);border-radius:1cqw}
+.slide.split .pane{position:absolute;right:0;top:0;bottom:0;width:38%}
+.slide.split .txt{right:44%}
+.slide.split .t{font-size:6.6cqw}
+.slide.centered .txt{align-items:center;text-align:center}
+.slide.side::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4%;background:var(--sb)}
+.slide.side .txt{left:11%}
+.slide.horizon::before{content:"";position:absolute;left:0;right:0;bottom:0;height:24%;background:var(--hz)}
+.slide.horizon .txt{top:40%}
+.slide.head .t{font-size:9cqw;font-weight:800;text-transform:uppercase;line-height:.98}
+/* other slide types for contact sheets */
+.slide.div .t{top:40%;font-size:8cqw}
+.slide.div .num{position:absolute;right:6%;bottom:-6%;font-size:42cqw;opacity:.14;line-height:1}
+.slide.boxes{background:#fff}
+.slide.boxes .h{position:absolute;left:7%;top:10%;font-size:6cqw}
+.slide.boxes .row{position:absolute;left:7%;right:7%;top:36%;bottom:12%;display:grid;grid-template-columns:repeat(3,1fr);gap:3cqw}
+.slide.boxes .row i{border-radius:1.4cqw;border-top:2.4cqw solid var(--ac);background:#f3f5f7}
+.slide.vid .frame{position:absolute;left:12%;right:12%;top:22%;bottom:12%;border:1.2cqw solid var(--ac);border-radius:1.5cqw;background:#1b2433}
+.slide.vid .frame::after{content:"";position:absolute;left:46%;top:38%;border-left:6cqw solid #fff;border-top:3.6cqw solid transparent;border-bottom:3.6cqw solid transparent}
+.slide.vid .h{position:absolute;left:12%;top:7%;font-size:5.5cqw}
+.slide.act .band{position:absolute;left:0;right:0;top:0;height:28%;background:var(--ac)}
+.slide.act .h{position:absolute;left:7%;top:8%;font-size:6cqw;color:#fff}
+.slide.act .card{position:absolute;left:7%;right:7%;top:38%;bottom:12%;background:#fff;border-radius:1.6cqw;box-shadow:0 1cqw 3cqw #0002}
+
+/* Option A */
+.a-body{flex:1;display:grid;grid-template-rows:1fr auto;min-height:0}
+.a-stage{display:grid;grid-template-columns:1.6fr 1fr;gap:26px;padding:24px 26px 16px;min-height:0;align-items:center}
+.a-stage .hero{width:100%}
+.a-stage .hero .slide{border-radius:8px;box-shadow:0 14px 34px #00133f40}
+.a-side .kicker{font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.a-side h3{font-family:"DM Serif Display",serif;font-weight:400;font-size:2.3rem;line-height:1.02;margin:6px 0 6px}
+.a-side .meta{font-size:.82rem;color:var(--muted);line-height:1.5}
+.chips{display:flex;gap:5px;margin:12px 0}
+.chips i{width:22px;height:22px;border-radius:50%;border:2px solid #fff;box-shadow:0 0 0 1px var(--line)}
+.deck{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin:4px 0 16px}
+.a-side .actions{display:flex;gap:8px;align-items:center}
+.a-side .undo{font-size:.78rem;color:var(--dark);text-decoration:underline}
+.strip{background:#fff;border-top:1px solid var(--line);padding:10px 26px 14px}
+.moods{display:flex;gap:6px;margin-bottom:8px;align-items:center}
+.moods span{font-size:.7rem;padding:4px 10px;border-radius:99px;background:var(--mist);color:var(--ink)}
+.moods span.on{background:var(--royal);color:#fff}
+.moods em{font-style:normal;font-size:.7rem;color:var(--muted);margin-left:auto}
+.film{display:grid;grid-template-columns:repeat(8,1fr);gap:10px}
+.film figure{margin:0}
+.film figcaption{font-size:.66rem;margin-top:4px;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.film .sel .slide{outline:3px solid var(--gold);outline-offset:3px}
+.film .yours .slide{outline:2px dashed var(--dark);outline-offset:3px}
+
+/* Option B */
+.b-body{flex:1;padding:22px 26px;overflow:hidden}
+.b-title{display:flex;align-items:baseline;gap:12px;margin-bottom:14px}
+.b-title h3{font-size:1.25rem;font-weight:600}
+.b-title p{font-size:.8rem;color:var(--muted)}
+.wall{display:grid;grid-template-columns:repeat(4,1fr);grid-auto-rows:auto;gap:14px}
+.wall figure{margin:0;background:#fff;border-radius:8px;padding:6px 6px 8px;border:1px solid var(--line)}
+.wall figcaption{font-size:.72rem;margin-top:6px;font-weight:500}
+.wall .open{grid-column:span 2;grid-row:span 2;padding:12px;border:2px solid var(--gold);box-shadow:0 12px 30px #00133f2a;display:flex;flex-direction:column;gap:10px}
+.wall .open .row{display:flex;align-items:center;gap:10px}
+.wall .open h4{font-family:"DM Serif Display",serif;font-weight:400;font-size:1.6rem;line-height:1}
+.wall .open .row .sp{flex:1}
+
+/* Option C */
+.c-body{flex:1;display:grid;grid-template-columns:230px 1fr;min-height:0}
+.c-list{background:#fff;border-right:1px solid var(--line);padding:14px 10px;overflow:hidden}
+.c-list h5{font-size:.66rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:10px 8px 4px}
+.c-item{display:flex;align-items:center;gap:8px;padding:7px 8px;border-radius:6px;font-size:.8rem}
+.c-item.on{background:var(--royal);color:#fff}
+.c-item i{display:flex}
+.c-item i b{width:12px;height:12px;border-radius:50%;margin-right:-3px;border:1.5px solid #fff}
+.c-main{padding:22px 28px;display:flex;flex-direction:column;gap:14px;min-height:0}
+.c-main .row{display:flex;align-items:end;gap:14px}
+.c-main h3{font-family:"DM Serif Display",serif;font-weight:400;font-size:2.1rem;line-height:1}
+.c-main .row .sp{flex:1}
+.sheet{display:grid;grid-template-columns:1.6fr 1fr 1fr;grid-template-rows:auto auto;gap:12px}
+.sheet .slide:first-child{grid-row:span 2}
+
+/* Customize */
+.cz-body{flex:1;display:grid;grid-template-columns:170px 1fr;min-height:0}
+.rail{background:#fff;border-right:1px solid var(--line);padding:14px 14px;display:flex;flex-direction:column;gap:12px}
+.rail-head{font-size:.68rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.rail figure{margin:0}
+.rail figcaption{font-size:.7rem;margin-top:4px}
+.rail figcaption em{font-style:normal;font-size:.62rem;background:var(--gold);color:var(--royal);padding:1px 6px;border-radius:99px;margin-left:4px}
+.rail .on .slide{outline:3px solid var(--dark);outline-offset:2px}
+.rail .pulse .slide{box-shadow:0 0 0 4px #d3b25799,0 0 18px #d3b257}
+.cz-main{padding:14px 30px 18px;display:flex;flex-direction:column;gap:8px;min-height:0}
+.from{font-size:.82rem;color:var(--muted)}
+.from b{color:var(--ink)}
+.swap{margin-left:10px;color:var(--dark);text-decoration:underline}
+.tb{display:flex;align-items:center;gap:12px;background:#fff;border:1px solid var(--line);border-radius:10px;padding:8px 12px;font-size:.78rem;box-shadow:0 4px 14px #00133f14}
+.tb .sp{flex:1}
+.tb-edit b{font-weight:600}
+.tb-sep{width:1px;height:22px;background:var(--line)}
+.tb-field{display:flex;align-items:center;gap:6px;color:var(--muted)}
+.tb-field b{color:var(--ink);font-weight:500;border:1px solid var(--line);border-radius:6px;padding:5px 8px}
+.dot{width:14px;height:14px;border-radius:50%;display:inline-block;box-shadow:0 0 0 1px var(--line)}
+.seg{display:flex;border:1px solid var(--line);border-radius:6px;overflow:hidden}
+.seg i{font-style:normal;padding:5px 9px;border-right:1px solid var(--line)}
+.seg i:last-child{border-right:0}
+.seg i.on{background:var(--royal);color:#fff}
+.tb-more{color:var(--dark);text-decoration:underline}
+.tb-note{font-size:.76rem;background:#fff8e6;border-left:3px solid var(--gold);padding:6px 10px;border-radius:4px}
+.tb-note u{color:var(--dark);margin-left:6px}
+.cz-stage{position:relative;padding-top:4px}
+.cz-stage .slide{border-radius:8px;box-shadow:0 14px 34px #00133f40;max-width:860px}
+.sel-out{outline:2px dashed #fff;outline-offset:6px}
+.pop{position:absolute;left:560px;top:300px;background:#fff;border:1px solid var(--line);border-radius:10px;box-shadow:0 14px 30px #00133f33;padding:10px 12px;width:290px}
+.pop-h{font-size:.72rem;color:var(--muted);margin-bottom:8px}
+.pop-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px 6px}
+.pop-grid span{display:flex;flex-direction:column;align-items:center;gap:3px;font-size:.62rem}
+.pop-grid span i{width:24px;height:24px;border-radius:50%;box-shadow:0 0 0 1px var(--line)}
+.pop-grid span.on i{box-shadow:0 0 0 2px #fff,0 0 0 4px var(--royal)}
+/* Send */
+.sd-body{flex:1;display:grid;grid-template-columns:1fr 340px;gap:26px;padding:22px 26px}
+.sd-sheet{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;align-content:start}
+.sd-sheet .slide:first-child{grid-column:span 2;grid-row:span 2}
+.sd-side{background:#fff;border:1px solid var(--line);border-radius:12px;padding:18px;display:flex;flex-direction:column;gap:10px;align-self:start}
+.sd-side .kicker{font-size:.7rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.sd-side h3{font-family:'DM Serif Display',serif;font-weight:400;font-size:1.55rem;line-height:1.05}
+.sd-side dl{display:grid;grid-template-columns:auto 1fr;gap:6px 12px;font-size:.8rem}
+.sd-side dt{color:var(--muted)}
+.lbl{font-size:.78rem;font-weight:500;margin-top:4px}
+.ta{border:1px solid #8f9eaf;border-radius:6px;padding:8px;font-size:.78rem;min-height:56px;color:var(--ink)}
+.sd-actions{display:flex;gap:8px;justify-content:flex-end}
+.fine{font-size:.72rem;color:var(--muted)}
+.disc{font-size:.76rem;color:var(--dark)}
+/* Receipt */
+.rc .rc-body{flex:1;display:grid;grid-template-columns:1.2fr 1fr;align-items:center;gap:40px;padding:30px 50px;background:radial-gradient(ellipse at 30% 50%,#d3b2572e,transparent 60%)}
+.rc-fan{position:relative;height:340px}
+.rc-fan .slide{position:absolute;width:62%;left:12%;top:18%}
+.rc-fan .slide:nth-child(1){transform:rotate(-9deg) translate(-40px,20px)}
+.rc-fan .slide:nth-child(2){transform:rotate(-3deg) translate(-10px,0)}
+.rc-fan .slide:nth-child(3){transform:rotate(4deg) translate(40px,-10px);box-shadow:0 18px 40px #00133f55}
+.check{width:54px;height:54px;border-radius:50%;background:var(--green);color:#fff;display:grid;place-items:center;font-size:1.7rem;font-weight:700}
+.rc-text h3{font-size:2.1rem;font-weight:600;letter-spacing:-.03em;margin:12px 0 8px}
+.rc-text p{font-size:.95rem;line-height:1.5;color:var(--muted);max-width:42ch}
+.rc-text p b{color:var(--ink)}
+.rc-actions{display:flex;gap:8px;margin-top:16px}
+</style>
+</head>
+<body>
+<div class="intro">
+  <h1>Direction A, carried through</h1>
+  <p>How the stage-and-filmstrip idea continues after the team presses <b>Make it ours</b>, and how it ends. The slide stays the biggest thing on screen the whole way. Tell me what's wrong or missing.</p>
+</div>
+
+<!-- ============ Customize ============ -->
+<section class="option">
+  <div class="option-head"><div class="letter">3</div><div><h2>Make it yours (Customize)</h2><p>Click anything on the slide. One toolbar sits in the same place every time, right above the slide, and says what else your change touches.</p></div></div>
+  <div class="screen">
+    <div class="bar">
+      <div class="brand">Be<span>Spoke</span></div>
+      <div class="pills"><span class="pill done">✓ Lesson &amp; team</span><span class="pill done">✓ Pick a look</span><span class="pill on">3 · Make it yours</span><span class="pill">4 · Send</span></div>
+      <div class="sp"></div><span class="ghost">↶ Undo&nbsp;&nbsp;↷ Redo</span><span class="lesson-tag">Saved 1 min ago</span><button class="btn light">Save</button>
+    </div>
+    <div class="cz-body">
+      <aside class="rail">
+        <div class="rail-head">Your slides</div>
+        <figure class="on"><div data-one="title"></div><figcaption>Title</figcaption></figure>
+        <figure class="pulse"><div data-one="div"></div><figcaption>Divider <em>changed</em></figcaption></figure>
+        <figure><div data-one="boxes"></div><figcaption>Text boxes</figcaption></figure>
+        <figure><div data-one="vid"></div><figcaption>Video</figcaption></figure>
+        <figure><div data-one="act"></div><figcaption>Activity</figcaption></figure>
+      </aside>
+      <main class="cz-main">
+        <div class="from">Starting from <b>Midnight &amp; gold</b> · 2 changes <span class="swap">Swap starting look</span></div>
+        <div class="tb">
+          <span class="tb-edit">Editing: <b>Title text</b></span>
+          <span class="tb-sep"></span>
+          <span class="tb-field">Font <b>DM Serif Display ▾</b></span>
+          <span class="seg"><i>A−</i><i class="on">A</i><i>A+</i></span>
+          <span class="tb-field">Color <i class="dot" style="background:#d3b257"></i><b>Gold ▾</b></span>
+          <span class="seg"><i class="on">⟸</i><i>☰</i><i>⟹</i></span>
+          <span class="sp"></span>
+          <span class="tb-more">More options</span>
+        </div>
+        <div class="tb-note">Gold also changes the <b>Divider</b> heading, because they share a color. <u>Change only this slide…</u></div>
+        <div class="cz-stage"><div data-one="title-edit"></div>
+          <div class="pop">
+            <div class="pop-h">Title text color</div>
+            <div class="pop-grid"></div>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+  <div class="notes">
+    <div><h4>What changed from today</h4><ul><li>The look's name stays on screen with a count of your changes.</li><li>Font joins the toolbar. Color dots carry their names.</li><li>A plain line says what else a color change touches, and the changed slide in the rail glows for a moment.</li><li>The toolbar always sits above the slide, never on top of it or below the fold.</li></ul></div>
+    <div><h4>What stays</h4><ul><li>Color picks still apply to every matching slide by default, as PR #56 decided. "Change only this slide…" opens Slide options at that switch; it doesn't move the switch into the toolbar.</li><li>Undo, Redo, Try another version, Compare, Slide options drawer.</li></ul></div>
+  </div>
+</section>
+
+<!-- ============ Send ============ -->
+<section class="option">
+  <div class="option-head"><div class="letter">4</div><div><h2>Send (Review &amp; save)</h2><p>The whole deck as one sheet, a three-line summary in plain words, a notes box and the two actions. The full settings list folds away.</p></div></div>
+  <div class="screen">
+    <div class="bar">
+      <div class="brand">Be<span>Spoke</span></div>
+      <div class="pills"><span class="pill done">✓ Lesson &amp; team</span><span class="pill done">✓ Pick a look</span><span class="pill done">✓ Make it yours</span><span class="pill on">4 · Send</span></div>
+      <div class="sp"></div><span class="lesson-tag">Money Management · <b>Team Ridgeview</b></span>
+    </div>
+    <div class="sd-body">
+      <div class="sd-sheet" data-sheet2></div>
+      <aside class="sd-side">
+        <div class="kicker">Your suggestion</div>
+        <h3>Midnight &amp; gold, made yours</h3>
+        <dl>
+          <dt>Look</dt><dd>Midnight &amp; gold, Framed layout</dd>
+          <dt>Fonts</dt><dd>DM Serif Display headings, Outfit text</dd>
+          <dt>Your changes</dt><dd>Title text in Gold · Divider heading in Gold</dd>
+        </dl>
+        <label class="lbl">Anything Britt should know?</label>
+        <div class="ta">We liked the gold because it feels like savings and goals.</div>
+        <div class="sd-actions"><button class="btn light">Save for the team</button><button class="btn big">Send to Britt →</button></div>
+        <div class="fine">This is a suggestion. Britt and the program administrator choose the final design.</div>
+        <div class="disc">▸ See every setting</div>
+      </aside>
+    </div>
+  </div>
+</section>
+
+<!-- ============ Receipt ============ -->
+<section class="option">
+  <div class="option-head"><div class="letter">✓</div><div><h2>After Send</h2><p>A finish moment the team can see together, instead of a yellow strip with a link.</p></div></div>
+  <div class="screen rc">
+    <div class="bar">
+      <div class="brand">Be<span>Spoke</span></div>
+      <div class="sp"></div><span class="lesson-tag">Money Management · <b>Team Ridgeview</b></span>
+    </div>
+    <div class="rc-body">
+      <div class="rc-fan" data-fan></div>
+      <div class="rc-text">
+        <div class="check">✓</div>
+        <h3>Sent to Britt</h3>
+        <p>Your Money Management suggestion, <b>Midnight &amp; gold, made yours</b>, is on its way. Britt and the program administrator will use it when they make the final design.</p>
+        <div class="rc-actions"><button class="btn light">Keep editing</button><button class="btn light">Download a copy</button></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<script>
+// Twelve presets, colors from the BeSpoke palette, names from builder-catalog.json.
+const P=[
+ {id:'fun',name:'Midnight & gold',lay:'Framed',bg:'#00133f',fg:'#ffffff',ac:'#d3b257',font:"'DM Serif Display',serif",cls:'framed',mood:'Bold'},
+ {id:'outspoken',name:'Bold berry',lay:'Headline',bg:'#a7253f',fg:'#ffffff',ac:'#d3b257',font:"'Work Sans',sans-serif",cls:'head',mood:'Bold'},
+ {id:'modern',name:'Fresh green',lay:'Split stage',bg:'#ffffff',fg:'#00133f',ac:'#37b550',font:'Raleway,sans-serif',cls:'split',mood:'Bright'},
+ {id:'horizon',name:'Ocean blue',lay:'Horizon',bg:'#007baf',fg:'#ffffff',ac:'#00133f',font:'Outfit,sans-serif',cls:'horizon',mood:'Bright'},
+ {id:'professional',name:'Paper & berry',lay:'Editorial',bg:'#edf3f7',fg:'#a7253f',ac:'#a7253f',font:"'Playfair Display',serif",cls:'',mood:'Classic'},
+ {id:'serious',name:'Warm gold',lay:'Centered',bg:'#ffffff',fg:'#00133f',ac:'#ad8806',font:'Vollkorn,serif',cls:'centered',mood:'Classic'},
+ {id:'corner',name:'Graphite',lay:'Corner',bg:'#60636b',fg:'#ffffff',ac:'#37b550',font:'Bitter,serif',cls:'',mood:'Calm'},
+ {id:'plaque',name:'Green & ink',lay:'Inset',bg:'#004071',fg:'#ffffff',ac:'#37b550',font:'Merriweather,serif',cls:'framed',mood:'Calm'},
+ {id:'light-hearted',name:'Soft silver',lay:'Grounded',bg:'#d1d3d4',fg:'#00133f',ac:'#007baf',font:'Outfit,sans-serif',cls:'horizon',mood:'Calm'},
+ {id:'sidebar',name:'Botanical light',lay:'Side rule',bg:'#ffffff',fg:'#004071',ac:'#37b550',font:"'Work Sans',sans-serif",cls:'side',mood:'Bright'},
+ {id:'masthead',name:'Berry on white',lay:'Masthead',bg:'#ffffff',fg:'#a7253f',ac:'#a7253f',font:"'Playfair Display',serif",cls:'head',mood:'Classic'},
+ {id:'columns',name:'Golden light',lay:'Two columns',bg:'#fff8e6',fg:'#00133f',ac:'#d3b257',font:'Vollkorn,serif',cls:'split',mood:'Classic'}
+];
+const by=id=>P.find(p=>p.id===id);
+function title(p,big){
+  const pane=p.cls==='split'?`<div class="pane" style="background:${p.ac}"></div>`:'';
+  return `<div class="slide ${p.cls}" style="background:${p.bg};color:${p.fg};--fr:${p.ac};--sb:${p.ac};--hz:${p.ac}">${pane}<div class="txt"><div class="rule" style="background:${p.ac}"></div><div class="t" style="font-family:${p.font}">Money Management</div><div class="s">Budgeting for real life</div></div><div class="logo" style="background:${p.ac}"></div></div>`;
+}
+function divider(p){return `<div class="slide div" style="background:${p.bg};color:${p.fg}"><div class="t" style="font-family:${p.font}">Needs and wants</div><div class="num" style="font-family:${p.font}">2</div></div>`}
+function boxes(p){return `<div class="slide boxes" style="--ac:${p.ac};color:#00133f"><div class="h" style="font-family:${p.font}">Three budget habits</div><div class="row"><i></i><i></i><i></i></div></div>`}
+function vid(p){return `<div class="slide vid" style="background:${p.bg==='#ffffff'?'#f3f5f7':p.bg};color:${p.fg==='#ffffff'?'#fff':p.fg};--ac:${p.ac}"><div class="h" style="font-family:${p.font}">Watch: the cushion fund</div><div class="frame"></div></div>`}
+function act(p){return `<div class="slide act" style="background:#fff;--ac:${p.bg==='#ffffff'||p.bg==='#fff8e6'||p.bg==='#edf3f7'?p.ac:p.bg}"><div class="band"></div><div class="h" style="font-family:${p.font}">Try it: build a budget</div><div class="card"></div></div>`}
+
+
+const fun=by('fun');
+const gold={...fun};
+const map={title:()=>title(fun),'title-edit':()=>title(fun).replace('class="t"','class="t sel-out"'),div:()=>divider({...fun,fg:'#d3b257'}),boxes:()=>boxes(fun),vid:()=>vid(fun),act:()=>act(fun)};
+document.querySelectorAll('[data-one]').forEach(el=>{el.innerHTML=map[el.dataset.one]()});
+const pal=[['Blue','#007baf'],['Navy','#004071'],['Royal','#00133f'],['Green','#37b550'],['Gold','#d3b257'],['Deep gold','#ad8806'],['Mauve','#a7253f'],['Gray','#60636b'],['Silver','#d1d3d4'],['Mist','#edf3f7'],['White','#ffffff']];
+document.querySelector('.pop-grid').innerHTML=pal.map(([n,h])=>`<span class="${n==='Gold'?'on':''}"><i style="background:${h}"></i>${n}</span>`).join('');
+document.querySelector('[data-sheet2]').innerHTML=title(fun)+divider({...fun,fg:'#d3b257'})+boxes(fun)+vid(fun)+act(fun);
+document.querySelector('[data-fan]').innerHTML=act(fun)+divider({...fun,fg:'#d3b257'})+title(fun);
+</script>
+</body>
+</html>

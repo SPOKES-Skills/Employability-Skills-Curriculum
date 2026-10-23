@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import {clickMenuItem, otherStartingPaths} from './bespoke-test-navigation.mjs';
+import {clickMenuItem, saveControl} from './bespoke-test-navigation.mjs';
 // Independent acceptance of the three-stage workflow. All services are ephemeral,
 // all browser contexts are new, and all names/content are synthetic. Never attaches
 // to Safari, an existing browser, the persistent preview, or a hosted service.
@@ -8,7 +8,7 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import { browserType, browserName } from './bespoke-test-browser.mjs';
 import { createDevServer, LOCAL_PREVIEW_CODE, LOCAL_PREVIEW_VIEW_CODE } from './bespoke-dev-server.mjs';
-import { defaultDesign, effectiveRoleStyle, roleStyleDefaults } from '../bespoke/builder-model.mjs';
+import { cssForDesign, defaultDesign, effectiveRoleStyle, roleStyleDefaults } from '../bespoke/builder-model.mjs';
 import { pixelDifference } from './bespoke-pixel-check.mjs';
 import catalog from '../bespoke/builder-catalog.json' with { type: 'json' };
 
@@ -68,7 +68,7 @@ async function scenario(name, run) {
 }
 async function ready(page) {
   await page.locator('#localPreviewNotice').waitFor({ state: 'visible' });
-  await page.locator('#btnSave').filter({ hasText: 'Save test design' }).waitFor();
+  await page.locator('#btnSave').filter({hasText:'Save test design'}).waitFor({state:'attached'});
   await page.locator('#stage-start').waitFor();
 }
 async function surface(page, name = 'design') {
@@ -93,7 +93,8 @@ async function preview(page, kind) {
   await page.evaluate(() => document.fonts.ready);
 }
 async function shared(page, open = true) {
-  if(!await page.locator('#sharedTheme').count())await page.locator('#stage-slides').click();
+  // Send also holds the Shared theme, inside See every setting; the drawer lives on Make it yours.
+  if(await page.locator('#workspace').getAttribute('data-stage')!=='slides')await page.locator('#stage-slides').click();
   await surface(page);
   if (!await page.locator('#detailControls').isVisible()) await page.locator('#btnMoreOptions').click();
   const details = page.locator('#sharedTheme');
@@ -130,21 +131,17 @@ async function team(page) {
   await page.locator('#teamName').fill('Synthetic workflow team');
   await page.locator('#spokespersonName').fill('Sample Instructor');
   await page.locator('#spokespersonEmail').fill('sample@example.org');
-  // Callers carry on with the starting looks, which is the stage after Lesson & team.
+  // Callers carry on with Pick a look, which is the stage after Lesson & team.
   await stage(page, 'start');
-}
-async function startingLooks(page) {
-  await stage(page, 'start');
-  const change = page.locator('#btnChangeStartingLook');
-  if (await change.isVisible() && await change.getAttribute('aria-expanded') !== 'true') await change.click();
 }
 async function save(page, status = 200) {
   const pending = page.waitForResponse(r => r.url().endsWith('/api/bespoke') && r.request().postDataJSON()?.action === 'save');
-  await page.locator('#btnSave').click(); const response = await pending;
+  await saveControl(page).click(); const response = await pending;
   assert.equal(response.status(), status, await response.text());
-  if (status === 200) await page.locator('#fileStatus').filter({ hasText: /Local test design saved|already up to date/ }).waitFor();
+  if (status === 200) await page.locator('#toast').filter({ hasText: /Local test design saved|already up to date/ }).waitFor();
   return response;
 }
+const FUN_TITLE = catalog.presets.find(item => item.id === 'fun').design.roles.titleBackground;
 const viewHash = (lessonId = legacy.lesson.id) => `#view=${lessonId}.${LOCAL_PREVIEW_VIEW_CODE}`;
 const snapshotHash = () => '#s=' + Buffer.from(JSON.stringify(payload(defaultDesign(catalog)))).toString('base64');
 const viewSession = page => page.evaluate(() => sessionStorage.getItem('bespoke-view-session'));
@@ -193,9 +190,9 @@ async function shot(page, name) {
 async function axe(page, label) {
   await page.addScriptTag({ content: axeSource });
   const result = await page.evaluate(async () => {
-    // Artwork remains configurable and advisory. Editor regions, preview tabs,
+    // Artwork (the editor preview and the Pick a look renders) remains configurable and advisory. Editor regions, preview tabs,
     // status messages, and all recovery controls are included with best practices.
-    const scan = await window.axe.run({ exclude: [['#modelStage'], ['.button-color-sample']] });
+    const scan = await window.axe.run({ exclude: [['#modelStage'], ['.button-color-sample'], ['#lookStage'], ['.look-deck'], ['.look-thumb']] });
     return { violations: scan.violations.map(v => ({ id: v.id, impact: v.impact, targets: v.nodes.map(n => n.target) })), regionChecked: scan.passes.some(r => r.id === 'region') };
   });
   evidence.push({ label, axe: result });
@@ -235,7 +232,7 @@ try {
       await view.locator('#btnViewRefresh').waitFor();
       assert.equal(new URL(view.url()).hash, '', 'the code is removed from the address bar');
       assert.match(await view.locator('#accessBanner').innerText(), /team · View only · Saved .+ · Built by Sample Instructor/);
-      assert.equal((await view.locator('#designStyle').textContent()).includes('--role-title-background: var(--royal)'), true, 'the viewer sees the saved Fun preset, not the seeded draft');
+      assert.equal((await view.locator('#designStyle').textContent()).includes(`--role-title-background: var(--${FUN_TITLE})`), true, 'the viewer sees the saved Fun preset, not the seeded draft');
       assert.equal(await draftNow(view), seeded, 'viewing leaves the browser draft byte-identical');
       await stage(builder, 'team');
       await builder.locator('#builderName').fill('Dana Builder');
@@ -268,12 +265,112 @@ try {
       assert.equal(await viewSession(wrong), null, 'a builder link ends the view session');
     } finally { await context.close(); }
   });
+  await scenario('a replaced edit code keeps the open design without a false conflict', async ({ makePage, server }) => {
+    const builder = await makePage();
+    await team(builder);
+    await builder.locator('#preset-fun').click();
+    await save(builder);
+    const replacement = 'bespoke-local-preview-replaced-code';
+    server.replaceEditCode(replacement);
+    await builder.goto('about:blank');
+    await builder.goto(`${server.baseUrl}/bespoke/#team=${legacy.lesson.id}.${replacement}`);
+    await builder.locator('body[data-access=edit]').waitFor();
+    await builder.waitForLoadState('networkidle');
+    assert.doesNotMatch(await builder.locator('#fileStatus').innerText(), /newer shared version/, 'the draft equals the shared design, so there is no conflict');
+    await save(builder);
+    assert.equal((await design(builder)).roles.titleBackground, FUN_TITLE, 'the saved Fun design is still the open design');
+  });
+  await scenario('a view code in a builder link opens the read-only view', async ({ makePage }) => {
+    const builder = await makePage();
+    await team(builder);
+    await save(builder);
+    const seeded = { step: 0, lessonId: legacy.lesson.id, teamName: 'Seeded draft team', spokespersonName: 'Seeded Person', design: defaultDesign(catalog), changes: [], redo: [] };
+    const view = await makePage({ hash: `#team=${legacy.lesson.id}.${LOCAL_PREVIEW_VIEW_CODE}`, storedDraft: seeded });
+    await view.locator('body[data-access=view]').waitFor();
+    await view.locator('#btnViewRefresh').waitFor();
+    assert.match(await view.locator('#accessBanner').innerText(), /View only/);
+    assert.equal(await view.evaluate(() => localStorage.getItem('bespoke-team-session-v2')), null, 'no editing session is stored');
+    // Loading any builder-style link normalizes the stored draft before the service says the code is view-only, so compare content, not bytes.
+    const kept = await draft(view);
+    assert.deepEqual([kept.teamName, kept.spokespersonName, kept.design], [seeded.teamName, seeded.spokespersonName, seeded.design], 'the browser draft keeps its own content');
+  });
+  await scenario('opening a backup in a view tab survives a reload', async ({ makePage }) => {
+    const builder = await makePage();
+    await team(builder);
+    await builder.locator('#preset-fun').click();
+    await save(builder);
+    const value = await backup(builder);
+    const view = await makePage({ hash: viewHash() });
+    await view.locator('#btnViewRefresh').waitFor();
+    await upload(view, value, 'backup.json');
+    assert.equal(await viewSession(view), null, 'opening a backup ends the view session');
+    await view.reload();
+    await view.locator('#stepList button').first().waitFor();
+    assert.notEqual(await view.locator('body').getAttribute('data-access'), 'view', 'a reload does not flip the tab back to View only');
+    assert.equal((await design(view)).roles.titleBackground, FUN_TITLE, 'the backup design is still open');
+  });
+  await scenario('a view tab refuses a backup for another lesson than the edit session stored in the browser', async ({ makePage, server }) => {
+    const lead = await makePage();
+    await team(lead);
+    await save(lead);
+    const other = await makePage({ hash: `#team=goal-setting.${LOCAL_PREVIEW_CODE}` });
+    await team(other);
+    await other.locator('#preset-fun').click();
+    await save(other);
+    const value = await backup(other);
+    const view = await lead.context().newPage();
+    await view.goto(`${server.baseUrl}/bespoke/${viewHash('goal-setting')}`);
+    await view.locator('#btnViewRefresh').waitFor();
+    const before = await view.evaluate(() => localStorage.getItem('bespoke-draft-v2'));
+    await view.locator('#teamFileInput').setInputFiles({ name: 'other-lesson.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(value)) });
+    await view.locator('#fileStatus').filter({ hasText: /different lesson/ }).waitFor();
+    assert.notEqual(await viewSession(view), null, 'the refused backup leaves the view session alone');
+    assert.equal(await view.evaluate(() => localStorage.getItem('bespoke-draft-v2')), before, 'the refused backup leaves the browser draft alone');
+  });
+  await scenario('a color picked on one slide follows every slide unless Only this slide is on', async ({ makePage }) => {
+    const page = await makePage();
+    await team(page);
+    // Split stage's divider fills the slide with the title color; a band divider shows the content tint.
+    await page.locator('#preset-modern').click();
+    await stage(page, 'slides');
+    await preview(page, 'title');
+    await page.locator('#context-background').selectOption('primary');
+    let current = await design(page);
+    assert.equal(current.roles.titleBackground, 'primary');
+    assert.equal(current.roles.dividerBackground, 'primary', 'the divider follows the title background');
+    assert.equal(current.roleStyles?.title?.primary ?? 'inherit', 'inherit', 'a shared pick leaves no per-slide override');
+    await preview(page, 'divider');
+    assert.equal(await page.locator('.bespoke-slide').evaluate(el => getComputedStyle(el).backgroundColor), rgb('primary'), 'the divider preview shows the pick');
+    await preview(page, 'cards');
+    // On wide screens the switch lives in the Slide options drawer.
+    if (!await page.locator('#context-only-slide').isVisible()) await page.locator('#btnMoreOptions').click();
+    await page.locator('#context-only-slide').check();
+    await page.locator('#context-background').selectOption('gold');
+    current = await design(page);
+    assert.equal(current.roles.contentBackground, 'dark', 'Only this slide leaves the shared look alone');
+    assert.equal(current.roleStyles.cards.primary, 'gold', 'the pick is kept on the Text boxes slide only');
+    await stage(page, 'review');
+    await stage(page, 'slides');
+    await preview(page, 'title');
+    assert.equal(await page.locator('.bespoke-slide').evaluate(el => getComputedStyle(el).backgroundColor), rgb('primary'), 'the title color is still there after visiting Review');
+  });
   await scenario('team view before the first save', async ({ makePage }) => {
     const view = await makePage({ hash: viewHash('goal-setting') });
     await view.locator('#restoreNotice').filter({ hasText: 'has not saved a design yet' }).waitFor();
     assert.equal(await view.locator('body').getAttribute('data-access'), 'view');
     assert.match(await view.locator('#accessBanner').innerText(), /^Goal Setting team · View only · Nothing saved yet/);
     assert.doesNotMatch(await view.locator('#accessBanner').innerText(), /Built by/, 'with no saved design the builder is unknown');
+  });
+  await scenario('the team view notice is written once', async ({ makePage }) => {
+    const view = await makePage({ hash: viewHash('goal-setting') });
+    await view.locator('#restoreNotice').filter({ hasText: 'has not saved a design yet' }).waitFor();
+    await view.evaluate(() => {
+      window.noticeWrites = 0;
+      new MutationObserver(records => { window.noticeWrites += records.length; }).observe(document.querySelector('#restoreNotice'), { childList: true, characterData: true, attributes: true, subtree: true });
+    });
+    await stage(view, 'start'); await stage(view, 'slides');
+    await view.evaluate(() => new Promise(resolve => setTimeout(resolve, 0)));
+    assert.equal(await view.evaluate(() => window.noticeWrites), 0, 'renders that change nothing leave the live notice alone');
   });
   await scenario('team view banner is written once', async ({ makePage }) => {
     const builder = await makePage(); await team(builder); await save(builder);
@@ -325,7 +422,8 @@ try {
     assert.equal(await tab.evaluate(() => localStorage.getItem('bespoke-draft-v2')), null, 'no browser draft is written');
     assert.equal(await tab.evaluate(() => localStorage.getItem('bespoke-team-session-v2')), null, 'no editing session is installed');
     assert.equal(await tab.locator('#btnSave').isDisabled(), true);
-    assert.equal(await tab.locator('#stepPanel').locator('input:enabled, select:enabled, textarea:enabled').count(), 0, 'no editing controls are enabled');
+    // A view lands on Send, whose controls sit in the showcase.
+    assert.equal(await tab.locator('#stepPanel, #showcase').locator('input:enabled, select:enabled, textarea:enabled').count(), 0, 'no editing controls are enabled');
     assert.ok(await viewSession(tab), 'the view link is kept for this tab');
     await openDialog(tab, LOCAL_PREVIEW_CODE);
     await tab.locator('body[data-access=edit]').waitFor();
@@ -334,15 +432,18 @@ try {
   await scenario('custom journey and effective review', async ({ makePage, server }) => {
     const page = await makePage(); await team(page);
     assert.equal(await page.locator('#stepList button').count(), 4);
-    await otherStartingPaths(page);await page.locator('#btnBuildOwn').click();
+    await page.locator('#btnBuildOwn').click();
     assert.equal(await page.locator('#stage-slides').getAttribute('aria-current'), 'step');
     assert.equal(await page.locator('#roleEditorTabs [role=tab]').count(), 5);
     await shared(page);
     assert.equal(await page.locator('#colorRole option').count(), 11);
-    assert.equal(await page.locator('#font-heading option').count(), 12);
-    assert.equal(await page.locator('#font-body option').count(), 12);
+    // A slide offers the two lesson fonts as slots; the shared default keeps all twelve fonts.
+    assert.equal(await page.locator('#font-heading option').count(), 2);
+    assert.equal(await page.locator('#font-body option').count(), 2);
     await paint(page, 'sidebar', 'royal');
     await page.locator('#themeScope').selectOption('shared');
+    assert.equal(await page.locator('#font-heading option').count(), 12);
+    assert.equal(await page.locator('#font-body option').count(), 12);
     await page.locator('#font-heading').selectOption('merriweather');
     await page.locator('#font-body').selectOption('raleway');
     await shared(page, false);
@@ -350,9 +451,9 @@ try {
       await editor(page, kind);
       await setField(page, kind, 'backgroundMode', 'solid');
       await setField(page, kind, 'primary', ['primary', 'gold', 'light', 'dark', 'mauve'][i]);
-      await setField(page, kind, 'headingFont', ['bitter', 'inter', 'playfair-display', 'work-sans', 'source-sans-3'][i]);
+      await setField(page, kind, 'headingFont', ['heading', 'body', 'heading', 'body', 'heading'][i]);
       await setField(page, kind, 'bodyVisible', true);
-      await setField(page, kind, 'bodyFont', 'bitter');
+      await setField(page, kind, 'bodyFont', 'heading');
       await setField(page, kind, 'headingText', 'Synthetic ' + kind + ' sample');
       await setField(page, kind, 'watermarkMode', 'text');
       await setField(page, kind, 'watermarkText', 'SAMPLE ' + i);
@@ -364,7 +465,9 @@ try {
     for (const kind of kinds) await preview(page, kind);
     await stage(page, 'review');
     assert.deepEqual(await design(page), payloadBeforeNavigation, 'Editor/preview/stage navigation cannot change design values');
-    const review = await page.locator('#stepPanel').innerText();
+    // The full review sits in Send's See every setting.
+    await page.locator('#allSettings > summary').click();
+    const review = await page.locator('#allSettings').innerText();
     assert.match(review, /shared.*default|default.*shared/i, 'Shared typography must be identified as defaults');
     for (const kind of kinds) {
       const effective = effectiveRoleStyle(catalog, selected, kind);
@@ -373,7 +476,7 @@ try {
       assert.equal(await row.locator('[data-review-field=bodyFont]').textContent(), fontName(effective.bodyFont) + ' · Custom', `${kind}: effective body font is accurate`);
       assert.equal(await row.locator('[data-review-field=primary]').textContent(), catalog.palette.find(c => c.id === effective.primary).name + ' · Custom');
       await page.locator('#review-preview-' + kind).click();
-      assert.equal(await page.locator(`#previewTabs [data-view="${kind}"]`).getAttribute('aria-selected'), 'true');
+      assert.equal(await page.evaluate(k => document.activeElement.closest('#sendDeck [data-kind]')?.dataset.kind, kind), kind, `${kind}: Preview points at the slide on the Send sheet`);
     }
     assert.match(review, /custom|exception/i);
     await page.locator('#reviewNotes').fill('Synthetic team agreement; design review only.');
@@ -384,60 +487,42 @@ try {
     assert.deepEqual(saved.selection.design, selected);
     for (const key of ['step', 'stepId', 'editorRole', 'sharedThemeOpen', 'previewView', 'meaningfulDesign']) assert(!Object.hasOwn(saved.selection, key), `${key} must not enter the selection payload`);
     const returning = await makePage();
-    await returning.locator('#fileStatus').filter({ hasText: /Opened|up to date|loaded/i }).waitFor();
+    await returning.locator('#toast').filter({ hasText: /Opened|up to date|loaded/i }).waitFor();
     assert.deepEqual(await design(returning), selected, 'Fresh-context shared reopen preserves all five independent designs');
     await stage(returning, 'start');
-    assert(await returning.locator('#btnContinueEditing').isVisible());
-    assert(await returning.locator('#btnQuickReview').isVisible());
-    assert(await returning.locator('#preset-fun').isVisible(), 'Returning designs retain the gallery; applying a different look still requires confirmation');
-    await returning.locator('#btnContinueEditing').click();
-    assert.deepEqual(await design(returning), selected);
-    await startingLooks(returning);
+    assert(await returning.locator('#lookYours').isVisible(), 'A returning design is kept as the Your design card');
+    assert(await returning.locator('#preset-fun').isVisible(), 'Returning designs keep every look');
     await returning.locator('#preset-fun').click();
-    assert(await returning.locator('#presetDialog').isVisible(), 'A fresh shared load must confirm preset replacement without relying on Undo history');
-    assert.equal(await returning.evaluate(() => document.activeElement.id), 'presetCancel');
-    await returning.keyboard.press('Escape');
-    assert.deepEqual(await design(returning), selected);
-    assert.equal(await returning.evaluate(() => document.activeElement.id), 'preset-fun');
-    await returning.locator('#preset-fun').click(); await returning.locator('#presetCancel').click();
-    assert.deepEqual(await design(returning), selected);
+    assert.notDeepEqual(await design(returning), selected, 'A look applies in place');
+    await returning.locator('#lookYours').click();
+    assert.deepEqual(await design(returning), selected, 'Your design restores the returning design without relying on Undo history');
     evidence.push({ label: 'custom saved-reopened', effectiveFonts: Object.fromEntries(kinds.map(k => [k, effectiveRoleStyle(catalog, selected, k).headingFont])), revision: saved.revision });
   });
 
-  await scenario('preset quick path and confirmation scope', async ({ makePage }) => {
+  await scenario('preset quick path and undo', async ({ makePage }) => {
     const page = await makePage(); await team(page);
-    await startingLooks(page);await page.locator('#preset-modern').click();
-    assert(!await page.locator('#presetDialog').isVisible(), 'An untouched new design does not require replacement confirmation');
+    await page.locator('#preset-modern').click();
+    assert.equal(await page.locator('#presetDialog').count(), 0, 'Looks apply without a confirmation dialog');
     await page.locator('#stage-review').click();
     assert.equal(await page.locator('#stage-review').getAttribute('aria-current'), 'step');
     const quick = await design(page); await save(page);
-    await startingLooks(page);
+    await stage(page, 'start');
     await page.locator('#preset-fun').click();
-    await page.locator('#presetSkipConfirmation').check(); await page.locator('#presetCancel').click();
-    assert.deepEqual(await design(page), quick);
-    await page.locator('#preset-fun').click();
-    assert(await page.locator('#presetDialog').isVisible(), 'Cancel cannot enable the opt-out checkbox');
-    await page.locator('#presetSkipConfirmation').check(); await page.locator('#presetApply').click();
     const fun = await design(page);
     assert.equal(fun.startingPoint, 'fun');
-    await startingLooks(page);await page.locator('#preset-modern').click();
-    assert(!await page.locator('#presetDialog').isVisible(), 'Confirmed opt-out applies in the same tab session');
+    await page.locator('#preset-modern').click();
     await page.locator('#btnUndo').click(); assert.deepEqual(await design(page), fun);
     await page.locator('#btnUndo').click(); assert.deepEqual(await design(page), quick);
-    const fresh = await makePage(); await startingLooks(fresh);
-    await fresh.locator('#preset-fun').click();
-    assert(await fresh.locator('#presetDialog').isVisible(), 'Preset opt-out cannot leak into another browser context');
-    await fresh.keyboard.press('Escape');
-    evidence.push({ label: 'preset quick path', unnecessaryEditorsVisited: 0, cancelOptOutIgnored: true, newContextConfirms: true });
+    evidence.push({ label: 'preset quick path', unnecessaryEditorsVisited: 0, appliedInPlace: true });
   });
 
   await scenario('shared scope painted output and field resets', async ({ makePage }) => {
-    const page = await makePage(); await team(page); await otherStartingPaths(page);await page.locator('#btnBuildOwn').click();
+    const page = await makePage(); await team(page); await page.locator('#btnBuildOwn').click();
     await editor(page, 'title');
     await setField(page, 'title', 'backgroundMode', 'gradient');
     await setField(page, 'title', 'primary', 'gold');
     await setField(page, 'title', 'secondary', 'mauve');
-    await setField(page, 'title', 'headingFont', 'bitter');
+    await setField(page, 'title', 'headingFont', 'body');
     await setField(page, 'title', 'headingText', 'Retain this synthetic title');
     await setField(page, 'title', 'watermarkMode', 'text');
     await setField(page, 'title', 'watermarkText', 'KEEP');
@@ -453,8 +538,8 @@ try {
     assert.equal(await page.locator('#modelStage .bespoke-slide').evaluate(el => getComputedStyle(el).backgroundColor), rgb('gold'));
     await page.locator('#themeScope').selectOption('shared');
     await page.locator('#font-heading').selectOption('inter');
-    assert.match(await page.locator('[data-shared-scope=headingFont]').textContent(), /Custom, unchanged.*Title slide/);
-    assert((await page.locator('#modelStage .slide-title-text').evaluate(el => getComputedStyle(el).fontFamily)).includes('Bitter'));
+    assert.match(await page.locator('[data-shared-scope=headingFont]').textContent(), /Follows the other lesson font, unchanged by this default: Title slide/);
+    assert((await page.locator('#modelStage .slide-title-text').evaluate(el => getComputedStyle(el).fontFamily)).includes('Outfit'));
     await shared(page, false);
     await field(page, 'title', 'primary');
     const beforeReset = await design(page);
@@ -492,11 +577,11 @@ try {
       assert.equal(await page.locator('#modelStage ' + target).first().evaluate(el => getComputedStyle(el).backgroundColor), rgb(newColor));
       evidence.push({ label: role + ' shared-default visible paint', delta });
     }
-    await editor(page, 'title'); await setField(page, 'title', 'bodyFont', 'bitter');
+    await editor(page, 'title'); await setField(page, 'title', 'bodyFont', 'heading');
     await shared(page); await page.locator('#themeScope').selectOption('shared'); await page.locator('#font-body').selectOption('raleway');
-    assert.match(await page.locator('[data-shared-scope=bodyFont]').textContent(), /Custom, unchanged.*Title slide/);
+    assert.match(await page.locator('[data-shared-scope=bodyFont]').textContent(), /Follows the other lesson font, unchanged by this default: Title slide/);
     await preview(page, 'title');
-    assert((await page.locator('#modelStage .slide-subtitle').evaluate(el => getComputedStyle(el).fontFamily)).includes('Bitter'));
+    assert((await page.locator('#modelStage .slide-subtitle').evaluate(el => getComputedStyle(el).fontFamily)).includes('Inter'), 'The heading slot follows the shared heading font chosen earlier');
     await preview(page, 'video');
     for (const selector of ['.slide-sidebar', '.slide-button']) assert((await page.locator('#modelStage ' + selector).first().evaluate(el => getComputedStyle(el).fontFamily)).includes('Raleway'), 'Shared body font paints navigation and buttons despite a local text override');
     await shared(page); await page.locator('#colorRole').selectOption('heading');
@@ -529,7 +614,7 @@ try {
     assert.equal(await second.locator('#btnHistory').getAttribute('aria-expanded'), 'true', 'Previous versions is not intercepted by recovery overlay');
     await clickMenuItem(second, '#btnHistory');
     await second.locator('#btnLoadLatest').click();
-    await second.locator('#fileStatus').filter({ hasText: 'Opened the latest shared design.' }).waitFor();
+    await second.locator('#toast').filter({ hasText: 'Opened the latest shared design.' }).waitFor();
     assert.deepEqual(await design(second), (await remote(server)).selection.design);
     await upload(second, recovery);
     assert.equal((await draft(second)).autosavePaused, true, 'Recovered backup needs deliberate Save');
@@ -543,14 +628,84 @@ try {
     evidence.push({ label: 'synthetic conflict/recovery', staleStatus: 409, historyCount: history.length, menuDismissal: ['file action', 'Escape', 'outside action'] });
   });
 
+  await scenario('standard conversion on open', async ({ makePage, server }) => {
+    // A design saved before the SPOKES standard: Dot grid behind everything and a third typeface on the text boxes.
+    const base = defaultDesign(catalog);
+    const third = catalog.fonts.find(f => ![base.fonts.heading, base.fonts.body].includes(f.id));
+    const retired = { ...base, background: 'dot-grid', roleStyles: { cards: { ...roleStyleDefaults(catalog, base, 'cards'), headingFont: third.id } } };
+    const expected = { ...base, background: 'plain', roleStyles: { cards: { ...roleStyleDefaults(catalog, base, 'cards'), headingFont: 'heading' } } };
+    const css = value => cssForDesign(catalog, value, { scope: '.bespoke-slide', fontBase: '../fonts', canonical: false });
+    const dotGrid = 'radial-gradient(circle, rgba(255, 255, 255, 0.2) 2.5px';
+    assert(css(retired).includes(dotGrid), 'the saved design really holds Dot grid');
+    const builder = await makePage(); await team(builder); await builder.locator('#preset-fun').click(); await save(builder);
+    const first = await remote(server);
+    const seeded = await fetch(server.baseUrl + '/api/bespoke', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'save', lessonId: legacy.lesson.id, editCode: LOCAL_PREVIEW_CODE, selection: payload(retired), expectedRevision: first.revision, mutationId: crypto.randomUUID() }) });
+    assert.equal(seeded.status, 200, 'the service still saves the retired values');
+    const stored = (await remote(server)).selection.design;
+    assert.equal(stored.background, 'dot-grid', 'the shared design keeps Dot grid until a team saves again');
+    const notice = [
+      'Updated this design to the SPOKES design standard: Background Dot grid is now Plain.',
+      `Text boxes heading font ${third.label} is now the lesson heading font. Review it before saving.`
+    ].join(' ');
+    // Open dialog: the converted design is the open design, the notice lists both changes, and History keeps the earlier revision.
+    // The local preview gives every editing tab a session, so the Open dialog is reached from a read-only snapshot tab.
+    const opener = await makePage({ hash: snapshotHash() }); await openDialog(opener, LOCAL_PREVIEW_CODE);
+    await opener.locator('#restoreNotice').filter({ hasText: 'Background Dot grid is now Plain.' }).waitFor();
+    assert.equal((await opener.locator('#restoreNotice').innerText()).trim(), notice);
+    assert.deepEqual(await design(opener), expected, 'the open design is the converted one');
+    const openerCss = await opener.locator('#designStyle').textContent();
+    assert.equal(openerCss, css(expected), 'the preview renders Plain');
+    assert(!openerCss.includes(dotGrid));
+    await clickMenuItem(opener, '#btnHistory'); await opener.locator('#historyPanel li').first().waitFor();
+    assert.equal(await opener.locator('#historyPanel li').count(), (await remote(server, 'history')).history.length, 'History lists every earlier revision');
+    assert((await remote(server, 'history')).history.length >= 2);
+    assert.equal((await remote(server)).selection.design.background, 'dot-grid', 'opening saved nothing');
+    // A backup file opened from disk is converted the same way and keeps the notice.
+    const filed = await makePage(); await upload(filed, payload(retired));
+    assert.equal((await filed.locator('#restoreNotice').innerText()).trim(), notice);
+    assert.deepEqual(await design(filed), expected);
+    // A view-only tab shows the converted preview and never saves.
+    const before = actions.length;
+    const view = await makePage({ hash: viewHash() });
+    await view.locator('body[data-access=view]').waitFor(); await view.locator('#btnViewRefresh').waitFor();
+    await view.locator('#accessBanner').filter({ hasText: 'Built by' }).waitFor();
+    assert.equal(await view.locator('#designStyle').textContent(), css(expected), 'the view-only preview renders Plain');
+    await view.locator('#btnViewRefresh').click(); await view.locator('#accessBanner').filter({ hasText: 'Built by' }).waitFor();
+    assert.equal(await view.locator('#designStyle').textContent(), css(expected), 'Refresh keeps the converted preview');
+    assert.deepEqual(actions.slice(before).filter(a => a.action === 'save'), [], 'a view-only tab sends no save request');
+    assert.equal((await remote(server)).selection.design.background, 'dot-grid', 'the shared design is untouched by viewing');
+    evidence.push({ label: 'standard conversion on open', changes: notice });
+  });
+
+  await scenario('standard conversion of a restored draft', async ({ makePage }) => {
+    // A browser draft saved before the standard: Dot grid, a third typeface, and an older step in undo that also holds Crosshatch.
+    const base = defaultDesign(catalog);
+    const third = catalog.fonts.find(f => ![base.fonts.heading, base.fonts.body].includes(f.id));
+    const retired = { ...base, background: 'dot-grid', roleStyles: { cards: { ...roleStyleDefaults(catalog, base, 'cards'), headingFont: third.id } } };
+    const expected = { ...base, background: 'plain', roleStyles: { cards: { ...roleStyleDefaults(catalog, base, 'cards'), headingFont: 'heading' } } };
+    const css = value => cssForDesign(catalog, value, { scope: '.bespoke-slide', fontBase: '../fonts', canonical: false });
+    const dotGrid = 'radial-gradient(circle, rgba(255, 255, 255, 0.2) 2.5px';
+    const stored = { step: 0, stepId: 'start', lessonId: legacy.lesson.id, teamName: 'Synthetic previous draft', spokespersonName: 'Sample Instructor', spokespersonEmail: 'sample@example.org', unspoken: '', design: retired, changes: [{ label: 'Texture', design: { ...base, background: 'crosshatch' }, alternatives: null, look: null }], redo: [], meaningfulDesign: true, autosavePaused: true };
+    const page = await makePage({ storedDraft: stored });
+    const notice = `Updated this design to the SPOKES design standard: Background Dot grid is now Plain. Text boxes heading font ${third.label} is now the lesson heading font. Review it before saving.`;
+    assert.equal((await page.locator('#restoreNotice').innerText()).trim(), notice, 'the draft restores with the same notice as other opens');
+    const text = await page.locator('#designStyle').textContent();
+    assert.equal(text, css(expected), 'the preview renders the converted draft');
+    assert(!text.includes(dotGrid));
+    // Undo returns to the older step, which was converted too.
+    await page.locator('#btnUndo').click();
+    assert.equal((await design(page)).background, 'plain', 'undo never brings a retired texture back');
+    assert(!JSON.stringify(await draft(page)).includes('crosshatch'), 'the saved draft holds no retired texture after undo');
+  });
+
   await scenario('legacy UI steps and selection recovery', async ({ makePage }) => {
     const oldIds = ['welcome', 'team', 'colors', 'fonts', ...kinds, 'review'];
     const storedDesign = defaultDesign(catalog);
-    storedDesign.roleStyles = { title: { ...roleStyleDefaults(catalog, storedDesign, 'title'), headingFont: 'bitter', primary: 'gold' } };
+    storedDesign.roleStyles = { title: { ...roleStyleDefaults(catalog, storedDesign, 'title'), headingFont: 'body', primary: 'gold' } };
     for (const [index, oldId] of oldIds.entries()) {
       const saved = { step: index, stepId: oldId, previewView: 'activity', activeRole: 'sidebar', lessonId: 'money-management', teamName: 'Synthetic previous workflow', spokespersonName: 'Sample Instructor', spokespersonEmail: 'sample@example.org', unspoken: '', design: storedDesign, changes: [], redo: [] };
       const page = await makePage({ storedDraft: saved });
-      // The old team step is the new Lesson & team stage; the old welcome step is the starting looks.
+      // The old team step is the new Lesson & team stage; the old welcome step is Pick a look.
       const mapped = [...kinds,'colors','fonts'].includes(oldId) ? 'slides' : oldId === 'review' ? 'review' : oldId === 'team' ? 'team' : 'start';
       assert.equal(await page.locator('#stage-' + mapped).getAttribute('aria-current'), 'step', oldId + ' maps to the right stage');
       if (kinds.includes(oldId)) assert.equal(await page.locator('#editor-' + oldId).getAttribute('aria-selected'), 'true');
@@ -568,10 +723,16 @@ try {
     assert(!Object.hasOwn(await design(page), 'roleStyles'), 'Old v2 does not eagerly acquire local styles');
     const oldBackup = await backup(page); assert.deepEqual(oldBackup.design, oldV2);
     await upload(page, payload(storedDesign)); assert.deepEqual(await design(page), storedDesign);
+    // A third typeface in a backup follows the lesson's heading font once the backup is opened.
+    const third = { ...storedDesign, roleStyles: { title: { ...storedDesign.roleStyles.title, headingFont: 'bitter' } } };
+    const standard = { ...storedDesign, roleStyles: { title: { ...storedDesign.roleStyles.title, headingFont: 'heading' } } };
+    await upload(page, payload(third)); assert.deepEqual(await design(page), standard);
+    assert.match(await page.locator('#restoreNotice').textContent(), /Title slide heading font Bitter is now the lesson heading font/);
     await upload(page, legacy, 'synthetic-v1.json');
     assert.match(await page.locator('#restoreNotice').textContent(), /older|convert/i);
     assert.deepEqual((await backup(page)).legacySelection, legacy, 'V1 archive survives conversion exactly');
     await stage(page, 'review');
+    await page.locator('#allSettings > summary').click();
     const pending = page.waitForEvent('download'); await page.getByRole('button', { name: 'Download original v1 design', exact: true }).click();
     const original = JSON.parse(await fs.readFile(await (await pending).path(), 'utf8'));
     assert.deepEqual(original, legacy);
@@ -584,7 +745,7 @@ try {
       if (scale === 2) await page.addStyleTag({ content: 'html { font-size: 200% !important; }' });
       const label = `${width}x${height}-${scale * 100}percent`;
       await axe(page, label + ' Start');
-      await otherStartingPaths(page);await page.locator('#btnBuildOwn').click();
+      await page.locator('#btnBuildOwn').click();
       await page.locator('#btnMoreOptions').click();
       await page.locator('#editor-title').focus(); await page.keyboard.press('ArrowRight');
       assert.equal(await page.locator('#editor-divider').getAttribute('aria-selected'), 'true');

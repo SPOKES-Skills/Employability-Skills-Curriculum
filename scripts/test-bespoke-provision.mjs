@@ -159,6 +159,16 @@ test('provisioning refuses repository paths and insecure or credential-bearing U
   }
 });
 
+test('every provisioning function refuses an output directory inside the repository, on any file system', () => {
+  const inside = path.join(root, 'scripts', 'refused-provision-output');
+  for (const run of [
+    () => provision({ output: inside, wizardUrl }),
+    () => provisionViewLinks({ output: inside, wizardUrl }),
+    () => reissue({ output: inside, wizardUrl, lesson: 'all' })
+  ]) assert.throws(run, /outside this repository/);
+  assert.equal(fs.existsSync(inside), false, 'a refused run creates nothing, so no secret lands in the repository');
+});
+
 test('reissuing all six writes a fresh team table and never the encryption key', () => withTmp(tmp => {
   const output = path.join(tmp, 'private');
   reissue({ output, wizardUrl, lesson: 'all', now: new Date('2026-10-13T15:30:00Z') });

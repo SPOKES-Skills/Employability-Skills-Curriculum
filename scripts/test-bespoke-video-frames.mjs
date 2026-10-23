@@ -42,7 +42,7 @@ async function editor(width) {
   context.on('page',page=>page.on('pageerror',error=>errors.push(error.message)));
   const page = await context.newPage();page.on('dialog',dialog=>dialog.accept());
   await page.goto(server.baseUrl+'/bespoke/');await page.locator('#localPreviewNotice').waitFor();
-  await page.locator('#btnSave').filter({hasText:'Save test design'}).waitFor();return page;
+  await page.locator('#btnSave').filter({hasText:'Save test design'}).waitFor({state:'attached'});return page;
 }
 const saved = page=>page.evaluate(()=>JSON.parse(localStorage.getItem('bespoke-draft-v2')).design);
 async function designSurface(page) {if(await page.locator('#surface-design').isVisible())await page.locator('#surface-design').click();}
@@ -52,10 +52,11 @@ async function preview(page,width) {if(width===390)await switchSurface(page,'pre
 async function measure(frame) {
   return frame.evaluate(el=>{
     const b=el.getBoundingClientRect(), child=el.firstElementChild, c=child.getBoundingClientRect(), s=getComputedStyle(el), cs=getComputedStyle(child);
-    const slide=el.closest('.bespoke-slide,.slide'),r=slide.getBoundingClientRect();
-    return {w:b.width,h:b.height,x:b.x-r.x,y:b.y-r.y,slideW:r.width,slideH:r.height,scrollW:slide.scrollWidth,
+    // Make it yours scales its 960 canvas to fit the window (Ruling R26), so on-screen boxes are read back in the slide's own px.
+    const slide=el.closest('.bespoke-slide,.slide'),r=slide.getBoundingClientRect(),k=slide.offsetWidth/r.width;
+    return {w:b.width*k,h:b.height*k,x:(b.x-r.x)*k,y:(b.y-r.y)*k,slideW:slide.offsetWidth,slideH:slide.offsetHeight,scrollW:slide.scrollWidth,
       border:s.borderTopWidth,borderColor:s.borderTopColor,padding:s.paddingTop,outline:s.outlineWidth,outlineColor:s.outlineColor,shadow:s.boxShadow,
-      child:{x:c.x-b.x,y:c.y-b.y,w:c.width,h:c.height,background:cs.backgroundColor,position:cs.position},
+      child:{x:(c.x-b.x)*k,y:(c.y-b.y)*k,w:c.width*k,h:c.height*k,background:cs.backgroundColor,position:cs.position},
       columns:getComputedStyle(slide).gridTemplateColumns};
   });
 }
@@ -71,15 +72,21 @@ function check(m,design,label) {
   assert(Math.abs(m.child.x-inset)<1&&Math.abs(m.child.y-inset)<1,label+': media respects frame inset');
   assert(Math.abs(m.child.w-(m.w-inset*2))<1&&Math.abs(m.child.h-(m.h-inset*2))<1,label+': media stays inside frame');
 }
-async function pixels(page,png,design) {
-  const rows=await page.evaluate(async encoded=>{
+// Samples rows 1, 4 and 7 of the frame: the keyline, accent and keyline bands of an accent frame. The live slide is
+// scaled to fit (Rulings R26 and R30), where the browser rasterizes those thin bands with blended edges, so there the
+// check reads the frame's top rows in order and keeps the first three runs of exact frame colors instead.
+async function pixels(page,png,design,scale=1) {
+  const keyline=channels(inkFor(catalog,design.roles.accent)),accent=channels(design.roles.accent),surface=channels(design.roles.sidebar);
+  const column=await page.evaluate(async ({encoded,rows})=>{
     const bitmap=await createImageBitmap(new Blob([Uint8Array.from(atob(encoded),c=>c.charCodeAt(0))],{type:'image/png'}));
     const canvas=document.createElement('canvas');canvas.width=bitmap.width;canvas.height=bitmap.height;
     const c=canvas.getContext('2d');c.drawImage(bitmap,0,0);bitmap.close();
-    return [1,4,7].map(y=>[...c.getImageData(Math.floor(canvas.width/2),y,1,1).data].slice(0,3));
-  },png.toString('base64'));
-  const keyline=channels(inkFor(catalog,design.roles.accent)),accent=channels(design.roles.accent),surface=channels(design.roles.sidebar);
-  assert.deepEqual(rows,design.slides.video.frame==='accent'?[keyline,accent,keyline]:[surface,surface,surface], 'Rendered frame pixels follow the chosen accent and separating keylines');
+    return Array.from({length:rows},(_,y)=>[...c.getImageData(Math.floor(canvas.width/2),y,1,1).data].slice(0,3));
+  },{encoded:png.toString('base64'),rows:Math.ceil(12*scale)});
+  const accented=design.slides.video.frame==='accent',exact=[keyline,accent,surface].map(String);
+  const runs=column.filter(rgb=>exact.includes(String(rgb))).filter((rgb,i,all)=>i===0||String(rgb)!==String(all[i-1]));
+  const rows=scale===1||!accented?[1,4,7].map(y=>column[Math.floor(y*scale)]):runs.slice(0,3);
+  assert.deepEqual(rows,accented?[keyline,accent,keyline]:[surface,surface,surface], `Rendered frame pixels follow the chosen accent and separating keylines (scale ${scale.toFixed(3)}, column ${JSON.stringify(column)})`);
   return rows;
 }
 let editorChecks=0, generatedChecks=0, parity=0;
@@ -88,7 +95,7 @@ try {
     const page=await editor(width), generatedPage=await page.context().newPage();
     for(const scenario of scenarios) {
       const design=defaultDesign(catalog);const {name,...roles}=scenario;Object.assign(design.roles,roles);
-      design.fonts={heading:'raleway',body:'source-sans-3'};design.background='crosshatch';
+      design.fonts={heading:'raleway',body:'source-sans-3'};design.background='edge-rail';
       await designSurface(page);
       await page.locator('#teamFileInput').setInputFiles({name:'synthetic-video.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(payload(design)))});
       await page.locator('#fileStatus').filter({hasText:'Opened synthetic-video.json.'}).waitFor();await go(page,'Video slide');
@@ -102,7 +109,8 @@ try {
           assert.equal(await slide.locator('video,iframe').count(),0,'Editor sample remains inert');
           const m=await measure(frameNode);check(m,expected,`editor ${width}/${name}/${layout}/${frame}`);
           assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),'Editor viewport does not overflow');
-          const png=await frameNode.screenshot(), bands=await pixels(page,png,expected);editorChecks++;
+          const fit=await frameNode.evaluate(el=>{const slide=el.closest('.bespoke-slide');return slide.getBoundingClientRect().width/slide.offsetWidth;});
+          const png=await frameNode.screenshot(), bands=await pixels(page,png,expected,fit);editorChecks++;
           if(frame==='plain')plain=png;else{
             const delta=await pixelDifference(page,plain,png);assert(delta.changedFraction>.008,'Frame must visibly change even with matching colors');
             evidence.push({width,name,layout,...m,...delta});
@@ -118,7 +126,8 @@ try {
             check(gm,expected,`${kind} ${width}/${name}/${layout}/${frame}`);generatedChecks++;
             const gpng=await node.screenshot();
             if(frame==='accent'||kind==='sample'){assert.deepEqual(await pixels(generatedPage,gpng,expected),bands,'Generated/canonical frame bands match live preview pixels');parity++;}
-            if(kind==='sample'){assert.equal(gm.w,m.w);assert.equal(gm.h,m.h);}
+            // The live slide is scaled to fit (Rulings R26 and R30), so its px come back through a float scale.
+            if(kind==='sample'){assert(Math.abs(gm.w-m.w)<.5,'Generated frame width matches the live one');assert(Math.abs(gm.h-m.h)<.5,'Generated frame height matches the live one');}
             if(kind!=='sample'&&width===390&&layout==='side')assert(!gm.columns.includes(' '),'Canonical side layout stacks on phone');
             if(kind==='video')assert(await node.locator('video').evaluate(el=>el.paused&&!el.autoplay&&el.networkState===0),'Native video remains unloaded and paused');
           }
@@ -130,7 +139,7 @@ try {
     await page.locator('#btnRedo').click();assert.deepEqual(await saved(page),final);
     await go(page,'Shared typography');await go(page,'Video slide');assert.deepEqual(await saved(page),final);
     const response=page.waitForResponse(r=>r.url().endsWith('/api/bespoke')&&r.request().postDataJSON()?.action==='save');await page.locator('#btnSave').click();assert.equal((await response).status(),200);
-    await page.locator('#fileStatus').filter({hasText:/Local test design saved|already up to date/}).waitFor();
+    await page.locator('#toast').filter({hasText:/Local test design saved|already up to date/}).waitFor();
     await page.reload();await page.locator('#localPreviewNotice').waitFor();await go(page,'Video slide');assert.deepEqual(await saved(page),final);
     const reopened=await editor(width);await go(reopened,'Video slide');assert.deepEqual(await saved(reopened),final);
     await preview(reopened,width);check(await measure(reopened.locator('#modelStage .slide-video-frame')),final,'reopened');

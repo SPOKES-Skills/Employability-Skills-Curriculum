@@ -125,6 +125,10 @@ Then:
 2. Pin each link from `view-links.html` in that team's channel. Each link is for
    one team only.
 
+Pinning a view link does not switch off a team link that was already pinned or
+shared. Unpin the team link. If it reached people who should not edit, see
+[Reissue team codes](#reissue-team-codes).
+
 A team view link ends with `#view=<lesson-id>.<random-view-code>`. The browser
 removes it from the address bar and keeps it only for that tab, so a reload stays
 in the view. The banner shows the lesson, "View only", the save time and the
@@ -134,9 +138,10 @@ sending for it. Its answer leaves out the Team Leader's email, the notes for the
 design review and any older wizard design kept for recovery. A view code typed
 into the Open dialog opens the same read-only view.
 
-The service hashes view codes with a `view:` prefix, so a `view-env.json` made
-before commit `e70b95d` will not work. Delete the three `view-*` files and run the
-command again. None was ever deployed.
+The service hashes view codes with a `view:` prefix. A `view-env.json` made before
+view codes got that prefix will not work and must be regenerated. Move the three
+`view-*` files aside, run the command again, and delete the old files once the new
+run has succeeded.
 
 ## Configure the service
 
@@ -190,8 +195,9 @@ node scripts/bespoke-stage-service.mjs "/absolute/path/to/new-service-stage"
 Choose a new staging directory outside this repository. Run the authorized
 Netlify CLI or connector deployment from that staging directory, not from the
 full curriculum checkout. The stage contains only `netlify.toml`, the function
-and its shared module, the landing note, three schema/catalog authority files,
-and a minimal Node package manifest. It excludes lesson media, private setup
+and its shared module, the landing note, the two selection schemas, the builder
+model and catalog, the older catalog, the library catalog, and a minimal Node
+package manifest. It excludes lesson media, private setup
 files, and credentials. The repository remains the source of truth; create a
 fresh stage after code or catalog changes, and do not edit the staged copy.
 Publish `netlify/site`, use functions in `netlify/functions`, and leave the build
@@ -209,7 +215,7 @@ backup is not evidence of a successful shared save.
 
 ## What saving and sending mean
 
-**Save shared design** writes an encrypted revision. The browser supplies the
+**Save for the team** writes an encrypted revision. The browser supplies the
 revision it last opened, so a newer save from another computer produces a conflict
 instead of silently being overwritten. A failed or uncertain save must remain
 visible to the teacher, with a downloadable backup available. Browser storage is
@@ -222,8 +228,9 @@ teacher chooses which version to keep. History offers older saved looks; saving
 an older look creates a new revision rather than deleting newer history.
 
 **Send to Britt** submits the saved design through Spoke Signals. Starting the
-workflow is only processing, not delivery. The UI may show **Britt received the review request.** only after
-the service confirms the matching proposal pull request. Failure, timeout, and
+workflow is only processing, not delivery. The UI may confirm delivery only after
+the service confirms the matching proposal pull request. On Send, that confirmation is the
+**Sent to Britt** view; on any other stage it is the toast **Sent to Britt.** Failure, timeout, and
 pending processing must be distinguished. Retrying the same design must find or
 reuse its existing proposal rather than create duplicates. Design review is
 separate from permission to build a lesson.
@@ -243,10 +250,10 @@ successful save or receipt.
 - **PAT rotation:** replace `BESPOKE_GITHUB_TOKEN` while retaining the draft key and
   team-key map. The stored designs remain decryptable because encryption does not
   depend on the token. Verify Open and Save after the replacement.
-- **Team access reset:** follow [Reissue team codes](#reissue-team-codes)
-  below. Only an administrator runs it.
-- **Team view code rotation:** delete the three `view-*` files and run
-  `--add-view-links` again. That replaces all six view codes at once. Update
+- **Team access reset:** follow [Reissue team codes](#reissue-team-codes) below.
+  Only an administrator runs it.
+- **Team view code rotation:** move the three `view-*` files aside and run
+  `--add-view-links` again. Delete the old files once the new run has succeeded. That replaces all six view codes at once. Update
   `BESPOKE_VIEW_KEYS` from the new `view-env.json` and deploy the service. The old
   view links stop working after the deploy, so pin the new ones in their place.
 - **Draft-key rotation:** requires a deliberate data migration. Do not simply

@@ -1,5 +1,4 @@
 #!/usr/bin/env node
-import {otherStartingPaths} from './bespoke-test-navigation.mjs';
 import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
 import path from 'node:path';
@@ -29,15 +28,19 @@ try{
   await page.locator('#modelStage .slide-title-text').click();
   assert.equal(await page.locator('#workspace').getAttribute('data-editor'),'true');
   assert.equal(await page.locator('#detailControls').isVisible(),false);
-  assert.match(await page.locator('#editScope').textContent(),/Title slide only/);
+  assert.match(await page.locator('#editScope').textContent(),/Color picks apply to every slide that shares that color/);
   for(const control of await page.locator('#contextToolbar select, #contextToolbar button').all())assert((await control.boundingBox()).height>=44,'Contextual controls have a 44px target on every engine');
   await page.addScriptTag({content:axeSource});
   const accessibility=await page.evaluate(()=>axe.run({include:[['#contextToolbar'],['#modelStage']]},{runOnly:{type:'tag',values:['wcag2a','wcag2aa','wcag21aa']},rules:{'color-contrast':{enabled:false}}}));
   assert.deepEqual(accessibility.violations.map(v=>({id:v.id,targets:v.nodes.map(n=>n.target)})),[],'Editor selection semantics at '+width);
-  // Wide screens keep font in the options drawer; open it to reach the control.
-  if(width>=1101)await page.locator('#btnMoreOptions').click();
-  await page.locator('#context-font').selectOption('inter');
-  assert.equal((await current(page)).roleStyles.title.headingFont,'inter');
+  // Above phone width font and Only this slide wait in the options drawer; open it to reach them.
+  if(width>760)await page.locator('#btnMoreOptions').click();
+  await page.locator('#context-only-slide').check();
+  assert.match(await page.locator('#editScope').textContent(),/Title slide only/, 'Only this slide restores the single-slide wording');
+  await page.locator('#context-only-slide').uncheck();
+  assert.deepEqual(await page.locator('#context-font option').evaluateAll(nodes=>nodes.map(n=>n.value)),['heading','body'],'Fonts are the two lesson slots');
+  await page.locator('#context-font').selectOption('body');
+  assert.equal((await current(page)).roleStyles.title.headingFont,'body');
   assert.deepEqual((await current(page)).roles,before.roles);
   await page.locator('#context-size').selectOption('large');
   const edited=await current(page);
@@ -55,12 +58,19 @@ try{
   await page.locator('#context-look').selectOption('outline');await page.locator('#context-layout').selectOption('grid');
   const cards=await current(page);assert.equal(cards.slides.cards.look,'outline');assert.equal(cards.slides.cards.layout,'grid');
   assert.deepEqual(cards.roleStyles.title,edited.roleStyles.title);
+  // Ruling R27: while Slide options is open the first Escape closes it; with it closed, Escape selects the background.
+  if(await page.locator('#workspace').getAttribute('data-options')==='true'){
+    await page.locator('#modelStage .slide-card').first().focus();await page.keyboard.press('Escape');
+    assert.equal(await page.locator('#workspace').getAttribute('data-options'),'false','Escape closes the open drawer first');
+    assert.equal(await page.locator('#selectedElement').inputValue(),'box-0','closing the drawer keeps the selection');
+  }
   await page.locator('#modelStage .slide-card').first().focus();await page.keyboard.press('Escape');
   assert.equal(await page.locator('#selectedElement').inputValue(),'background');
   await page.locator('#context-finish').selectOption('solid');await page.locator('#context-background').selectOption('light');
   // On wide screens the drawer is already open from the font step above.
   if(!await page.locator('#detailControls').isVisible())await page.locator('#btnMoreOptions').click();assert.equal(await page.locator('#detailControls').isVisible(),true);
-  await page.locator('#btnCloseOptions').click();assert.equal(await page.locator('#detailControls').isVisible(),false);
+  // The drawer keeps one close button at every width: Hide options, pinned in its bar.
+  await page.locator('#btnHideDrawer').click();assert.equal(await page.locator('#detailControls').isVisible(),false);
   // Picker is the native keyboard equivalent of clicking visible text.
   await page.locator('#selectedElement').selectOption('heading-1');assert.equal(width>=1101?await page.locator('#context-font').count()===1:await page.locator('#context-font').isVisible(),true);
   assert.match(await page.locator('#editScope').textContent(),/ALL box headings/);
@@ -97,7 +107,7 @@ try{
  const beside=async(page,a,b)=>page.evaluate(([a,b])=>{const x=document.querySelector(a).getBoundingClientRect(),y=document.querySelector(b).getBoundingClientRect();return {sameRow:x.top<y.bottom&&y.top<x.bottom,leftOf:x.right<=y.left+1,a:[x.left|0,x.top|0,x.width|0],b:[y.left|0,y.top|0,y.width|0]};},[a,b]);
  await check('guide',async()=>{
   const {page,done}=await fresh(1440);
-  await page.locator('#stage-start').click();await otherStartingPaths(page);await page.locator('#btnGuideMe').click();await page.locator('.guide-count').waitFor();
+  await page.locator('#stage-start').click();await page.locator('#btnGuideMe').click();await page.locator('.guide-count').waitFor();
   const question=await page.locator('.guide-count').textContent();
   await page.locator('#modelStage .slide-title-text').click();
   assert.equal(await page.locator('.guide-count').count(),1,'Clicking the preview keeps Guide me open');
@@ -123,13 +133,15 @@ try{
  for(const stage of ['review'])await check('stage '+stage,async()=>{
   const {page,done}=await fresh(1440);
   await page.locator('#stage-'+stage).click();
-  await page.locator('#modelStage .slide-title-text').click();
-  assert.equal(await stepId(page),stage,'Clicking the preview on '+stage+' does not change stage');
-  assert.equal(await page.locator('#modelStage [data-edit-target][tabindex="0"]').count(),0,'Slide elements are not tab stops on '+stage);
-  await page.locator('#btnEditSlide').click();
-  assert.equal(await stepId(page),'slides','Edit this slide opens the slide editor');
+  // Send shows the deck sheet in place of the editing preview; a slide opens only through its own button.
+  assert.equal(await page.locator('#modelStage').isVisible(),false,'The editing preview is not shown on '+stage);
+  assert.equal(await stepId(page),stage,'Opening '+stage+' keeps its place');
+  assert.equal(await page.locator('#sendDeck [data-edit-target][tabindex="0"]').count(),0,'Slide elements are not tab stops on '+stage);
+  assert.equal(await page.locator('#sendDeck .send-open').count(),5,'Each slide on the sheet has one open button');
+  await page.locator('#sendDeck .send-open').first().click();
+  assert.equal(await stepId(page),'slides','Opening a slide goes to the slide editor');
   assert.equal(await page.locator('#workspace').getAttribute('data-editor'),'true');
-  await done();console.log('PASS the '+stage+' stage keeps its place until Edit this slide');
+  await done();console.log('PASS the '+stage+' stage keeps its place until a slide is opened');
  });
  for(const [lw,lh] of [[1000,800],[844,390],[768,900]])await check('layout '+lw,async()=>{
   const {page,done}=await fresh(lw,lh);
@@ -139,8 +151,8 @@ try{
   assert.ok(options.sameRow&&options.leftOf,'More options opens beside the preview at '+lw+'px: '+JSON.stringify(options));
   const gap=await page.evaluate(()=>document.getElementById('previewPane').getBoundingClientRect().top-document.getElementById('slideRail').getBoundingClientRect().bottom);
   assert.ok(gap<60,'The preview starts right under the thumbnails at '+lw+'px, not after a gap of '+Math.round(gap)+'px');
-  await page.locator('#btnCloseOptions').click();
-  await page.locator('#stage-start').click();await otherStartingPaths(page);await page.locator('#btnGuideMe').click();await page.locator('.guide-count').waitFor();
+  await page.locator('#btnHideDrawer').click();await page.locator('#detailControls').waitFor({state:'hidden'});
+  await page.locator('#stage-start').click();await page.locator('#btnGuideMe').click();await page.locator('.guide-count').waitFor();
   const guided=await beside(page,'#previewPane','#chromeRail');
   assert.ok(guided.sameRow&&guided.leftOf,'Guide me sits beside the preview at '+lw+'px: '+JSON.stringify(guided));
   await done();console.log('PASS options and the guide stay beside the preview at '+lw+'px');

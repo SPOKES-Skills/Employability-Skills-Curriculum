@@ -68,7 +68,7 @@ const textRole = (q) => (['title', 'divider'].includes(q.slide)
   ? (q.field === 'headingColor' ? 'titleText' : 'subtitle')
   : (q.field === 'headingColor' ? 'heading' : 'body'));
 
-// The preview's advisory accounts for textures, gradients and a band divider's outer surface, so on
+// The preview's advisory accounts for background details, gradients and a band divider's outer surface, so on
 // text and background questions the model decides. Passing colors keep the plain contrast ratio for ordering.
 function modelJudge(catalog, design, q, score) {
   const role = q.kind === 'background' ? null : textRole(q);
@@ -137,7 +137,7 @@ export function applyAnswer(catalog, design, q, id) {
       return next;
     }
     case 'background':
-    case 'textColor': return Model.setRoleStyle(catalog, design, q.slide, fieldOf(q), id);
+    case 'textColor': return Model.setSharedColor(catalog, design, q.slide, fieldOf(q), id, { keepOnSlide: true });
     case 'watermark': {
       const next = Model.setRoleStyle(catalog, design, 'divider', 'watermarkMode', id);
       // The model shows the legacy watermark only while the divider's own watermark choice is not hide.

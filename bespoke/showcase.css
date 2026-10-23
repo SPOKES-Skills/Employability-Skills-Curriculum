@@ -1,0 +1,196 @@
+/* Showcase polish. Chrome text uses Outfit only. */
+/* Showcase renders are drawn 960 wide and at least 628 tall: the Text boxes, Video and Activity slides' own
+   height at that width, so the tallest preset title fits too. Shorter slides stretch to fill the box; a taller
+   one grows its frame (slide-frame.mjs), so a render never shows page white or loses its bottom. */
+:root{--show-w:960;--show-h:628}
+.toast {
+  position: fixed;
+  top: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 100;
+  max-width: min(560px, calc(100vw - 32px));
+  margin: 0;
+  padding: 12px 18px;
+  border-radius: var(--radius-feature);
+  background: var(--navy, #00133f);
+  color: #fff;
+  font-family: "Outfit", system-ui, sans-serif;
+  font-size: var(--fs-md);
+  line-height: 1.4;
+  box-shadow: 0 10px 28px #00133f40;
+  overflow-wrap: anywhere;
+  pointer-events: none;
+  opacity: 0;
+}
+/* Always rendered so screen readers register the live region before its text changes. */
+.toast.is-visible {
+  opacity: 1;
+}
+/* Toast in and out: a fade and a short slide down, 180ms. */
+@media (prefers-reduced-motion: no-preference) {
+  .toast { transform: translate(-50%, -8px); transition: opacity .18s ease-out, transform .18s ease-out; }
+  .toast.is-visible { transform: translate(-50%, 0); }
+}
+
+/* ---- Pick a look: stage, side column and filmstrip (mockup option A) ----
+   The side column keeps one height for every look (one-line name and heading, two reserved detail lines,
+   a fixed color row), so a preview never slides the strip out from under the pointer. */
+.workspace[data-stage=start] .chrome-rail,.workspace[data-stage=review] .chrome-rail{display:none!important}
+.showcase{min-width:0;font-family:"Outfit",system-ui,sans-serif;color:var(--navy)}
+.look-top{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(280px,1fr);gap:28px;align-items:center;padding:24px clamp(16px,2vw,28px) 16px}
+/* Sized to the window height, but never so small that the side column outweighs it at short heights. */
+.look-stage{position:relative;min-width:0;width:min(100%,max(480px,calc((100dvh - 320px) * var(--show-w) / var(--show-h))));justify-self:center}
+.look-frame{position:relative;aspect-ratio:var(--show-w) / var(--show-h);overflow:hidden;border-radius:var(--radius-control);background:#fff}
+.look-frame>.bespoke-slide{position:absolute;top:0;left:0;width:960px!important;max-width:none!important;min-height:calc(var(--show-h) * 1px)!important;margin:0!important;transform:scale(var(--look-scale,.5));transform-origin:top left}
+.look-hero{border-radius:var(--radius-feature);box-shadow:0 14px 34px #00133f40}
+/* Stage cross-fade on preview and apply: the old look fades out over the new one, 200ms. */
+.look-leaving{position:absolute;top:0;left:0;width:100%;pointer-events:none}
+@media(prefers-reduced-motion:no-preference){
+ .look-leaving{animation:look-out .2s ease-out 1 both}
+}
+@keyframes look-out{from{opacity:1}to{opacity:0}}
+.look-side{min-width:0}
+.look-kicker{margin:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:var(--fs-2xs);font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.look-kicker:focus{outline:0}
+.look-kicker:focus-visible{outline:3px solid var(--blue);outline-offset:4px}
+.look-name{margin:6px 0;font-size:var(--fs-2xl);line-height:1.15;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.look-detail{margin:0;min-height:3em;font-size:var(--fs-sm);line-height:1.5;color:var(--muted)}
+.look-colors{display:flex;gap:6px;height:28px;margin:12px 0;padding:0;list-style:none}
+.look-dot{display:block;width:24px;height:24px;border-radius:50%;border:2px solid #fff;box-shadow:0 0 0 1px var(--line)}
+.look-deck{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;margin:4px 0 16px}
+.look-mini{border-radius:var(--radius-field);box-shadow:0 1px 4px #00133f26}
+.look-actions{display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center}
+.look-go{min-height:48px;padding:12px 22px;font-size:var(--fs-md);font-weight:600}
+.look-actions .text-link,.look-paths .text-link{min-height:44px;padding:0 4px}
+.look-strip{border-top:1px solid var(--line);background:#fff;padding:8px clamp(16px,2vw,28px) 14px}
+.look-moods{display:flex;flex-wrap:wrap;align-items:center;gap:6px 16px;margin-bottom:8px}
+.look-chips{display:flex;flex-wrap:wrap;gap:6px}
+.look-chip{min-height:44px;padding:0 16px;border:1px solid transparent;border-radius:999px;background:var(--mist);color:var(--navy);font-size:var(--fs-sm)}
+.look-chip[aria-pressed=true]{background:var(--navy);color:#fff}
+.look-paths{display:flex;flex-wrap:wrap;gap:4px 16px;margin-left:auto}
+.look-strip-cards{display:flex;gap:12px;overflow-x:auto;padding:6px 6px 8px;scroll-padding-inline:6px}
+.look-card{flex:0 0 156px;display:flex;flex-direction:column;gap:6px;padding:4px;border-radius:var(--radius-control);cursor:pointer;min-width:0}
+.look-card[aria-disabled=true]{cursor:default}
+.look-card:focus{outline:0}
+.look-card:focus-visible{outline:3px solid var(--blue);outline-offset:2px}
+.look-thumb{border-radius:var(--radius-field);box-shadow:0 2px 8px #00133f26;outline:3px solid transparent;outline-offset:3px}
+.look-card[aria-selected=true] .look-thumb{outline-color:#d3b257}
+.look-card.is-previewing:not([aria-selected=true]) .look-thumb{outline:2px solid var(--action);outline-offset:3px}
+.look-yours .look-thumb{outline:2px dashed var(--blue);outline-offset:3px}
+.look-yours[aria-selected=true] .look-thumb{outline:3px dashed #d3b257}
+.look-card-name{font-size:var(--fs-xs);line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* Laptops keep the side column beside a stage sized to the window height, so the strip shows under both. */
+@media(min-width:761px) and (max-width:1100px){
+ .look-stage{width:min(100%,max(400px,calc((100dvh - 400px) * var(--show-w) / var(--show-h))))}
+}
+@media(max-width:760px){
+ .look-top{grid-template-columns:minmax(0,1fr);align-items:start;padding:16px}
+ .look-stage{width:100%}
+ .look-name{font-size:var(--fs-xl)}
+ .look-card{flex-basis:132px}
+ .look-paths{margin-left:0}
+}
+
+/* ---- Make it yours: starting look, scope line, rail tags, quieter drawer ---- */
+.starting-from{display:flex;flex-wrap:wrap;align-items:center;gap:0 12px;margin:0 0 4px;color:var(--muted);font-size:var(--fs-sm)}
+.starting-from b{color:var(--navy);font-weight:600}
+.starting-from:focus{outline:0}
+.starting-from:focus-visible{outline:3px solid var(--blue);outline-offset:2px}
+.workspace:not([data-editor=true]) .starting-from{display:none}
+.scope-line{display:flex;flex-wrap:wrap;align-items:center;gap:0 8px;min-height:44px;margin:8px 0 0;padding:0 12px;border-left:3px solid #d3b257;border-radius:var(--radius-field);background:#fff8e6;color:var(--navy);font-size:var(--fs-xs);line-height:1.4}
+.scope-line[hidden]{display:none}
+.scope-line .text-link{font-size:var(--fs-xs)}
+/* One line under the slide; the summary opens today's advisory text. They never block anything. */
+.readability-details{margin:12px 0 0}
+.readability-details>summary{display:flex;align-items:center;min-height:44px;padding:0 4px;color:var(--navy);font-size:var(--fs-sm);cursor:pointer}
+.readability-details .readability-warning{margin-top:4px}
+#previewTabs [data-rail-kind]{position:relative}
+.changed-tag{position:absolute;top:6px;right:6px;padding:1px 7px;border-radius:999px;background:#d3b257;color:#00133f;font-size:var(--fs-2xs);font-weight:600;line-height:1.4}
+@media(prefers-reduced-motion:no-preference){
+ #previewTabs .just-changed{animation:rail-glow 1s ease-out 1}
+}
+@keyframes rail-glow{0%{box-shadow:0 0 0 4px #d3b25799,0 0 18px #d3b257}100%{box-shadow:0 0 0 0 transparent}}
+/* The similarity meter moves to Send; the drawer drops its repeated stage counter. */
+.workspace[data-stage=slides] .similarity,.workspace[data-stage=slides] .stage-count{display:none}
+
+/* ---- Send: the deck on one sheet beside a summary panel (flow mockup, screen 4) ---- */
+.workspace[data-stage=review]{display:block;max-width:1380px;margin:auto;min-height:0;max-height:none;overflow:visible}
+.workspace[data-stage=review] .slide-rail,.workspace[data-stage=review] .preview-pane,.workspace[data-stage=review] .inspector-followup{display:none!important}
+.surface-navigation:has(+ .workspace[data-stage=review]){display:none}
+.send-body{display:grid;grid-template-columns:minmax(0,1fr) minmax(320px,380px);gap:26px;align-items:start;padding:22px clamp(16px,2vw,28px)}
+.send-deck{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;align-content:start}
+.send-slide{position:relative;min-width:0}
+.send-slide:first-child{grid-column:span 2;grid-row:span 2}
+.send-frame{position:relative;aspect-ratio:var(--show-w) / var(--show-h);overflow:hidden;border-radius:var(--radius-control);background:#fff;box-shadow:0 4px 14px #00133f26}
+.send-frame>.bespoke-slide{position:absolute;top:0;left:0;width:960px!important;max-width:none!important;min-height:calc(var(--show-h) * 1px)!important;margin:0!important;box-shadow:none;transform:scale(var(--send-scale,.3));transform-origin:top left}
+.send-open{position:absolute;inset:0;width:100%;border:0;border-radius:var(--radius-control);background:transparent;cursor:pointer}
+.send-open:hover{box-shadow:inset 0 0 0 3px var(--action)}
+.send-open:focus-visible{outline:3px solid var(--focus);outline-offset:3px}
+#showcase .editor-selected{outline:0!important;box-shadow:none!important}
+.send-panel{display:flex;flex-direction:column;gap:10px;min-width:0;padding:18px;border:1px solid var(--line);border-radius:var(--radius-dialog);background:#fff}
+.send-kicker{margin:0;font-size:var(--fs-2xs);font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.send-heading{margin:0;font-size:var(--fs-xl);font-weight:500;line-height:1.15;letter-spacing:-.02em}
+.send-heading b{font-weight:700}
+.send-heading:focus{outline:0}
+.send-heading:focus-visible{outline:3px solid var(--focus);outline-offset:4px}
+.send-rows{display:grid;grid-template-columns:auto 1fr;gap:6px 12px;margin:0;font-size:var(--fs-sm);line-height:1.4}
+.send-rows dt{color:var(--muted)}
+.send-rows dd{margin:0}
+.send-notes{display:flex;flex-direction:column;gap:6px;font-size:var(--fs-sm);font-weight:500}
+.send-notes textarea{min-height:64px;padding:8px;border:1px solid #8f9eaf;border-radius:var(--radius-control);font-weight:400;resize:vertical}
+.send-actions{display:flex;flex-wrap:wrap;gap:8px;justify-content:flex-end}
+.send-actions .btn{min-height:44px}
+.send-feedback{margin:0;font-size:var(--fs-sm);text-align:right}
+.send-feedback:empty{display:none}
+.send-similarity{margin:0;font-size:var(--fs-xs);line-height:1.5}
+.send-similarity .text-link{min-height:44px;padding:0 4px}
+.send-comparison{font-size:var(--fs-xs);line-height:1.5}
+.send-comparison h3{margin:12px 0 4px;font-size:var(--fs-xs)}
+.send-fine{margin:0;font-size:var(--fs-2xs);color:var(--muted)}
+.send-all>summary{display:flex;align-items:center;min-height:44px;font-size:var(--fs-sm);font-weight:500;color:var(--blue)}
+.send-all-body{padding-top:8px;font-size:var(--fs-sm)}
+.send-all-body .review-role dl{display:grid;grid-template-columns:auto 1fr;gap:4px 10px}
+.send-all-body .review-role dd{margin:0}
+.send-sent-note{margin:0;padding:8px 10px;border-radius:var(--radius-control);background:var(--mist);font-size:var(--fs-sm);line-height:1.4}
+/* After Send: three of the team's slides fanned out beside the confirmation. */
+.sent-view{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr);align-items:center;gap:40px;padding:30px clamp(16px,4vw,50px);background:radial-gradient(ellipse at 30% 50%,#d3b2572e,transparent 60%)}
+.sent-fan{position:relative;aspect-ratio:16/11;min-width:0}
+.sent-card{position:absolute;left:14%;top:16%;width:64%;transform:var(--fan)}
+.sent-card:nth-child(1){--fan:rotate(-9deg) translate(-12%,8%)}
+.sent-card:nth-child(2){--fan:rotate(-3deg) translate(-3%,0)}
+.sent-card:nth-child(3){--fan:rotate(4deg) translate(10%,-4%)}
+.sent-card:nth-child(3) .send-frame{box-shadow:0 18px 40px #00133f55}
+@media(prefers-reduced-motion:no-preference){
+ .sent-fan.is-settling .sent-card{animation:sent-settle .4s ease-out 1 both}
+}
+@keyframes sent-settle{from{transform:none;opacity:0}to{transform:var(--fan);opacity:1}}
+.sent-text{min-width:0;overflow-wrap:anywhere}
+.sent-check{display:grid;place-items:center;width:54px;height:54px;border-radius:50%;background:#37b550;color:#fff;font-size:var(--fs-xl);font-weight:700}
+.sent-heading{margin:12px 0 8px;font-size:var(--fs-2xl);font-weight:600;line-height:1.1;letter-spacing:-.03em}
+.sent-heading:focus{outline:0}
+.sent-heading:focus-visible{outline:3px solid var(--focus);outline-offset:4px}
+.sent-body{max-width:42ch;margin:0;font-size:var(--fs-md);line-height:1.5;color:var(--muted)}
+.sent-body b{color:var(--navy)}
+.sent-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px}
+.sent-actions .btn{min-height:44px;font-family:inherit}
+.sent-follow{display:grid;gap:8px;max-width:42ch;margin-top:20px;padding-top:16px;border-top:1px solid var(--line)}
+.sent-follow textarea{min-height:64px;font-family:inherit}
+.sent-follow .btn{justify-self:start;min-height:44px;font-family:inherit}
+.sent-follow .send-feedback{text-align:left}
+.sent-details{margin-top:12px;font-size:var(--fs-xs)}
+.sent-details>summary{display:list-item;width:max-content;line-height:44px;color:var(--blue)}
+.sent-details p{margin:0}
+.sent-details a{display:inline-flex;align-items:center;min-height:44px}
+@media(min-width:1101px){
+ .send-panel{position:sticky;top:calc(var(--bar-h) + 16px);max-height:calc(100dvh - var(--bar-h) - 32px);overflow:auto}
+}
+@media(max-width:1100px){
+ .send-body{grid-template-columns:minmax(0,1fr)}
+ .sent-view{grid-template-columns:minmax(0,1fr);gap:16px}
+ .sent-fan{max-width:560px;width:100%;justify-self:center}
+}
+@media(max-width:760px){
+ .send-body,.sent-view{padding:16px}
+ .send-deck{grid-template-columns:repeat(2,minmax(0,1fr))}
+}

@@ -34,9 +34,11 @@ node scripts/test-bespoke-builder-model.mjs
 node scripts/test-bespoke-role-model.mjs
 node scripts/test-bespoke-role-contracts.mjs
 node scripts/test-bespoke-similarity.mjs
+node scripts/test-bespoke-showcase-model.mjs
+node scripts/test-bespoke-make-it-yours.mjs
 python3 -m unittest discover -s scripts -p 'test_bespoke*.py' -v
 echo "==> bespoke handoff endpoint"
-node --test scripts/test-bespoke-dev-server.mjs scripts/test-bespoke-v2-contracts.mjs scripts/test-bespoke-handoff.mjs scripts/test-bespoke-provision.mjs scripts/test-bespoke-brief.mjs scripts/test-bespoke-guide.mjs scripts/test-bespoke-team-view.mjs scripts/test-print-slides.mjs scripts/test-print-slides-lib.mjs
+node --test scripts/test-bespoke-dev-server.mjs scripts/test-bespoke-v2-contracts.mjs scripts/test-bespoke-handoff.mjs scripts/test-bespoke-provision.mjs scripts/test-bespoke-brief.mjs scripts/test-bespoke-guide.mjs scripts/test-bespoke-team-view.mjs scripts/test-print-slides.mjs scripts/test-print-slides-lib.mjs scripts/test-bespoke-canvas-toolbar.mjs scripts/test-bespoke-canvas-fit.mjs scripts/test-bespoke-background-structures.mjs scripts/test-bespoke-font-slots.mjs scripts/test-bespoke-standard-conversion.mjs scripts/test-bespoke-look-variety.mjs
 # Valid fixtures + any docs/phase-2/submissions/**/selection.json (skips *invalid*/*broken*)
 python3 scripts/validate-bespoke-selection.py \
   scripts/test-fixtures/bespoke/selection-money-management.json
@@ -73,6 +75,8 @@ if [ -d node_modules/playwright ] && [ -d node_modules/axe-core ]; then
   node scripts/test-bespoke-guided-browser.mjs
   node scripts/test-bespoke-workflow-qa.mjs
   node scripts/test-bespoke-streamlined-workflow.mjs
+  node scripts/test-bespoke-draft-conversion.mjs
+  node scripts/test-bespoke-converted-send.mjs
   node scripts/test-bespoke-effective-paint.mjs
   node scripts/test-bespoke-effective-theme.mjs
   node scripts/test-bespoke-contract-qa.mjs
@@ -83,6 +87,9 @@ if [ -d node_modules/playwright ] && [ -d node_modules/axe-core ]; then
   node scripts/test-bespoke-title-layouts.mjs
   node scripts/test-bespoke-video-frames.mjs
   node scripts/test-bespoke-patterns.mjs
+  node scripts/test-bespoke-showcase.mjs
+  node scripts/test-bespoke-showcase-fit.mjs
+  node scripts/test-bespoke-showcase-messages.mjs
   node scripts/generate-lesson-fingerprints.mjs --check
   echo "==> offline lessons package opens from file://"
   offline_out="$(mktemp -d)"

@@ -129,7 +129,7 @@ function allowedStatic(relative) {
 export async function createDevServer({ port = 0, runtimeDir } = {}) {
   if (!Number.isInteger(port) || port < 0 || port > 65535) throw new Error('Port must be an integer from 0 to 65535.');
   const store = await createStore(runtimeDir);
-  const env = {
+  let env = {
     BESPOKE_GITHUB_TOKEN: 'local-preview-synthetic-token-no-network',
     BESPOKE_DRAFT_KEY: store.draftKey,
     BESPOKE_TEAM_KEYS: JSON.stringify(Object.fromEntries(LESSON_IDS.map(id => [id, hashEditCode(LOCAL_PREVIEW_CODE)]))),
@@ -179,7 +179,12 @@ export async function createDevServer({ port = 0, runtimeDir } = {}) {
   server.requestTimeout = 15000; server.headersTimeout = 10000;
   await new Promise((resolve, reject) => { server.once('error', reject); server.listen(port, '127.0.0.1', resolve); });
   baseUrl = `http://127.0.0.1:${server.address().port}`;
-  return { server, baseUrl, runtimeFile: store.filename, async close() { await new Promise((resolve, reject) => server.close(error => error ? reject(error) : resolve())); await store.flush(); } };
+  return {
+    server, baseUrl, runtimeFile: store.filename,
+    // Test support: act like an administrator replacing every team's edit code.
+    replaceEditCode(code) { env = { ...env, BESPOKE_TEAM_KEYS: JSON.stringify(Object.fromEntries(LESSON_IDS.map(id => [id, hashEditCode(code)]))) }; },
+    async close() { await new Promise((resolve, reject) => server.close(error => error ? reject(error) : resolve())); await store.flush(); }
+  };
 }
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {

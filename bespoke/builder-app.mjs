@@ -3,8 +3,17 @@ import { createReviewTools } from './review-tools.mjs';
 import { readabilitySuggestions } from './readability.mjs';
 import { compareDesign } from './similarity.mjs';
 import { createPreviewEditor } from './preview-editor.mjs';
+import { watchCanvasFit } from './canvas-fit.mjs';
+import { fontControl, fontScopeGroup, scopeSentences } from './font-slots.mjs';
+import { convertToStandard, convertAlternatives, convertDraft, conversionNote } from './standard-conversion.mjs';
+import { CONVERTED_STATUS, CONVERTED_NOTE, convertedOnOpen } from './converted-open.mjs';
 import { syncStageChrome } from './canvas-shell.mjs';
 import { createGuide } from './guide/guide.mjs';
+import { showToast } from './toast.mjs';
+import { renderPickALook, closePickALook } from './pick-a-look.mjs';
+import { slideOptions, designKey, changedKinds, lookDetail, designChanges, sentState, withSampleWords } from './showcase-model.mjs';
+import { renderSendStage, renderSentView, closeSendStage } from './send-stage.mjs';
+import { scopeLineParts, startingFrom, renderStartingFrom, markRail, pulseRail } from './make-it-yours.mjs';
 import { createTeamView, isShareHash, isSnapshotHash, viewLinkToOpen } from './team-view.mjs';
 import { guideMark, indexForMark, keepsGuide } from './guide/questions.mjs';
 import { buildQuestions, normalizeGuide } from './guide/questions.mjs';
@@ -14,10 +23,6 @@ import { buildQuestions, normalizeGuide } from './guide/questions.mjs';
 const STORAGE_KEY = 'bespoke-draft-v2';
 const BACKUP_KEY = 'bespoke-previous-draft-v2';
 const TEAM_SESSION_KEY = 'bespoke-team-session-v2';
-// Tab-lifetime UI preference only; never part of a design, team record or export.
-const PRESET_CONFIRM_KEY = 'bespoke-skip-preset-confirmation-session';
-let skipPresetConfirmation = (()=>{try{return sessionStorage.getItem(PRESET_CONFIRM_KEY)==='1';}catch{return false;}})();
-let pendingPreset = null;
 const PENDING_SUBMISSION_STORAGE = 'bespoke-pending-submission-v2';
 const MAX_FILE_BYTES = 256000;
 const SHARE_URL_MAX = 8000;
@@ -25,23 +30,27 @@ const EDIT_CODE_MIN = 8;
 const EDIT_CODE_MAX = 128;
 const HANDOFF_TIMEOUT_MS = 20000;
 const HANDOFF_CONFIG_URL = './handoff-config.json';
+const SAVING_NOTICE = 'Saving the shared design…';
+const SENDING_NOTICE = 'Sending to Britt…';
 const VIEW_NAMES = {title:'Title slide',divider:'Chapter divider',cards:'Text boxes',video:'Video slide',activity:'Activity'};
 const STEPS = [
  {id:'team',label:'Lesson & team',view:'title'},
- {id:'start',label:'Color & layout',view:'title'},
- {id:'slides',label:'Customize',view:'title'},
- {id:'review',label:'Review & save',view:'title'}
+ {id:'start',label:'Pick a look',view:'title'},
+ {id:'slides',label:'Make it yours',view:'title'},
+ {id:'review',label:'Send',view:'title'}
 ];
 const LEGACY_STEPS = ['welcome','team','colors','fonts','title','divider','cards','video','activity','review'];
 const onStage = id => STEPS[state.step].id === id;
 const teamIdentified = () => Boolean(state.teamName.trim() && state.spokespersonName.trim());
 const state = {step:0,stepId:'start',meta:null,library:null,lessonId:'money-management',teamName:'',spokespersonName:'',spokespersonEmail:'',builderName:'',lessonTitle:'',lessonSubtitle:'',unspoken:'',editCode:'',previewView:'title',design:null,legacySelection:null,alternatives:null,changes:[],redo:[]};
-const ui = {mode:'view',renderedStep:null,previewPinned:false,teamSession:null,cloudConflict:null,cloudBusy:false,autosavePaused:false,allowUnload:false,skipNextLocalSave:false,restoreNote:'',restoredFromLink:false,editCodeHash:'',activeRole:'sidebar',paintScope:'slide',themeScope:'slide',localPreview:false,editorRole:'title',sharedThemeOpen:false,startingLooksOpen:false,meaningfulDesign:false};
+const ui = {onlySlide:false,mode:'view',renderedStep:null,previewPinned:false,teamSession:null,cloudConflict:null,cloudBusy:false,autosavePaused:false,allowUnload:false,skipNextLocalSave:false,restoreNote:'',restoredFromLink:false,editCodeHash:'',activeRole:'sidebar',paintScope:'slide',themeScope:'slide',localPreview:false,editorRole:'title',sharedThemeOpen:false,meaningfulDesign:false,appliedLook:null,lookSnapshot:null,lookUndoAt:null,onStart:false};
 ui.guide = null;
 let guide = null;
 let previewEditor = null;
 let reviewTools = null;
 ui.moreOptions = false;
+// Slide types changed by an edit on another slide during this visit to Make it yours.
+ui.changedKinds = new Set();
 let catalog, fingerprints, selectionSchema, handoffApiBase='', handoffBusy=false, lastSavedRaw=null, storageConflict=false;
 // Replacing a draft or team invalidates pending operations against its predecessor.
 let draftGeneration=0;
@@ -53,6 +62,8 @@ const teamView=createTeamView({request:(action,fields)=>handoffRequest(action,fi
  lessonTitle:id=>findMeta(state.meta.lessons,id)?.title||'',builder:()=>state.builderName.trim()||state.spokespersonName.trim()||'the Team Leader',land:()=>{state.step=stepIndex('review');},note:text=>{ui.restoreNote=text;},enter:lessonId=>{ui.mode='view';if(lessonId)state.lessonId=lessonId;}});
 const clone = value => structuredClone(value);
 const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+// Every render shows the lesson's name as its title until the team types their own.
+const renderOptions=design=>slideOptions(design,{lessonTitle:state.meta.lessons.find(l=>l.id===state.lessonId)?.title||design.samples.title,defaultTitle:catalog.defaults.samples.title,logoUrl:'../SPOKES-Logo.png'});
 const findOption=(family,slug)=>state.library?.families?.[family]?.options.find(o=>o.slug===slug);
   function byId(id) {
     return document.getElementById(id);
@@ -116,9 +127,9 @@ const findOption=(family,slug)=>state.library?.families?.[family]?.options.find(
   }
 
   function forgetTeamSession() {
-    resetPresetConfirmation();
     ui.teamSession = null;
     ui.cloudConflict = null;
+    ui.convertedUnsaved = false;
     state.editCode = "";
     try {
       localStorage.removeItem(TEAM_SESSION_KEY);
@@ -133,23 +144,22 @@ const findOption=(family,slug)=>state.library?.families?.[family]?.options.find(
       if (!findMeta(state.meta.lessons, saved.lessonId)) return null;
       if (typeof saved.editCode !== "string" || saved.editCode.length < EDIT_CODE_MIN) return null;
       ui.teamSession = saved;
+      if (ui.draftRebase && saved.baseSelectionKey === selectionKey(ui.draftRebase.from)) { saved.baseSelectionKey = selectionKey(ui.draftRebase.to); ui.convertedUnsaved = saved.baseSelectionKey !== selectionKey(ui.draftRebase.from); persistTeamSession(); }
+      ui.draftRebase = null;
       state.editCode = saved.editCode;
       return saved;
     } catch { return null; }
   }
 
+  const storedSessionLesson = () => { try { return JSON.parse(localStorage.getItem(TEAM_SESSION_KEY) || "null")?.lessonId || ""; } catch { return ""; } };
+
   function installTeamSession(lessonId, editCode) {
     teamView.end();
-    const same = ui.teamSession && ui.teamSession.lessonId === lessonId && ui.teamSession.editCode === editCode;
-    if (!same) { draftGeneration++; resetPresetConfirmation(); }
-    ui.teamSession = same ? ui.teamSession : {
-      lessonId,
-      editCode,
-      revision: null,
-      savedAt: null,
-      baseSelectionKey: null,
-      pendingSave: null
-    };
+    const sameLesson = Boolean(ui.teamSession) && ui.teamSession.lessonId === lessonId;
+    if (!sameLesson) draftGeneration++;
+    // The same lesson with a new code is the same team's design: keep its revision and baseline, swap only the code.
+    if (!sameLesson) ui.teamSession = { lessonId, editCode, revision: null, savedAt: null, baseSelectionKey: null, pendingSave: null };
+    else if (ui.teamSession.editCode !== editCode) ui.teamSession = { ...ui.teamSession, editCode };
     state.editCode = editCode;
     persistTeamSession();
   }
@@ -170,6 +180,11 @@ const findOption=(family,slug)=>state.library?.families?.[family]?.options.find(
     if (!ui.teamSession) return false;
     const key = currentSelectionKey();
     return Boolean(key && key !== (ui.teamSession.baseSelectionKey || ""));
+  }
+
+  function noteConversion(stored) {
+    ui.convertedUnsaved = convertedOnOpen(catalog, stored, selectionKey, currentSelectionKey());
+    if (ui.convertedUnsaved && !ui.localPreview) setSaveStatus(CONVERTED_STATUS);
   }
 
   function canAutosave() {
@@ -198,8 +213,8 @@ const findOption=(family,slug)=>state.library?.families?.[family]?.options.find(
   function draftStatusText() {
     if (!ui.teamSession || !ui.teamSession.revision) return "Browser draft saved";
     if (ui.localPreview) return hasUnsavedTeamWork() ? "Browser draft saved · local test save pending" : "Local test design up to date";
-    if (!hasUnsavedTeamWork()) return "Shared design up to date";
-    if (ui.autosavePaused) return "Choose Save shared design to share";
+    if (!hasUnsavedTeamWork()) return ui.convertedUnsaved ? CONVERTED_STATUS : "Shared design up to date";
+    if (ui.autosavePaused) return "Choose Save for the team to share";
     return canAutosave() ? "Sharing changes automatically" : "Browser draft saved";
   }
 
@@ -215,13 +230,14 @@ const findOption=(family,slug)=>state.library?.families?.[family]?.options.find(
     }
     const lesson = findMeta(state.meta?.lessons, session.lessonId);
     const saved = session.savedAt ? ` Shared version saved ${new Date(session.savedAt).toLocaleString()}.` : " No shared version has been saved yet.";
-    const dirty = hasUnsavedTeamWork() ? " This browser has changes that are not in the shared design." : " This browser matches the shared design.";
+    const dirty = hasUnsavedTeamWork() ? " This browser has changes that are not in the shared design." : (ui.convertedUnsaved ? CONVERTED_NOTE : " This browser matches the shared design.");
     status.textContent = ui.localPreview
       ? `${lesson?.title || session.lessonId} · Local test session. ${session.savedAt ? 'Saved '+new Date(session.savedAt).toLocaleString()+'.' : 'No test save yet.'} ${session.revision && hasUnsavedTeamWork() ? 'Browser changes are waiting to save.' : ''}`
       : `${lesson?.title || session.lessonId} team session.${saved}${dirty}`;
     let delivered=byId('lastReviewReceipt');
     if(!delivered){delivered=document.createElement('p');delivered.id='lastReviewReceipt';delivered.className='review-receipt';panel.append(delivered);}
-    delivered.replaceChildren();delivered.hidden=!session.lastReceipt;
+    // The Sent view holds the receipt link in its Details, so the band steps aside there (the strip hides when it holds nothing else).
+    delivered.replaceChildren();delivered.hidden=!session.lastReceipt||(onStage("review")&&sendView()==="sent");
     if(session.lastReceipt){
       delivered.append(document.createTextNode('Last confirmed review package · '+session.lastReceipt.submissionId+'. '));
       for(const [field,label] of [['url','Open review request'],['artifactUrl','Exact submitted artifact']]){
@@ -234,6 +250,7 @@ const findOption=(family,slug)=>state.library?.families?.[family]?.options.find(
     byId("btnLoadLatest")?.toggleAttribute("hidden", !ui.cloudConflict);
     byId("btnKeepLocal")?.toggleAttribute("hidden", !ui.cloudConflict);
     byId("btnCheckStatus")?.toggleAttribute("hidden", !pendingSubmission());
+    refreshNoteButton();
   }
 
   function peekDraft() {
@@ -264,8 +281,9 @@ const findOption=(family,slug)=>state.library?.families?.[family]?.options.find(
     }
     const notice = byId("restoreNotice");
     if (notice) {
-      notice.hidden = !ui.restoreNote;
-      notice.textContent = ui.restoreNote || "";
+      const hidden = !ui.restoreNote, text = ui.restoreNote || "";
+      if (notice.hidden !== hidden) notice.hidden = hidden;
+      if (notice.textContent !== text) notice.textContent = text;
     }
     const unlock = byId("leadUnlock");
     if (unlock) unlock.hidden = true;
@@ -296,13 +314,11 @@ const findOption=(family,slug)=>state.library?.families?.[family]?.options.find(
 
   function lockViewControls() {
     if (isLeadSession()) return;
-    const panel = byId("stepPanel");
-    if (!panel) return;
-    panel.querySelectorAll("input, select, textarea, button").forEach((el) => {
-      if (["btnBack","btnNext","btnNextRole","btnContinueEditing","btnQuickReview","btnBuildOwn","btnChangeStartingLook"].includes(el.id) || el.dataset.editorRole || el.dataset.scopeRole || el.id.startsWith("review-preview-") || el.id.startsWith("review-edit-")) return;
+    document.querySelectorAll("#stepPanel, #allSettings").forEach((panel) => panel.querySelectorAll("input, select, textarea, button").forEach((el) => {
+      if (["btnBack","btnNext","btnNextRole"].includes(el.id) || el.dataset.editorRole || el.dataset.scopeRole || el.id.startsWith("review-preview-") || el.id.startsWith("review-edit-")) return;
       el.disabled = true;
       el.setAttribute("aria-disabled", "true");
-    });
+    }));
   }
 
   function renderTeam(panel, {heading = true} = {}) {
@@ -344,7 +360,6 @@ const findOption=(family,slug)=>state.library?.families?.[family]?.options.find(
     select.addEventListener("change", () => {
       if (ui.teamSession && !ui.localPreview) return;
       if(ui.localPreview){installTeamSession(select.value,'bespoke-local-preview-synthetic');ui.autosavePaused=true;}
-      resetPresetConfirmation();
       state.lessonId = select.value;
       saveDraft();
       updatePreview();
@@ -355,7 +370,6 @@ const findOption=(family,slug)=>state.library?.families?.[family]?.options.find(
       if (!input) return;
       input.value = state[key] || "";
       const sync = () => {
-        if(key==='teamName'&&state[key]!==input.value)resetPresetConfirmation();
         state[key] = input.value;
         saveDraft();
         updatePreview();
@@ -371,9 +385,54 @@ const findOption=(family,slug)=>state.library?.families?.[family]?.options.find(
   }
 
   function fileNotice(message) {
+    if (ui.sendFeedback) sendFeedback("");
     const notice = byId("fileStatus");
     notice.hidden = false;
     notice.textContent = message;
+  }
+
+  // Save and send messages: warnings and errors keep the strip, and on Send they also show beside the buttons.
+  function actionNotice(message) {
+    fileNotice(message);
+    sendFeedback(message);
+  }
+
+  // A send in progress keeps its detail in the strip; beside the buttons on Send it reads "Sending to Britt…".
+  function pendingNotice(message) {
+    fileNotice(message);
+    sendFeedback(SENDING_NOTICE);
+  }
+
+  // On Send, save and send progress also shows beside the buttons. Returns whether it did.
+  function sendFeedback(message) {
+    const el = onStage("review") ? byId("sendFeedback") : null;
+    ui.sendFeedback = el ? message : "";
+    if (el) el.textContent = message;
+    return Boolean(el);
+  }
+
+  // Every save, send or open that starts or ends re-checks the follow-up note button, automatic saves included.
+  function setHandoffBusy(value) {
+    handoffBusy = value;
+    refreshNoteButton();
+  }
+
+  function refreshNoteButton() {
+    const button = byId("btnSendNote");
+    if (button) button.disabled = !noteReady(byId("sentNote").value);
+  }
+
+  // Good news shows as a short toast in view. It clears older messages in the strip and beside the Send buttons.
+  function successNotice(message) {
+    if (ui.sendFeedback) sendFeedback("");
+    clearStrip();
+    showToast(message);
+  }
+
+  function clearStrip() {
+    const notice = byId("fileStatus");
+    notice.hidden = true;
+    notice.textContent = "";
   }
 
   function prepareDraftReplacement() {
@@ -402,7 +461,7 @@ const findOption=(family,slug)=>state.library?.families?.[family]?.options.find(
       downloadText(filename, JSON.stringify(payload, null, 2), "application/json");
       const status = byId("builderFileStatus");
       if (status) status.textContent = "Downloaded a backup file without the private access code.";
-      fileNotice("Backup downloaded. Keep it in the team’s shared folder; it does not contain the private access code.");
+      successNotice("Backup downloaded without the access code. Keep it in your team folder.");
       return true;
     } catch (err) { fileNotice(`Could not download the design file. ${err.message}`); return false; }
   }
@@ -413,23 +472,23 @@ const findOption=(family,slug)=>state.library?.families?.[family]?.options.find(
       if (file.size > MAX_FILE_BYTES) throw new Error("This file is too large. Select the small Bespoke design file, not a source document.");
       const payload = JSON.parse(await file.text());
       validateSelectionPayload(payload, {draft:true});
-      if (ui.teamSession && payload.lesson.id !== ui.teamSession.lessonId) {
-        throw new Error("This backup belongs to a different lesson than the open team session.");
-      }
+      // A view tab has no session of its own, but a reload would restore the one stored in this browser.
+      const heldLesson = ui.teamSession ? ui.teamSession.lessonId : storedSessionLesson();
+      if (heldLesson && payload.lesson.id !== heldLesson) throw new Error("This backup belongs to a different lesson than the team session in this browser.");
       if (!prepareDraftReplacement()) return;
       applySelectionPayload(payload);
       ui.autosavePaused = Boolean(ui.teamSession);
       if (!ui.teamSession) {
+        teamView.end();
         ui.mode = "edit";
         state.editCode = "";
       }
       state.step = stepIndex("review");
       ui.restoredFromLink = false;
       ui.editCodeHash = "";
-      if (!state.legacySelection) ui.restoreNote = "";
       history.replaceState(null, "", location.pathname + location.search);
       render();
-      fileNotice(`Opened ${file.name}. Check the lesson and choices. This is your browser draft; ${ui.localPreview ? 'choose Save test design to save it to the local test service.' : 'choose Save shared design when team access is open.'}`);
+      fileNotice(`Opened ${file.name}. Check the lesson and choices. This is your browser draft; ${ui.localPreview ? 'choose Save test design to save it to the local test service.' : 'choose Save for the team when team access is open.'}`);
     } catch (err) { fileNotice(`Could not open that team file. ${err.message} Your current draft has not changed.`); }
   }
 
@@ -668,7 +727,7 @@ const findOption=(family,slug)=>state.library?.families?.[family]?.options.find(
 
   function requireTeamSession() {
     if (ui.teamSession) return ui.teamSession;
-    fileNotice("Open your private team access before using shared Save or Send. Download backup still works.");
+    actionNotice("Open your private team access before using shared Save or Send. Download backup still works.");
     openOpenDialog();
     return null;
   }
@@ -697,7 +756,7 @@ const findOption=(family,slug)=>state.library?.families?.[family]?.options.find(
     const session = requireTeamSession();
     if (!session || handoffBusy) return false;
     const generation = draftGeneration, openingKey = currentSelectionKey();
-    handoffBusy = true;
+    setHandoffBusy(true);
     ui.cloudBusy = true;
     if (announce) fileNotice("Checking the latest shared design…");
     try {
@@ -705,6 +764,13 @@ const findOption=(family,slug)=>state.library?.families?.[family]?.options.find(
       if (session !== ui.teamSession || generation !== draftGeneration) return false;
       if (!result.ok) {
         fileNotice(result.message || "Could not open the shared design. Your browser draft is unchanged.");
+        return false;
+      }
+      if (result.access === "view") {
+        const { lessonId, editCode } = session;
+        forgetTeamSession();
+        await teamView.open(lessonId + "." + encodeURIComponent(editCode), result);
+        render();
         return false;
       }
       if (result.selection) {
@@ -737,6 +803,7 @@ const findOption=(family,slug)=>state.library?.families?.[family]?.options.find(
       session.baseSelectionKey = result.selection?.schema === "bespoke-selection/v1" ? selectionKey(result.selection) : currentSelectionKey();
       ui.cloudConflict = null;
       ui.autosavePaused = ui.autosavePaused || Boolean(state.legacySelection);
+      noteConversion(result.selection);
       persistTeamSession();
       storageConflict = false;
       try {
@@ -747,11 +814,11 @@ const findOption=(family,slug)=>state.library?.families?.[family]?.options.find(
         setSaveStatus("Browser storage unavailable");
       }
       render();
-      if(result.selection)fileNotice("Opened the latest shared design.");
-      else byId("fileStatus").hidden=true;
+      if(result.selection)successNotice("Opened the latest shared design.");
+      else clearStrip();
       return true;
     } finally {
-      handoffBusy = false;
+      setHandoffBusy(false);
       ui.cloudBusy = false;
       updateCloudChrome();
     }
@@ -763,18 +830,18 @@ const findOption=(family,slug)=>state.library?.families?.[family]?.options.find(
     if (!session) return;
     if (ui.cloudConflict) {
       if (auto) return;
-      fileNotice("A newer shared version exists. Download a backup and load the latest shared design before saving.");
+      actionNotice("A newer shared version exists. Download a backup and load the latest shared design before saving.");
       updateCloudChrome();
       return;
     }
     let payload;
     try { payload = currentSelection(); }
     catch (err) {
-      if (!auto) fileNotice("Could not save. " + err.message);
+      if (!auto) actionNotice("Could not save. " + err.message);
       return;
     }
     if (payload.lesson.id !== session.lessonId) {
-      if (!auto) fileNotice("This team access is locked to a different lesson. Your draft was not saved.");
+      if (!auto) actionNotice("This team access is locked to a different lesson. Your draft was not saved.");
       return;
     }
     const requestKey = selectionKey(payload);
@@ -791,9 +858,9 @@ const findOption=(family,slug)=>state.library?.families?.[family]?.options.find(
     }
     clearTimeout(autosaveTimer);
     autosaveTimer = null;
-    handoffBusy = true;
+    setHandoffBusy(true);
     if (auto) setSaveStatus("Saving to the shared design…");
-    else fileNotice("Saving the shared design…");
+    else if (!sendFeedback(SAVING_NOTICE)) fileNotice(SAVING_NOTICE);
     try {
       const result = await handoffRequest("save", {
         lessonId: session.lessonId,
@@ -810,12 +877,12 @@ const findOption=(family,slug)=>state.library?.families?.[family]?.options.find(
           ui.cloudConflict = { revision: result.revision, savedAt: result.savedAt };
           session.pendingSave = null;
           persistTeamSession();
-          fileNotice("Someone saved a newer shared version. Your browser draft is safe. Download a backup, then load the latest shared design.");
+          actionNotice("Someone saved a newer shared version. Your browser draft is safe. Download a backup, then load the latest shared design.");
           updateCloudChrome();
           return;
         }
         if (auto) setSaveStatus("Automatic save will retry");
-        else fileNotice(result.message || "Shared Save did not finish. Your browser draft is safe; try Save again.");
+        else actionNotice(result.message || "Shared Save did not finish. Your browser draft is safe; try Save again.");
         return;
       }
       session.revision = result.revision;
@@ -823,10 +890,11 @@ const findOption=(family,slug)=>state.library?.families?.[family]?.options.find(
       session.baseSelectionKey = requestKey;
       session.pendingSave = null;
       ui.cloudConflict = null;
+      ui.convertedUnsaved = false;
       if (replacedDuringSave) {
         persistTeamSession();
         setSaveStatus(draftStatusText());
-        fileNotice(ui.localPreview
+        actionNotice(ui.localPreview
           ? "The previous draft finished saving locally. Your current browser draft was kept; review it and choose Save test design."
           : "The previous draft finished saving. Your current browser draft was kept; review it and choose Save to share it.");
         return;
@@ -840,12 +908,22 @@ const findOption=(family,slug)=>state.library?.families?.[family]?.options.find(
         ? (changedDuringSave ? "Newer browser changes not saved to the local test service yet" : "Local test design up to date")
         : (changedDuringSave ? "Newer browser changes not shared yet" : (auto ? "Saved to the shared design automatically" : "Shared design up to date")));
       if (!auto) {
-        fileNotice(ui.localPreview
-          ? (changedDuringSave ? "The version that started saving is saved locally. You made newer changes while it saved; choose Save test design again." : (result.unchanged ? "The local test design was already up to date." : "Local test design saved."))
-          : (changedDuringSave ? "The version that started saving is shared. You made newer changes while it saved; choose Save shared design again." : (result.unchanged ? "The shared design was already up to date." : "Shared design saved.")));
+        if (changedDuringSave) {
+          actionNotice(ui.localPreview
+            ? "The version that started saving is saved locally. You made newer changes while it saved; choose Save test design again."
+            : "The version that started saving is shared. You made newer changes while it saved; choose Save for the team again.");
+        } else {
+          const saved = ui.localPreview
+            ? (result.unchanged ? "The local test design was already up to date." : "Local test design saved.")
+            : (result.unchanged ? "The shared design was already up to date." : "Shared design saved.");
+          successNotice(saved);
+          sendFeedback(saved);
+        }
       }
     } finally {
-      handoffBusy = false;
+      setHandoffBusy(false);
+      // A save that ends without a message of its own must not leave "Saving…" beside the buttons.
+      if (ui.sendFeedback === SAVING_NOTICE) sendFeedback("");
       updateCloudChrome();
       scheduleAutosave(AUTOSAVE.idleMs);
     }
@@ -866,11 +944,18 @@ const findOption=(family,slug)=>state.library?.families?.[family]?.options.find(
 
   function rememberReceipt(result, receipt) {
     if (ui.teamSession?.lessonId === receipt.lessonId && ui.teamSession.editCode === receipt.editCode) {
-      ui.teamSession.lastReceipt = {submissionId:result.submissionId, url:result.url, artifactUrl:result.artifactUrl, revision:result.revision, receivedAt:new Date().toISOString()};
+      // The key is the design that was sent, so the confirmation shows only while that design is unchanged.
+      ui.teamSession.lastReceipt = {submissionId:result.submissionId, url:result.url, artifactUrl:result.artifactUrl, revision:result.revision, receivedAt:new Date().toISOString(), designKey:receipt.designKey || designKey(state.design), notes:receipt.notes ?? ""};
       persistTeamSession();
     }
     storePendingSubmission(null);
-    fileNotice(result.url ? "Britt received the review request. " + result.url : "Britt received the review request.");
+    ui.sendFeedback = "";
+    // On Send the confirmation view is the news; elsewhere one toast says it and the view waits on Send.
+    const shown = onStage("review") && sendView() === "sent";
+    if (shown) clearStrip(); else successNotice("Sent to Britt.");
+    if (!onStage("review")) return;
+    render(false);
+    if (shown) byId(ui.noteFrom !== undefined ? "sentNote" : "sentHeading")?.focus();
   }
 
   function scheduleSubmissionPoll(receipt, delay = 10000) {
@@ -887,12 +972,12 @@ const findOption=(family,slug)=>state.library?.families?.[family]?.options.find(
     });
     if(ui.teamSession?.lessonId!==receipt.lessonId||ui.teamSession.editCode!==receipt.editCode||pendingSubmission()?.submissionId!==receipt.submissionId)return;
     if (!result.ok) {
-      fileNotice(result.message || "Britt’s receipt could not be checked. We will check again when this page opens.");
+      actionNotice(result.message || "Britt’s receipt could not be checked. We will check again when this page opens.");
       return;
     }
     if (result.status === "processing") {
       storePendingSubmission({ ...receipt, runId: result.runId || receipt.runId, stage: "receipt" });
-      fileNotice("Britt’s review request is processing. You can close this page; this browser will check again when you return.");
+      pendingNotice("Britt’s review request is processing. You can close this page; this browser will check again when you return.");
       scheduleSubmissionPoll({ ...receipt, runId: result.runId || receipt.runId }, 10000);
       return;
     }
@@ -901,20 +986,22 @@ const findOption=(family,slug)=>state.library?.families?.[family]?.options.find(
       return;
     }
     storePendingSubmission({ ...receipt, stage: "failed" });
-    fileNotice(result.message || "The review request failed. Your saved design is unchanged; try Send to Britt again.");
+    actionNotice(result.message || "The review request failed. Your saved design is unchanged; try Send to Britt again.");
   }
 
   async function cloudSend() {
     if (!isLeadSession() || handoffBusy) return;
-    if (ui.localPreview) { fileNotice("This local preview does not send review requests. Your test design and backups remain available."); return; }
+    if (ui.localPreview) { actionNotice("This local preview does not send review requests. Your test design and backups remain available."); return; }
     const session = requireTeamSession();
     if (!session) return;
     if (!state.spokespersonName.trim()) {
-      goStage('team');byId('spokespersonName')?.focus();fileNotice("Add the spokesperson's name on Lesson & team before sending.");
+      goStage('team');byId('spokespersonName')?.focus();actionNotice("Add the spokesperson's name on Lesson & team before sending.");
       return;
     }
+    // A converted design is not an edit, so nothing has saved it; pressing Send is the team's action, so it saves first.
+    if (ui.convertedUnsaved && session.revision && !ui.cloudConflict && !hasUnsavedTeamWork()) { await cloudSave(); if (ui.cloudConflict || ui.convertedUnsaved || hasUnsavedTeamWork()) return; }
     if (ui.cloudConflict || !session.revision || hasUnsavedTeamWork()) {
-      fileNotice("Save the current shared design before sending it to Britt.");
+      actionNotice("Save the current shared design before sending it to Britt.");
       return;
     }
     const existing = pendingSubmission();
@@ -923,7 +1010,7 @@ const findOption=(family,slug)=>state.library?.families?.[family]?.options.find(
       payload = existing.selection;
     } else {
       try { payload = currentSelection(); }
-      catch (err) { fileNotice("Could not send. " + err.message); return; }
+      catch (err) { actionNotice("Could not send. " + err.message); return; }
     }
     const mutationId = existing?.stage === "request" && existing.expectedRevision === session.revision
       ? existing.mutationId : newMutationId();
@@ -933,16 +1020,17 @@ const findOption=(family,slug)=>state.library?.families?.[family]?.options.find(
       editCode: session.editCode,
       expectedRevision: session.revision,
       mutationId,
-      selection: payload
+      selection: payload,
+      designKey: designKey(state.design)
     };
     storePendingSubmission(pending);
-    handoffBusy = true;
-    fileNotice("Requesting Britt’s review…");
+    setHandoffBusy(true);
+    pendingNotice("Requesting Britt’s review…");
     try {
       const result = await handoffRequest("send", pending);
       if(ui.teamSession!==session)return;
       if (!result.ok) {
-        fileNotice(result.message || "The review request did not finish. Your saved design is safe; choose Send to Britt to retry.");
+        actionNotice(result.message || "The review request did not finish. Your saved design is safe; choose Send to Britt to retry.");
         return;
       }
       const receipt = {
@@ -951,17 +1039,19 @@ const findOption=(family,slug)=>state.library?.families?.[family]?.options.find(
         editCode: session.editCode,
         expectedRevision: pending.expectedRevision,
         submissionId: result.submissionId,
-        runId: result.runId || null
+        runId: result.runId || null,
+        designKey: pending.designKey,
+        notes: pending.selection.unspoken ?? ""
       };
       storePendingSubmission(receipt);
       if (result.status === "received") {
         rememberReceipt(result, receipt);
       } else {
-        fileNotice("Britt’s review request is processing. This is not a receipt yet.");
+        pendingNotice("Britt’s review request is processing. This is not a receipt yet.");
         scheduleSubmissionPoll(receipt, 5000);
       }
     } finally {
-      handoffBusy = false;
+      setHandoffBusy(false);
     }
   }
 
@@ -969,12 +1059,12 @@ const findOption=(family,slug)=>state.library?.families?.[family]?.options.find(
     const pending = pendingSubmission();
     if (!pending || !ui.teamSession || pending.lessonId !== ui.teamSession.lessonId) return;
     if (pending.stage === "receipt" && pending.submissionId) {
-      fileNotice("Checking Britt’s pending review receipt…");
+      pendingNotice("Checking Britt’s pending review receipt…");
       await pollSubmission(pending);
     } else if (pending.stage === "request") {
-      fileNotice("A previous review request may not have returned a receipt. Choose Send to Britt to retry the exact saved revision.");
+      actionNotice("A previous review request may not have returned a receipt. Choose Send to Britt to retry the exact saved revision.");
     } else if (pending.stage === "failed") {
-      fileNotice("The previous review request failed. Your shared design is safe; choose Send to Britt to try again.");
+      actionNotice("The previous review request failed. Your shared design is safe; choose Send to Britt to try again.");
     }
   }
 
@@ -1012,7 +1102,7 @@ const findOption=(family,slug)=>state.library?.families?.[family]?.options.find(
       if (err) err.textContent = "Enter the 8-character team code from your team's OneDrive folder.";
       return;
     }
-    handoffBusy = true;
+    setHandoffBusy(true);
     ui.cloudBusy = true;
     if (err) err.textContent = "Checking private team access…";
     try {
@@ -1049,6 +1139,7 @@ const findOption=(family,slug)=>state.library?.families?.[family]?.options.find(
       ui.teamSession.savedAt = result.savedAt ?? null;
       ui.teamSession.pendingSave = null;
       ui.teamSession.baseSelectionKey = result.selection?.schema === "bespoke-selection/v1" ? selectionKey(result.selection) : currentSelectionKey();
+      noteConversion(result.selection);
       ui.autosavePaused = Boolean(state.legacySelection);
       ui.cloudConflict = null;
       persistTeamSession();
@@ -1063,10 +1154,10 @@ const findOption=(family,slug)=>state.library?.families?.[family]?.options.find(
       if (err) err.textContent = "";
       byId("openDialog").close();
       render();
-      if(result.selection)fileNotice("Opened the latest shared design.");
-      else byId("fileStatus").hidden=true;
+      if(result.selection)successNotice("Opened the latest shared design.");
+      else clearStrip();
     } finally {
-      handoffBusy = false;
+      setHandoffBusy(false);
       ui.cloudBusy = false;
       updateCloudChrome();
     }
@@ -1146,7 +1237,7 @@ const findOption=(family,slug)=>state.library?.families?.[family]?.options.find(
         state.step = stepIndex("review");
         closeHistory();
         render();
-        fileNotice("Previous choices loaded into this browser draft. Review them, then Save shared design to create a new revision. Later history is preserved.");
+        fileNotice("Previous choices loaded into this browser draft. Review them, then Save for the team to create a new revision. Later history is preserved.");
         window.requestAnimationFrame(() => byId("stepPanel")?.focus({ preventScroll: true }));
       });
       li.append(text, button);
@@ -1274,6 +1365,7 @@ function restoreStep(saved){
  ui.paintScope=saved.paintScope==='shared'?'shared':'slide';
  ui.themeScope=saved.themeScope==='shared'?'shared':'slide';
  ui.meaningfulDesign=saved.meaningfulDesign===true||JSON.stringify(state.design)!==JSON.stringify(Model.defaultDesign(catalog));
+ ui.appliedLook=knownLook(saved.appliedLook);
  ui.renderedStep=state.step;
  ui.guide=normalizeGuide(saved.guide,buildQuestions(catalog));
 }
@@ -1293,13 +1385,15 @@ function loadDraft(){
    if(!Array.isArray(state.changes)||!Array.isArray(state.redo))throw new Error('Invalid history');
    // Undo snapshots are data boundaries too; reject corrupted history before it can reach preview.
    for(const entry of [...state.changes,...state.redo])if(!entry||typeof entry.label!=='string'||schemaErrors({...buildSelectionPayload(),design:entry.design,...(entry.alternatives?{alternatives:entry.alternatives}:{})},selectionSchema).length||Model.validateDesign(catalog,entry.design).length||(entry.alternatives&&Model.validateDesign(catalog,entry.alternatives.otherDesign).length))throw new Error('Invalid history');
+   // The team session saved its baseline from the unconverted design; restoreTeamSession moves it so converting is not an edit.
+   const from=buildSelectionPayload(),standard=convertDraft(catalog,state);Object.assign(state,{design:standard.design,alternatives:standard.alternatives,changes:standard.changes,redo:standard.redo});ui.draftRebase={from,to:buildSelectionPayload()};ui.restoreNote=conversionNote(standard.notes)||ui.restoreNote;
    draftGeneration++;restoreStep(saved);ui.autosavePaused=saved.autosavePaused===true;lastSavedRaw=raw;
   }catch(e){Object.assign(state,before);throw e;}
  }catch{storageConflict=true;ui.restoreNote='This browser draft needs recovery. It has not been replaced. Download a backup from the other tab, or open a known backup here.';}
 }
 function serializeDraft(){
  const {meta,library,editCode,...saved}=state;
- return JSON.stringify({...saved,stepId:STEPS[state.step].id,activeRole:ui.activeRole,paintScope:ui.paintScope,themeScope:ui.themeScope,editorRole:ui.editorRole,sharedThemeOpen:ui.sharedThemeOpen,moreOptions:ui.moreOptions,meaningfulDesign:ui.meaningfulDesign,autosavePaused:ui.autosavePaused,guide:ui.guide});
+ return JSON.stringify({...saved,stepId:STEPS[state.step].id,activeRole:ui.activeRole,paintScope:ui.paintScope,themeScope:ui.themeScope,editorRole:ui.editorRole,sharedThemeOpen:ui.sharedThemeOpen,moreOptions:ui.moreOptions,meaningfulDesign:ui.meaningfulDesign,appliedLook:ui.appliedLook,autosavePaused:ui.autosavePaused,guide:ui.guide});
 }
 function saveDraft(){
  if(!isLeadSession()||!state.design)return false;
@@ -1312,27 +1406,26 @@ function saveDraft(){
  }catch{setSaveStatus('Browser storage unavailable. Download a backup.');return false;}
 }
 function resetDesignForLesson(lessonId){
- draftGeneration++;resetPresetConfirmation();ui.meaningfulDesign=false;ui.startingLooksOpen=false;ui.editorRole='title';const nextDesign=Model.defaultDesign(catalog);if(!keepsGuide({fromLesson:state.lessonId,toLesson:lessonId,fromDesign:state.design,toDesign:nextDesign}))ui.guide=null;ui.sharedThemeOpen=false;ui.paintScope='slide';ui.themeScope='slide';
+ draftGeneration++;ui.meaningfulDesign=false;ui.appliedLook=null;ui.lookSnapshot=null;ui.editorRole='title';const nextDesign=Model.defaultDesign(catalog);if(!keepsGuide({fromLesson:state.lessonId,toLesson:lessonId,fromDesign:state.design,toDesign:nextDesign}))ui.guide=null;ui.sharedThemeOpen=false;ui.paintScope='slide';ui.themeScope='slide';
  Object.assign(state,{step:0,lessonId,teamName:'',spokespersonName:'',spokespersonEmail:'',builderName:'',unspoken:'',design:nextDesign,legacySelection:null,alternatives:null,changes:[],redo:[]});
 }
 function applySelectionPayload(payload){
  validateSelectionPayload(payload,{draft:true});
  const migrated=payload.schema==='bespoke-selection/v1'?Model.migrateV1(payload,catalog,state.meta):null;
- const nextDesign=migrated?.design||clone(payload.design), issues=Model.validateDesign(catalog,nextDesign);
+ const {design:nextDesign,changes:designChanges}=convertToStandard(catalog,migrated?.design||payload.design), other=convertAlternatives(catalog,payload.alternatives), standardNote=conversionNote([...designChanges,...other.changes]), issues=Model.validateDesign(catalog,nextDesign);
  if(issues.length)throw new Error(issues[0]);
  const team=payload.team||{};
- if(state.lessonId!==payload.lesson.id||state.teamName!==(team.name||''))resetPresetConfirmation();
- ui.meaningfulDesign=true;ui.startingLooksOpen=false;
+ ui.meaningfulDesign=true;ui.appliedLook=null;ui.lookSnapshot=null;
  if(!keepsGuide({fromLesson:state.lessonId,toLesson:payload.lesson.id,fromDesign:state.design,toDesign:nextDesign}))ui.guide=null;
  draftGeneration++;
- Object.assign(state,{lessonId:payload.lesson.id,teamName:team.name||'',spokespersonName:team.spokesperson?.name||'',spokespersonEmail:team.spokesperson?.email||'',builderName:team.builder?.name||'',unspoken:payload.unspoken||'',changes:[],redo:[],alternatives:payload.alternatives?clone(payload.alternatives):null});
+ Object.assign(state,{lessonId:payload.lesson.id,teamName:team.name||'',spokespersonName:team.spokesperson?.name||'',spokespersonEmail:team.spokesperson?.email||'',builderName:team.builder?.name||'',unspoken:payload.unspoken||'',changes:[],redo:[],alternatives:other.alternatives});
  if(payload.schema==='bespoke-selection/v1'){
-  state.design=migrated.design;state.legacySelection=clone(payload);ui.autosavePaused=true;
-  ui.restoreNote='Converted a copy of the older design. '+migrated.warnings.join(' ')+' The original is included in every backup and can be downloaded on Review. Review this conversion before saving.';
- }else{state.design=nextDesign;state.legacySelection=payload.legacySelection?clone(payload.legacySelection):null;ui.restoreNote='';}
+  state.design=nextDesign;state.legacySelection=clone(payload);ui.autosavePaused=true;
+  ui.restoreNote=['Converted a copy of the older design. '+migrated.warnings.join(' ')+' The original is included in every backup and can be downloaded on Review. Review this conversion before saving.',standardNote].filter(Boolean).join(' ');
+ }else{state.design=nextDesign;state.legacySelection=payload.legacySelection?clone(payload.legacySelection):null;ui.restoreNote=standardNote;}
 }
 function recordChange(label,before){
- const entry={label,design:before,alternatives:clone(state.alternatives||null)};
+ const entry={label,design:before,alternatives:clone(state.alternatives||null),look:ui.appliedLook};
  const mark=guideMark(ui.guide);if(mark!==undefined)entry.guide=mark;
  state.changes.push(entry);state.changes=state.changes.slice(-40);state.redo=[];
 }
@@ -1341,19 +1434,22 @@ function changeDesign(label,edit,{redraw=true,checkpoint=true}={}){
  const before=clone(state.design), next=clone(state.design);edit(next);
  if(JSON.stringify(before)===JSON.stringify(next))return;
  next.startingPoint='custom';ui.meaningfulDesign=true;
+ const moved=changedKinds(catalog,Model,before,next).filter(kind=>kind!==state.previewView);
+ if(moved.length)ui.changedKinds=new Set([...ui.changedKinds,...moved]);
  if(checkpoint)recordChange(label,before);else state.redo=[];state.design=next;
  saveDraft();if(redraw)render(false);else{updatePreview();updateUndo();}
+ pulseRail(byId('previewTabs'),moved);
  byId('saveLive').textContent=label+'. Browser draft updated.';
 }
 function undoChange(redo=false){
  if(!isLeadSession())return;
  const source=redo?state.redo:state.changes,target=redo?state.changes:state.redo;
  const entry=source.pop();if(!entry)return;
- target.push({label:entry.label,design:clone(state.design),alternatives:clone(state.alternatives||null),...(entry.guide!==undefined?{guide:entry.guide}:{})});
- state.design=entry.design;state.alternatives=clone(entry.alternatives||null);
+ target.push({label:entry.label,design:clone(state.design),alternatives:clone(state.alternatives||null),look:ui.appliedLook,...(entry.guide!==undefined?{guide:entry.guide}:{})});
+ state.design=entry.design;state.alternatives=clone(entry.alternatives||null);if(Object.hasOwn(entry,'look'))ui.appliedLook=knownLook(entry.look);
  const index=ui.guide?.on?indexForMark(ui.guide,entry.guide):null;if(index!==null)ui.guide={...ui.guide,index};
  saveDraft();render(false);
- fileNotice((redo?'Redid: ':'Undid: ')+entry.label);
+ successNotice((redo?'Redid: ':'Undid: ')+entry.label);
 }
 function updateUndo(){
  for(const [id,entries,verb] of [['btnUndo',state.changes,'Undo'],['btnRedo',state.redo,'Redo']]){
@@ -1376,45 +1472,49 @@ function choiceGroup(label,options,selected,pick,{mini}={}){
 }
 function miniArrangement(option){return '<span class="layout-mini layout-'+escapeHtml(option.id)+'" aria-hidden="true"><i></i><i></i><i></i></span>';}
 function heading(panel,title,description){panel.innerHTML='<h1>'+escapeHtml(title)+'</h1><p class="panel-lead">'+escapeHtml(description)+'</p>';}
-function resetPresetConfirmation(){
- skipPresetConfirmation=false;
- try{sessionStorage.removeItem(PRESET_CONFIRM_KEY);}catch{/* Private mode: in-memory preference is already cleared. */}
- if(pendingPreset)finishPresetConfirmation(false);
-}
 function presetName(preset){return preset.colorLabel+' · '+preset.label;}
+const knownLook=id=>catalog.presets.some(preset=>preset.id===id)?id:null;
+const matchesPreset=design=>catalog.presets.some(preset=>designKey(Model.applyPreset(catalog,preset.id,design))===designKey(design));
 function applyPresetChoice(id){
  if(!isLeadSession())return false;
  const preset=catalog.presets.find(item=>item.id===id);if(!preset)return false;
- ui.meaningfulDesign=true;ui.startingLooksOpen=true;
- const samples=clone(state.design.samples);recordChange('Applied '+presetName(preset),clone(state.design));state.design=Model.applyPreset(catalog,preset.id,state.design);state.design.samples=samples;
- state.step=stepIndex('slides');ui.editorRole='title';state.previewView='title';ui.moreOptions=false;render(false);fileNotice(presetName(preset)+' applied. Every choice remains editable.');byId('selectedElement')?.focus({preventScroll:true});return true;
+ const next={...Model.applyPreset(catalog,preset.id,state.design),samples:clone(state.design.samples)};
+ if(replaceDesign('Applied '+presetName(preset),next))ui.lookUndoAt=state.changes.length;
+ ui.appliedLook=preset.id;render(false);successNotice(presetName(preset)+' applied.');return true;
 }
-function requestPreset(id){
- if(!isLeadSession())return;
- if(JSON.stringify(Model.applyPreset(catalog,id,state.design))===JSON.stringify(state.design)){goStage('slides');return;}
- if(!ui.meaningfulDesign||skipPresetConfirmation){applyPresetChoice(id);return;}
- const preset=catalog.presets.find(item=>item.id===id);if(!preset)return;
- pendingPreset=id;
- byId('presetDialogTitle').textContent='Apply '+presetName(preset)+' preset?';
- byId('presetSkipConfirmation').checked=false;
- byId('presetDialog').showModal();byId('presetCancel').focus();
+// A team that arrives with a design of their own can always get back to it from the Your design card.
+function enterPickALook(){
+ ui.lookUndoAt=null;
+ ui.lookSnapshot=ui.meaningfulDesign&&!matchesPreset(state.design)?clone(state.design):null;
 }
-function finishPresetConfirmation(apply){
- const id=pendingPreset;if(!id)return;
- const skip=apply&&byId('presetSkipConfirmation').checked;
- pendingPreset=null;byId('presetDialog').close();
- if(apply&&applyPresetChoice(id)&&skip){
-  skipPresetConfirmation=true;
-  try{sessionStorage.setItem(PRESET_CONFIRM_KEY,'1');}catch{/* Keep the opt-out only in this page when tab storage is unavailable. */}
- }
- (apply?byId('selectedElement'):byId('preset-'+id))?.focus({preventScroll:true});
+// One undo step when the design really changes. Returns whether it did.
+function replaceDesign(label,next){
+ const changed=designKey(next)!==designKey(state.design);
+ if(changed){recordChange(label,clone(state.design));state.design=next;}
+ ui.meaningfulDesign=true;ui.appliedLook=null;return changed;
+}
+function pickHost(){
+ const lead=()=>isLeadSession();
+ return {
+  catalog,Model,design:()=>state.design,options:design=>renderOptions(design),appliedLook:()=>ui.appliedLook,snapshot:()=>ui.lookSnapshot,editable:lead,
+  preview:design=>updatePreview(design||state.design,{quick:true}),
+  apply:id=>applyPresetChoice(id),
+  applySnapshot:()=>{if(!lead()||!ui.lookSnapshot)return;if(replaceDesign('Went back to your design',clone(ui.lookSnapshot)))ui.lookUndoAt=state.changes.length;render(false);},
+  buildOwn:()=>{if(!lead())return;replaceDesign('Started from Build my own',withSampleWords(catalog,Model,Model.defaultDesign(catalog),state.design));ui.editorRole='title';ui.moreOptions=false;goStage('slides');},
+  guideMe:()=>guide.start(),
+  canResumeGuide:()=>Boolean(ui.guide&&!ui.guide.done),resumeGuide:()=>guide.resume(),
+  makeItOurs:()=>{ui.editorRole='title';ui.moreOptions=false;goStage('slides');byId('startingFrom').focus({preventScroll:true});window.scrollTo(0,0);byId('workspace').scrollTop=0;},
+  // The redrawn Undo link is hidden, so focus moves to the stage heading instead of the page.
+  undoApply:()=>{if(ui.lookUndoAt!==state.changes.length)return;undoChange();byId('lookStageHeading')?.focus({preventScroll:true});},
+  canUndoApply:()=>lead()&&ui.lookUndoAt!==null&&ui.lookUndoAt===state.changes.length
+ };
 }
 function builderGuidance(compact=false){
  const saving=ui.localPreview
   ? 'In this local review preview, Save test design and Open test design use this computer’s test space. Nothing is sent or published.'
-  : 'Use Save shared design to save with your team, and Open team design to return. Send to Britt requests a design review; it does not build a lesson.';
- const steps='<ol class="how-to-steps"><li><strong>Color &amp; layout.</strong> Start with a color combination and one of twelve editable layouts. Open Lesson &amp; team when needed. A preset can go straight to Review &amp; save.</li><li><strong>Customize.</strong> Click a feature in any of the five slide types to open its controls in the editor sidebar. Shared theme is optional and supplies defaults; fields marked Custom keep their own choices. Editor tabs change what you edit; preview tabs only change what you see.</li><li><strong>Review &amp; save.</strong> Check the effective appearance and fonts for all five designs, then save. These are sample designs and words, not finished lesson content.</li></ol>';
- const rules='<p><strong>Why eleven colors?</strong> These are the approved SPOKES brand colors. They keep lessons recognizable, and you can mix and match all eleven freely. You are not limited to two or three.</p><p><strong>Type, boxes and branding.</strong> Choose heading and body fonts independently from the twelve curated font families. Up to four text boxes keep a slide manageable. The title keeps the SPOKES logo; its position can change, but a watermark does not replace or edit the logo.</p><p><strong>Readability is your decision.</strong> Contrast compares text with its background. Advisories explain when reading may be harder; the team leader can keep and save any palette choice. A passing measurement is not a whole-design accessibility assessment.</p><p><strong>Keep your work.</strong> Undo and Redo restore recent choices. Outside text fields, use Ctrl/Cmd+Z to undo and Ctrl/Cmd+Shift+Z to redo. Text fields keep their normal typing shortcuts. Previous versions lets you reopen shared saves. Files &amp; recovery downloads or opens a backup. Hiding a subtitle, second color or watermark keeps its settings for later.</p><p><strong>Compare for ideas.</strong> The similarity meter compares supported choices with six known lessons. Unmeasured choices do not count. It does not guarantee uniqueness or compare private team designs.</p><p>'+saving+'</p>';
+  : 'Use Save for the team to save with your team, and Open team design to return. Send to Britt requests a design review; it does not build a lesson.';
+ const steps='<ol class="how-to-steps"><li><strong>Lesson &amp; team.</strong> Choose the lesson and tell us who is on your team and who is the spokesperson.</li><li><strong>Pick a look.</strong> Choose one of twelve starting looks, each a color combination with its own layout. Everything stays editable.</li><li><strong>Make it yours.</strong> Click anything on a slide to change it. Shared theme is optional and supplies defaults; fields marked Custom keep their own choices. These are sample designs and words, not finished lesson content.</li><li><strong>Send.</strong> Check your changes, save for the team, and send your suggestion to Britt for a design review.</li></ol>';
+ const rules='<p><strong>Why eleven colors?</strong> These are the approved SPOKES brand colors. They keep lessons recognizable, and you can mix and match all eleven freely. You are not limited to two or three.</p><p><strong>Type, boxes and branding.</strong> Choose heading and body fonts independently from the twelve curated font families. Up to four text boxes keep a slide manageable. The title keeps the SPOKES logo; its position can change, but a watermark does not replace or edit the logo.</p><p><strong>Readability is your decision.</strong> Contrast compares text with its background. Advisories explain when reading may be harder; the team leader can keep and save any palette choice. A passing measurement is not a whole-design accessibility assessment.</p><p><strong>Keep your work.</strong> Undo and Redo restore recent choices. Outside text fields, use Ctrl/Cmd+Z to undo and Ctrl/Cmd+Shift+Z to redo. Text fields keep their normal typing shortcuts. Previous versions lets you reopen shared saves. Download backup and Open backup are in the More menu. Hiding a subtitle, second color or watermark keeps its settings for later.</p><p><strong>Compare for ideas.</strong> One line on Send counts how many of your supported choices the six released lessons share. Unmeasured choices do not count. It does not guarantee uniqueness or compare private team designs.</p><p>'+saving+'</p>';
  return steps+(compact?'<p class="helper"><strong>Eleven brand colors, freely mixed.</strong> Readability advice never blocks your color choices.</p><details class="inline-details"><summary>Why these choices and guardrails?</summary>'+rules+'</details>':rules);
 }
 function showBuilderHelp(close=false){
@@ -1427,45 +1527,8 @@ function renderTeamStage(panel){
  heading(panel,'Tell us about your team','Choose the lesson, name your team and say who speaks for it. One spokesperson saves the team’s decisions.');
  const fields=document.createElement('div');fields.className='team-stage';panel.append(fields);renderTeam(fields,{heading:false});
 }
-function renderWelcome(panel){
- heading(panel,'Start with color','Fresh greens, warm golds, crisp whites and deep darks. Twelve editable starting looks—choose the colors that feel right, then make the layout yours.');
- const looks=document.createElement('section');looks.className='starting-looks';panel.append(looks);
- if(ui.meaningfulDesign){
-  const title=document.createElement('h2');title.textContent='Continue your current design';looks.append(title);
-  const note=document.createElement('p');note.className='helper';note.textContent='Your choices are kept. Edit any slide type, or review and save them together.';looks.append(note);
-  const actions=document.createElement('div');actions.className='start-actions';looks.append(actions);
-  for(const [id,label,stage] of [['btnContinueEditing','Continue editing','slides'],['btnQuickReview','Review & save','review']]){const b=document.createElement('button');b.id=id;b.type='button';b.className='btn '+(stage==='review'?'btn-primary':'btn-secondary');b.textContent=label;b.onclick=()=>goStage(stage);actions.append(b);}
-  const change=document.createElement('button');change.id='btnChangeStartingLook';change.type='button';change.className='text-link';change.textContent='Change starting look';change.setAttribute('aria-controls','startingLookChoices');change.onclick=()=>{byId('startingLookChoices').scrollIntoView({block:'start'});byId('startingLookChoices').querySelector('button')?.focus({preventScroll:true});};looks.append(change);
- }
- const choices=document.createElement('div');choices.id='startingLookChoices';choices.hidden=false;looks.append(choices);
- const grid=document.createElement('div');grid.className='preset-grid';
- for(const preset of catalog.presets){
-  const b=document.createElement('button');b.type='button';b.className='preset-choice';b.id='preset-'+preset.id;b.dataset.preset=preset.id;b.setAttribute('aria-pressed',String(JSON.stringify(Model.applyPreset(catalog,preset.id,state.design))===JSON.stringify(state.design)));
-  const d=preset.design;
-  const thumb=document.createElement('span');thumb.className='preset-slide';thumb.setAttribute('aria-hidden','true');thumb.inert=true;
-  const shadow=thumb.attachShadow({mode:'closed'});
-  shadow.innerHTML='<style>'+Model.cssForDesign(catalog,d,{canonical:false})+'.preset-canvas{width:800px;transform:scale(var(--thumbnail-scale,.32));transform-origin:top left}.bespoke-slide{width:800px!important;max-width:none!important}</style><div class="preset-canvas">'+Model.renderSlide(catalog,d,'title',{logoUrl:'../SPOKES-Logo.png'})+'</div>';
-  b.append(thumb);
-  const palette=document.createElement('span');palette.className='preset-colors';palette.setAttribute('role','img');
-  const colorIds=[...new Set([d.roles.titleBackground,...(d.slides.title.colors==='gradient'?[d.roles.titleBackgroundEnd]:[]),d.roles.titleText,d.roles.accent])];
-  const colors=colorIds.map(id=>catalog.palette.find(color=>color.id===id));
-  palette.setAttribute('aria-label','Palette: '+colors.map(color=>color.name).join(', '));
-  for(const color of colors){const swatch=document.createElement('i');swatch.style.backgroundColor=color.hex;swatch.title=color.name;swatch.setAttribute('aria-hidden','true');palette.append(swatch);}b.append(palette);
-  const name=document.createElement('strong');name.textContent=preset.colorLabel;b.append(name);
-  const layout=document.createElement('span');layout.className='preset-layout';layout.textContent=preset.label+' layout';b.append(layout);
-  const description=document.createElement('span');description.className='preset-description';description.textContent=preset.blurb;b.append(description);
-  b.onclick=()=>requestPreset(preset.id);grid.append(b);
- }choices.append(grid);
- const resize=new ResizeObserver(entries=>{for(const {target,contentRect} of entries)target.style.setProperty('--thumbnail-scale',contentRect.width/800);});
- grid.querySelectorAll('.preset-slide').forEach(node=>resize.observe(node));
- // Disconnect when navigation removes this gallery.
- requestAnimationFrame(()=>{const observer=new MutationObserver(()=>{if(!grid.isConnected){resize.disconnect();observer.disconnect();}});observer.observe(panel,{childList:true});});
- const advanced=document.createElement('details');advanced.className='inline-details';advanced.id='otherStartingPaths';advanced.innerHTML='<summary>Other ways to start</summary><p>Keep your current design, or use the detailed guide.</p>';
- for(const [id,label,fn] of [['btnBuildOwn','Use current design',()=>goStage('slides')],['btnGuideMe','Guide me step by step',()=>guide.start()]]){const button=document.createElement('button');button.id=id;button.type='button';button.className='btn btn-secondary';button.textContent=label;button.onclick=fn;advanced.append(button);}if(ui.guide&&!ui.guide.done){const restart=advanced.querySelector('#btnGuideMe');restart.id='btnGuideRestart';restart.textContent='Start the guide again';const resume=document.createElement('button');resume.type='button';resume.id='btnGuideContinue';resume.className='btn btn-secondary';resume.textContent='Continue guide';resume.onclick=()=>guide.resume();advanced.append(resume);}panel.append(advanced);
-}
-
 const SHARED_FIELDS = ['primary','secondary','headingColor','bodyColor','headingFont','bodyFont','pattern'];
-const FIELD_LABELS = {primary:'Main background',secondary:'Second background',headingColor:'Heading color',bodyColor:'Supporting / box text color',headingFont:'Heading font',bodyFont:'Supporting / box text font',pattern:'Texture'};
+const FIELD_LABELS = {primary:'Main background',secondary:'Second background',headingColor:'Heading color',bodyColor:'Supporting / box text color',headingFont:'Heading font',bodyFont:'Supporting / box text font',pattern:'Background detail'};
 function savedRoleStyle(kind){return {...Model.roleStyleDefaults(catalog,state.design,kind),...state.design.roleStyles?.[kind]};}
 function fieldSection(field){return field==='pattern'?'texture':['primary','secondary'].includes(field)?'background':'text';}
 function sharedBindings(key){
@@ -1480,14 +1543,14 @@ function resetSharedField(kind,field){
 }
 function appendSharedScope(host,key){
  const scope=document.createElement('div');scope.className='shared-scope';scope.dataset.sharedScope=key;
- const bindings=sharedBindings(key),shared=bindings.filter(([kind,field])=>savedRoleStyle(kind)[field]==='inherit'),custom=bindings.filter(([kind,field])=>savedRoleStyle(kind)[field]!=='inherit');
- const p=document.createElement('p');p.className='helper';p.textContent=[shared.length?'Shared: '+shared.map(([kind])=>VIEW_NAMES[kind]).join(', ')+'.':'',custom.length?'Custom, unchanged by this default: '+custom.map(([kind])=>VIEW_NAMES[kind]).join(', ')+'.':'',sharedExtraScope(key)].filter(Boolean).join(' ');scope.append(p);
+ const bindings=sharedBindings(key);
+ const p=document.createElement('p');p.className='helper';p.textContent=[...scopeSentences(bindings,([kind,field])=>fontScopeGroup(field,savedRoleStyle(kind)[field]),([kind])=>VIEW_NAMES[kind]),sharedExtraScope(key)].filter(Boolean).join(' ');scope.append(p);
  if(bindings.length){const links=document.createElement('div');links.className='scope-links';for(const [kind,field] of bindings){const b=document.createElement('button');b.type='button';b.className='text-link';b.dataset.scopeRole=kind;b.dataset.scopeField=field;b.textContent='Edit '+VIEW_NAMES[kind]+' · '+FIELD_LABELS[field].toLowerCase();b.onclick=()=>showRoleEditor(kind,fieldSection(field),field);links.append(b);}scope.append(links);}
  host.append(scope);
 }
 function renderSharedTheme(panel){
  const details=document.createElement('details');details.id='sharedTheme';details.className='shared-theme';details.open=ui.sharedThemeOpen;
- details.innerHTML='<summary>Shared theme · optional</summary><p class="helper">Edit the slide in the preview, or choose Shared default to coordinate slides that use it. Colors and Fonts &amp; texture each show their scope. Sidebar, Accent and Buttons are always shared.</p>';
+ details.innerHTML='<summary>Shared theme · optional</summary><p class="helper">Edit the slide in the preview, or choose Shared default to coordinate slides that use it. Colors and Fonts &amp; background detail each show their scope. Sidebar, Accent and Buttons are always shared.</p>';
  details.addEventListener('toggle',()=>{if(details.isConnected&&ui.sharedThemeOpen!==details.open){ui.sharedThemeOpen=details.open;updatePreview();if(isLeadSession())saveDraft();}});panel.append(details);
  const colors=document.createElement('section');colors.setAttribute('aria-labelledby','sharedColorsTitle');colors.innerHTML='<h2 id="sharedColorsTitle">Paint colors</h2>';details.append(colors);addColorControls(colors,catalog.roles.map(r=>r.id));
  const type=document.createElement('section');type.setAttribute('aria-labelledby','sharedTypeTitle');details.append(type);renderFonts(type);
@@ -1563,18 +1626,18 @@ function addColorControls(panel,roleIds){
 }
 function renderFonts(panel){
  const kind=state.previewView,local=ui.themeScope==='slide',effective=Model.effectiveRoleStyle(catalog,state.design,kind),saved=savedRoleStyle(kind);
- panel.innerHTML='<h2 id="sharedTypeTitle">Fonts &amp; texture</h2>';
- const scopeLabel=document.createElement('label');scopeLabel.className='field';scopeLabel.textContent='Apply fonts & texture to';
+ panel.innerHTML='<h2 id="sharedTypeTitle">Fonts &amp; background detail</h2>';
+ const scopeLabel=document.createElement('label');scopeLabel.className='field';scopeLabel.textContent='Apply fonts & background detail to';
  const scope=document.createElement('select');scope.id='themeScope';scope.setAttribute('aria-describedby','themeScopeHelp');
  for(const [id,label] of [['slide','This slide · '+VIEW_NAMES[kind]],['shared','Shared default']]){const option=document.createElement('option');option.value=id;option.textContent=label;option.selected=ui.themeScope===id;scope.append(option);}
  scope.onchange=()=>{ui.themeScope=scope.value;render(false);};scopeLabel.append(scope);panel.append(scopeLabel);
- const scopeHelp=document.createElement('p');scopeHelp.id='themeScopeHelp';scopeHelp.className='helper';scopeHelp.textContent=local?'Each choice changes just that setting on '+VIEW_NAMES[kind]+'.':'Each choice changes its shared default. Slides with a custom font or texture keep it.';panel.append(scopeHelp);
+ const scopeHelp=document.createElement('p');scopeHelp.id='themeScopeHelp';scopeHelp.className='helper';scopeHelp.textContent=local?'Each choice changes just that setting on '+VIEW_NAMES[kind]+'.':'Each choice changes its shared default. Slides with a custom font or background detail keep it.';panel.append(scopeHelp);
  const edit=(field,value,label)=>changeDesign((local?VIEW_NAMES[kind]:'Shared default')+' · '+label,d=>{if(local)Object.assign(d,Model.setRoleStyle(catalog,d,kind,field,value));else if(field==='pattern')d.background=value;else d.fonts[field==='headingFont'?'heading':'body']=value;});
  for(const [key,label] of [['heading','Title & heading font'],['body','Body font']]){
   const field=document.createElement('label');field.className='field';field.textContent=label;
-  const select=document.createElement('select');select.id='font-'+key;select.setAttribute('aria-describedby',select.id+'-help');
-  for(const font of catalog.fonts){const o=document.createElement('option');o.value=font.id;o.textContent=font.label;o.selected=(local?effective[key+'Font']:state.design.fonts[key])===font.id;select.append(o);}
-  select.onchange=()=>edit(key+'Font',select.value,label+': '+catalog.fonts.find(f=>f.id===select.value).label);field.append(select);panel.append(field);
+  const select=document.createElement('select');select.id='font-'+key;select.setAttribute('aria-describedby',select.id+'-help');const slots=local&&fontControl(catalog,state.design,{saved:saved[key+'Font'],slot:key,effective:effective[key+'Font']});
+  for(const font of slots?slots.options:catalog.fonts){const o=document.createElement('option');o.value=font.id;o.textContent=font.label;o.selected=(slots?slots.value:state.design.fonts[key])===font.id;select.append(o);}
+  select.onchange=()=>edit(key+'Font',select.value,label+': '+select.selectedOptions[0].textContent);field.append(select);panel.append(field);
   const help=document.createElement('p');help.id=select.id+'-help';help.className='helper';help.textContent=local?(saved[key+'Font']==='inherit'?'Shared':'Custom')+' · '+VIEW_NAMES[kind]+'.':'Shared default · '+label+'.';
   const visible=effective[key+'Visible']||(key==='body'&&kind==='divider'&&effective.labelVisible)||(key==='heading'&&kind==='activity'&&effective.labelVisible);
   if(local&&!visible)help.textContent+=' This text is hidden. The font is kept for when you show it in the slide editor.';
@@ -1586,10 +1649,12 @@ function renderFonts(panel){
   const trial=Model.setRoleStyle(catalog,sample,kind,'pattern',option.id);
   return '<span class="pattern-mini" aria-hidden="true" style="'+Model.roleBackgroundCss(catalog,trial,kind)+'"></span>';
  };
- const patterns=choiceGroup('Background pattern',catalog.backgrounds,local?effective.pattern:state.design.background,id=>edit('pattern',id,'Texture: '+catalog.backgrounds.find(p=>p.id===id).label),{mini});patterns.setAttribute('aria-describedby','patternScopeHelp');panel.append(patterns);
- const patternNote=document.createElement('p');patternNote.id='patternScopeHelp';patternNote.className='helper';patternNote.textContent=local?VIEW_NAMES[kind]+' texture · '+(saved.pattern==='inherit'?'Shared':'Custom')+'. Thumbnails use this slide’s colors, gradient and '+({subtle:'Subtle',normal:'Standard',bold:'Stronger'}[effective.patternStrength])+' texture strength. Plain removes the texture and keeps its strength for next time.':'Thumbnails show shared colors at Standard texture strength. Plain removes the shared texture; custom slide textures stay independent.';panel.append(patternNote);
+ const patterns=choiceGroup('Background detail',catalog.backgrounds,local?effective.pattern:state.design.background,id=>edit('pattern',id,'Background detail: '+Model.backgroundEntry(catalog,id).label),{mini});patterns.setAttribute('aria-describedby','patternScopeHelp');panel.append(patterns);
+ const patternNote=document.createElement('p');patternNote.id='patternScopeHelp';patternNote.className='helper';patternNote.textContent=local?VIEW_NAMES[kind]+' background detail · '+(saved.pattern==='inherit'?'Shared':'Custom')+'. Thumbnails use this slide’s colors, gradient and '+({subtle:'Thin',normal:'Standard',bold:'Thick'}[effective.patternStrength])+' detail size. Plain removes the detail and keeps its size for next time.':'Thumbnails show shared colors at Standard detail size. Plain removes the shared detail; custom slide details stay independent.';panel.append(patternNote);
  if(!local)appendSharedScope(panel,'pattern');
 }
+// Below 1101px Sample text waits at the top of the Slide options drawer, so More options lands there.
+function focusSampleText(){const text=byId('context-text');if(!text||!byId('inspectorMore')?.contains(text))return;text.focus();text.scrollIntoView({block:'nearest'});}
 function showRoleEditor(kind,section='background',field='primary'){
  ui.moreOptions=true;
  if(ui.guide)ui.guide={...ui.guide,on:false};
@@ -1642,10 +1707,10 @@ function renderSlideChoices(panel,kind){
  heading(panel,group.label,'Customize this reusable slide design. Local choices affect only '+group.label.toLowerCase()+'. Settings marked “Use shared theme” follow your lesson defaults.');
  const choices=(pairs)=>pairs.map(([id,label])=>({id,label}));
  const colorOptions=key=>[{id:'inherit',label:'Use shared theme · '+catalog.palette.find(c=>c.id===Model.effectiveRoleStyle(catalog,{...state.design,roleStyles:{...state.design.roleStyles,[kind]:{...saved,[key]:'inherit'}}},kind)[key]).name},...catalog.palette.map(c=>({id:c.id,label:c.name}))];
- const fontOptions=key=>[{id:'inherit',label:'Use shared theme · '+catalog.fonts.find(f=>f.id===state.design.fonts[key==='headingFont'?'heading':'body']).label},...catalog.fonts.map(f=>({id:f.id,label:f.label}))];
- const sizes=choices([['small','Smaller'],['default','Match arrangement'],['large','Larger']]),alignments=choices([['layout','Match arrangement'],['left','Left'],['center','Center'],['right','Right']]);
+ const fontOptions=key=>fontControl(catalog,state.design,{saved:saved[key],slot:key==='headingFont'?'heading':'body',inherit:true}).options;
+ const sizes=choices([['small','Smaller'],['default','Default'],['large','Larger']]),alignments=choices([['layout','Default'],['left','Left'],['center','Center'],['right','Right']]);
  const arrangement=roleSection(panel,kind,'arrangement','Arrangement',kind==='cards'?'Boxes, title bar and text treatment':kind==='title'?'Composition and required logo':kind==='video'?'Video frame and heading style':'Layout and structure',{open:true});
- if(saved.headingSize!=='default'||saved.headingAlignment!=='layout'||saved.bodyAlignment!=='layout'){const note=document.createElement('p');note.className='helper';note.textContent='Local Text settings override the arrangement’s text size or alignment. Choose Match arrangement in Text to follow it again.';arrangement.append(note);}
+ if(saved.headingSize!=='default'||saved.headingAlignment!=='layout'||saved.bodyAlignment!=='layout'){const note=document.createElement('p');note.className='helper';note.textContent='Local Text settings override the arrangement’s text size or alignment. Choose Default in Text to follow it again.';arrangement.append(note);}
  group.decisions.filter(d=>!['colors','watermark'].includes(d.id)).forEach((decision)=>{
   const index=group.decisions.indexOf(decision),label=(index+1)+'. '+decision.label;
   arrangement.append(choiceGroup(label,decision.options,state.design.slides[kind][decision.id],value=>{state.previewView=kind;ui.previewPinned=false;changeDesign(group.label+': '+decision.label,d=>{d.slides[kind][decision.id]=value;});},{mini:decision.id==='layout'?miniArrangement:undefined}));
@@ -1660,9 +1725,9 @@ function renderSlideChoices(panel,kind){
    const note=document.createElement('p');note.className='helper';note.textContent='Split panels uses the second color on the right panel. Choose Solid for one color across both panels.';bg.append(note);
   }
  }else{const note=document.createElement('p');note.className='helper';note.textContent='The second color is kept for when you choose two colors again.';bg.append(note);}
- const texture=roleSection(panel,kind,'texture','Texture',catalog.backgrounds.find(b=>b.id===effective.pattern).label);
- localSelect(texture,kind,'pattern','Background texture',[{id:'inherit',label:'Use shared theme · '+catalog.backgrounds.find(b=>b.id===state.design.background).label},...catalog.backgrounds.map(b=>({id:b.id,label:b.id==='plain'?'Plain · no texture':b.label}))],saved.pattern);
- if(effective.pattern!=='plain')localSelect(texture,kind,'patternStrength','Texture strength',choices([['subtle','Subtle'],['normal','Standard'],['bold','Stronger']]),saved.patternStrength);
+ const texture=roleSection(panel,kind,'texture','Background detail',Model.backgroundEntry(catalog,effective.pattern).label);
+ localSelect(texture,kind,'pattern','Background detail',[{id:'inherit',label:'Use shared theme · '+Model.backgroundEntry(catalog,state.design.background).label},...catalog.backgrounds.map(b=>({id:b.id,label:b.id==='plain'?'Plain · no detail':b.label}))],saved.pattern);
+ if(effective.pattern!=='plain')localSelect(texture,kind,'patternStrength','Detail size',choices([['subtle','Thin'],['normal','Standard'],['bold','Thick']]),saved.patternStrength);
  const text=roleSection(panel,kind,'text','Text','Colors, fonts, size, alignment and sample words');
  const headingTitle=kind==='title'?'Title':'Heading',bodyTitle=kind==='cards'?'Box text':'Supporting text';
  const headingFormatting=kind==='activity'&&!saved.headingVisible&&saved.labelVisible?'Activity label':headingTitle,bodyFormatting=kind==='divider'&&!saved.bodyVisible&&saved.labelVisible?'Chapter label':bodyTitle;
@@ -1718,8 +1783,8 @@ function addSampleField(host,key,label,value){
 function contrastAdvisory(issues){
  return '<strong>Contrast advisory</strong><p>Contrast is the difference between text and its background. Low contrast can make text harder to read.</p><ul>'+issues.map(issue=>'<li>'+escapeHtml(issue.message)+'</li>').join('')+'</ul><p>Consider a different text or background color. The team leader can keep this choice and save the design.</p>';
 }
+// Today's full review, inside Send's See every setting. The notes field and Save live in the Send panel.
 function renderReview(panel){
- heading(panel,'Your design, together','Review each slide type in the preview. Save the agreed design before requesting a review. Building a lesson is a separate step.');
  if(state.alternatives){const note=document.createElement('p');note.className='version-status';note.textContent='Option '+state.alternatives.active+' is chosen for submission. Both options are included in your saved design and review package.';panel.append(note);}
  const errors=Model.validateDesign(catalog,state.design);
  const issues=Model.contrastIssues(catalog,state.design);
@@ -1730,28 +1795,58 @@ function renderReview(panel){
   const row=document.createElement('section');row.className='review-role';row.dataset.reviewRole=kind;row.setAttribute('aria-labelledby','review-'+kind+'-title');
   row.innerHTML='<h3 id="review-'+kind+'-title">'+escapeHtml(VIEW_NAMES[kind])+'</h3>';
   const dl=document.createElement('dl');
-  for(const [key,label,value] of [['primary','Main background',color(effective.primary)],['secondary','Second background'+(effective.backgroundMode==='solid'?' (kept for two colors)':''),color(effective.secondary)],['headingColor','Heading color',color(effective.headingColor)],['bodyColor','Supporting / box text color',color(effective.bodyColor)],['headingFont','Heading font',font(effective.headingFont)],['bodyFont','Supporting / box text font',font(effective.bodyFont)],['pattern','Texture',catalog.backgrounds.find(b=>b.id===effective.pattern).label]]){
+  for(const [key,label,value] of [['primary','Main background',color(effective.primary)],['secondary',effective.backgroundMode==='solid'?'Second color (not used by this layout)':'Second background',color(effective.secondary)],['headingColor','Heading color',color(effective.headingColor)],['bodyColor','Supporting / box text color',color(effective.bodyColor)],['headingFont','Heading font',font(effective.headingFont)],['bodyFont','Supporting / box text font',font(effective.bodyFont)],['pattern','Background detail',Model.backgroundEntry(catalog,effective.pattern).label]]){
    const dt=document.createElement('dt');dt.textContent=label;const dd=document.createElement('dd');dd.dataset.reviewField=key;dd.textContent=value+' · '+(saved[key]==='inherit'?'Shared':'Custom');dl.append(dt,dd);
   }
   row.append(dl);
-  const details=document.createElement('p');details.className='helper';details.textContent=[effective.backgroundMode==='gradient'?'Two-color gradient · '+({right:'left to right',down:'top to bottom',diagonal:'diagonal'}[effective.direction]):'Solid background',...group.decisions.filter(d=>!['colors','watermark'].includes(d.id)).map(d=>d.label+': '+d.options.find(o=>o.id===state.design.slides[kind][d.id])?.label),!effective.headingVisible?'Heading hidden':'',!effective.bodyVisible?'Supporting / box text hidden':'',effective.watermarkMode==='text'?'Custom watermark: '+effective.watermarkText+' · '+color(effective.watermarkColor)+' · '+effective.watermarkPlacement.replaceAll('-',' ')+' · '+effective.watermarkSize+' · '+effective.watermarkOpacity+' strength':effective.watermarkMode==='legacy'?'Arrangement watermark':'No watermark','Texture strength: '+({subtle:'Subtle',normal:'Standard',bold:'Stronger'}[effective.patternStrength]),'Heading: '+({default:'Match arrangement',small:'Smaller',large:'Larger'}[effective.headingSize])+', '+effective.headingAlignment+' aligned, '+effective.headingPlacement+' placement','Supporting / box text: '+({default:'Match arrangement',small:'Smaller',large:'Larger'}[effective.bodySize])+', '+effective.bodyAlignment+' aligned, '+effective.bodyPlacement+' placement',effective.extraText!==null?'Added text: '+effective.extraText:'',kind==='divider'&&state.design.slides.divider.layout==='band'?'Band outer surface: '+color(state.design.roles.contentBackground)+' · Shared':''].filter(Boolean).join(' · ');row.append(details);
+  const details=document.createElement('p');details.className='helper';details.textContent=[effective.backgroundMode==='gradient'?'Two-color gradient · '+({right:'left to right',down:'top to bottom',diagonal:'diagonal'}[effective.direction]):'Solid background',...group.decisions.filter(d=>!['colors','watermark'].includes(d.id)).map(d=>d.label+': '+d.options.find(o=>o.id===state.design.slides[kind][d.id])?.label),!effective.headingVisible?'Heading hidden':'',!effective.bodyVisible?'Supporting / box text hidden':'',effective.watermarkMode==='text'?'Custom watermark: '+effective.watermarkText+' · '+color(effective.watermarkColor)+' · '+effective.watermarkPlacement.replaceAll('-',' ')+' · '+effective.watermarkSize+' · '+effective.watermarkOpacity+' strength':effective.watermarkMode==='legacy'?'Arrangement watermark':'No watermark','Detail size: '+({subtle:'Thin',normal:'Standard',bold:'Thick'}[effective.patternStrength]),'Heading: '+({default:'Default',small:'Smaller',large:'Larger'}[effective.headingSize])+', '+effective.headingAlignment+' aligned, '+effective.headingPlacement+' placement','Supporting / box text: '+({default:'Default',small:'Smaller',large:'Larger'}[effective.bodySize])+', '+effective.bodyAlignment+' aligned, '+effective.bodyPlacement+' placement',effective.extraText!==null?'Added text: '+effective.extraText:'',kind==='divider'&&state.design.slides.divider.layout==='band'?'Band outer surface: '+color(state.design.roles.contentBackground)+' · Shared':''].filter(Boolean).join(' · ');row.append(details);
   const actions=document.createElement('div');actions.className='review-role-actions';
-  for(const [action,label] of [['preview','Preview'],['edit','Edit']]){const button=document.createElement('button');button.type='button';button.className='text-link';button.id='review-'+action+'-'+kind;button.textContent=label+' '+VIEW_NAMES[kind];button.onclick=()=>{if(action==='edit')showRoleEditor(kind);else{showView(kind);if(matchMedia('(max-width:760px)').matches)byId('surface-preview').click();byId('previewTabs').querySelector('[data-view="'+kind+'"]').focus({preventScroll:true});}};actions.append(button);}row.append(actions);summary.append(row);
+  for(const [action,label] of [['preview','Preview'],['edit','Edit']]){const button=document.createElement('button');button.type='button';button.className='text-link';button.id='review-'+action+'-'+kind;button.textContent=label+' '+VIEW_NAMES[kind];button.onclick=()=>action==='edit'?showRoleEditor(kind):showDeckSlide(kind);actions.append(button);}row.append(actions);summary.append(row);
  }
  const defaults=document.createElement('p');defaults.className='helper';defaults.id='reviewSharedDefaults';defaults.textContent='Shared defaults: '+font(state.design.fonts.heading)+' headings; '+font(state.design.fonts.body)+' body. Navigation and buttons inherit the shared body font unless customized. Sidebar '+color(state.design.roles.sidebar)+', Accent '+color(state.design.roles.accent)+', Buttons '+color(state.design.roles.button)+' are shared defaults.';summary.append(defaults);
  for(const feature of Object.keys(state.design.featureStyles||{})){const style=Model.effectiveFeatureStyle(catalog,state.design,feature),p=document.createElement('p');p.textContent=({sidebar:'Navigation sidebar',button:'Action buttons',box:'Text boxes',titlebar:'Title bar',video:'Video frame',activity:'Activity panel'}[feature])+': '+color(style.background)+' fill'+(['sidebar','button'].includes(feature)?', '+color(style.color)+' text, '+font(style.font):', '+color(style.border)+' border')+'.';summary.append(p);}
  const valid=document.createElement('div');valid.className=errors.length||issues.length?'readability-warning':'review-ready';valid.innerHTML=errors.length?escapeHtml(errors.join(' ')):issues.length?contrastAdvisory(issues):'Contrast guidance is met for the modeled text/background pairs. This is not a whole-design accessibility assessment.';panel.append(valid);
- const label=document.createElement('label');label.className='field';label.innerHTML='Notes for the design review';const notes=document.createElement('textarea');notes.id='reviewNotes';notes.rows=3;notes.value=state.unspoken;notes.oninput=()=>{state.unspoken=notes.value;saveDraft();};label.append(notes);panel.append(label);
  const disclosure=document.createElement('p');disclosure.className='helper';disclosure.textContent=ui.localPreview?'This review preview saves only to the local test service. Nothing is sent to Britt or published.':'A review proposal is stored in a public repository, including both saved options when present. Use work contact details and non-sensitive sample text. A saved design does not authorize a lesson build.';panel.append(disclosure);
- const save=document.createElement('button');save.className='btn btn-primary';save.textContent=ui.localPreview?'Save test design':'Save shared design';save.onclick=()=>cloudSave();panel.append(save);
  const backup=document.createElement('button');backup.className='btn btn-secondary';backup.textContent='Download design backup';backup.onclick=saveTeamFile;panel.append(backup);
  if(state.legacySelection){const p=document.createElement('p');p.className='helper';p.textContent='This design began as an older selection. Its complete original is retained for recovery; the new layout is a conversion to review.';panel.append(p);const b=document.createElement('button');b.className='btn btn-secondary';b.textContent='Download original v1 design';b.onclick=()=>downloadText('original-v1-selection.json',JSON.stringify(state.legacySelection,null,2),'application/json');panel.append(b);}
 }
+// On Send every slide is already on the sheet, so Preview points at it there.
+function showDeckSlide(kind){const open=document.querySelector('#sendDeck [data-kind="'+kind+'"] .send-open');open?.scrollIntoView({block:'nearest'});open?.focus({preventScroll:true});}
+function reviewNotesField(){const notes=document.createElement('textarea');notes.id='reviewNotes';notes.rows=3;notes.value=state.unspoken;notes.disabled=!isLeadSession();notes.oninput=()=>{state.unspoken=notes.value;saveDraft();};return notes;}
+function sendHost(){
+ const look=knownLook(ui.appliedLook),near=()=>compareDesign(fingerprints,state.design,catalog)[0];
+ return {
+  catalog,Model,design:()=>state.design,options:design=>renderOptions(design),editable:()=>isLeadSession(),localPreview:ui.localPreview,
+  look:()=>look&&lookDetail(catalog,look),changes:()=>look?designChanges(catalog,Model,state.design,look):[],
+  similarity:()=>{const n=near();return n?{shared:n.shared,total:n.total}:null;},
+  fillSimilarityDetails:el=>{el.innerHTML=similarityDetails(compareDesign(fingerprints,state.design,catalog));},
+  fillAllSettings:el=>{renderReview(el);renderSharedTheme(el);},
+  notesField:reviewNotesField,save:()=>cloudSave(),send:()=>cloudSend(),feedback:()=>ui.sendFeedback||(pendingSubmission()?.stage==='receipt'?SENDING_NOTICE:''),
+  openKind:kind=>{ui.editorRole=kind;ui.moreOptions=false;goStage('slides');},
+  receipt:()=>ui.teamSession?.lastReceipt||null,lessonTitle:()=>findMeta(state.meta?.lessons,state.lessonId)?.title||'',
+  sentNote:()=>sendView()==='changed'?ui.teamSession.lastReceipt.receivedAt:'',
+  keepEditing:()=>{ui.moreOptions=false;goStage('slides');},downloadCopy:()=>saveTeamFile(),
+  notes:()=>state.unspoken,editNote:value=>{state.unspoken=value;ui.noteFrom=undefined;saveDraft();},noteReady,sendNote,
+  noteSent:()=>ui.noteFrom!==undefined&&ui.teamSession?.lastReceipt?.submissionId!==ui.noteFrom
+ };
+}
+// The notes on the latest confirmed receipt. A note can be sent when it differs and nothing is saving or sending.
+const sentNotes=()=>ui.teamSession?.lastReceipt?.notes??'';
+function noteReady(value){return !handoffBusy&&pendingSubmission()?.stage!=='receipt'&&value!==sentNotes();}
+// A follow-up note is the ordinary Save, then the ordinary Send. A save that did not land stops before Send.
+async function sendNote(){
+ ui.noteFrom=ui.teamSession?.lastReceipt?.submissionId;
+ await cloudSave();
+ if(ui.cloudConflict||hasUnsavedTeamWork()){ui.noteFrom=undefined;return;}
+ await cloudSend();
+}
+// Only the lead sees the confirmation. Receipts kept before sends carried a design key cannot be compared.
+function sendView(){const receipt=ui.teamSession?.lastReceipt;return isLeadSession()&&receipt?.designKey?sentState(receipt,designKey(state.design)):'none';}
 // The team pill asks for attention until the team is identified, then names the team.
 // Update it in place: rebuilding the pills while the pointer is down would swallow the click.
 function updateTeamPill(){
  const b=byId('stage-team');if(!b)return;
- const at=STEPS.findIndex(step=>step.id==='team'),base=`Stage ${at+1} of ${STEPS.length}: ${STEPS[at].label}`;
+ const at=STEPS.findIndex(step=>step.id==='team'),base=b.dataset.stageName||`Stage ${at+1} of ${STEPS.length}: ${STEPS[at].label}`;
  if(teamIdentified()){
   const lesson=state.meta?.lessons.find(l=>l.id===state.lessonId)?.title;
   delete b.dataset.attention;b.title=[lesson,state.teamName.trim()].filter(Boolean).join(' · ');b.setAttribute('aria-label',base);
@@ -1761,8 +1856,17 @@ function updateTeamPill(){
 }
 function buildStepper(){
  const list=byId('stepList');list.replaceChildren();
- STEPS.forEach((step,i)=>{const li=document.createElement('li'),b=document.createElement('button');b.type='button';b.id='stage-'+step.id;b.dataset.stage=step.id;b.innerHTML='<span class="step-num" aria-hidden="true">'+(i+1)+'</span><span>'+escapeHtml(step.label)+'</span>';b.setAttribute('aria-label',`Stage ${i+1} of ${STEPS.length}: ${step.label}`);if(i===state.step)b.setAttribute('aria-current','step');
-  b.onclick=()=>goStage(step.id);li.append(b);list.append(li);});
+ STEPS.forEach((step,i)=>{
+  const li=document.createElement('li'),b=document.createElement('button'),passed=i<state.step;
+  b.type='button';b.id='stage-'+step.id;b.dataset.stage=step.id;if(passed)b.dataset.passed='true';
+  // A passed stage swaps its number for a check mark; the text node keeps the visible text "2 · Name".
+  const num=document.createElement('span'),name=document.createElement('span');
+  num.className='step-num';num.setAttribute('aria-hidden','true');num.textContent=passed?'\u2713':(i+1)+' \u00b7';name.textContent=step.label;
+  b.append(num,document.createTextNode(' '),name);
+  b.dataset.stageName=`Stage ${i+1} of ${STEPS.length}: ${step.label}`+(passed?', completed':'');
+  b.setAttribute('aria-label',b.dataset.stageName);if(i===state.step)b.setAttribute('aria-current','step');
+  b.onclick=()=>goStage(step.id);li.append(b);list.append(li);
+ });
  byId('stepCount').textContent='Stage '+(state.step+1)+' of '+STEPS.length;
  updateTeamPill();
 }
@@ -1775,23 +1879,25 @@ function renderEditors(panel){
  for(const [kind,label] of Object.entries(VIEW_NAMES)){const button=document.createElement('button');button.type='button';button.id='editor-'+kind;button.dataset.editorRole=kind;button.setAttribute('role','tab');button.setAttribute('aria-controls','roleEditorPanel');button.setAttribute('aria-selected',String(kind===ui.editorRole));button.tabIndex=kind===ui.editorRole?0:-1;button.textContent=label;button.onclick=()=>selectEditor(kind);tabs.append(button);}panel.append(tabs);bindTablistKeys(tabs);
  const editor=document.createElement('section');editor.id='roleEditorPanel';editor.setAttribute('role','tabpanel');editor.setAttribute('aria-labelledby','editor-'+ui.editorRole);panel.append(editor);renderSlideChoices(editor,ui.editorRole);
  const roleHeading=editor.querySelector('h1'),h2=document.createElement('h2');h2.textContent=roleHeading.textContent;roleHeading.replaceWith(h2);
- const next=document.createElement('button');next.type='button';next.id='btnNextRole';next.className='text-link';const kinds=Object.keys(VIEW_NAMES),nextRole=kinds[kinds.indexOf(ui.editorRole)+1];next.textContent=nextRole?'Next slide type: '+VIEW_NAMES[nextRole]:'Review & save';next.onclick=()=>nextRole?selectEditor(nextRole):goStage('review');panel.append(next);
+ const next=document.createElement('button');next.type='button';next.id='btnNextRole';next.className='text-link';const kinds=Object.keys(VIEW_NAMES),nextRole=kinds[kinds.indexOf(ui.editorRole)+1];next.textContent=nextRole?'Next slide type: '+VIEW_NAMES[nextRole]:'Send';next.onclick=()=>nextRole?selectEditor(nextRole):goStage('review');panel.append(next);
 }
 function renderPanel(){
  const panel=byId('stepPanel'),id=STEPS[state.step].id;
  if(id==='slides'&&ui.guide?.on){guide.render(panel);return;}
- if(id==='team')renderTeamStage(panel);else if(id==='start')renderWelcome(panel);else if(id==='review')renderReview(panel);else renderEditors(panel);
- if(!['team','start'].includes(id)){renderSharedTheme(panel);panel.insertBefore(byId('sharedTheme'),panel.children[2]||null);}
- const nav=document.createElement('div');nav.className='panel-nav';nav.innerHTML='<button class="btn btn-secondary" id="btnBack"'+(state.step===0?' disabled':'')+'>Back'+(state.step>0?': '+escapeHtml(STEPS[state.step-1].label):'')+'</button>'+(state.step<STEPS.length-1?'<button class="btn btn-primary" id="btnNext">'+(id==='team'?'Continue to starting looks':id==='start'?'Customize current design':'Review & save')+'</button>':'');panel.append(nav);
+ if(id==='team')renderTeamStage(panel);else if(id==='start'){heading(panel,'Pick a look','Choose a starting look. Every choice stays editable.');renderPickALook(byId('showcase'),pickHost());}else if(id==='review'){heading(panel,'Send','Check your suggestion, save it for the team and send it to Britt.');(sendView()==='sent'?renderSentView:renderSendStage)(byId('showcase'),sendHost());}else renderEditors(panel);
+ if(id==='slides'){renderSharedTheme(panel);panel.insertBefore(byId('sharedTheme'),panel.children[2]||null);}
+ const nav=document.createElement('div');nav.className='panel-nav';nav.innerHTML='<button class="btn btn-secondary" id="btnBack"'+(state.step===0?' disabled':'')+'>Back'+(state.step>0?': '+escapeHtml(STEPS[state.step-1].label):'')+'</button>'+(state.step<STEPS.length-1?'<button class="btn btn-primary" id="btnNext">'+(id==='team'?'Continue to Pick a look':id==='start'?'Continue to Make it yours':'Continue to Send')+'</button>':'');panel.append(nav);
  byId('btnBack').onclick=()=>{state.step=Math.max(0,state.step-1);render();};if(byId('btnNext'))byId('btnNext').onclick=()=>{state.step++;render();};
 }
 function updateSimilarity(design){
  const comparisons=compareDesign(fingerprints,design,catalog),near=comparisons[0];
  if(!near){byId('distinctMeter').textContent='Reference comparison unavailable';return;}
  byId('distinctMeter').innerHTML='<span class="meter-count">'+near.shared+' <span>of '+near.total+'</span></span><span><strong>'+escapeHtml(near.title)+'</strong><span>Closest reference · exact comparable choices</span></span>';
- const labelOf=e=>typeof e==='string'?e:(e.label||e.key);
- const details=byId('similarityDetails');
- details.innerHTML='<p>This counts matching visual choices, not a perceptual percentage. Unknown features do not count. The six released lessons are the comparison library.</p><h3>Matches</h3><p>'+escapeHtml(near.matches?.length?near.matches.map(labelOf).join(', '):'No measured choices match.')+'</p><h3>Different</h3><p>'+escapeHtml(near.differences?.length?near.differences.map(labelOf).join(', '):'No measured differences.')+'</p><h3>Not comparable</h3><p>'+escapeHtml(near.unknown?.length?near.unknown.map(e=>labelOf(e)+(e.reason?': '+e.reason:'')).join('; '):'All supported characteristics were measured.')+'</p><ul>'+comparisons.map(c=>'<li>'+escapeHtml(c.title)+': '+c.shared+' of '+c.total+'</li>').join('')+'</ul>';
+ byId('similarityDetails').innerHTML=similarityDetails(comparisons);
+}
+function similarityDetails(comparisons){
+ const near=comparisons[0],labelOf=e=>typeof e==='string'?e:(e.label||e.key);
+ return '<p>This counts matching visual choices, not a perceptual percentage. Unknown features do not count. The six released lessons are the comparison library.</p><h3>Matches</h3><p>'+escapeHtml(near.matches?.length?near.matches.map(labelOf).join(', '):'No measured choices match.')+'</p><h3>Different</h3><p>'+escapeHtml(near.differences?.length?near.differences.map(labelOf).join(', '):'No measured differences.')+'</p><h3>Not comparable</h3><p>'+escapeHtml(near.unknown?.length?near.unknown.map(e=>labelOf(e)+(e.reason?': '+e.reason:'')).join('; '):'All supported characteristics were measured.')+'</p><ul>'+comparisons.map(c=>'<li>'+escapeHtml(c.title)+': '+c.shared+' of '+c.total+'</li>').join('')+'</ul>';
 }
 function buttonColorSample(id){
  return `<section id="${id}" class="bespoke-slide button-color-sample" aria-label="Button color sample"><div><strong>Button color sample</strong><p>Style preview only; no file opens.</p></div>${Model.renderSampleButton()}</section>`;
@@ -1800,7 +1906,7 @@ function updatePreview(design=state.design,{quick=false}={}){
  if(!design)return;
  byId('designStyle').textContent=Model.cssForDesign(catalog,design,{scope:'.bespoke-slide',fontBase:'../fonts',canonical:false});
  const sidebarSampleOpen=byId('modelStage').querySelector('.slide-sidebar-disclosure')?.open===true;
- byId('modelStage').innerHTML=Model.renderSlide(catalog,design,state.previewView,{title:design.samples.title,subtitle:design.samples.subtitle,lessonTitle:state.meta.lessons.find(l=>l.id===state.lessonId)?.title,logoUrl:'../SPOKES-Logo.png'});
+ byId('modelStage').innerHTML=Model.renderSlide(catalog,design,state.previewView,renderOptions(design));
  const sidebarDisclosure=byId('modelStage').querySelector('.slide-sidebar-disclosure');
  if(sidebarDisclosure)sidebarDisclosure.open=sidebarSampleOpen;
  previewEditor?.refresh({thumbnails:!quick});
@@ -1814,8 +1920,10 @@ function updatePreview(design=state.design,{quick=false}={}){
  byId('previewName').textContent=VIEW_NAMES[state.previewView];
  document.querySelectorAll('#previewTabs [role=tab]').forEach(t=>{t.setAttribute('aria-selected',String(t.dataset.view===state.previewView));t.tabIndex=t.dataset.view===state.previewView?0:-1;});
  updateSimilarity(design);
+ renderStartingFrom(byId('startingFromText'),startingFrom(catalog,Model,state.design,ui.appliedLook));
+ markRail(byId('previewTabs'),ui.changedKinds);
  const errors=Model.validateDesign(catalog,design),allIssues=Model.contrastIssues(catalog,design),visibleSurface=state.previewView==='title'?'titleBackground':state.previewView==='divider'?'dividerBackground':'contentBackground';
- const issues=allIssues.filter(issue=>issue.feature==='sidebar'?['cards','video','activity'].includes(state.previewView):issue.feature==='button'?['video','activity'].includes(state.previewView):issue.kind?issue.kind===state.previewView:issue.surface===visibleSurface&&!design.roleStyles?.[state.previewView]);const warn=byId('readabilityNotes');warn.hidden=!errors.length&&!issues.length;warn.innerHTML=errors.length?'<strong>Design needs attention</strong><p>'+escapeHtml(errors.join(' '))+'</p>':issues.length?contrastAdvisory(issues):'';
+ const issues=allIssues.filter(issue=>issue.feature==='sidebar'?['cards','video','activity'].includes(state.previewView):issue.feature==='button'?['video','activity'].includes(state.previewView):issue.kind?issue.kind===state.previewView:issue.surface===visibleSurface&&!design.roleStyles?.[state.previewView]);const warn=byId('readabilityNotes');showNoteCount(errors.length||issues.length);warn.innerHTML=errors.length?'<strong>Design needs attention</strong><p>'+escapeHtml(errors.join(' '))+'</p>':issues.length?contrastAdvisory(issues):'';
  for(const suggestion of readabilitySuggestions(catalog,design,state.previewView,issues).slice(0,2)){
   const button=document.createElement('button');button.type='button';button.className='btn btn-secondary';button.textContent=suggestion.label;button.disabled=!isLeadSession();button.onclick=()=>reviewTools.previewFix(suggestion,()=>changeDesign(suggestion.label,d=>Object.assign(d,suggestion.design)),button);warn.append(button);
  }
@@ -1831,20 +1939,24 @@ function updatePreview(design=state.design,{quick=false}={}){
  if(issues.length&&!dividerIssues){const repair=document.createElement('button');repair.className='text-link';repair.textContent='Edit '+(issues[0]?.feature?({sidebar:'navigation sidebar',button:'action button',box:'text box',titlebar:'title bar',video:'video frame',activity:'activity panel'}[issues[0].feature]):VIEW_NAMES[state.previewView].toLowerCase())+' colors';repair.onclick=()=>issues[0]?.feature?previewEditor.select(issues[0].feature==='box'?'box-0':issues[0].feature):showRoleEditor(state.previewView,'text',issues[0]?.role==='body'||issues[0]?.role==='subtitle'?'bodyColor':'headingColor');repairs.append(repair);}
  byId('liveRegion').textContent=VIEW_NAMES[state.previewView]+' preview updated.'+(issues.length?' Contrast advisory: '+issues.map(issue=>issue.message).join(' ')+' The team leader can keep this choice and save the design.':'');
 }
+// Advisory notes fold into one line under the slide; the summary opens today's full text.
+function showNoteCount(count){byId('readabilityDetails').hidden=!count;byId('readabilitySummary').textContent=count+' readability '+(count===1?'note':'notes');}
 function showView(view){if(onStage('slides')){ui.editorRole=view;}state.previewView=view;ui.previewPinned=true;if(ui.sharedThemeOpen||onStage('slides'))render(false);else{updatePreview();saveDraft();}}
 function render(focus=true){
  if(byId('sharedTheme'))ui.sharedThemeOpen=byId('sharedTheme').open;
- const changed=ui.renderedStep!==state.step;if(changed){ui.renderedStep=state.step;if(onStage('slides'))state.previewView=ui.editorRole;ui.previewPinned=false;}
+ const changed=ui.renderedStep!==state.step;if(changed){ui.renderedStep=state.step;ui.changedKinds=new Set();ui.sendFeedback='';ui.noteFrom=undefined;if(onStage('slides'))state.previewView=ui.editorRole;ui.previewPinned=false;}
  const active=document.activeElement,activeId=active?.id;
  ui.roleSections||={};byId('stepPanel').querySelectorAll('[data-role-section]').forEach(d=>{ui.roleSections[d.id]=d.open;});
  const openDetails=new Map(Array.from(byId('stepPanel').querySelectorAll('details[id]')).map(d=>[d.id,d.open]));
  byId('workspace').dataset.stage=STEPS[state.step].id;
+ if(onStage('start')&&!ui.onStart)enterPickALook();
+ ui.onStart=onStage('start');const showcase=byId('showcase');showcase.hidden=!ui.onStart&&!onStage('review');showcase.setAttribute('aria-label',onStage('review')?'Send':'Pick a look');
+ if(!ui.onStart){closeSendStage(showcase);closePickALook(showcase);}
  byId('workspace').dataset.editor=String(onStage('slides')&&!ui.guide?.on);
  byId('workspace').dataset.options=String(ui.moreOptions||!onStage('slides')||Boolean(ui.guide?.on));
- byId('btnCloseOptions').hidden=!onStage('slides')||Boolean(ui.guide?.on);
  syncStageChrome(STEPS[state.step].id);buildStepper();renderPanel();byId('stepPanel').querySelectorAll('details[id]').forEach(d=>{if(!d.dataset.roleSection&&d.id!=='sharedTheme'&&openDetails.has(d.id))d.open=openDetails.get(d.id);});syncAccessChrome();lockViewControls();updatePreview();updateUndo();reviewTools?.refresh();
  if(isLeadSession()){if(ui.skipNextLocalSave)ui.skipNextLocalSave=false;else saveDraft();if(changed)scheduleAutosave(AUTOSAVE.stepMs);}
- if(focus&&changed)(byId('workspace').dataset.options==='false'?byId('selectedElement'):byId('stepPanel'))?.focus({preventScroll:true});else if(activeId)byId(activeId)?.focus({preventScroll:true});
+ if(focus&&changed)(onStage('start')?byId('lookStageHeading'):onStage('review')?byId('sentHeading')||byId('sendHeading'):byId('workspace').dataset.options==='false'?byId('selectedElement'):byId('stepPanel'))?.focus({preventScroll:true});else if(activeId)byId(activeId)?.focus({preventScroll:true});
 }
 function setupRecoveryMenu(){
  const menu=byId('filesRecovery'),trigger=menu.querySelector('summary');
@@ -1855,9 +1967,8 @@ function setupRecoveryMenu(){
  document.addEventListener('focusin',event=>{if(menu.open&&!menu.contains(event.target))close(false);});
 }
 function guideHost(){
- const slideOptions=design=>({title:design.samples.title,subtitle:design.samples.subtitle,lessonTitle:state.meta.lessons.find(l=>l.id===state.lessonId)?.title,logoUrl:'../SPOKES-Logo.png'});
  return {
-  catalog,slideOptions,
+  catalog,slideOptions:design=>renderOptions(design),
   get design(){return state.design;},
   isLead:()=>isLeadSession(),
   teamComplete:()=>Boolean(state.teamName.trim()&&state.spokespersonName.trim()),
@@ -1865,7 +1976,7 @@ function guideHost(){
   setGuide:next=>{ui.guide=next;if(isLeadSession())saveDraft();},
   change:(label,edit)=>changeDesign(label,edit),
   textChange:(label,edit,checkpoint)=>changeDesign(label,edit,{redraw:false,checkpoint}),
-  requestPreset:id=>requestPreset(id),
+  requestPreset:id=>applyPresetChoice(id),
   preview:trial=>updatePreview(trial||state.design,{quick:true}),
   setView:view=>{state.previewView=view;ui.previewPinned=false;},
   rerender:()=>render(false),
@@ -1884,20 +1995,25 @@ async function init(){
  [state.meta,state.library,catalog,fingerprints,selectionSchema]=data;state.design=Model.defaultDesign(catalog);
  guide=createGuide(guideHost());
  byId('slideRail').append(byId('previewTabs'));
- const thumbnailMedia=matchMedia('(max-width:1100px)');
- const orientThumbnails=()=>byId('previewTabs').setAttribute('aria-orientation',thumbnailMedia.matches?'horizontal':'vertical');
- thumbnailMedia.addEventListener('change',orientThumbnails);orientThumbnails();
+ const thumbnailMedia=matchMedia('(max-width:1100px)'),phoneMedia=matchMedia('(max-width:760px)');
+ // The thumbnails run across the top on phones, and at 761-1100 while Guide me runs; the editor stands them in a column (canvas.css).
+ const orientThumbnails=()=>byId('previewTabs').setAttribute('aria-orientation',phoneMedia.matches||thumbnailMedia.matches&&byId('workspace').dataset.editor!=='true'?'horizontal':'vertical');
+ for(const media of [thumbnailMedia,phoneMedia])media.addEventListener('change',orientThumbnails);orientThumbnails();
+ new MutationObserver(orientThumbnails).observe(byId('workspace'),{attributes:true,attributeFilter:['data-editor']});
  previewEditor=createPreviewEditor({
   catalog, model:Model,
   context:()=>({design:state.design,kind:state.previewView,editable:isLeadSession(),optionsOpen:ui.moreOptions,mode:ui.guide?.on?'guide':onStage('slides')?'edit':'browse'}),
   activate:()=>{if(ui.guide)ui.guide={...ui.guide,on:false};ui.editorRole=state.previewView;state.step=stepIndex('slides');ui.sharedThemeOpen=false;render(false);},
   change:(label,edit)=>changeDesign(label,edit),
   textChange:(label,edit,checkpoint)=>changeDesign(label,edit,{redraw:false,checkpoint}),
-  more:target=>{ui.moreOptions=!ui.moreOptions;if(!ui.moreOptions){render(false);byId('btnMoreOptions').focus();return;}if(target.startsWith('sidebar')){/* render() reads the open state back from the live panel */if(byId('sharedTheme'))byId('sharedTheme').open=true;ui.sharedThemeOpen=true;ui.activeRole='sidebar';ui.paintScope='shared';render(false);byId('colorRole')?.focus({preventScroll:true});return;}showRoleEditor(state.previewView,target==='background'?'background':target.startsWith('box')?'arrangement':'text',target.startsWith('body')?'bodyFont':target==='background'?'primary':'headingFont');},
-  thumbnail:kind=>Model.renderSlide(catalog,state.design,kind,{title:state.design.samples.title,subtitle:state.design.samples.subtitle,logoUrl:'../SPOKES-Logo.png'})
+  onlySlide:()=>ui.onlySlide,setOnlySlide:value=>{ui.onlySlide=value;render(false);},
+  scopeLine:(kind,selected,key)=>scopeLineParts({catalog,Model,design:state.design,kind,selected,key,onlySlide:ui.onlySlide}),
+  displayTitle:()=>renderOptions(state.design).title,
+  more:target=>{ui.moreOptions=!ui.moreOptions;if(!ui.moreOptions){render(false);byId('btnMoreOptions').focus();return;}if(target.startsWith('sidebar')){/* render() reads the open state back from the live panel */if(byId('sharedTheme'))byId('sharedTheme').open=true;ui.sharedThemeOpen=true;ui.activeRole='sidebar';ui.paintScope='shared';render(false);byId('colorRole')?.focus({preventScroll:true});return;}showRoleEditor(state.previewView,target==='background'?'background':target.startsWith('box')?'arrangement':'text',target.startsWith('body')?'bodyFont':target==='background'?'primary':'headingFont');focusSampleText();},
+  thumbnail:kind=>Model.renderSlide(catalog,state.design,kind,renderOptions(state.design))
  });
  const closeOptions=()=>{ui.moreOptions=false;render(false);byId('btnMoreOptions').focus();};
- byId('btnCloseOptions').onclick=closeOptions;byId('btnHideDrawer').onclick=closeOptions;
+ byId('btnHideDrawer').onclick=closeOptions;byId('btnSwapLook').onclick=()=>goStage('start');
  // Show or hide the options drawer by toolbar button, menu command or shortcut (Apple HIG: more than one way to reveal a hidden pane).
  const toggleOptions=()=>{if(byId('workspace').dataset.editor==='true')byId('btnMoreOptions')?.click();};
  byId('btnMenuOptions').onclick=toggleOptions;
@@ -1910,7 +2026,9 @@ async function init(){
  byId('btnHelp').onclick=()=>showBuilderHelp(!byId('builderHelp').hidden);
  byId('btnCloseHelp').onclick=()=>showBuilderHelp(true);
  setupRecoveryMenu();
- reviewTools=createReviewTools({catalog,context:()=>({design:state.design,alternatives:state.alternatives,kind:state.previewView,lessonTitle:state.meta.lessons.find(l=>l.id===state.lessonId)?.title,editable:isLeadSession()}),change:(label,action)=>{if(!isLeadSession())return;recordChange(label,clone(state.design));action(state);ui.meaningfulDesign=true;saveDraft();render(false);}});
+ // Escape closes the open drawer once menus, dialogs, pickers and the More menu have had their turn (Ruling R27).
+ document.addEventListener('keydown',event=>{if(event.key==='Escape'&&!event.isComposing&&!event.defaultPrevented&&ui.moreOptions&&byId('workspace').dataset.editor==='true'&&!document.querySelector('dialog[open]')){event.preventDefault();closeOptions();}});
+ reviewTools=createReviewTools({catalog,options:design=>renderOptions(design),context:()=>({design:state.design,alternatives:state.alternatives,kind:state.previewView,editable:isLeadSession()}),change:(label,action)=>{if(!isLeadSession())return;recordChange(label,clone(state.design));action(state);ui.meaningfulDesign=true;saveDraft();render(false);}});
  byId('btnDownloadBackup').onclick=saveTeamFile;byId('btnOpenBackup').onclick=()=>byId('teamFileInput').click();byId('teamFileInput').onchange=async e=>{await openTeamFile(e.target.files?.[0]);e.target.value='';};
  byId('btnLoadLatest').onclick=()=>fetchSharedDesign({replace:true});byId('btnKeepLocal').onclick=()=>fileNotice('Browser draft kept. Download a backup before loading the latest shared version.');
  byId('btnHistory').onclick=loadHistory;byId('btnCheckStatus').onclick=()=>{const pending=pendingSubmission();if(pending?.stage==='receipt')pollSubmission(pending);else if(pending?.stage==='request')cloudSend();};
@@ -1926,15 +2044,14 @@ async function init(){
   event.preventDefault();undoChange(redo);
  });
  byId('openCancel').onclick=()=>byId('openDialog').close();byId('openForm').onsubmit=e=>{e.preventDefault();cloudOpen();};
- byId('presetCancel').onclick=()=>finishPresetConfirmation(false);byId('presetDialog').oncancel=e=>{e.preventDefault();finishPresetConfirmation(false);};byId('presetForm').onsubmit=e=>{e.preventDefault();finishPresetConfirmation(true);};
- byId('presetDialog').onkeydown=e=>{if(e.key!=='Tab')return;const first=byId('presetSkipConfirmation'),last=byId('presetApply');if(e.shiftKey&&document.activeElement===first){e.preventDefault();last.focus();}else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first.focus();}};
  byId('btnRecoverDraft').onclick=()=>{try{const previous=localStorage.getItem(BACKUP_KEY);if(!previous||!confirm('Restore the previous browser draft? Download a backup first if you need this version.'))return;const raw=localStorage.getItem(STORAGE_KEY),current=lastSavedRaw===null&&raw?raw:serializeDraft();localStorage.setItem(STORAGE_KEY,previous);localStorage.setItem(BACKUP_KEY,current);ui.allowUnload=true;location.reload();}catch{fileNotice('Recovery is unavailable. Open a downloaded backup.');}};
  byId('btnLeaveSession').onclick=()=>{if(!confirm('Leave this session on this browser? Download a backup or save first.'))return;forgetTeamSession();try{localStorage.removeItem(STORAGE_KEY);localStorage.removeItem(BACKUP_KEY);}catch{}ui.allowUnload=true;location.reload();};
- byId('btnClear').onclick=()=>{if(!isLeadSession()||!confirm('Start a new browser draft? A recovery copy will be kept. Shared designs remain unchanged.'))return;if(!keepRecoveryCopy())return;ui.guide=null;resetPresetConfirmation();lastSavedRaw=localStorage.getItem(STORAGE_KEY);storageConflict=false;resetDesignForLesson(state.lessonId);ui.autosavePaused=true;render();};
+ byId('btnClear').onclick=()=>{if(!isLeadSession()||!confirm('Start a new browser draft? A recovery copy will be kept. Shared designs remain unchanged.'))return;if(!keepRecoveryCopy())return;ui.guide=null;lastSavedRaw=localStorage.getItem(STORAGE_KEY);storageConflict=false;resetDesignForLesson(state.lessonId);ui.autosavePaused=true;render();};
  document.querySelectorAll('#previewTabs [role=tab]').forEach(tab=>tab.onclick=()=>showView(tab.dataset.view));bindTablistKeys(byId('previewTabs'));
  const workspace=byId('workspace'),surfacePositions={design:0,preview:0};
  const sizeSurfaceNavigation=()=>{const height=document.querySelector('.surface-navigation').getBoundingClientRect().height;document.documentElement.style.setProperty('--surface-navigation-height',Math.ceil(height)+'px');};
  new ResizeObserver(sizeSurfaceNavigation).observe(document.querySelector('.surface-navigation'));sizeSurfaceNavigation();
+ watchCanvasFit();
  document.querySelectorAll('#surfaceSwitcher [role=tab]').forEach(tab=>tab.onclick=()=>{surfacePositions[workspace.dataset.activeSurface]=workspace.scrollTop;workspace.dataset.activeSurface=tab.dataset.surface;workspace.scrollTop=surfacePositions[tab.dataset.surface];document.querySelectorAll('#surfaceSwitcher [role=tab]').forEach(t=>t.setAttribute('aria-selected',String(t===tab)));previewEditor.refresh();});bindTablistKeys(byId('surfaceSwitcher'));
  window.addEventListener('storage',event=>{if((event.key===STORAGE_KEY||event.key===null)&&isLeadSession()){storageConflict=true;setSaveStatus('Another tab changed this draft');fileNotice('This tab’s draft is kept. Download a backup before reopening the latest version.');}});
  window.addEventListener('beforeunload',event=>{if(ui.allowUnload||!isLeadSession()||!hasUnsavedTeamWork())return;runAutosave();event.preventDefault();event.returnValue='';});

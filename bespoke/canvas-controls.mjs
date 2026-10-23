@@ -118,10 +118,10 @@ export function colorWell({id, title, select, swatches, value, editable, onChoos
       button.setAttribute('role', 'radio');
       button.setAttribute('aria-checked', String(swatch.id === value));
       button.setAttribute('aria-label', swatch.name);
-      button.title = swatch.name;
       const dot = make('span', 'swatch-dot');
       dot.style.background = swatch.hex;
-      button.append(dot);
+      // The palette name shows under the dot, so a color is never chosen by hue alone.
+      button.append(dot, make('span', 'swatch-name', swatch.name));
       button.onclick = () => {
         select.value = swatch.id;
         close(false);

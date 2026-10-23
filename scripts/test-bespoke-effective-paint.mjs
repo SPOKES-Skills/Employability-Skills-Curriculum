@@ -29,8 +29,8 @@ function customFixture() {
   const d = defaultDesign(catalog); d.startingPoint = 'custom';
   d.slides.title.layout = 'left'; d.slides.divider.layout = 'left';
   d.roleStyles = Object.fromEntries(kinds.map((kind, i) => [kind, {
-    ...roleStyleDefaults(catalog, d, kind), backgroundMode: 'gradient', primary: 'primary', secondary: 'muted', direction: 'diagonal', pattern: 'diagonal', patternStrength: 'bold',
-    headingColor: 'muted-gold', bodyColor: 'royal', headingFont: 'bitter', bodyFont: 'raleway', bodyVisible: true,
+    ...roleStyleDefaults(catalog, d, kind), backgroundMode: 'gradient', primary: 'primary', secondary: 'muted', direction: 'diagonal', pattern: 'edge-rail', patternStrength: 'bold',
+    headingColor: 'muted-gold', bodyColor: 'royal', headingFont: 'heading', bodyFont: 'body', bodyVisible: true,
     watermarkMode: 'text', watermarkText: 'SAMPLE ' + i, watermarkColor: 'muted-gold', watermarkPlacement: 'bottom-right', watermarkSize: 'small', watermarkOpacity: 'medium'
   }]));
   return d;
@@ -55,7 +55,7 @@ async function scenario(name, run) {
     if (output) for (const [i, page] of pages.entries()) if (!page.isClosed()) await page.screenshot({ path: path.join(output, `${browserName}-failed-${name.replace(/\W+/g, '-')}-${i}.png`) }).catch(() => {});
   } finally { for (const context of contexts) await context.close(); await server.close(); }
 }
-async function ready(page) { await page.locator('#localPreviewNotice').waitFor(); await page.locator('#btnSave').filter({ hasText: 'Save test design' }).waitFor(); }
+async function ready(page) { await page.locator('#localPreviewNotice').waitFor(); await page.locator('#btnSave').filter({hasText:'Save test design'}).waitFor({state:'attached'}); }
 async function surface(page, view) { const tab = page.locator('#surface-' + view); if (await tab.isVisible()) await tab.click(); }
 async function shared(page) {
   if(!await page.locator('#sharedTheme').count())await page.locator('#stage-slides').click();
@@ -98,7 +98,7 @@ async function checkPaint(page, kind, field, color) {
 }
 async function save(page) {
   const reply = page.waitForResponse(r => r.url().endsWith('/api/bespoke') && r.request().postDataJSON()?.action === 'save'); await page.locator('#btnSave').click(); assert.equal((await reply).status(), 200);
-  await page.locator('#fileStatus').filter({ hasText: /Local test design saved|already up to date/ }).waitFor();
+  await page.locator('#toast').filter({ hasText: /Local test design saved|already up to date/ }).waitFor();
 }
 async function openRemote(server) { const response = await fetch(server.baseUrl + '/api/bespoke', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'open', lessonId: 'money-management', editCode: LOCAL_PREVIEW_CODE }) }); assert.equal(response.status, 200); return response.json(); }
 async function backup(page) {
@@ -119,7 +119,7 @@ try {
     assert.deepEqual(await design(page), expected, 'Only divider.primary changes, preserving global defaults, every other role and every other local field');
     const visible = await checkPaint(page, 'divider', 'primary', 'accent');
     assert(visible.image.includes(rgb('muted')) && visible.image.includes('135deg'), 'Pale secondary and diagonal gradient remain');
-    assert(visible.image.includes('repeating-linear-gradient'), 'Diagonal texture remains');
+    assert((visible.image.match(/linear-gradient/g) || []).length >= 2, 'Edge rail remains over the gradient');
     assert.equal(await computed(page, 'divider', 'headingColor'), rgb('muted-gold'));
     await selected(page, 'dividerBackground', 'accent', 'slide', 'divider');
     const delta = await pixelDifference(page, oldPixels, await page.locator('#modelStage').screenshot()); assert(delta.changedFraction > .01, 'The requested color visibly changes the actual sample');
@@ -130,7 +130,7 @@ try {
     await save(page); const saved = (await openRemote(server)).selection; assert.deepEqual(saved.design, expected);
     for (const key of ['colorScope', 'paintScope', 'activeRole', 'previewView']) assert(!Object.hasOwn(saved, key), 'UI-only paint scope must not enter saved selection');
     const fresh = await makePage(); assert.deepEqual(await design(fresh), expected, 'Fresh-context automatic Open preserves exact painted design');
-    await clickMenuItem(fresh, '#btnOpen'); await fresh.locator('#fileStatus').filter({ hasText: /Opened|latest|up to date/i }).waitFor(); assert.deepEqual(await design(fresh), expected);
+    await clickMenuItem(fresh, '#btnOpen'); await fresh.locator('#toast').filter({ hasText: /Opened|latest|up to date/i }).waitFor(); assert.deepEqual(await design(fresh), expected);
     const copied = await backup(fresh); assert.deepEqual(copied.design, expected);
     for (const key of ['colorScope', 'paintScope', 'activeRole', 'previewView']) assert(!Object.hasOwn(copied, key), 'UI-only paint scope must not enter backup selection');
     await importDesign(fresh, before); await fresh.locator('#teamFileInput').setInputFiles({ name: 'synthetic-painted-backup.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(copied)) });

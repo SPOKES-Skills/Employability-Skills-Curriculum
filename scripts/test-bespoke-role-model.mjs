@@ -2,7 +2,7 @@
 // Pure role-style contracts; no service, browser, teacher data, or lesson edits.
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import { applyPreset, contrastIssues, cssForDesign, defaultDesign, designSchema, effectiveRoleStyle, renderSlide, roleStyleDefaults, roleStylesSchema, setRoleStyle, structuralErrors, usedFontIds } from '../bespoke/builder-model.mjs';
+import { allBackgroundIds, applyPreset, contrastIssues, cssForDesign, defaultDesign, designSchema, effectiveRoleStyle, renderSlide, roleStyleDefaults, roleStylesSchema, setRoleStyle, structuralErrors, usedFontIds } from '../bespoke/builder-model.mjs';
 
 const catalog=JSON.parse(fs.readFileSync(new URL('../bespoke/builder-catalog.json',import.meta.url),'utf8'));
 const kinds=['title','divider','cards','video','activity'];
@@ -68,7 +68,7 @@ check('background modes, directions and approved texture strength remain indepen
   assert.equal(effectiveRoleStyle(catalog,design,'title').secondary,'accent');
   const last=css.slice(css.lastIndexOf('.bespoke-slide[data-kind="title"]'));
   assert(!last.includes('180deg in srgb'));
-  for(const kind of kinds) for(const pattern of catalog.backgrounds) for(const strength of ['subtle','normal','bold']) assert.doesNotThrow(()=>cssForDesign(catalog,set(start(),kind,{pattern:pattern.id,patternStrength:strength})));
+  for(const kind of kinds) for(const pattern of allBackgroundIds(catalog)) for(const strength of ['subtle','normal','bold']) assert.doesNotThrow(()=>cssForDesign(catalog,set(start(),kind,{pattern,patternStrength:strength})));
 });
 
 check('explicit split solid is one color; split gradient preserves the two-panel seam',()=>{

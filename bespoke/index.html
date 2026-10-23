@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>BeSpoke · Make the lesson yours</title>
-<link rel="icon" href="../SPOKES-Logo.png"><link rel="stylesheet" href="./builder.css"><link rel="stylesheet" href="./guide.css"><link rel="stylesheet" href="./canvas.css">
+<link rel="icon" href="../SPOKES-Logo.png"><link rel="stylesheet" href="./builder.css"><link rel="stylesheet" href="./guide.css"><link rel="stylesheet" href="./canvas.css"><link rel="stylesheet" href="./showcase.css">
 <style id="designStyle"></style>
 </head>
 <body>
@@ -24,13 +24,13 @@ FINISH: unreviewed and undocumented is unfinished; this build ends with the fini
  <div class="bar-end" id="barEnd">
   <div class="undo-actions"><button class="btn btn-ghost" id="btnUndo" aria-keyshortcuts="Control+Z Meta+Z" type="button">Undo</button><button class="btn btn-ghost" id="btnRedo" aria-keyshortcuts="Control+Shift+Z Meta+Shift+Z Control+Y" type="button">Redo</button></div>
   <p id="saveStatus" class="save-chip"></p>
-  <button class="btn btn-primary" id="btnSave" type="button">Save shared design</button>
+  <button class="btn btn-primary" id="btnSave" type="button">Save for the team</button>
   <details class="more-menu" id="filesRecovery"><summary class="btn btn-ghost" aria-label="More actions" title="More actions"><span aria-hidden="true">⋯</span></summary><div class="more-menu-list">
    <p id="teamSessionStatus" class="menu-status"></p>
    <button id="btnHelp" type="button" aria-expanded="false" aria-controls="builderHelp">How it works</button>
    <button id="btnOpen" type="button">Open team design</button>
    <button id="btnMenuOptions" type="button" aria-keyshortcuts="Control+Alt+O Meta+Alt+O">Slide options <kbd id="optionsShortcut" aria-hidden="true">Ctrl+Alt+O</kbd></button>
-   <button class="btn btn-primary" id="btnSend" type="button">Send to Britt</button>
+   <button class="btn" id="btnSend" type="button">Send to Britt</button>
    <details class="menu-recent"><summary>Recent choices</summary><ol id="changeList"></ol></details>
    <button id="btnHistory" type="button" aria-expanded="false" aria-controls="historyPanel">Previous versions</button>
    <button id="btnLeaveSession" type="button">Leave session</button>
@@ -50,29 +50,23 @@ FINISH: unreviewed and undocumented is unfinished; this build ends with the fini
  <div class="chrome-rail" id="chromeRail">
   <div class="drawer-bar"><strong>Slide options</strong><button id="btnHideDrawer" class="btn btn-secondary" type="button">Hide options</button></div>
   <section id="selectionInspector" class="selection-inspector" aria-labelledby="inspectorTitle" hidden><h2 id="inspectorTitle">Background</h2><p id="editScope" class="edit-scope" role="status"></p><div id="inspectorFields"><div id="inspectorMore" class="inspector-more"></div></div></section>
-  <section class="controls" id="detailControls" aria-label="Design controls"><button id="btnCloseOptions" class="text-link" type="button">Close options</button><p class="stage-count" id="stepCount"></p><section id="stepPanel" tabindex="-1" aria-label="Current design stage"><h1>Opening your design…</h1></section></section>
+  <section class="controls" id="detailControls" aria-label="Design controls"><p class="stage-count" id="stepCount"></p><section id="stepPanel" tabindex="-1" aria-label="Current design stage"><h1>Opening your design…</h1></section></section>
  </div>
  <section class="preview-pane" id="previewPane" aria-label="Cumulative design preview">
+  <div id="startingFrom" class="starting-from" tabindex="-1"><span id="startingFromText"></span> <button id="btnSwapLook" class="text-link" type="button">Swap starting look</button></div>
   <div class="preview-heading"><div><h2 id="previewName">Title slide</h2><span class="canvas-hint" aria-hidden="true">Click any part of the slide to edit it.</span></div><div class="preview-actions"><button class="btn btn-secondary" id="btnPresent" type="button">Present</button><button class="btn btn-secondary" id="btnTryVersion" type="button">Try another version</button><button class="btn btn-secondary" id="btnCompareVersions" type="button" hidden>Compare A &amp; B</button></div></div><p id="versionStatus" class="version-status" role="status" hidden></p>
-  <div class="preview-tabs" id="previewTabs" role="tablist" aria-label="Slide preview"><button type="button" role="tab" data-view="title" aria-selected="true" aria-controls="modelStage">Title</button><button type="button" role="tab" data-view="divider" aria-selected="false" aria-controls="modelStage">Divider</button><button type="button" role="tab" data-view="cards" aria-selected="false" aria-controls="modelStage">Text boxes</button><button type="button" role="tab" data-view="video" aria-selected="false" aria-controls="modelStage">Video</button><button type="button" role="tab" data-view="activity" aria-selected="false" aria-controls="modelStage">Activity</button></div>
-  <div id="previewToolbarMount"><section id="contextToolbar" class="context-toolbar" aria-label="Selected element formatting"></section></div>
-  <p id="selectionHelp" class="selection-help">Click any feature to see its options in the editor sidebar. Tab to an element and press Enter to select it; Escape selects the background. Edit the selected words in Sample text. Placement moves text inside its text area.</p>
+  <div class="preview-tabs" id="previewTabs" role="tablist" aria-label="Slide preview"><button type="button" role="tab" data-view="title" data-rail-kind="title" aria-selected="true" aria-controls="modelStage">Title</button><button type="button" role="tab" data-view="divider" data-rail-kind="divider" aria-selected="false" aria-controls="modelStage">Divider</button><button type="button" role="tab" data-view="cards" data-rail-kind="cards" aria-selected="false" aria-controls="modelStage">Text boxes</button><button type="button" role="tab" data-view="video" data-rail-kind="video" aria-selected="false" aria-controls="modelStage">Video</button><button type="button" role="tab" data-view="activity" data-rail-kind="activity" aria-selected="false" aria-controls="modelStage">Activity</button></div>
+  <div id="previewToolbarMount"><section id="contextToolbar" class="context-toolbar" aria-label="Editing toolbar"></section><p id="scopeLine" class="scope-line" hidden></p></div>
+  <p id="selectionHelp" class="selection-help">Click any feature to see its options in the toolbar above the slide; More options opens the Slide options drawer. Tab to an element and press Enter to select it; Escape closes Slide options when it is open and otherwise selects the background. Edit the selected words in Sample text. Placement moves text inside its text area.</p>
   <div class="preview-frame"><div id="modelStage" role="tabpanel" aria-label="Slide preview"></div></div>
-  <div id="readabilityNotes" class="readability-warning" hidden></div>
+  <details id="readabilityDetails" class="readability-details" hidden><summary id="readabilitySummary"></summary><div id="readabilityNotes" class="readability-warning"></div></details>
   <section class="similarity" aria-labelledby="similarityTitle"><div class="comparison-heading"><h2 id="similarityTitle">Make it feel distinct</h2><span>Advisory comparison</span></div><div id="distinctMeter" class="distinct-meter"></div><details><summary>What matches the existing lessons?</summary><div id="similarityDetails"></div></details><p class="comparison-note">A guide to variety, not a score to pass. Private team designs are not compared or reserved.</p></section>
   <p class="preview-caption">Every preview uses your current colors, fonts and arrangements. These are reusable slide designs, not finished lesson pages.</p>
  </section>
  <div id="inspectorFollowup" class="inspector-followup" hidden></div>
+ <section id="showcase" class="showcase" aria-label="Pick a look" hidden></section>
 </main>
 <dialog id="openDialog" aria-labelledby="openDialogTitle"><form id="openForm"><h2 id="openDialogTitle">Open your team design</h2><p>Type the 8-character team code from your team's OneDrive folder. Lost it? Ask Britt for a new code.</p><label class="field">Lesson<select id="openLesson" required></select></label><label class="field">Team code<input id="openEditCode" type="password" autocomplete="off" minlength="8" maxlength="128" required></label><p id="openError" role="status"></p><div class="dialog-actions"><button type="submit" class="btn btn-primary" id="openConfirm">Open</button><button type="button" class="btn btn-secondary" id="openCancel">Cancel</button></div></form></dialog>
-<dialog id="presetDialog" aria-labelledby="presetDialogTitle" aria-describedby="presetDialogDescription">
- <form id="presetForm" method="dialog">
-  <h2 id="presetDialogTitle">Apply this preset?</h2>
-  <p id="presetDialogDescription">Your visual choices will change. Sample text stays. Undo can restore your current look.</p>
-  <label class="dialog-check"><input type="checkbox" id="presetSkipConfirmation" aria-describedby="presetSessionHelp"><span>Don't ask again during this session</span></label>
-  <p id="presetSessionHelp" class="helper">Only in this tab's current editing session. Other warnings stay on.</p>
-  <div class="dialog-actions"><button type="button" class="btn btn-secondary" id="presetCancel" autofocus>Cancel</button><button type="submit" class="btn btn-primary" id="presetApply">Apply preset</button></div>
- </form>
-</dialog>
+<p id="toast" class="toast" role="status" aria-live="polite"></p>
 <script type="module" src="./builder-app.mjs"></script>
 </body></html>

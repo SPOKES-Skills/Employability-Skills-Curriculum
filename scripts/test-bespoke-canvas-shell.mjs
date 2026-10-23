@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Browser checks for the canvas shell: slim top bar, docked toolbar, hideable options drawer.
+// Browser checks for the canvas shell: slim top bar, docked toolbar, hideable options drawer and its Escape key.
 import assert from 'node:assert/strict';
 import {createDevServer} from './bespoke-dev-server.mjs';
 import {browserType} from './bespoke-test-browser.mjs';
@@ -31,25 +31,28 @@ try {
 
     const bar = await rect(page, '.app-bar');
     assert.ok(bar.height <= 64, `top bar is slim, got ${bar.height}px`);
-    const slideTop = (await rect(page, '#modelStage .bespoke-slide')).top;
-    assert.ok(slideTop < 220, `slide starts near the top of the window, got ${slideTop}px`);
-    pass('top bar is slim and the slide starts near the top');
+    // The toolbar band above the slide pushes it down (it never floats over it), and the whole slide still fits the window.
+    const stage = await rect(page, '#modelStage .bespoke-slide');
+    assert.ok(stage.top < 340, `slide starts in the top third of the window, got ${stage.top}px`);
+    assert.ok(stage.bottom <= 900, `the whole slide fits the window, bottom ${stage.bottom}px`);
+    pass('top bar is slim and the slide fits under the toolbar band');
 
     await page.locator('#modelStage .slide-title-text').click();
-    assert.equal(await page.locator('#contextToolbar.is-floating').count(), 1, 'toolbar floats on wide screens');
+    assert.equal(await page.locator('#previewToolbarMount > #contextToolbar.is-docked').count(), 1, 'toolbar docks in the band above the slide');
+    assert.equal(await page.locator('#contextToolbar').evaluate(el => getComputedStyle(el).position), 'static', 'the toolbar is in normal flow, not floating');
     const toolbar = await rect(page, '#contextToolbar');
     const slide = await rect(page, '#modelStage .bespoke-slide');
     assert.ok(toolbar.bottom <= slide.top, `toolbar sits above the slide, never over it (${toolbar.bottom} > ${slide.top})`);
-    for (const id of ['#selectedElement', '#context-text', '#context-color', '#context-size', '#context-align', '#context-placement'])
+    for (const id of ['#selectedElement', '#context-text', '#context-font', '#context-color', '#context-size', '#context-align', '#context-placement'])
       assert.ok(await page.locator('#contextToolbar ' + id).isVisible(), id + ' is a quick control');
-    assert.equal(await page.locator('#contextToolbar #context-font').count(), 0, 'font waits in the drawer');
-    pass('toolbar docks above the slide with the quick text controls');
+    assert.equal(await page.locator('#contextToolbar #context-only-slide').count(), 0, 'Only this slide waits in the drawer');
+    pass('toolbar docks above the slide with the quick text controls, font included');
 
     assert.equal(await page.locator('#workspace').getAttribute('data-options'), 'false');
     assert.equal(await page.locator('#chromeRail').isVisible(), false, 'drawer is closed by default');
     await page.locator('#btnMoreOptions').click();
     assert.equal(await page.locator('#chromeRail').isVisible(), true, 'More slide options opens the drawer');
-    assert.equal(await page.locator('#selectionInspector #context-font').count(), 1, 'font control is in the drawer');
+    assert.equal(await page.locator('#selectionInspector #context-only-slide').count(), 1, 'the Only this slide switch is in the drawer');
     assert.ok(await page.locator('#btnHideDrawer').isVisible(), 'Hide options button is visible while the drawer is open');
     pass('options drawer is closed by default and opens on request');
 
@@ -71,9 +74,16 @@ try {
     await page.keyboard.press('Escape');
 
     await page.locator('#stage-review').click();
-    assert.ok(await page.locator('#btnSave').evaluate(el => el.classList.contains('btn-secondary')), 'Save is secondary on Review');
+    for (const id of ['#btnSave', '#btnSend'])
+      assert.equal(await page.locator(id).isVisible(), false, `${id} is not in the top bar on Send`);
+    assert.equal(await page.locator('#barEnd > #btnSend').count(), 0, 'Send to Britt is not promoted into the bar');
+    const saves = await page.getByRole('button', {name: /^Save (for the team|test design)$/}).evaluateAll(list => list.map(el => el.id));
+    assert.deepEqual(saves, ['btnSendSave'], 'the panel holds the only Save on Send');
+    assert.equal(await page.locator('#btnSendToBritt').count(), 1, 'the panel holds Send to Britt');
+    await page.locator('#stage-slides').click();
+    assert.equal(await page.locator('#btnSave').isVisible(), true, 'Save is back in the top bar off Send');
     await context.close();
-    pass('Review stage demotes Save');
+    pass('Send stage keeps both actions in the panel');
   }
   {
     // Apple HIG: closely related choices on an object are segmented controls; color opens a picker.
@@ -82,7 +92,7 @@ try {
     await page.locator('#stage-slides').click();
     await page.locator('#modelStage .slide-title-text').click();
 
-    for (const [label, count] of [['Size', 3], ['Align', 3], ['Place in text area', 3]]) {
+    for (const [label, count] of [['Size', 3], ['Align', 3], ['Position', 3]]) {
       const group = page.locator(`#contextToolbar [role=radiogroup][aria-label="${label}"]`);
       assert.equal(await group.count(), 1, `${label} is a segmented control`);
       assert.equal(await group.getByRole('radio').count(), count, `${label} segment count`);
@@ -107,7 +117,8 @@ try {
     assert.ok(await popover.isVisible(), 'color well opens a picker');
     assert.equal(await popover.getByRole('radio').count(), 11, 'all eleven brand colors are offered');
     await popover.getByRole('radio', {name: 'Gold', exact: true}).click();
-    assert.equal((await saved()).roleStyles.title.headingColor, 'gold');
+    // Toolbar color picks are shared by default (PR #56), so read the color the slide shows.
+    assert.equal(await page.locator('#modelStage .slide-title-text').evaluate(el => getComputedStyle(el).color), 'rgb(211, 178, 87)', 'the pick reaches the slide');
     assert.equal(await page.locator('#context-color-popover').isVisible(), false, 'picking a color closes the picker');
     await page.locator('#context-color-well').click();
     await page.keyboard.press('Escape');
@@ -132,6 +143,47 @@ try {
     pass('options drawer toggles from toolbar, shortcut and menu');
   }
   {
+    // Ruling R27: Escape closes the open drawer first; with it closed, Escape on the canvas selects the background.
+    const {context, page} = await open(1440);
+    const options = () => page.locator('#workspace').getAttribute('data-options');
+    const focused = () => page.evaluate(() => document.activeElement.id);
+    await page.locator('#stage-slides').click();
+    await page.locator('#modelStage .slide-title-text').click();
+    await page.locator('#btnMoreOptions').click();
+    // An Escape that ends text composition (IME) belongs to the composition, not the drawer.
+    await page.evaluate(() => document.getElementById('btnHideDrawer').dispatchEvent(new KeyboardEvent('keydown', {key: 'Escape', isComposing: true, bubbles: true, cancelable: true})));
+    assert.equal(await options(), 'true', 'an Escape during text composition leaves the drawer open');
+    await page.locator('#btnHideDrawer').focus();
+    await page.keyboard.press('Tab');
+    assert.ok(await page.evaluate(() => document.getElementById('chromeRail').contains(document.activeElement)), 'focus is inside the drawer');
+    await page.keyboard.press('Escape');
+    assert.equal(await options(), 'false', 'Escape closes the open drawer');
+    assert.equal(await focused(), 'btnMoreOptions', 'focus returns to More options');
+    pass('Escape closes the open drawer and returns focus to More options');
+
+    await page.locator('#btnMoreOptions').click();
+    await page.locator('#modelStage .slide-title-text').focus();
+    await page.keyboard.press('Escape');
+    assert.equal(await options(), 'false', 'Escape on the canvas closes the open drawer first');
+    assert.equal(await page.locator('#selectedElement').inputValue(), 'heading-0', 'the selection stays while the drawer closes');
+    await page.locator('#modelStage .slide-title-text').focus();
+    await page.keyboard.press('Escape');
+    assert.equal(await page.locator('#selectedElement').inputValue(), 'background', 'with the drawer closed, Escape selects the background');
+    pass('with the drawer closed, Escape on the canvas selects the background');
+
+    await page.locator('#modelStage .slide-title-text').click();
+    await page.locator('#btnMoreOptions').click();
+    await page.locator('#context-color-well').click();
+    await page.keyboard.press('Escape');
+    assert.equal(await page.locator('#context-color-popover').count() === 0 || !await page.locator('#context-color-popover').isVisible(), true, 'Escape closes the color picker');
+    assert.equal(await options(), 'true', 'the drawer stays open while Escape closes the picker');
+    assert.equal(await focused(), 'context-color-well', 'focus returns to the color well');
+    await page.keyboard.press('Escape');
+    assert.equal(await options(), 'false', 'a second Escape closes the drawer');
+    await context.close();
+    pass('Escape closes the color picker before the drawer');
+  }
+  {
     // Lesson & team is its own first stage so people see it and identify their team.
     const {context, page} = await open(1440);
     const pills = await page.locator('#stepList button').allTextContents();
@@ -141,7 +193,7 @@ try {
     assert.equal(await page.locator('#workspace').getAttribute('data-stage'), 'team');
     for (const id of ['#lessonSelect', '#teamName', '#spokespersonName', '#spokespersonEmail'])
       assert.ok(await page.locator(id).isVisible(), id + ' is visible without opening anything');
-    assert.equal(await page.locator('[data-preset]').count(), 0, 'the starting looks wait on the next stage');
+    assert.equal(await page.locator('#lookStrip > [data-look]').count(), 0, 'the looks wait on Pick a look');
     assert.equal(await page.locator('#stage-team').getAttribute('data-attention'), 'true', 'the pill asks for attention while details are missing');
     pass('a new visit opens on a Lesson & team page with an attention marker');
 
@@ -150,12 +202,14 @@ try {
     assert.equal(await page.locator('#stage-team').getAttribute('data-attention'), null, 'the marker clears once the team is identified');
     await page.locator('#btnNext').click();
     assert.equal(await page.locator('#stage-start').getAttribute('aria-current'), 'step');
-    assert.ok(await page.locator('[data-preset]').first().isVisible(), 'Continue opens the starting looks');
+    assert.ok(await page.locator('#lookStrip > [data-look]').first().isVisible(), 'Continue opens Pick a look');
     assert.match(await page.locator('#stage-team').getAttribute('title'), /Riverside Team/, 'the pill names the team on later stages');
-    await page.locator('#btnBack').click();
-    assert.equal(await page.locator('#stage-team').getAttribute('aria-current'), 'step', 'Back returns to Lesson & team');
+    // Pick a look fills the workspace (Task 4), so its panel's Back button is hidden; the stage pill goes back.
+    assert.equal(await page.locator('#btnBack').isVisible(), false, 'Pick a look shows no panel Back button');
+    await page.locator('#stage-team').click();
+    assert.equal(await page.locator('#stage-team').getAttribute('aria-current'), 'step', 'the pill returns to Lesson & team');
     assert.equal(await page.locator('#teamName').inputValue(), 'Riverside Team');
-    pass('Continue and Back move between Lesson & team and the starting looks');
+    pass('Continue and the stage pill move between Lesson & team and Pick a look');
 
     // Leaving a field must not rebuild the stage pills under the pointer and swallow the click.
     await page.locator('#teamName').fill('Riverside Team 2');
@@ -175,10 +229,12 @@ try {
     const {context, page} = await open(1024);
     await page.locator('#stage-slides').click();
     await page.locator('#modelStage .slide-title-text').click();
-    assert.equal(await page.locator('#contextToolbar.is-floating').count(), 0, 'tablet keeps its stacked layout');
-    assert.equal(await page.locator('#selectionInspector #contextToolbar').count(), 1);
+    // The 761 to 1100 layout docks the toolbar above the slide too, instead of a sidebar form.
+    assert.equal(await page.locator('#previewToolbarMount > #contextToolbar.is-docked').count(), 1, 'tablet docks the toolbar above the slide');
+    assert.equal(await page.locator('#selectionInspector #contextToolbar').count(), 0, 'the toolbar is no longer a sidebar form');
+    assert.ok((await rect(page, '#contextToolbar')).bottom <= (await rect(page, '#modelStage .bespoke-slide')).top, 'tablet toolbar sits above the slide');
     await context.close();
-    pass('tablet width keeps the inspector layout');
+    pass('tablet width docks the toolbar above the slide');
   }
   for (const width of [390, 320]) {
     const {context, page} = await open(width);

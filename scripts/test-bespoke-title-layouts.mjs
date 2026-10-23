@@ -19,7 +19,7 @@ const templateCss = [...template.matchAll(/<style[^>]*>([\s\S]*?)<\/style>/g)].m
 const templateTitle = template.match(/<section class="slide slide-title active"[\s\S]*?<\/section>/)[0];
 const initial = defaultDesign(catalog);
 Object.assign(initial.roles, { titleBackground:'gold', titleBackgroundEnd:'accent', titleText:'light', subtitle:'light' });
-initial.fonts = { heading:'raleway', body:'source-sans-3' }; initial.background = 'crosshatch';
+initial.fonts = { heading:'raleway', body:'source-sans-3' }; initial.background = 'edge-rail';
 initial.samples.title = 'Make room for your next step'; initial.samples.subtitle = 'A sample lesson for a confident start';
 initial.slides.title.colors = 'gradient';
 const payload = design => ({ schema:'bespoke-selection/v2', date:'2026-09-24', submittedAt:'2026-09-24T16:30:00.000Z', lesson:legacy.lesson, team:legacy.team, design });
@@ -31,7 +31,7 @@ async function editor(width) {
   await context.route(/^https?:/, route => new URL(route.request().url()).origin === server.baseUrl ? route.continue() : route.abort());
   const page = await context.newPage(); page.on('dialog', dialog => dialog.accept());
   await page.goto(server.baseUrl+'/bespoke/'); await page.locator('#localPreviewNotice').waitFor();
-  await page.locator('#btnSave').filter({hasText:'Save test design'}).waitFor();
+  await page.locator('#btnSave').filter({hasText:'Save test design'}).waitFor({state:'attached'});
   return page;
 }
 const saved = page => page.evaluate(() => JSON.parse(localStorage.getItem('bespoke-draft-v2')).design);
@@ -42,9 +42,10 @@ async function choice(page, group, value) {
 }
 async function measure(locator, canonical = false) {
   return locator.evaluate((el, canonical) => {
-    const r = el.getBoundingClientRect(), style = getComputedStyle(el);
-    const box = selector => { const node = el.querySelector(selector), b = node.getBoundingClientRect(), css=getComputedStyle(node), range=document.createRange();range.selectNodeContents(node);const lines=[...range.getClientRects()].map(line=>({x:line.x-r.x,y:line.y-r.y,w:line.width,h:line.height}));return {x:b.x-r.x,y:b.y-r.y,w:b.width,h:b.height,font:css.fontSize,align:css.textAlign,color:css.color,lines}; };
-    return {w:r.width,h:r.height,scrollW:el.scrollWidth,scrollH:el.scrollHeight,background:style.backgroundImage,
+    // Make it yours scales its 960 canvas to fit the window (Ruling R26), so on-screen boxes are read back in the slide's own px.
+    const r = el.getBoundingClientRect(), style = getComputedStyle(el), k = el.offsetWidth / r.width;
+    const box = selector => { const node = el.querySelector(selector), b = node.getBoundingClientRect(), css=getComputedStyle(node), range=document.createRange();range.selectNodeContents(node);const lines=[...range.getClientRects()].map(line=>({x:(line.x-r.x)*k,y:(line.y-r.y)*k,w:line.width*k,h:line.height*k}));return {x:(b.x-r.x)*k,y:(b.y-r.y)*k,w:b.width*k,h:b.height*k,font:css.fontSize,align:css.textAlign,color:css.color,lines}; };
+    return {w:el.offsetWidth,h:el.offsetHeight,scrollW:el.scrollWidth,scrollH:el.scrollHeight,background:style.backgroundImage,
       title:box(canonical?'h1':'.slide-title-text'), subtitle:box(canonical?'.subtitle':'.slide-subtitle'), logo:box(canonical?'.logo':'.slide-logo'), rule:box(canonical?'.divider':'.slide-accent')};
   }, canonical);
 }
@@ -117,7 +118,7 @@ try {
         contained(m, `editor ${width}/${logo}/${layout}`);values[layout]=m;
         assert.equal(m.title.color,'rgb(255, 255, 255)');assert.equal(m.subtitle.color,'rgb(255, 255, 255)');
         assert(await page.locator('#modelStage .slide-title-text').evaluate(el=>getComputedStyle(el).fontFamily.includes('Raleway')));
-        assert((m.background.match(/linear-gradient/g)||[]).length>=3, 'Both pattern axes stay over the gradient');
+        assert((m.background.match(/linear-gradient/g)||[]).length>=2, 'The edge rail stays over the gradient');
         assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1), 'Editor stays inside viewport');
         if(logo==='corner')assert(m.logo.y<30, 'Corner logo stays at the top independently of text arrangement');
         else assert(m.logo.y+m.logo.h<m.title.y, 'Above-title logo stays in its own row');
@@ -134,7 +135,7 @@ try {
     await go(page,'Shared typography');await go(page,'Title slide');assert.deepEqual(await saved(page),final);
     const response=page.waitForResponse(r=>r.url().endsWith('/api/bespoke')&&r.request().postDataJSON()?.action==='save');
     await page.locator('#btnSave').click();assert.equal((await response).status(),200);
-    await page.locator('#fileStatus').filter({hasText:/Local test design saved|already up to date/}).waitFor();
+    await page.locator('#toast').filter({hasText:/Local test design saved|already up to date/}).waitFor();
     await page.reload();await page.locator('#localPreviewNotice').waitFor();assert.deepEqual(await saved(page),final);
     const reopen=await editor(width);await go(reopen,'Title slide');assert.deepEqual(await saved(reopen),final);
 

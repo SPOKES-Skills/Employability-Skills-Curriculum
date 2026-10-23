@@ -24,11 +24,11 @@ let geometryChecks=0,paints=0,axes=0,generatedChecks=0;
 const color=id=>{const hex=catalog.palette.find(c=>c.id===id).hex;return `rgb(${[1,3,5].map(n=>parseInt(hex.slice(n,n+2),16)).join(', ')})`;};
 async function pageFor(width,height=900,scale=1) {
   const context=await browser.newContext({viewport:{width,height},reducedMotion:'reduce'});contexts.push(context);
-  await context.addInitScript(()=>window.__bespokeAutosave={enabled:false});
+  await context.addInitScript(()=>{window.__bespokeAutosave={enabled:false};});
   await context.route(/^https?:/,route=>{requests.push(route.request());return new URL(route.request().url()).origin===server.baseUrl?route.continue():route.abort();});
   context.on('page',page=>page.on('pageerror',error=>errors.push(error.message)));
   const page=await context.newPage();await page.goto(server.baseUrl+'/bespoke/');
-  await page.locator('#btnSave').filter({hasText:'Save test design'}).waitFor();
+  await page.locator('#btnSave').filter({hasText:'Save test design'}).waitFor({state:'attached'});
   if(scale!==1)await page.addStyleTag({content:`html{font-size:${scale*100}%!important}`});
   await page.evaluate(()=>document.fonts.ready);return page;
 }
@@ -44,9 +44,10 @@ async function openDrawer(page) {
 async function check(page,label,{generated=false}={}) {
   const slide=page.locator(generated?'.bespoke-slide':'#modelStage .bespoke-slide');
   const m=await slide.evaluate(el=>{
-    const r=el.getBoundingClientRect(),box=n=>{if(!n)return null;const b=n.getBoundingClientRect(),s=getComputedStyle(n);return {x:b.x-r.x,y:b.y-r.y,w:b.width,h:b.height,scrollW:n.scrollWidth,clientW:n.clientWidth,background:s.backgroundColor,color:s.color,display:s.display};};
+    // Make it yours scales its 960 canvas to fit the window (Ruling R26), so on-screen boxes are read back in the slide's own px.
+    const r=el.getBoundingClientRect(),k=el.offsetWidth/r.width,box=n=>{if(!n)return null;const b=n.getBoundingClientRect(),s=getComputedStyle(n);return {x:(b.x-r.x)*k,y:(b.y-r.y)*k,w:b.width*k,h:b.height*k,scrollW:n.scrollWidth,clientW:n.clientWidth,background:s.backgroundColor,color:s.color,display:s.display};};
     const nav=el.querySelector(':scope > .slide-sidebar'),main=el.querySelector(':scope > .slide-content'),details=el.querySelector('.slide-sidebar-disclosure'),summary=details?.querySelector('summary'),drawer=details?.querySelector('.slide-sidebar-drawer');
-    return {w:r.width,h:r.height,rootFontSize:parseFloat(getComputedStyle(document.documentElement).fontSize),scrollW:el.scrollWidth,columns:getComputedStyle(el).gridTemplateColumns,nav:box(nav),main:box(main),summary:box(summary),drawer:box(drawer),open:details?.open,
+    return {w:el.offsetWidth,h:el.offsetHeight,scale:1/k,rootFontSize:parseFloat(getComputedStyle(document.documentElement).fontSize),scrollW:el.scrollWidth,columns:getComputedStyle(el).gridTemplateColumns,nav:box(nav),main:box(main),summary:box(summary),drawer:box(drawer),open:details?.open,
       mainCopy:[...main.querySelectorAll('.slide-heading,.slide-card,.slide-activity,.slide-video-frame')].map(box)};
   });
   assert(m.nav&&m.main&&m.summary&&m.drawer,label+': full and narrow navigation structures exist');
@@ -132,14 +133,15 @@ try {
     const final=await design(page);await surface(page,'design');await page.locator('#btnUndo').click();assert.notEqual((await design(page)).roles.sidebar,final.roles.sidebar);
     await page.locator('#btnRedo').click();assert.deepEqual(await design(page),final);
     const saved=page.waitForResponse(r=>r.url().endsWith('/api/bespoke')&&r.request().postDataJSON()?.action==='save');await page.locator('#btnSave').click();assert.equal((await saved).status(),200);
-    await page.locator('#fileStatus').filter({hasText:/Local test design saved|already up to date/}).waitFor();await page.reload();await page.locator('#btnSave').filter({hasText:'Save test design'}).waitFor();assert.deepEqual(await design(page),final);
+    await page.locator('#toast').filter({hasText:/Local test design saved|already up to date/}).waitFor();await page.reload();await page.locator('#btnSave').filter({hasText:'Save test design'}).waitFor({state:'attached'});assert.deepEqual(await design(page),final);
     const reopened=await pageFor(width,height);assert.deepEqual(await design(reopened),final);await preview(reopened,'video');await openDrawer(reopened);await check(reopened,label+'/reopened');
     const generatedPage=await page.context().newPage();
     for(const kind of ['cards','video','activity']) {
       await preview(page,kind);await openDrawer(page);const live=await check(page,label+'/'+kind+'/parity-source');
       await generatedPage.setContent(`<base href="${server.baseUrl}/bespoke/"><style>html,body{margin:0}main{width:${live.w}px;max-width:100%}*{box-sizing:border-box}</style><style>${cssForDesign(catalog,final)}</style><main>${renderSlide(catalog,final,kind)}</main>`);
       const summary=generatedPage.locator('.slide-sidebar-disclosure > summary');if(await summary.isVisible())await summary.click();await generatedPage.evaluate(()=>document.fonts.ready);
-      const generated=await check(generatedPage,label+'/'+kind+'/generated',{generated:true});assert.equal(generated.nav.w,live.nav.w);assert.equal(generated.main.w,live.main.w);generatedChecks++;
+      const generated=await check(generatedPage,label+'/'+kind+'/generated',{generated:true});// The live slide is scaled to fit (Rulings R26 and R30), so its px come back through a float scale.
+      assert(Math.abs(generated.nav.w-live.nav.w)<.5,'Generated sidebar width matches the live one');assert(Math.abs(generated.main.w-live.main.w)<.5,'Generated content width matches the live one');generatedChecks++;
     }
     await generatedPage.setContent(`<base href="${server.baseUrl}/bespoke/"><style>${templateCss}</style><style>${cssForDesign(catalog,final)}</style>${templateNav}`);
     assert.equal(await generatedPage.locator('.sidebar').evaluate(el=>getComputedStyle(el).backgroundColor),color(final.roles.sidebar));

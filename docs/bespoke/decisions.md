@@ -1,5 +1,38 @@
 # BeSpoke decisions
 
+## Open design standard: October 22, 2026
+
+Britt decided these on October 22, 2026 for Part 1 of `docs/superpowers/specs/2026-10-22-bespoke-open-standard-premium-design.md`.
+
+| Date | Decision |
+|---|---|
+| 2026-10-22 | BeSpoke follows the open design standard (`docs/superpowers/specs/2026-10-22-open-design-standard-design.md`). A conflicting option is replaced with a compliant one, not just removed. |
+| 2026-10-22 | Textures are replaced by structures. Dot grid, Diagonal, Crosshatch and Soft wash give way to Color block, Edge rail and Frame, with Plain kept. The controls stop offering the old values and a saved design converts to Plain on open, with a notice. The schema, the service and `scripts/bespoke_design.py` keep accepting the old values until Britt confirms no sent or approved design still uses one. |
+| 2026-10-22 | Each lesson uses two typefaces, a heading font and a body font. Per-slide and feature font controls offer only those two, saved as the `heading` and `body` slots, so changing a lesson font moves every part on that slot. A saved design with another font id converts to a slot on open. |
+| 2026-10-22 | Readability stays advisory, with a person's review. Pickers hide and lock nothing and the builder adds no readability gate. |
+| 2026-10-22 | Two-color gradients stay on title and divider slides. |
+| 2026-10-22 | The 12 ready-made looks stay. Each shares at most 5 compared choices with each released lesson and, where possible, no color combination. Any two looks share 16 or fewer of the 32 compared choices. |
+| 2026-10-22 | Every BeSpoke design needs Britt's final approval before it is used in a lesson. Send says so, and Sent to Britt says the design is waiting for Britt's approval. This supersedes the October 7 line "The final design comes from Britt and the administrator" only where that line conflicts. The program administrator no longer appears in the Send copy. |
+
+## Showcase polish: October 19, 2026
+
+Britt approved the showcase polish spec (`docs/superpowers/specs/2026-10-19-bespoke-showcase-polish-design.md`).
+
+| Date | Decision |
+|---|---|
+| 2026-10-19 | The stages are named Lesson & team, Pick a look, Make it yours and Send. Their order and internal ids (`team`, `start`, `slides`, `review`) do not change. Applying a look no longer opens the preset confirmation dialog: the apply is one Undo step, and an Undo link sits beside Make it ours. The scope badge ("This slide type only") is gone. One scope line under the toolbar names the other slides a color change reaches. The similarity meter leaves Make it yours and becomes one line on Send with a See the comparison link. This replaces the September 24 "prominent advisory meter" placement. The comparison, its six reference lessons and its advisory wording do not change. |
+
+## PR #56 merged with main: October 15, 2026
+
+Britt chose main's twelve layout presets (Editorial, Split stage, Centered, Grounded,
+Framed, Headline, Side rule, Horizon, Corner, Masthead, Two columns and Inset) over the
+twelve brand presets on this branch. Open Air, Gold Standard, Slate, Harvest, Bold
+Statement and Fresh Start are not shipped, so the preset rows in the October 2 table
+below no longer apply. Team edit codes are main's 8-character codes, and
+`--reissue all|<lesson-id>` replaces `--rotate-team-codes`. View codes keep this
+branch's hardening: a separate `view:` hash, a broken view table turns off only view
+links, and a view never shows the Team Leader's email, the review notes or the archived
+original. The flow is main's four stages; Quick pick and the step path stay specs.
 ## Merge of main into the presets branch, October 15, 2026
 
 Britt directed how pull request #55 combines with main. Where the October 2 rows
@@ -28,6 +61,29 @@ blocks navigation or Save. Send to Britt still needs the spokesperson name and
 returns people to this page when it is missing. A saved draft reopens on the stage
 it was left on. Earlier drafts that were saved on the starting looks still open there.
 
+## Colors follow every slide: October 7, 2026
+
+Britt found that a color picked on one slide, or in one Guide me question, did not carry
+to the other slides, so choices seemed to disappear as a team moved through the steps.
+Color picks in the slide toolbar and in Guide me now apply to every slide that shares
+that color. A title background also sets the divider background, as Quick pick's
+Background choice will. Content slides share one tint, one heading color and one body
+color. An Only this slide switch keeps a color on a single slide. This reverses the
+September 24 rule that a slide edit stays on that slide, for colors only. Fonts, sizes
+and finish still stay on the slide. The More options panel keeps its explicit
+This slide or Shared default choice, which still starts on This slide.
+
+## Quick pick is advisory input: October 7, 2026
+
+Britt: BeSpoke gathers opinions from teams who want a say in how the slides look. It is
+not the final pass. The final design comes from Britt and the administrator, with
+Claude Design, and may borrow from what teams suggest. Quick pick therefore gates
+nothing on readability or accessibility and shows no readability warnings, and ugly
+color combinations are acceptable. This supersedes the October 6 plan to test every
+combination for readability, and the September 24 line that defaults and presets meet
+the contrast guidance, for the three new presets only. The full builder keeps its
+advisory notes. Spec: `docs/superpowers/specs/2026-10-06-bespoke-quick-pick-design.md`.
+
 ## Current simplification — October 7, 2026
 
 Britt authorized implementation in an isolated worktree: twelve distinct layout
@@ -48,7 +104,7 @@ Britt approved the design in `docs/superpowers/specs/2026-10-02-bespoke-start-pa
 |---|---|
 | Six presets (September 18) | Nine presets. Open Air, Gold Standard and Slate are new, and every preset is redesigned. `scripts/build-bespoke-presets.mjs` is the source. |
 | Sidebar text color is chosen for you (September 24) | Optional choice saved as `design.roles.sidebarText`. Absent means Automatic. Advisory at 4.5 to 1. |
-| Start is one page with Lesson & team, Build my own and six presets (September 24) | Two short screens, then scratch or preset. Ships in the second pull request. |
+| Start is one page with Lesson & team, Build my own and six presets (September 24) | A four-screen intake wizard (lesson team, Team Leader, who is building, how the team works), then scratch or preset. Replaced on October 6 by Quick pick; see the October 7 entry above. |
 | Guide me walks slide by slide with four suggested colors (September 30) | Step by step walks twelve steps: colors, layout, fonts. Every color screen shows all eleven. Ships in the second pull request. |
 | Guide me owns the preview while it runs (October 1) | A preview click opens the matching step or the preview editor. Ships in the second pull request. |
 | One private link per team, and it edits (September 22) | Two links per team. The builder link edits. The team view link opens the latest saved design read-only. |

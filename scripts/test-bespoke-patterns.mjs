@@ -68,7 +68,8 @@ try {
       }
       for (let i = 0; i < patterns.length; i++) for (let j = i+1; j < patterns.length; j++) {
         const diff = await pixelDifference(page, shots.get(patterns[i]), shots.get(patterns[j]));
-        assert(diff.changedFraction >= .018 && diff.meanChannelDelta >= .5, `${mobile?'phone':'desktop'} ${base} ${patterns[i]} vs ${patterns[j]}: ${JSON.stringify(diff)}`);
+        // Structures stay in the outer margin: a 15px color block on a 720px slide covers about 0.09% of the canvas.
+        assert(diff.changedFraction >= .0005 && diff.meanChannelDelta >= .05, `${mobile?'phone':'desktop'} ${base} ${patterns[i]} vs ${patterns[j]}: ${JSON.stringify(diff)}`);
         evidence.push({ mobile, base, first: patterns[i], second: patterns[j], ...diff });
       }
       design.background = 'plain';
@@ -87,6 +88,19 @@ try {
       assert.equal(diff.meanChannelDelta, 0);
       const plain = await show({ ...design, background:'plain' }, kind);
       assert((await pixelDifference(page, preview, plain)).changedFraction > .018, `${kind}: pattern must be visible outside reading surfaces`);
+      parity++;
+    }
+    // A frame on a content slide encloses the area beside the sidebar column; it never runs under the sidebar.
+    for (const kind of ['cards', 'video', 'activity']) {
+      const design = defaultDesign(catalog); design.background = 'frame';
+      await show(design, kind);
+      const found = await page.evaluate(() => {
+        const root = document.querySelector('.bespoke-slide'), content = root.querySelector('.slide-content'), side = root.querySelector('.slide-sidebar');
+        return { rootImage: getComputedStyle(root).backgroundImage, layers: (getComputedStyle(content).backgroundImage.match(/linear-gradient/g) || []).length, contentLeft: content.getBoundingClientRect().left, sidebarRight: side.getBoundingClientRect().right, sidebarShown: getComputedStyle(side).display !== 'none' };
+      });
+      assert.equal(found.rootImage, 'none', `${kind}: the slide root under the sidebar stays plain`);
+      assert.equal(found.layers, 4, `${kind}: the content area carries the four frame bars`);
+      if (found.sidebarShown) assert(found.contentLeft >= found.sidebarRight - 0.5, `${kind}: the frame starts right of the sidebar (${found.contentLeft} vs ${found.sidebarRight})`);
       parity++;
     }
     await context.close();

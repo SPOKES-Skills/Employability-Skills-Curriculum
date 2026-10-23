@@ -53,21 +53,60 @@ jobs:
         with:
           script: |
             const fs = require('fs');
+            // Issue bodies are attacker-controlled. These linear indexOf scans
+            // replace nested lazy regexes that backtracked super-linearly
+            // (ReDoS) and return exactly what those regexes captured.
+            const skipSpace = (text, from) => {
+              let i = from;
+              while (i < text.length && /\s/.test(text[i])) i++;
+              return i;
+            };
+            // begin marker, then ```json <payload> ```, then end marker.
+            const fencedPayload = (body) => {
+              const beginMarker = '<!-- bespoke-payload:begin -->';
+              const begin = body.indexOf(beginMarker);
+              const open = begin === -1 ? -1 : body.indexOf('```json', begin + beginMarker.length);
+              const close = open === -1 ? -1 : body.indexOf('```', open + 7);
+              if (close === -1 || body.indexOf('<!-- bespoke-payload:end -->', close + 3) === -1) return null;
+              return body.slice(skipSpace(body, open + 7), close);
+            };
+            // Only the first ```json block that opens with "{" can match: a
+            // later block starts further on, so it cannot find a schema or
+            // closing brace that the first one missed.
+            const firstJsonBrace = (body) => {
+              for (let open = body.indexOf('```json'); open !== -1; open = body.indexOf('```json', open + 7)) {
+                const at = skipSpace(body, open + 7);
+                if (body[at] === '{') return at;
+              }
+              return -1;
+            };
+            // ```json {... "schema": "bespoke-selection/v1|v2" ...} ```
+            const barePayload = (body) => {
+              const start = firstJsonBrace(body);
+              if (start === -1) return null;
+              const schema = /"schema"\s*:\s*"bespoke-selection\/v[12]"/g;
+              schema.lastIndex = start + 1;
+              if (!schema.exec(body)) return null;
+              for (let end = body.indexOf('}', schema.lastIndex); end !== -1; end = body.indexOf('}', end + 1)) {
+                if (body.startsWith('```', skipSpace(body, end + 1))) return body.slice(start, end + 1);
+              }
+              return null;
+            };
             let raw = '';
             if (context.eventName === 'workflow_dispatch') {
               raw = process.env.DISPATCH_PAYLOAD || '';
             } else {
               const body = context.payload.issue.body || '';
-              const fence = body.match(/<!-- bespoke-payload:begin -->[\s\S]*?```json\s*([\s\S]*?)```[\s\S]*?<!-- bespoke-payload:end -->/);
-              if (fence) {
-                raw = fence[1];
+              const fence = fencedPayload(body);
+              if (fence !== null) {
+                raw = fence;
               } else {
-                const alt = body.match(/```json\s*(\{[\s\S]*?"schema"\s*:\s*"bespoke-selection\/v[12]"[\s\S]*?\})\s*```/);
-                if (!alt) {
+                const alt = barePayload(body);
+                if (alt === null) {
                   core.setFailed('No bespoke-selection JSON payload found in issue body.');
                   return;
                 }
-                raw = alt[1];
+                raw = alt;
               }
             }
             let data;

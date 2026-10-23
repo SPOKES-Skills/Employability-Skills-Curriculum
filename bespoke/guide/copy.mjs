@@ -12,7 +12,7 @@ const FIXED = {
   team: ['Your team', 'Confirm the lesson and who is leading the design.'],
   preset: ['Starting look', 'Pick a starting look, or keep the design you have.'],
   'shared.fonts': ['Fonts', 'Which font pairing should every slide use?'],
-  'shared.pattern': ['Background pattern', 'Should slide backgrounds have a pattern?'],
+  'shared.pattern': ['Background detail', 'Should slide backgrounds have a detail, such as a rail or a frame?'],
   'shared.sidebar': ['Sidebar color', 'What color should the lesson sidebar be?'],
   'shared.accent': ['Accent color', 'What color should lines, edges and markers be?'],
   'shared.button': ['Button color', 'What color should buttons be?'],

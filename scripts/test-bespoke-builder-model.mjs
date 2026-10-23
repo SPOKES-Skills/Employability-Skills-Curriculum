@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { applyPreset, colorAvailability, contrast, contrastIssues, cssForDesign, defaultDesign, designSchema, inkFor, migrateV1, patternFor, renderSlide, roleOptions, setSidebarText, sidebarInk, structuralErrors, validateDesign } from '../bespoke/builder-model.mjs';
+import { applyPreset, colorAvailability, contrast, contrastIssues, cssForDesign, defaultDesign, designSchema, effectiveRoleStyle, inkFor, migrateV1, patternFor, renderSlide, roleOptions, setRoleStyle, setSharedColor, setSidebarText, sidebarInk, structuralErrors, validateDesign } from '../bespoke/builder-model.mjs';
 import { compareDesign } from '../bespoke/similarity.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -42,8 +42,10 @@ check('twelve presets each have their own title layout and palette, and none cop
   assert.equal(new Set(catalog.presets.map(item => item.colorLabel)).size, 12, 'palette names are unique');
   for (const item of catalog.presets) {
     assert.deepEqual(contrastIssues(catalog, item.design), [], item.id);
-    const near = compareDesign(fingerprints, item.design, catalog)[0];
-    assert(near.shared < near.total, `${item.id} is an exact match for ${near.title}`);
+    const ranked = compareDesign(fingerprints, item.design, catalog);
+    const near = ranked[0];
+    const exact = ranked.find(result => result.shared === result.total);
+    assert.equal(exact, undefined, `${item.id} is an exact match for ${exact?.title}`);
     console.log(`  ${item.id}: closest lesson ${near.title}, ${near.shared} of ${near.total}`);
   }
 });
@@ -61,6 +63,33 @@ check('independent edits and preset changes preserve sample text and unrelated c
   reopened.slides.cards.count = '4';
   assert.equal(reopened.samples.boxes[3], 'A recoverable fourth box.');
   assert.deepEqual(applyPreset(catalog, 'fun', reopened).samples, reopened.samples);
+});
+
+check('a shared color pick reaches every slide that uses it and clears matching per-slide overrides', () => {
+  const horizon = applyPreset(catalog, 'horizon');
+  const title = setSharedColor(catalog, horizon, 'title', 'primary', 'primary');
+  assert.equal(title.roles.titleBackground, 'primary');
+  assert.equal(title.roles.dividerBackground, 'primary', 'the divider follows the title background');
+  assert.equal(effectiveRoleStyle(catalog, title, 'divider').primary, 'primary');
+  assert.equal(title.roles.contentBackground, horizon.roles.contentBackground, 'content slides keep their own tint');
+  assert.equal(title.startingPoint, 'custom');
+  // An old per-slide override must not hide the shared pick.
+  const overridden = setRoleStyle(catalog, horizon, 'divider', 'primary', 'mauve');
+  assert.equal(effectiveRoleStyle(catalog, overridden, 'divider').primary, 'mauve');
+  const repicked = setSharedColor(catalog, overridden, 'title', 'primary', 'dark');
+  assert.equal(effectiveRoleStyle(catalog, repicked, 'divider').primary, 'dark', 'the divider override was cleared');
+  // Text colors reach both title and divider; content slides share one heading and one body color.
+  const text = setSharedColor(catalog, horizon, 'title', 'headingColor', 'gold');
+  assert.equal(text.roles.titleText, 'gold');
+  assert.equal(effectiveRoleStyle(catalog, text, 'divider').headingColor, 'gold');
+  const cards = setSharedColor(catalog, horizon, 'cards', 'bodyColor', 'mauve');
+  for (const kind of ['cards', 'video', 'activity']) assert.equal(effectiveRoleStyle(catalog, cards, kind).bodyColor, 'mauve', kind);
+  assert.equal(cards.roles.subtitle, horizon.roles.subtitle, 'title and divider supporting text are untouched');
+  // Content slides have no gradient end color, so that pick stays on the slide.
+  const content = setSharedColor(catalog, horizon, 'cards', 'secondary', 'mauve');
+  assert.equal(content.roleStyles.cards.secondary, 'mauve');
+  assert.deepEqual(content.roles, horizon.roles);
+  assert.deepEqual(horizon, applyPreset(catalog, 'horizon'), 'the input design is never mutated');
 });
 
 check('every role offers the full palette; a surface change warns without mutating other choices', () => {
@@ -145,11 +174,13 @@ check('patterns retain roles and cover their rendered ink in title/divider contr
   const design = defaultDesign(catalog);
   design.roles.titleBackground = design.roles.titleBackgroundEnd = design.roles.dividerBackground = 'primary';
   design.slides.title.colors = design.slides.divider.colors = 'solid';
-  for (const pattern of catalog.backgrounds) {
+  for (const pattern of [...catalog.backgrounds, ...catalog.retiredBackgrounds]) {
     design.background = pattern.id;
     const before = JSON.stringify(design);
     assert.deepEqual(contrastIssues(catalog, design), [], 'White on Blue stays readable through adaptive decorative ink.');
-    if (pattern.id !== 'plain') assert.equal(patternFor(catalog, design, 'dividerBackground').ink, '#00133f');
+    // Retired textures keep their adaptive ink; solid structures draw one palette color at full strength.
+    if (catalog.retiredBackgrounds.some(item => item.id === pattern.id)) assert.equal(patternFor(catalog, design, 'dividerBackground').ink, '#00133f');
+    else if (pattern.id !== 'plain') assert.equal(patternFor(catalog, design, 'dividerBackground').peakAlpha, 0);
     assert.equal(JSON.stringify(design), before);
   }
   design.roles.dividerBackground = 'accent';

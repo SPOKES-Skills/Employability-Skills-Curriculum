@@ -142,6 +142,7 @@ const findOption=(family,slug)=>state.library?.families?.[family]?.options.find(
       if (!findMeta(state.meta.lessons, saved.lessonId)) return null;
       if (typeof saved.editCode !== "string" || saved.editCode.length < EDIT_CODE_MIN) return null;
       ui.teamSession = saved;
+      if (ui.draftRebase && saved.baseSelectionKey === selectionKey(ui.draftRebase.from)) { saved.baseSelectionKey = selectionKey(ui.draftRebase.to); persistTeamSession(); }
       state.editCode = saved.editCode;
       return saved;
     } catch { return null; }
@@ -1371,7 +1372,8 @@ function loadDraft(){
    if(!Array.isArray(state.changes)||!Array.isArray(state.redo))throw new Error('Invalid history');
    // Undo snapshots are data boundaries too; reject corrupted history before it can reach preview.
    for(const entry of [...state.changes,...state.redo])if(!entry||typeof entry.label!=='string'||schemaErrors({...buildSelectionPayload(),design:entry.design,...(entry.alternatives?{alternatives:entry.alternatives}:{})},selectionSchema).length||Model.validateDesign(catalog,entry.design).length||(entry.alternatives&&Model.validateDesign(catalog,entry.alternatives.otherDesign).length))throw new Error('Invalid history');
-   const standard=convertDraft(catalog,state);Object.assign(state,{design:standard.design,alternatives:standard.alternatives,changes:standard.changes,redo:standard.redo});ui.restoreNote=conversionNote(standard.notes)||ui.restoreNote;
+   // The team session saved its baseline from the unconverted design; restoreTeamSession moves it so converting is not an edit.
+   const from=buildSelectionPayload(),standard=convertDraft(catalog,state);Object.assign(state,{design:standard.design,alternatives:standard.alternatives,changes:standard.changes,redo:standard.redo});ui.draftRebase={from,to:buildSelectionPayload()};ui.restoreNote=conversionNote(standard.notes)||ui.restoreNote;
    draftGeneration++;restoreStep(saved);ui.autosavePaused=saved.autosavePaused===true;lastSavedRaw=raw;
   }catch(e){Object.assign(state,before);throw e;}
  }catch{storageConflict=true;ui.restoreNote='This browser draft needs recovery. It has not been replaced. Download a backup from the other tab, or open a known backup here.';}

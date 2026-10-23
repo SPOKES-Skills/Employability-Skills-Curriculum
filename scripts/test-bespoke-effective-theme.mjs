@@ -217,6 +217,8 @@ try {
         // A slide on a font slot follows the lesson font, so a shared font change moves it; only the texture stays local.
         const slot = field === 'headingFont' ? 'heading' : 'body', family = catalog.fonts.find(f => f.id === value).family;
         assert((await fontComputed(page, 'divider', slot)).includes(family), `The ${slot} slot follows the shared ${slot} font`);
+        // The scope help still lists the slide that holds its own font value; the wording for slot values is not asserted here.
+        assert.match(await page.locator(`[data-shared-scope="${field}"]`).textContent(), /Chapter divider/);
       }
     }
     const chosen = await design(page); await page.reload(); await ready(page); assert.deepEqual(await design(page), chosen); await selectedTheme(page, 'divider', 'shared'); assert.equal(await page.locator('#colorScope').inputValue(), 'slide');

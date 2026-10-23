@@ -978,7 +978,7 @@
         },
         "fonts": {
           "heading": "playfair-display",
-          "body": "dm-serif-display"
+          "body": "source-sans-3"
         },
         "slides": {
           "title": {
@@ -1082,7 +1082,7 @@
         },
         "fonts": {
           "heading": "bitter",
-          "body": "playfair-display"
+          "body": "fira-sans"
         },
         "slides": {
           "title": {
@@ -1290,7 +1290,7 @@
         },
         "fonts": {
           "heading": "fira-sans",
-          "body": "playfair-display"
+          "body": "work-sans"
         },
         "slides": {
           "title": {

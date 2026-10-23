@@ -43,7 +43,7 @@ Topics TBD -- sourced from 6 content teams via content intake template.
 
 - 18 lessons built and passing all 5 quality gates
 - All lessons use canonical 11-color palette only
-- Each lesson has unique approved font pairing
+- Each lesson's fonts follow TYP-02: self-hosted, at most two per lesson
 - Template variant distribution balanced (4-6 lessons per variant)
 - WCAG 2.2 AA Phase 1 compliance on all lessons
 - Zero horizontal scroll at any required viewport

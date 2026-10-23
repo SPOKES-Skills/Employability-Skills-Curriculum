@@ -11,7 +11,7 @@ Single self-contained `index.html` per lesson. No external dependencies, no serv
 | HTML5 | Lesson structure | Semantic elements, ARIA attributes |
 | CSS3 | Styling and layout | CSS custom properties for theming, grid/flexbox for responsive layout |
 | Vanilla JavaScript | Interactivity | Slide navigation, sidebar, interactions, confetti |
-| Google Fonts | Typography | Loaded via `@import` in each lesson; unique pairing per lesson |
+| Self-hosted fonts | Typography | Font files in `fonts/`; at most two per lesson (TYP-02), and lessons may share a pairing |
 
 No frameworks. No build tools. No npm. Everything is inline in the single HTML file.
 

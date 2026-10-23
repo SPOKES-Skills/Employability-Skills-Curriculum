@@ -578,9 +578,7 @@ Use these inline classes within `<span>` tags to color-code important words:
 | Simple bulleted list                      | `content-list`                    |
 | Key quote or transition                   | `big-statement` (slide type)      |
 | YouTube video                             | `slide-video` (slide type)        |
-| Overlay / feature highlight               | `card-glass`                      |
 | Grid items revealing in sequence          | `grid-stagger` with `reveal-item` |
-| Animated section boundary                 | `gradient-divider`                |
 | Content revealed on scroll/hover          | `clip-reveal`                     |
 | High-emphasis CTA button                  | `btn-magnetic`                    |
 | Statistic / percentage display            | `counter-item`                    |
@@ -590,35 +588,6 @@ Use these inline classes within `<span>` tags to color-code important words:
 ## Advanced Components (Phase 2)
 
 These components use modern CSS/JS techniques from the advanced design system. All respect `prefers-reduced-motion` and degrade gracefully in older browsers.
-
-### Glass Card
-
-**When to use:** Overlay content on gradient backgrounds, feature highlights, or translucent panels.
-
-```html
-<div class="card card-glass reveal-item">
-  <h4>Feature Title</h4>
-  <p>Description over a frosted translucent background.</p>
-</div>
-```
-
-**CSS (add to theme-override):**
-
-```css
-.card-glass {
-  background: rgba(237, 243, 247, 0.6);
-  backdrop-filter: blur(16px) saturate(1.8);
-  -webkit-backdrop-filter: blur(16px) saturate(1.8);
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  border-left: none;
-  border-radius: 16px;
-  box-shadow: 0 8px 32px rgba(0, 64, 113, 0.08);
-}
-```
-
-**Guidelines:** Best on slides with gradient or image backgrounds. Ensure text meets WCAG AA contrast against blurred background — use `--dark` or `--gray` text. Fallback: browsers without `backdrop-filter` show the solid rgba background.
-
----
 
 ### Staggered Grid Reveal
 
@@ -634,55 +603,6 @@ These components use modern CSS/JS techniques from the advanced design system. A
 ```
 
 **No additional CSS needed** — the `.reveal-item` class and `--reveal-i` variable are set by the IntersectionObserver in the template's navigation engine. Items animate with 60ms stagger between each.
-
----
-
-### Animated Gradient Divider
-
-**When to use:** Visual section boundaries within a slide, replacing plain `<hr>` or static dividers.
-
-```html
-<div class="gradient-divider"></div>
-```
-
-**CSS (add to theme-override):**
-
-```css
-@property --gradient-angle {
-  syntax: "<angle>";
-  initial-value: 0deg;
-  inherits: false;
-}
-
-.gradient-divider {
-  height: 4px;
-  background: linear-gradient(
-    var(--gradient-angle),
-    var(--primary),
-    var(--accent),
-    var(--gold),
-    var(--primary)
-  );
-  background-size: 300% 100%;
-  animation: gradient-shift 4s ease-in-out infinite;
-  border-radius: 2px;
-  margin: 2rem 0;
-}
-
-@keyframes gradient-shift {
-  0% {
-    --gradient-angle: 0deg;
-  }
-  50% {
-    --gradient-angle: 180deg;
-  }
-  100% {
-    --gradient-angle: 360deg;
-  }
-}
-```
-
-**Guidelines:** Fallback: browsers without `@property` support show a static gradient. The `prefers-reduced-motion` blanket rule handles animation disabling automatically.
 
 ---
 

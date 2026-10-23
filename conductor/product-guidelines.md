@@ -15,11 +15,10 @@
 
 ## Typography
 
-- Each lesson gets a unique Google Font pairing (heading + body)
+- Fonts: any self-hosted family in `fonts/`, at most two per lesson (TYP-02); sharing a pairing with another lesson is fine
 - Heading fonts must be legible at 4-5rem
 - Body fonts must be readable at 1.5-2rem
 - Minimum text size: 1.1rem (no sub-1rem text)
-- Font pairings approved by user before applying
 
 ## Terminology
 

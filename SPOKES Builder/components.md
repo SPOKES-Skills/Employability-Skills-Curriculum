@@ -519,7 +519,7 @@ Use a short word, a number or a real image in these spots. No emoji or decorativ
 
 ### 10. `content-list` — Arrow-Prefixed List
 
-**When to use:** Simple bulleted lists with arrow or warning icons.
+**When to use:** Simple bulleted lists with arrow markers.
 
 ```html
 <ul class="content-list">
@@ -529,7 +529,7 @@ Use a short word, a number or a real image in these spots. No emoji or decorativ
 </ul>
 ```
 
-**Danger variant (warning icons instead of arrows):**
+**Danger variant (mauve arrows for cautions):**
 
 ```html
 <ul class="content-list danger">

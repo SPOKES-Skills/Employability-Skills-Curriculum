@@ -58,7 +58,7 @@ Instructors do **not** choose these. When `scripts/bespoke-apply-selection.py` u
 - **Custom CSS is allowed in the theme-override block.** It may use only the 11 color variables (CLR-01 to CLR-08), must keep text readable (A11Y-20), and must leave the logo unaltered (LOGO-01, LOGO-02). Reuse theme-library.css snippets where they fit.
 - **Do not ad-hoc edit theme-library.css during lesson builds.** Edit `theme-options.json`, run `python3 scripts/generate-theme-library.py`, and register IDs in `bespoke-library-catalog.json` / `bespoke-library-ids.md`, then open a dedicated PR.
 - **All 11 brand colors remain available.** A design usually uses 5 or 6 of them, combined in any way that keeps text readable (A11Y-20). Never add a color or change a color's value (CLR-01).
-- **Off-limits for new designs (CRD-02):** the library options `cards.glass`, `backgroundTextures.dot-grid`, `titleSlides.radial-glow` and `cards.gradient-fill`.
+- **Off-limits for new designs (CRD-02):** the library option `cards.glass` (frosted glass). The dot-grid texture, the radial-glow title and gradient-filled cards are allowed when text on them stays readable (A11Y-20).
 - **BeSpoke designs:** A BeSpoke design that breaks a rule is not used. Send it back to Britt.
 - **WCAG AA contrast** must be maintained in all text/background combinations.
 - **Wizard catalog:** selectable option IDs are `{family}.{slug}` — see `bespoke-library-ids.md`. Optional `blocked` + `reason` grey an option in the wizard without removing it.

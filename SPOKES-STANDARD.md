@@ -20,7 +20,7 @@ Each rule has:
 Three things are fixed in every lesson:
 
 1. **The 11 brand colors** (Section 1). No other colors, and each keeps its exact value.
-2. **The SPOKES logo** (LOGO-01, LOGO-02). Always the official image. It may be shown at any size, but never replaced or altered.
+2. **The SPOKES logo** (LOGO-01, LOGO-02). Always the official image. It may be shown at any size, from a small corner mark to a large title-slide logo, but never altered. Where the image cannot load, the text-only SPOKES wordmark may stand in.
 3. **Readability** (Section 3, including A11Y-20). Every learner can read every slide.
 
 Everything else is open to variety: how a lesson combines the 11 colors, which installed fonts it uses for headings and body, and the design of its cards, chapter dividers, title slide and sidebar, including whether the sidebar sits on the left or the right. Whatever its design or side, the sidebar keeps working the same way (A11Y-17, MOB-02, NAV-13).
@@ -86,13 +86,13 @@ There are no predefined theme packages. Each lesson's design is made for that le
 ### LOGO-01 — Official Logo Image
 - **Severity:** CRITICAL
 - **Validation:** deterministic
-- **Rule:** Every SPOKES logo in a lesson must be the official image, `SPOKES-Logo.png` at the repository root. A lesson's own copy must be byte-for-byte identical to it. It may not be swapped for a different, redrawn, recolored or cropped image.
+- **Rule:** Every SPOKES logo in a lesson must be the official image, `SPOKES-Logo.png` at the repository root. A lesson's own copy must be byte-for-byte identical to it. It may not be swapped for a different, redrawn, recolored or cropped image. Where the logo image cannot load, the text-only SPOKES wordmark (live text, not an image or SVG) may stand in for it.
 - **Rationale:** Lessons now vary in color and type, so the logo is the constant that marks every lesson as SPOKES.
 
 ### LOGO-02 — Logo Resizing Allowed
 - **Severity:** CRITICAL
 - **Validation:** deterministic
-- **Rule:** The logo may be resized to any size that suits the layout. Resizing keeps its shape: set the width or the height and leave the other `auto`, or use `object-fit: contain`. No `filter` or `mix-blend-mode` on logo images, and no `object-fit: cover` or clipping that crops it. The logo is never used as stand-in art for another image.
+- **Rule:** The logo may be resized to any size that suits the layout, from a small corner mark to a large title-slide logo. Resizing keeps its shape: set the width or the height and leave the other `auto`, or use `object-fit: contain`. No `filter` or `mix-blend-mode` on logo images or on any element around them (a `drop-shadow` filter on a surrounding element is fine), and no `object-fit: cover` or clipping that crops it. The logo is never used as stand-in art for another image.
 - **Rationale:** Resizing fits the logo to each layout. Stretching or recoloring it on screen would show a different-looking logo even though the file is the official one.
 
 ---
@@ -294,7 +294,7 @@ There are no predefined theme packages. Each lesson's design is made for that le
 ### CRD-02 — No Generic Design Defaults
 - **Severity:** WARN
 - **Validation:** review
-- **Rule:** New designs avoid the defaults that make a design look machine-made: no frosted glass or blurred panels, no multi-color gradients used for effect, no glowing blobs behind headings, no dot-grid filler backgrounds, no emoji or decorative icons in headings or card text, no hover motion on cards that aren't controls, and three equal cards in a row or a bento grid only when the content calls for it. Words, numbers and real images carry the point. Any of these may stay only when the lesson's content calls for it and the reason can be given in one sentence. Instructor-authored wording stays exactly as written (see `docs/briefs/instructor-to-html-intake-2026-09-17.md`, KEEP VERBATIM); this rule governs text and design the builder adds.
+- **Rule:** New designs avoid the defaults that make a design look machine-made: no frosted glass or blurred panels, no emoji or decorative icons in headings, card text or list markers (a plain arrow or bullet is fine), and three equal cards in a row or a bento grid only when the content calls for it. Words, numbers and real images carry the point. Any of these may stay only when the lesson's content calls for it and the reason can be given in one sentence. These are allowed: cards that lift on hover (with a matching `:active` state, MOB-04), background textures including dot-grid, grain, gradient-fill cards, and a soft radial glow behind big statements or a title. Gradients use only the 11 colors, and text on any gradient, texture or glow meets A11Y-20. Instructor-authored wording stays exactly as written (see `docs/briefs/instructor-to-html-intake-2026-09-17.md`, KEEP VERBATIM); this rule governs text and design the builder adds.
 - **Rationale:** Variety should come from deliberate choices, not from defaults. The six lessons released on September 23, 2026 are not reopened by this rule.
 
 ---

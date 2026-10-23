@@ -600,9 +600,23 @@
           box-shadow 0.3s ease;
       }
 
-      .danger-card:hover {
+      .card:hover,
+      .card:active,
+      .area-card:hover,
+      .area-card:active,
+      .danger-card:hover,
+      .matrix-cell:hover,
+      .matrix-cell:active {
         transform: translateY(-5px);
         box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+      }
+
+      .matrix-cell.do-first:hover,
+      .matrix-cell.schedule:hover,
+      .matrix-cell.delegate:hover {
+        transform: translateY(-8px) scale(1.02);
+        box-shadow: 0 16px 40px rgba(0, 0, 0, 0.35);
+        filter: brightness(1.12);
       }
 
       /* Title Slide */
@@ -1122,7 +1136,11 @@
         justify-content: center;
         align-items: center;
         text-align: center;
-        background: var(--light);
+        background: radial-gradient(
+          ellipse at 50% 40%,
+          var(--muted) 0%,
+          var(--light) 60%
+        );
       }
 
       .big-statement h2 {
@@ -1261,8 +1279,7 @@
       }
 
       .content-list.danger li::before {
-        content: "\26A0";
-        color: var(--gold);
+        color: var(--mauve);
       }
 
       /* Background Variation */

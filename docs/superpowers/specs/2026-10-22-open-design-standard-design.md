@@ -2,6 +2,8 @@
 
 Date: 2026-10-22. Owner: Britt. Branch: `standard/open-design-variety` (off `origin/main` at `9bd8b2e`).
 
+Revised 2026-10-23 (Britt): cards may lift on hover; background textures including dot-grid, grain, gradient-fill cards and a soft radial glow behind statements are allowed. Frosted glass and emoji stay banned, and the template's warning-sign list marker is dropped. The logo may be shown at any size, and the text-only SPOKES wordmark may stand in where the image cannot load. The sections below carry these changes.
+
 ## Problem
 
 SPOKES has 11 brand colors, six released lessons, 18 planned and more after that. Today every lesson's look comes from a predefined theme package: one of 9 color leads, one of 6 installed font pairings, and card styles from a fixed catalog. Builders are told never to invent a theme or write custom CSS. With 18 or more lessons, the looks will repeat. Britt wants each lesson to look clearly different, in its color combinations, fonts, card designs and sidebar, while three things stay fixed: the 11 colors, the SPOKES logo and readability.
@@ -15,7 +17,7 @@ Rewrite the SPOKES standard and builder guides around "fixed vs open", add valid
 1. The standard states plainly what is fixed (the 11 colors, the logo, readability) and what is open (everything else).
 2. Builders design each lesson within those rules, with no predefined theme packages and no approval step for a builder-made design.
 3. The logo is protected by deterministic validator checks. Resizing is allowed; a different image, recoloring or distortion is not.
-4. New lessons start from a template and component examples that don't carry generic design defaults (hover lift on cards that aren't controls, decorative icons and emoji, a radial glow behind statements) or use the logo as stand-in art.
+4. New lessons start from a template and component examples that don't carry generic design defaults (decorative icons and emoji, frosted glass) or use the logo as stand-in art.
 5. Every agent instruction in the repo agrees with the standard: no leftover "predefined package", "propose for approval" or color sign-off rules.
 
 ## Non-goals
@@ -31,7 +33,7 @@ Rewrite the SPOKES standard and builder guides around "fixed vs open", add valid
 ## Anti-goals
 
 - Variety that breaks the fixed three: a color outside the 11, an altered logo, or text a learner can't read.
-- Lessons that look machine-made: frosted glass, multi-color gradients for effect, glowing blobs, dot-grid filler, emoji or decorative icons in text, hover motion on things that aren't controls.
+- Lessons that look machine-made: frosted glass, emoji or decorative icons in text.
 - Rewriting instructor-owned wording to satisfy a style rule.
 
 ## Decisions (Britt, 2026-10-22)
@@ -47,7 +49,7 @@ Rewrite the SPOKES standard and builder guides around "fixed vs open", add valid
 9. Every BeSpoke design must follow the rules and needs Britt's approval before a lesson uses it. A BeSpoke design that breaks a rule is not used; it goes back to Britt.
 10. The design elements Britt worked out with the BeSpoke design agent go into the standard as guidelines (Section 12, DSN-01 to DSN-10).
 11. The color-specific sign-off before release is dropped. The general human check before teaching stays.
-12. The theme library's glass cards, dot-grid texture, radial-glow title and gradient-filled cards are off-limits for new designs. The template's existing linear brand gradients stay.
+12. The theme library's glass cards are off-limits for new designs. Its dot-grid texture, radial-glow title and gradient-filled cards are allowed (revised 2026-10-23). The template's existing linear brand gradients stay.
 13. The faded chapter watermark and the image circle on dividers become optional.
 14. CLR-04 stays: transparent versions of the 11 colors are allowed. DSN-09 prefers solid colors and keeps transparency for overlays that help text read.
 15. A title word cropped by the slide edge is allowed only when the full title also appears whole and readable on the slide.
@@ -75,7 +77,7 @@ Rule headings keep the document's existing format (rule ID, an em dash, the titl
 > Three things are fixed in every lesson:
 >
 > 1. **The 11 brand colors** (Section 1). No other colors, and each keeps its exact value.
-> 2. **The SPOKES logo** (LOGO-01, LOGO-02). Always the official image. It may be shown at any size, but never replaced or altered.
+> 2. **The SPOKES logo** (LOGO-01, LOGO-02). Always the official image. It may be shown at any size, from a small corner mark to a large title-slide logo, but never altered. Where the image cannot load, the text-only SPOKES wordmark may stand in.
 > 3. **Readability** (Section 3, including A11Y-20). Every learner can read every slide.
 >
 > Everything else is open to variety: how a lesson combines the 11 colors, which installed fonts it uses for headings and body, and the design of its cards, chapter dividers, title slide and sidebar, including whether the sidebar sits on the left or the right. Whatever its design or side, the sidebar keeps working the same way (A11Y-17, MOB-02, NAV-13).
@@ -91,13 +93,13 @@ Rule headings keep the document's existing format (rule ID, an em dash, the titl
 > ### LOGO-01: Official Logo Image
 > - **Severity:** CRITICAL
 > - **Validation:** deterministic
-> - **Rule:** Every SPOKES logo in a lesson must be the official image, `SPOKES-Logo.png` at the repository root. A lesson's own copy must be byte-for-byte identical to it. It may not be swapped for a different, redrawn, recolored or cropped image.
+> - **Rule:** Every SPOKES logo in a lesson must be the official image, `SPOKES-Logo.png` at the repository root. A lesson's own copy must be byte-for-byte identical to it. It may not be swapped for a different, redrawn, recolored or cropped image. Where the logo image cannot load, the text-only SPOKES wordmark (live text, not an image or SVG) may stand in for it.
 > - **Rationale:** Lessons now vary in color and type, so the logo is the constant that marks every lesson as SPOKES.
 >
 > ### LOGO-02: Logo Resizing Allowed
 > - **Severity:** CRITICAL
 > - **Validation:** deterministic
-> - **Rule:** The logo may be resized to any size that suits the layout. Resizing keeps its shape: set the width or the height and leave the other `auto`, or use `object-fit: contain`. No `filter` or `mix-blend-mode` on logo images, and no `object-fit: cover` or clipping that crops it. The logo is never used as stand-in art for another image.
+> - **Rule:** The logo may be resized to any size that suits the layout, from a small corner mark to a large title-slide logo. Resizing keeps its shape: set the width or the height and leave the other `auto`, or use `object-fit: contain`. No `filter` or `mix-blend-mode` on logo images or on any element around them (a `drop-shadow` filter on a surrounding element is fine), and no `object-fit: cover` or clipping that crops it. The logo is never used as stand-in art for another image.
 > - **Rationale:** Resizing fits the logo to each layout. Stretching or recoloring it on screen would show a different-looking logo even though the file is the official one.
 
 **C. Section 3, new rule after A11Y-19:**
@@ -131,7 +133,7 @@ CMP-03's rule becomes: "New card designs and lesson-specific components may be u
 > ### CRD-02: No Generic Design Defaults
 > - **Severity:** WARN
 > - **Validation:** review
-> - **Rule:** New designs avoid the defaults that make a design look machine-made: no frosted glass or blurred panels, no multi-color gradients used for effect, no glowing blobs behind headings, no dot-grid filler backgrounds, no emoji or decorative icons in headings or card text, no hover motion on cards that aren't controls, and three equal cards in a row or a bento grid only when the content calls for it. Words, numbers and real images carry the point. Any of these may stay only when the lesson's content calls for it and the reason can be given in one sentence. Instructor-authored wording stays exactly as written (see `docs/briefs/instructor-to-html-intake-2026-09-17.md`, KEEP VERBATIM); this rule governs text and design the builder adds.
+> - **Rule:** New designs avoid the defaults that make a design look machine-made: no frosted glass or blurred panels, no emoji or decorative icons in headings, card text or list markers (a plain arrow or bullet is fine), and three equal cards in a row or a bento grid only when the content calls for it. Words, numbers and real images carry the point. Any of these may stay only when the lesson's content calls for it and the reason can be given in one sentence. These are allowed: cards that lift on hover (with a matching `:active` state, MOB-04), background textures including dot-grid, grain, gradient-fill cards, and a soft radial glow behind big statements or a title. Gradients use only the 11 colors, and text on any gradient, texture or glow meets A11Y-20. Instructor-authored wording stays exactly as written (see `docs/briefs/instructor-to-html-intake-2026-09-17.md`, KEEP VERBATIM); this rule governs text and design the builder adds.
 > - **Rationale:** Variety should come from deliberate choices, not from defaults. The six lessons released on September 23, 2026 are not reopened by this rule.
 
 **E. Changed rules:**
@@ -229,7 +231,7 @@ Out of this section and this branch: BeSpoke's own changes (the readouts, polish
 - Line 6: the registry records a lesson's design; if one is there, apply it; if not, follow Builder `CLAUDE.md` Step 3.
 - Lines 11 to 26 (the Layer 1 and Layer 2 option tables): retitled as starting options from the library, not the only options.
 - Lines 46 to 53 (building the theme-override block): the block may combine library snippets and custom CSS within the fixed rules.
-- New line naming the library options that are off-limits for new designs under CRD-02: `cards.glass`, `backgroundTextures.dot-grid`, `titleSlides.radial-glow` and `cards.gradient-fill`.
+- New line naming the library options that are off-limits for new designs under CRD-02: `cards.glass` (revised 2026-10-23: dot-grid, radial-glow and gradient-fill are allowed).
 - Line 57: "Aim for a look that is clearly different from the other lessons. Sharing some colors, fonts or card styles with another lesson is fine."
 - Line 58: "Custom CSS is allowed in the theme-override block. It may use only the 11 color variables (CLR-01 to CLR-08), must keep text readable (A11Y-20), and must leave the logo unaltered (LOGO-01, LOGO-02). Reuse theme-library.css snippets where they fit."
 - Line 59 is unchanged (no edits to the shared `theme-library.css` during a lesson build).
@@ -257,8 +259,9 @@ Out of this section and this branch: BeSpoke's own changes (the readouts, polish
 
 ### Template: `SPOKES Builder/template.html` (new lessons only)
 
-- Remove the hover lift (`transform` and hover `box-shadow`) from `.card`, `.area-card` and `.matrix-cell` hover rules, which aren't controls. `.danger-card` keeps its flip and lift because it is a control.
-- `.big-statement`: replace the radial-gradient background with a solid palette surface.
+- Keep the hover lift on `.card`, `.area-card`, `.danger-card` and `.matrix-cell`, with a matching `:active` state for touch (revised 2026-10-23).
+- `.big-statement` keeps its soft radial glow (revised 2026-10-23).
+- `.content-list.danger` marks items with a mauve arrow instead of the warning sign (2026-10-23).
 - `.split-visual .visual-circle`: replace the decorative `&#9733;` with a placeholder such as `{{Key number or image}}`.
 - The logo is no longer stand-in art: the seven chapter-divider circle images and the video poster that point at `../SPOKES-Logo.png` get a neutral placeholder. The two real logo uses stay: the title-slide logo and the corner branding logo.
 - The template's existing linear brand gradients (progress bar, divider backgrounds, content background) stay.
@@ -329,11 +332,13 @@ Replace decorative content icons in the examples (danger-icon `&#128241;`, area-
 
 ### Template and components
 
-- The template carries no decorative star, no radial background, and no hover lift on non-control cards.
-  - Check: `grep -c -E '&#9733;|radial-gradient' "SPOKES Builder/template.html"`
+- The template carries no decorative star and no warning-sign marker; its cards lift on hover with a touch state, and big statements keep their radial glow (revised 2026-10-23).
+  - Check: `grep -c -E '&#9733;|\\26A0' "SPOKES Builder/template.html"`
     Expected: `0`.
-  - Check: `python3 -c "import re; t=open('SPOKES Builder/template.html').read(); print(sum(1 for s,b in re.findall(r'([^{}]+)\{([^{}]*)\}', t) if ':hover' in s and re.search(r'\.(card|area-card|matrix-cell)\b', s) and 'transform' in b))"`
-    Expected: `0`.
+  - Check: `grep -c 'radial-gradient' "SPOKES Builder/template.html"`
+    Expected: `1`.
+  - Check: `python3 -c "import re; t=open('SPOKES Builder/template.html').read(); print(sum(1 for s,b in re.findall(r'([^{}]+)\{([^{}]*)\}', t) if ':hover' in s and ':active' in s and re.search(r'\.(card|area-card|matrix-cell)\b', s) and 'transform' in b))"`
+    Expected: `1`.
 - The template uses the logo only for the real logo: the title slide and the corner branding.
   - Check: `grep -c 'SPOKES-Logo' "SPOKES Builder/template.html"`
     Expected: `2`.

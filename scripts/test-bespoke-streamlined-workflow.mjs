@@ -330,8 +330,8 @@ try {
   await scenario('a color picked on one slide follows every slide unless Only this slide is on', async ({ makePage }) => {
     const page = await makePage();
     await team(page);
-    // Corner's divider fills the slide with its own color; a band divider shows the content tint.
-    await page.locator('#preset-corner').click();
+    // Split stage's divider fills the slide with the title color; a band divider shows the content tint.
+    await page.locator('#preset-modern').click();
     await stage(page, 'slides');
     await preview(page, 'title');
     await page.locator('#context-background').selectOption('primary');
@@ -345,10 +345,10 @@ try {
     // On wide screens the switch lives in the Slide options drawer.
     if (!await page.locator('#context-only-slide').isVisible()) await page.locator('#btnMoreOptions').click();
     await page.locator('#context-only-slide').check();
-    await page.locator('#context-background').selectOption('dark');
+    await page.locator('#context-background').selectOption('gold');
     current = await design(page);
-    assert.equal(current.roles.contentBackground, 'light', 'Only this slide leaves the shared look alone');
-    assert.equal(current.roleStyles.cards.primary, 'dark', 'the pick is kept on the Text boxes slide only');
+    assert.equal(current.roles.contentBackground, 'dark', 'Only this slide leaves the shared look alone');
+    assert.equal(current.roleStyles.cards.primary, 'gold', 'the pick is kept on the Text boxes slide only');
     await stage(page, 'review');
     await stage(page, 'slides');
     await preview(page, 'title');

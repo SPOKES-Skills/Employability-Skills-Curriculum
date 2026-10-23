@@ -17,8 +17,17 @@ const SURFACES = ['titleBackground', 'dividerBackground', 'contentBackground'];
 const paletteHexes = catalog.palette.map(color => color.hex);
 const hex = id => catalog.palette.find(color => color.id === id).hex;
 
-// Paper & berry is the 'professional' starting point.
-const paperAndBerry = background => ({ ...applyPreset(catalog, 'professional'), background });
+// Paper & berry is the original 'professional' starting point, frozen here so the captured fixture does not follow the looks table.
+const PAPER_AND_BERRY = {
+  roles: { sidebar: 'light', titleBackground: 'light', titleBackgroundEnd: 'muted', titleText: 'mauve', subtitle: 'royal', contentBackground: 'light', heading: 'mauve', body: 'royal', accent: 'mauve', button: 'mauve', dividerBackground: 'light' },
+  fonts: { heading: 'merriweather', body: 'inter' },
+  slides: {
+    title: { layout: 'left', logo: 'corner', colors: 'solid' }, divider: { layout: 'left', watermark: 'show', colors: 'solid' },
+    cards: { count: '3', titleBar: true, treatment: 'paragraph', look: 'rail', layout: 'columns' },
+    video: { layout: 'stacked', frame: 'accent', titleStyle: 'regular' }, activity: { layout: 'callout', labelStyle: 'caps' }
+  }
+};
+const paperAndBerry = background => ({ ...applyPreset(catalog, 'professional'), ...structuredClone(PAPER_AND_BERRY), background });
 // Same construction as the one-off capture script that produced the fixture.
 function retiredDesign(id) {
   let design = paperAndBerry(id);

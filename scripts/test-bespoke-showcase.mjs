@@ -274,7 +274,7 @@ try {
     assert.equal(await textOf(page, '#lookName'), 'Ocean blue', 'hover previews after a click-apply');
     await page.locator('#lookStage').hover();
     assert.equal(await textOf(page, '#lookStageHeading'), 'Your starting look', 'leaving the strip ends the preview');
-    assert.equal(await textOf(page, '#lookName'), 'Midnight & gold', 'leaving the strip shows the applied look');
+    assert.equal(await textOf(page, '#lookName'), 'Midnight, berry & gold', 'leaving the strip shows the applied look');
     await context.close();
     pass('leaving the strip returns to the applied look');
   }
@@ -285,7 +285,7 @@ try {
     await page.locator('#preset-fun').click();
     assert.equal(await page.locator('#presetDialog').count(), 0, 'no confirmation dialog');
     assert.equal(await page.locator('#workspace').getAttribute('data-stage'), 'start', 'applying stays on Pick a look');
-    assert.equal(await textOf(page, '#lookName'), 'Midnight & gold');
+    assert.equal(await textOf(page, '#lookName'), 'Midnight, berry & gold');
     assert.notDeepEqual((await savedDraft(page)).design, before, 'the look was applied');
     assert.equal(await textOf(page, '#btnUndoLook'), 'Undo');
     await page.locator('#btnUndoLook').click();
@@ -423,7 +423,7 @@ try {
     await page.locator('#btnMakeItOurs').scrollIntoViewIfNeeded();
     assert.ok(await page.locator('#btnMakeItOurs').isVisible(), 'Make it ours is reachable on a phone');
     await page.locator('#preset-modern').click();
-    assert.equal(await textOf(page, '#lookName'), 'Fresh green', 'a tap applies the look on a phone');
+    assert.equal(await textOf(page, '#lookName'), 'Green on navy', 'a tap applies the look on a phone');
     assert.ok(await page.evaluate(() => document.documentElement.scrollWidth) <= 390, 'no sideways page scroll on a phone');
     await context.close();
     pass('phone width stacks');
@@ -494,7 +494,7 @@ try {
     assert.ok(await page.locator('[data-rail-kind="divider"] .changed-tag').isVisible(), 'the Divider thumbnail is tagged');
     assert.equal(await textOf(page, '[data-rail-kind="divider"] .changed-tag'), 'changed');
     assert.equal(await page.locator('[data-rail-kind="title"] .changed-tag').count(), 0, 'the slide being edited is not tagged');
-    assert.equal(await ownText(page, '#startingFrom'), 'Starting from Paper & berry · 2 changes');
+    assert.equal(await ownText(page, '#startingFrom'), 'Starting from Berry & silver · 2 changes');
     await page.locator('#previewTabs [data-view=divider]').click();
     assert.equal(await page.locator('#modelStage .slide-heading').first().evaluate(el => getComputedStyle(el).color), 'rgb(211, 178, 87)');
     await page.locator('#stage-review').click();
@@ -554,7 +554,7 @@ try {
     const {context, page} = await open(1440, 900);
     await makeItOurs(page, 'fun');
     assert.equal(await page.evaluate(() => document.activeElement.id), 'startingFrom', 'Make it ours moves focus to the starting look line');
-    assert.equal(await ownText(page, '#startingFrom'), 'Starting from Midnight & gold', 'no count before any change');
+    assert.equal(await ownText(page, '#startingFrom'), 'Starting from Midnight, berry & gold', 'no count before any change');
     assert.equal(await textOf(page, '#btnSwapLook'), 'Swap starting look');
     await page.evaluate(() => {
       const draft = JSON.parse(localStorage.getItem('bespoke-draft-v2'));
@@ -588,8 +588,8 @@ try {
     await chooseColor(page, 'Gold');
     await page.locator('#stage-review').click();
     assert.equal(await page.locator('#sendDeck .bespoke-slide').count(), 5, 'the deck shows the five slides');
-    assert.equal(await textOf(page, '#sendHeading'), 'Paper & berry, made yours');
-    assert.equal(await textOf(page, '#sendLook'), 'Paper & berry, ' + catalog.presets.find(p => p.id === 'professional').label + ' layout');
+    assert.equal(await textOf(page, '#sendHeading'), 'Berry & silver, made yours');
+    assert.equal(await textOf(page, '#sendLook'), 'Berry & silver, ' + catalog.presets.find(p => p.id === 'professional').label + ' layout');
     assert.match(await textOf(page, '#sendFonts'), /^.+ headings with .+ text$/);
     assert.equal(await textOf(page, '#sendChanges'), 'Title text in Gold · Divider heading in Gold');
     assert.equal(await page.locator('#showcase .editor-selected').count(), 0, 'the editing outline never shows on Send');

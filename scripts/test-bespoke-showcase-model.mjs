@@ -33,7 +33,7 @@ test('displayTitle uses the lesson name until the team types one', () => {
 
 test('lookDetail names the look in plain words', () => {
   const look = lookDetail(catalog, 'fun');
-  assert.equal(look.name, 'Midnight & gold');
+  assert.equal(look.name, 'Midnight, berry & gold');
   assert.equal(look.layout, 'Framed layout');
   assert.match(look.fonts, / headings with .+ text$/);
   assert.ok(look.colors.length > 0 && look.colors.every(c => c.id && c.name && /^#/.test(c.hex)));
@@ -49,7 +49,7 @@ test('designChanges sees edits that are not colors or fonts, one label per edit'
   const only = (design, ...labels) => assert.deepEqual(designChanges(catalog, Model, design, 'professional'), labels);
   only(Model.setRoleStyle(catalog, d, 'title', 'headingAlignment', 'right'), 'Title heading alignment changed');
   only(Model.setRoleStyle(catalog, d, 'cards', 'bodyPlacement', 'bottom'), 'Text boxes body placement changed');
-  only(Model.setRoleStyle(catalog, d, 'divider', 'backgroundMode', 'gradient'), 'Divider background mode changed');
+  only(Model.setRoleStyle(catalog, d, 'divider', 'backgroundMode', 'solid'), 'Divider background mode changed');
   only(Model.setRoleStyle(catalog, d, 'cards', 'labelVisible', false), 'Text boxes label visible changed');
   const layout = catalog.slideGroups.find(group => group.id === 'title').decisions.find(item => item.id === 'layout');
   const other = layout.options.find(option => option.id !== d.slides.title.layout).id;

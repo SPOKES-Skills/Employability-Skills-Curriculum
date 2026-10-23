@@ -15,9 +15,9 @@ const FEATURES = ['sidebar', 'button'];
 
 test('a slide on the heading slot follows the lesson heading font', () => {
   let design = applyPreset(catalog, 'professional');
-  assert.equal(design.fonts.heading, 'merriweather');
+  assert.equal(design.fonts.heading, 'source-sans-3');
   design = setRoleStyle(catalog, design, 'cards', 'headingFont', 'heading');
-  assert.equal(effectiveRoleStyle(catalog, design, 'cards').headingFont, 'merriweather');
+  assert.equal(effectiveRoleStyle(catalog, design, 'cards').headingFont, 'source-sans-3');
   design = { ...design, fonts: { ...design.fonts, heading: 'bitter' } };
   assert.equal(effectiveRoleStyle(catalog, design, 'cards').headingFont, 'bitter');
   assert.match(cssForDesign(catalog, design), /font-family:"Bitter"/);

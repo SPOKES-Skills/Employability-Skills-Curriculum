@@ -42,8 +42,8 @@ test('parts list stops at three, then counts the rest', () => {
 });
 
 test('Starting from names the look and counts changes since', () => {
-  assert.deepEqual(startingFrom(catalog, Model, d, 'professional'), { name: 'Paper & berry', count: 0 });
-  assert.deepEqual(startingFrom(catalog, Model, gold, 'professional'), { name: 'Paper & berry', count: 2 });
+  assert.deepEqual(startingFrom(catalog, Model, d, 'professional'), { name: 'Berry & silver', count: 0 });
+  assert.deepEqual(startingFrom(catalog, Model, gold, 'professional'), { name: 'Berry & silver', count: 2 });
   assert.deepEqual(startingFrom(catalog, Model, gold, null), { name: null, count: 0 });
   assert.deepEqual(startingFrom(catalog, Model, gold, 'not-a-look'), { name: null, count: 0 });
 });

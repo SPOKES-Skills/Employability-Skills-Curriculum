@@ -861,11 +861,11 @@
         "version": "2",
         "roles": {
           "sidebar": "light",
-          "titleBackground": "light",
+          "titleBackground": "offwhite",
           "titleBackgroundEnd": "muted",
           "titleText": "mauve",
-          "subtitle": "royal",
-          "contentBackground": "light",
+          "subtitle": "dark",
+          "contentBackground": "offwhite",
           "heading": "mauve",
           "body": "royal",
           "accent": "mauve",
@@ -873,7 +873,7 @@
           "dividerBackground": "light"
         },
         "fonts": {
-          "heading": "merriweather",
+          "heading": "source-sans-3",
           "body": "inter"
         },
         "slides": {
@@ -883,25 +883,25 @@
             "colors": "solid"
           },
           "divider": {
-            "layout": "left",
+            "layout": "band",
             "watermark": "show",
-            "colors": "solid"
+            "colors": "gradient"
           },
           "cards": {
-            "count": "3",
+            "count": "2",
             "titleBar": true,
-            "treatment": "paragraph",
-            "look": "rail",
+            "treatment": "bullets",
+            "look": "band",
             "layout": "columns"
           },
           "video": {
-            "layout": "stacked",
-            "frame": "accent",
-            "titleStyle": "regular"
+            "layout": "side",
+            "frame": "plain",
+            "titleStyle": "caps"
           },
           "activity": {
-            "layout": "callout",
-            "labelStyle": "caps"
+            "layout": "box",
+            "labelStyle": "pill"
           }
         },
         "background": "plain",
@@ -955,7 +955,7 @@
           }
         }
       },
-      "colorLabel": "Paper & berry"
+      "colorLabel": "Berry & silver"
     },
     {
       "id": "modern",
@@ -969,46 +969,46 @@
           "titleBackgroundEnd": "muted",
           "titleText": "royal",
           "subtitle": "royal",
-          "contentBackground": "light",
-          "heading": "royal",
-          "body": "royal",
-          "accent": "royal",
-          "button": "royal",
+          "contentBackground": "dark",
+          "heading": "muted",
+          "body": "muted",
+          "accent": "accent",
+          "button": "accent",
           "dividerBackground": "accent"
         },
         "fonts": {
-          "heading": "outfit",
-          "body": "source-sans-3"
+          "heading": "playfair-display",
+          "body": "dm-serif-display"
         },
         "slides": {
           "title": {
             "layout": "split",
-            "logo": "corner",
+            "logo": "above",
             "colors": "gradient"
           },
           "divider": {
-            "layout": "band",
+            "layout": "left",
             "watermark": "show",
             "colors": "solid"
           },
           "cards": {
             "count": "3",
             "titleBar": true,
-            "treatment": "paragraph",
+            "treatment": "bullets",
             "look": "outline",
             "layout": "columns"
           },
           "video": {
-            "layout": "stacked",
-            "frame": "accent",
-            "titleStyle": "regular"
+            "layout": "side",
+            "frame": "plain",
+            "titleStyle": "caps"
           },
           "activity": {
-            "layout": "callout",
-            "labelStyle": "caps"
+            "layout": "banner",
+            "labelStyle": "pill"
           }
         },
-        "background": "plain",
+        "background": "color-block",
         "samples": {
           "title": "Make room for your next step",
           "subtitle": "A sample lesson for a confident start",
@@ -1059,7 +1059,7 @@
           }
         }
       },
-      "colorLabel": "Fresh green"
+      "colorLabel": "Green on navy"
     },
     {
       "id": "serious",
@@ -1068,27 +1068,27 @@
       "design": {
         "version": "2",
         "roles": {
-          "sidebar": "gold",
+          "sidebar": "light",
           "titleBackground": "gold",
-          "titleBackgroundEnd": "light",
+          "titleBackgroundEnd": "offwhite",
           "titleText": "royal",
-          "subtitle": "royal",
-          "contentBackground": "light",
-          "heading": "royal",
+          "subtitle": "dark",
+          "contentBackground": "muted-gold",
+          "heading": "dark",
           "body": "royal",
           "accent": "royal",
           "button": "royal",
-          "dividerBackground": "gold"
+          "dividerBackground": "offwhite"
         },
         "fonts": {
           "heading": "bitter",
-          "body": "fira-sans"
+          "body": "playfair-display"
         },
         "slides": {
           "title": {
             "layout": "center",
-            "logo": "corner",
-            "colors": "solid"
+            "logo": "above",
+            "colors": "gradient"
           },
           "divider": {
             "layout": "number",
@@ -1098,21 +1098,21 @@
           "cards": {
             "count": "3",
             "titleBar": true,
-            "treatment": "paragraph",
+            "treatment": "bullets",
             "look": "band",
-            "layout": "columns"
+            "layout": "rows"
           },
           "video": {
-            "layout": "stacked",
+            "layout": "side",
             "frame": "accent",
             "titleStyle": "regular"
           },
           "activity": {
-            "layout": "callout",
+            "layout": "box",
             "labelStyle": "caps"
           }
         },
-        "background": "plain",
+        "background": "frame",
         "samples": {
           "title": "Make room for your next step",
           "subtitle": "A sample lesson for a confident start",
@@ -1163,7 +1163,7 @@
           }
         }
       },
-      "colorLabel": "Warm gold"
+      "colorLabel": "Deep gold"
     },
     {
       "id": "light-hearted",
@@ -1172,51 +1172,51 @@
       "design": {
         "version": "2",
         "roles": {
-          "sidebar": "offwhite",
+          "sidebar": "light",
           "titleBackground": "offwhite",
-          "titleBackgroundEnd": "light",
-          "titleText": "royal",
+          "titleBackgroundEnd": "muted",
+          "titleText": "gray",
           "subtitle": "royal",
-          "contentBackground": "light",
-          "heading": "royal",
-          "body": "royal",
-          "accent": "gray",
-          "button": "gray",
-          "dividerBackground": "offwhite"
+          "contentBackground": "offwhite",
+          "heading": "gray",
+          "body": "dark",
+          "accent": "primary",
+          "button": "primary",
+          "dividerBackground": "light"
         },
         "fonts": {
-          "heading": "crimson-pro",
-          "body": "outfit"
+          "heading": "outfit",
+          "body": "work-sans"
         },
         "slides": {
           "title": {
             "layout": "bottom",
-            "logo": "corner",
+            "logo": "above",
             "colors": "gradient"
           },
           "divider": {
-            "layout": "center",
+            "layout": "band",
             "watermark": "show",
             "colors": "solid"
           },
           "cards": {
-            "count": "3",
+            "count": "4",
             "titleBar": true,
-            "treatment": "paragraph",
+            "treatment": "numbered",
             "look": "filled",
-            "layout": "columns"
+            "layout": "rows"
           },
           "video": {
-            "layout": "stacked",
+            "layout": "banner",
             "frame": "accent",
             "titleStyle": "regular"
           },
           "activity": {
-            "layout": "callout",
+            "layout": "banner",
             "labelStyle": "caps"
           }
         },
-        "background": "plain",
+        "background": "color-block",
         "samples": {
           "title": "Make room for your next step",
           "subtitle": "A sample lesson for a confident start",
@@ -1267,7 +1267,7 @@
           }
         }
       },
-      "colorLabel": "Soft silver"
+      "colorLabel": "Silver & sky blue"
     },
     {
       "id": "fun",
@@ -1276,48 +1276,48 @@
       "design": {
         "version": "2",
         "roles": {
-          "sidebar": "royal",
-          "titleBackground": "royal",
-          "titleBackgroundEnd": "dark",
-          "titleText": "gold",
-          "subtitle": "light",
-          "contentBackground": "light",
-          "heading": "royal",
-          "body": "royal",
+          "sidebar": "mauve",
+          "titleBackground": "dark",
+          "titleBackgroundEnd": "mauve",
+          "titleText": "offwhite",
+          "subtitle": "offwhite",
+          "contentBackground": "dark",
+          "heading": "offwhite",
+          "body": "offwhite",
           "accent": "gold",
           "button": "gold",
-          "dividerBackground": "royal"
+          "dividerBackground": "mauve"
         },
         "fonts": {
-          "heading": "raleway",
-          "body": "work-sans"
+          "heading": "fira-sans",
+          "body": "playfair-display"
         },
         "slides": {
           "title": {
             "layout": "frame",
             "logo": "corner",
-            "colors": "solid"
+            "colors": "gradient"
           },
           "divider": {
-            "layout": "band",
-            "watermark": "show",
+            "layout": "number",
+            "watermark": "hide",
             "colors": "solid"
           },
           "cards": {
-            "count": "3",
+            "count": "2",
             "titleBar": true,
-            "treatment": "paragraph",
-            "look": "band",
-            "layout": "columns"
+            "treatment": "numbered",
+            "look": "filled",
+            "layout": "grid"
           },
           "video": {
-            "layout": "stacked",
-            "frame": "accent",
-            "titleStyle": "regular"
+            "layout": "side",
+            "frame": "plain",
+            "titleStyle": "large"
           },
           "activity": {
-            "layout": "callout",
-            "labelStyle": "caps"
+            "layout": "banner",
+            "labelStyle": "pill"
           }
         },
         "background": "plain",
@@ -1371,7 +1371,7 @@
           }
         }
       },
-      "colorLabel": "Midnight & gold"
+      "colorLabel": "Midnight, berry & gold"
     },
     {
       "id": "outspoken",
@@ -1380,21 +1380,21 @@
       "design": {
         "version": "2",
         "roles": {
-          "sidebar": "mauve",
+          "sidebar": "offwhite",
           "titleBackground": "mauve",
-          "titleBackgroundEnd": "royal",
-          "titleText": "light",
-          "subtitle": "light",
-          "contentBackground": "light",
-          "heading": "mauve",
-          "body": "royal",
-          "accent": "gold",
-          "button": "gold",
-          "dividerBackground": "mauve"
+          "titleBackgroundEnd": "dark",
+          "titleText": "offwhite",
+          "subtitle": "muted",
+          "contentBackground": "mauve",
+          "heading": "gold",
+          "body": "light",
+          "accent": "offwhite",
+          "button": "light",
+          "dividerBackground": "dark"
         },
         "fonts": {
-          "heading": "work-sans",
-          "body": "merriweather"
+          "heading": "bitter",
+          "body": "fira-sans"
         },
         "slides": {
           "title": {
@@ -1403,28 +1403,28 @@
             "colors": "solid"
           },
           "divider": {
-            "layout": "left",
+            "layout": "number",
             "watermark": "show",
-            "colors": "solid"
+            "colors": "gradient"
           },
           "cards": {
             "count": "3",
             "titleBar": true,
-            "treatment": "paragraph",
+            "treatment": "bullets",
             "look": "outline",
-            "layout": "columns"
+            "layout": "rows"
           },
           "video": {
             "layout": "stacked",
-            "frame": "accent",
-            "titleStyle": "regular"
+            "frame": "plain",
+            "titleStyle": "caps"
           },
           "activity": {
             "layout": "callout",
-            "labelStyle": "caps"
+            "labelStyle": "heading"
           }
         },
-        "background": "plain",
+        "background": "edge-rail",
         "samples": {
           "title": "Make room for your next step",
           "subtitle": "A sample lesson for a confident start",
@@ -1484,21 +1484,21 @@
       "design": {
         "version": "2",
         "roles": {
-          "sidebar": "muted",
-          "titleBackground": "muted",
-          "titleBackgroundEnd": "light",
-          "titleText": "dark",
+          "sidebar": "muted-gold",
+          "titleBackground": "light",
+          "titleBackgroundEnd": "accent",
+          "titleText": "royal",
           "subtitle": "royal",
-          "contentBackground": "light",
-          "heading": "dark",
-          "body": "royal",
-          "accent": "accent",
-          "button": "accent",
-          "dividerBackground": "muted"
+          "contentBackground": "offwhite",
+          "heading": "gray",
+          "body": "dark",
+          "accent": "muted-gold",
+          "button": "muted-gold",
+          "dividerBackground": "accent"
         },
         "fonts": {
-          "heading": "merriweather",
-          "body": "inter"
+          "heading": "fira-sans",
+          "body": "outfit"
         },
         "slides": {
           "title": {
@@ -1507,25 +1507,25 @@
             "colors": "solid"
           },
           "divider": {
-            "layout": "left",
+            "layout": "number",
             "watermark": "show",
-            "colors": "solid"
+            "colors": "gradient"
           },
           "cards": {
-            "count": "3",
+            "count": "4",
             "titleBar": true,
             "treatment": "paragraph",
-            "look": "rail",
-            "layout": "columns"
+            "look": "filled",
+            "layout": "rows"
           },
           "video": {
-            "layout": "stacked",
-            "frame": "accent",
-            "titleStyle": "regular"
+            "layout": "side",
+            "frame": "plain",
+            "titleStyle": "large"
           },
           "activity": {
-            "layout": "callout",
-            "labelStyle": "caps"
+            "layout": "side",
+            "labelStyle": "pill"
           }
         },
         "background": "plain",
@@ -1579,7 +1579,7 @@
           }
         }
       },
-      "colorLabel": "Botanical light"
+      "colorLabel": "Green & silver"
     },
     {
       "id": "horizon",
@@ -1588,51 +1588,51 @@
       "design": {
         "version": "2",
         "roles": {
-          "sidebar": "dark",
-          "titleBackground": "dark",
+          "sidebar": "muted",
+          "titleBackground": "light",
           "titleBackgroundEnd": "primary",
-          "titleText": "light",
-          "subtitle": "light",
-          "contentBackground": "light",
-          "heading": "royal",
-          "body": "royal",
-          "accent": "gold",
-          "button": "gold",
-          "dividerBackground": "dark"
+          "titleText": "royal",
+          "subtitle": "dark",
+          "contentBackground": "primary",
+          "heading": "offwhite",
+          "body": "light",
+          "accent": "muted",
+          "button": "light",
+          "dividerBackground": "gold"
         },
         "fonts": {
-          "heading": "outfit",
-          "body": "source-sans-3"
+          "heading": "merriweather",
+          "body": "inter"
         },
         "slides": {
           "title": {
             "layout": "horizon",
-            "logo": "corner",
-            "colors": "gradient"
+            "logo": "above",
+            "colors": "solid"
           },
           "divider": {
-            "layout": "band",
+            "layout": "number",
             "watermark": "show",
             "colors": "solid"
           },
           "cards": {
-            "count": "3",
+            "count": "2",
             "titleBar": true,
-            "treatment": "paragraph",
-            "look": "outline",
+            "treatment": "numbered",
+            "look": "rail",
             "layout": "columns"
           },
           "video": {
             "layout": "stacked",
-            "frame": "accent",
-            "titleStyle": "regular"
+            "frame": "plain",
+            "titleStyle": "caps"
           },
           "activity": {
-            "layout": "callout",
+            "layout": "side",
             "labelStyle": "caps"
           }
         },
-        "background": "plain",
+        "background": "color-block",
         "samples": {
           "title": "Make room for your next step",
           "subtitle": "A sample lesson for a confident start",
@@ -1692,51 +1692,51 @@
       "design": {
         "version": "2",
         "roles": {
-          "sidebar": "gray",
-          "titleBackground": "gray",
-          "titleBackgroundEnd": "royal",
-          "titleText": "light",
-          "subtitle": "light",
-          "contentBackground": "light",
-          "heading": "royal",
-          "body": "royal",
+          "sidebar": "light",
+          "titleBackground": "dark",
+          "titleBackgroundEnd": "gray",
+          "titleText": "muted",
+          "subtitle": "muted",
+          "contentBackground": "gray",
+          "heading": "muted",
+          "body": "muted",
           "accent": "gold",
           "button": "gold",
-          "dividerBackground": "gray"
+          "dividerBackground": "dark"
         },
         "fonts": {
-          "heading": "bitter",
-          "body": "fira-sans"
+          "heading": "vollkorn",
+          "body": "outfit"
         },
         "slides": {
           "title": {
             "layout": "corner",
             "logo": "corner",
-            "colors": "solid"
+            "colors": "gradient"
           },
           "divider": {
-            "layout": "number",
-            "watermark": "show",
+            "layout": "band",
+            "watermark": "hide",
             "colors": "solid"
           },
           "cards": {
-            "count": "3",
+            "count": "2",
             "titleBar": true,
-            "treatment": "paragraph",
-            "look": "band",
+            "treatment": "bullets",
+            "look": "rail",
             "layout": "columns"
           },
           "video": {
-            "layout": "stacked",
+            "layout": "side",
             "frame": "accent",
-            "titleStyle": "regular"
+            "titleStyle": "caps"
           },
           "activity": {
-            "layout": "callout",
+            "layout": "box",
             "labelStyle": "caps"
           }
         },
-        "background": "plain",
+        "background": "frame",
         "samples": {
           "title": "Make room for your next step",
           "subtitle": "A sample lesson for a confident start",
@@ -1796,21 +1796,21 @@
       "design": {
         "version": "2",
         "roles": {
-          "sidebar": "light",
+          "sidebar": "gray",
           "titleBackground": "light",
-          "titleBackgroundEnd": "offwhite",
+          "titleBackgroundEnd": "gray",
           "titleText": "mauve",
-          "subtitle": "royal",
-          "contentBackground": "light",
-          "heading": "mauve",
-          "body": "royal",
-          "accent": "mauve",
-          "button": "mauve",
+          "subtitle": "mauve",
+          "contentBackground": "offwhite",
+          "heading": "dark",
+          "body": "dark",
+          "accent": "gray",
+          "button": "gray",
           "dividerBackground": "light"
         },
         "fonts": {
-          "heading": "crimson-pro",
-          "body": "outfit"
+          "heading": "inter",
+          "body": "vollkorn"
         },
         "slides": {
           "title": {
@@ -1819,28 +1819,28 @@
             "colors": "solid"
           },
           "divider": {
-            "layout": "center",
-            "watermark": "show",
+            "layout": "band",
+            "watermark": "hide",
             "colors": "solid"
           },
           "cards": {
             "count": "3",
             "titleBar": true,
-            "treatment": "paragraph",
-            "look": "filled",
-            "layout": "columns"
+            "treatment": "bullets",
+            "look": "rail",
+            "layout": "rows"
           },
           "video": {
             "layout": "stacked",
-            "frame": "accent",
+            "frame": "plain",
             "titleStyle": "regular"
           },
           "activity": {
-            "layout": "callout",
-            "labelStyle": "caps"
+            "layout": "side",
+            "labelStyle": "heading"
           }
         },
-        "background": "plain",
+        "background": "color-block",
         "samples": {
           "title": "Make room for your next step",
           "subtitle": "A sample lesson for a confident start",
@@ -1891,7 +1891,7 @@
           }
         }
       },
-      "colorLabel": "Berry on white"
+      "colorLabel": "Berry & gray"
     },
     {
       "id": "columns",
@@ -1900,51 +1900,51 @@
       "design": {
         "version": "2",
         "roles": {
-          "sidebar": "gold",
+          "sidebar": "offwhite",
           "titleBackground": "gold",
-          "titleBackgroundEnd": "light",
+          "titleBackgroundEnd": "muted-gold",
           "titleText": "royal",
           "subtitle": "royal",
-          "contentBackground": "light",
-          "heading": "royal",
-          "body": "royal",
-          "accent": "muted-gold",
-          "button": "muted-gold",
-          "dividerBackground": "gold"
+          "contentBackground": "gold",
+          "heading": "mauve",
+          "body": "dark",
+          "accent": "dark",
+          "button": "mauve",
+          "dividerBackground": "muted-gold"
         },
         "fonts": {
           "heading": "raleway",
-          "body": "work-sans"
+          "body": "vollkorn"
         },
         "slides": {
           "title": {
             "layout": "columns",
             "logo": "corner",
-            "colors": "gradient"
+            "colors": "solid"
           },
           "divider": {
             "layout": "band",
-            "watermark": "show",
-            "colors": "solid"
+            "watermark": "hide",
+            "colors": "gradient"
           },
           "cards": {
             "count": "3",
             "titleBar": true,
-            "treatment": "paragraph",
-            "look": "band",
+            "treatment": "bullets",
+            "look": "rail",
             "layout": "columns"
           },
           "video": {
-            "layout": "stacked",
+            "layout": "banner",
             "frame": "accent",
-            "titleStyle": "regular"
+            "titleStyle": "large"
           },
           "activity": {
-            "layout": "callout",
+            "layout": "banner",
             "labelStyle": "caps"
           }
         },
-        "background": "plain",
+        "background": "edge-rail",
         "samples": {
           "title": "Make room for your next step",
           "subtitle": "A sample lesson for a confident start",
@@ -2004,51 +2004,51 @@
       "design": {
         "version": "2",
         "roles": {
-          "sidebar": "accent",
-          "titleBackground": "accent",
-          "titleBackgroundEnd": "muted",
-          "titleText": "royal",
-          "subtitle": "royal",
-          "contentBackground": "light",
-          "heading": "royal",
+          "sidebar": "offwhite",
+          "titleBackground": "dark",
+          "titleBackgroundEnd": "accent",
+          "titleText": "muted",
+          "subtitle": "offwhite",
+          "contentBackground": "accent",
+          "heading": "dark",
           "body": "royal",
           "accent": "royal",
-          "button": "royal",
-          "dividerBackground": "accent"
+          "button": "light",
+          "dividerBackground": "dark"
         },
         "fonts": {
-          "heading": "work-sans",
-          "body": "merriweather"
+          "heading": "dm-serif-display",
+          "body": "source-sans-3"
         },
         "slides": {
           "title": {
             "layout": "plaque",
-            "logo": "corner",
+            "logo": "above",
             "colors": "solid"
           },
           "divider": {
-            "layout": "left",
+            "layout": "band",
             "watermark": "show",
             "colors": "solid"
           },
           "cards": {
-            "count": "3",
+            "count": "2",
             "titleBar": true,
-            "treatment": "paragraph",
-            "look": "outline",
-            "layout": "columns"
+            "treatment": "numbered",
+            "look": "filled",
+            "layout": "rows"
           },
           "video": {
             "layout": "stacked",
-            "frame": "accent",
-            "titleStyle": "regular"
+            "frame": "plain",
+            "titleStyle": "large"
           },
           "activity": {
-            "layout": "callout",
-            "labelStyle": "caps"
+            "layout": "box",
+            "labelStyle": "heading"
           }
         },
-        "background": "plain",
+        "background": "frame",
         "samples": {
           "title": "Make room for your next step",
           "subtitle": "A sample lesson for a confident start",

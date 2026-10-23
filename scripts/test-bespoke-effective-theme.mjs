@@ -263,10 +263,10 @@ try {
     await surface(page, 'preview'); await checkFont(page, 'video', 'body', before.fonts.heading); await start(page);
     await page.locator('#themeScope').focus(); await page.keyboard.press(tabKey); assert.notEqual(await page.evaluate(() => document.activeElement.id), 'themeScope', 'Keyboard leaves the scope selector');
     await patternButton(page, 'edge-rail').focus(); await page.keyboard.press('Space'); expected.roleStyles.video.pattern = 'edge-rail'; assert.deepEqual(await design(page), expected);
-    assert.equal(await page.evaluate(() => document.activeElement.id), 'choice-background-edge-rail', 'Keyboard texture activation retains focus after rerender');
+    assert.equal(await page.evaluate(() => document.activeElement.id), 'choice-background-detail-edge-rail', 'Keyboard texture activation retains focus after rerender');
     await selectedTheme(page, 'video'); await page.locator('#font-heading').focus(); await page.keyboard.press(tabKey); assert.notEqual(await page.evaluate(() => document.activeElement.id), 'font-heading');
     const heights = {};
-    for (const selector of ['#themeScope', '#font-heading', '#font-body', '#choice-background-plain']) { const control = page.locator(selector); await control.scrollIntoViewIfNeeded(); heights[selector] = (await control.boundingBox()).height; assert(heights[selector] >= 44, 'Phone native controls and texture choices retain 44px targets'); }
+    for (const selector of ['#themeScope', '#font-heading', '#font-body', '#choice-background-detail-plain']) { const control = page.locator(selector); await control.scrollIntoViewIfNeeded(); heights[selector] = (await control.boundingBox()).height; assert(heights[selector] >= 44, 'Phone native controls and texture choices retain 44px targets'); }
     await page.locator('#themeScope').scrollIntoViewIfNeeded(); assert(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1));
     const source = await fs.readFile(path.resolve(import.meta.dirname, '../node_modules/axe-core/axe.min.js'), 'utf8'); await page.addScriptTag({ content: source });
     const scan = await page.evaluate(async () => { const r = await axe.run({ exclude: [['#modelStage'], ['.button-color-sample']] }); return { violations: r.violations.map(v => ({ id: v.id, targets: v.nodes.map(n => n.target) })), region: r.passes.some(v => v.id === 'region') }; });

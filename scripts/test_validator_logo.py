@@ -119,6 +119,15 @@ class TestLogoRules(unittest.TestCase):
         self.assertIn("[PASS] LOGO-02", out)
         self.assertEqual(code, 0, out)
 
+    def test_logo_rules_allow_text_wordmark(self):
+        for markup in ('<p class="spokes-wordmark">SPOKES <span>Skills for Life</span></p>',
+                       '<span class="logo-wordmark" aria-label="SPOKES">SPOKES</span>'):
+            with self.subTest(markup=markup):
+                code, out = run_validator_on_lesson(markup)
+                self.assertIn("[PASS] LOGO-01", out)
+                self.assertIn("[PASS] LOGO-02", out)
+                self.assertEqual(code, 0, out)
+
     def test_logo02_stand_in_message_says_how_to_mark_the_logo(self):
         _, out = run_validator_on_lesson('<img src="SPOKES-Logo.png" alt="Photo of a job interview" />',
                                          files={"SPOKES-Logo.png": OFFICIAL_LOGO})

@@ -252,7 +252,7 @@ try {
     });
     assert.match(actualFonts.heading, /Bitter/); assert.match(actualFonts.body, /Crimson Pro/);
     assert(actualFonts.headingLoaded && actualFonts.bodyLoaded, 'Both independently chosen local webfonts load.');
-    await choose(page, '^Background$', 'frame');
+    await choose(page, '^Background detail$', 'frame');
     await go(page, 'Title slide');
     await choose(page, 'Arrangement', 'bottom');
     const combined = await design(page);
@@ -475,7 +475,7 @@ try {
       await page.locator('#previewTabs [data-view="divider"]').click();
       if (mobile) await switchSurface(page,'design');
       assert.equal(await page.locator('.pattern-mini').count(), catalog.backgrounds.length);
-      await choose(page, '^Background$', 'plain');
+      await choose(page, '^Background detail$', 'plain');
       const original = await design(page), shots = new Map();
       for (const pattern of catalog.backgrounds) {
         const button = page.getByRole('group', { name: 'Background detail', exact: true }).locator(`[data-choice="${pattern.id}"]`);
@@ -508,7 +508,7 @@ try {
       await axe(reopened, 'Pattern miniatures '+(mobile?'phone':'desktop'));
       if(process.env.BESPOKE_REVIEW_DIR){await fs.mkdir(process.env.BESPOKE_REVIEW_DIR,{recursive:true});await reopened.screenshot({path:path.join(process.env.BESPOKE_REVIEW_DIR,'pattern-controls-'+(mobile?'phone':'desktop')+'.png'),fullPage:true});}
       await assertNoOverflow(reopened, 'Pattern choices');
-      await choose(page, '^Background$', 'plain');
+      await choose(page, '^Background detail$', 'plain');
       assert.deepEqual(await design(page), original);
     }
   });
@@ -549,7 +549,7 @@ try {
   await scenario('low-contrast text remains a team choice through preview, review, history and shared recovery', async ({ makePage, server }) => {
     for (const mobile of [false, true]) {
       const page = await makePage({ mobile }); await fillTeam(page);
-      await go(page, 'Shared typography'); await choose(page, '^Background$', 'plain');
+      await go(page, 'Shared typography'); await choose(page, '^Background detail$', 'plain');
       await paint(page, 'titleBackground', 'mauve'); await paint(page, 'titleBackgroundEnd', 'accent');
       await paint(page, 'titleText', 'royal');
       const before = await design(page);
@@ -663,7 +663,7 @@ try {
     assert.equal(await desktop.locator('#startingFrom').evaluate(el => el === document.activeElement), true, 'Make it ours moves focus to the Starting from line in Make it yours.');
     await desktop.locator('#selectedElement').focus(); await desktop.keyboard.press(tabKey);
     // Background mode is a segmented control on wide screens; its checked segment holds the tab stop.
-    assert.equal(await desktop.evaluate(() => document.activeElement.closest('[role=radiogroup]')?.getAttribute('aria-label')), 'Background detail', 'Tab continues into the contextual controls.');
+    assert.equal(await desktop.evaluate(() => document.activeElement.closest('[role=radiogroup]')?.getAttribute('aria-label')), 'Background', 'Tab continues into the contextual controls.');
     await go(desktop, 'Title slide');
     await desktop.getByRole('group', { name: /Arrangement/ }).locator('[data-choice="bottom"]').focus();
     await desktop.keyboard.press('Enter');

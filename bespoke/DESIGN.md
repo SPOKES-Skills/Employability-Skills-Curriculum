@@ -200,11 +200,13 @@ The 11 shared theme roles are sidebar, title background, title second color, tit
 | `--fs-xl` | 1.6rem (25.6px) | The page heading, the Send heading |
 | `--fs-2xl` | 2.1rem (33.6px) | The look's name on Pick a look, the Sent to Britt heading |
 
-**Lesson fonts:** either heading or body can use any of the 12 existing local families: DM Serif Display, Outfit, Playfair Display, Inter, Merriweather, Source Sans 3, Vollkorn, Fira Sans, Crimson Pro, Work Sans, Bitter, or Raleway. There is no required pairing and no serif/sans role restriction. Presets populate the two independent selectors; they do not constrain later choices.
+**Lesson fonts:** a lesson uses two typefaces, a heading font and a body font. Each can be any of the 12 local families: DM Serif Display, Outfit, Playfair Display, Inter, Merriweather, Source Sans 3, Vollkorn, Fira Sans, Crimson Pro, Work Sans, Bitter, or Raleway. There is no required pairing and no serif/sans role restriction. Presets populate the two independent selectors; they do not constrain later choices.
+
+**Font slots.** Per-slide and feature font controls (slide heading and text, added text, watermark, navigation sidebar, action buttons) offer only the two lesson fonts: **Heading font · <name>** and **Body font · <name>**, plus **Use shared font** where a shared default exists. A choice saves a slot, `heading` or `body`, not a font id, so changing a lesson font moves every part on that slot. A saved design that still holds another font id keeps rendering it; the control lists it as "<name> · saved choice" until the team picks a slot, and opening the design converts it (see Open design standard below).
 
 The model gives lesson title text a canvas-relative scale (`clamp(1.5rem, 4.8cqw, 3.7rem)`), a short measure (20ch), and tight line-height (1.12). Title subtitles scale from 1rem to 1.25rem within a 42ch measure. Content headings use `clamp(1.55rem, 3vw, 2.25rem)` and line-height 1.2. Lesson body text uses line-height 1.55; text inside boxes uses 0.92rem. These are authored-slide styles, separate from the UI hierarchy.
 
-**The Independent Type Rule.** Preserve both 12-family selectors. Never reintroduce the original wizard's fixed font-pair restrictions.
+**The Independent Type Rule.** Preserve both 12-family selectors. Never reintroduce the original wizard's fixed font-pair restrictions. The limit on a third typeface applies to per-slide and feature fonts only; they follow one of the two lesson fonts.
 
 ## Layout
 
@@ -270,13 +272,13 @@ Field labels sit above full-width inputs, selects, and text areas with a 7px gap
 
 The color-role selector and Apply color to selector precede the 11-color palette. Choosing an element starts in This slide scope: the selected swatch reflects its effective local color, and painting writes only that field on the visible slide. Shared default is an explicit separate scope; it writes the global default and retains local exceptions. Sidebar, Accent and Buttons have only shared scope. Preview tabs retain the equivalent element on the new slide, and selecting an element retains a compatible current preview. Scope persists only in the browser UI draft. A selected circular swatch has both a visible mark and an accessible selected label. All colors are enabled, without strike-throughs. Accessible labels identify a contrast advisory as selectable, calculated for the selected scope. The warning explains the text/background difference and why low contrast can be harder to read; it includes the actual ratio, the applicable guideline, and the team leader’s option to keep and save the design. The persistent live region announces advisories after updates.
 
-Each slide-type editor groups its existing Arrangement controls with Background, Texture, Text and Watermark disclosures. Arrangement and Background start open; disclosure choices stay in UI memory, never in a design payload. Stable native controls retain focus after redraw. Local edits show the affected preview while preserving every other role's choices. Shared theme groups shared colors, fonts and texture in one optional disclosure, available in every stage; its open state persists through stage changes.
+Each slide-type editor groups its existing Arrangement controls with Background, Background detail, Text and Watermark disclosures. Arrangement and Background start open; disclosure choices stay in UI memory, never in a design payload. Stable native controls retain focus after redraw. Local edits show the affected preview while preserving every other role's choices. Shared theme groups shared colors, fonts and background detail in one optional disclosure, available in every stage; its open state persists through stage changes.
 
 Shared theme's summary has a 48px minimum height. Paint colors names the selected slide and field; Shared default scope names affected Shared slide types and Custom exceptions, with links to the relevant local field. Fonts & texture has a separate Apply fonts & texture to selector, defaulting to This slide. It reads effective fonts and texture and changes only the selected local field. Its explicit Shared default option keeps global edits and custom exceptions separate. Both scope preferences persist only in the browser UI draft. Sidebar, Accent and Buttons have no misleading local-color shortcut: those colors remain shared. Navigation and button typography always use the shared body font; the canvas and Band divider exterior retain shared Content background. The seven inheritable local fields (primary/secondary background, heading/body color, heading/body font and texture) show Shared or Custom beside the control. Use shared theme in a field or its named reset button restores only that field on that slide, retaining other choices.
 
 Background supports an inherited finish, Solid or a two-color gradient, local primary/secondary colors and three gradient directions. The second color stays saved when hidden. Split title panels use the second color in the right panel and omit the inapplicable direction control; Solid colors both panels uniformly. Divider Band retains its colored middle panel and the shared lesson surface above and below it. Texture offers the existing five recipes and three strengths, independently per role. Plain hides the strength control without clearing it.
 
-Text offers local heading/body colors, the twelve curated fonts, size, alignment, visibility and editable sample words. The Default choice keeps inherited sizing/alignment; explicit choices override them. Chapter and activity labels can be edited and hidden independently. Text boxes retain their four sample strings and existing treatment/count/title-bar controls. The video supporting paragraph starts hidden to preserve the old look. Hiding text retains its words and style. Watermarks offer None or custom text/number, eleven colors, three sizes, four corners and three strengths. Decorative custom marks occupy reserved space apart from reading text and never modify the required title logo. Presets reset visual settings but preserve all sample words.
+Text offers local heading/body colors, the lesson's heading or body font, size, alignment, visibility and editable sample words. The Default choice keeps inherited sizing/alignment; explicit choices override them. Chapter and activity labels can be edited and hidden independently. Text boxes retain their four sample strings and existing treatment/count/title-bar controls. The video supporting paragraph starts hidden to preserve the old look. Hiding text retains its words and style. Watermarks offer None or custom text/number, eleven colors, three sizes, four corners and three strengths. Decorative custom marks occupy reserved space apart from reading text and never modify the required title logo. Presets reset visual settings but preserve all sample words.
 
 ### Navigation and continuity
 
@@ -286,7 +288,7 @@ Within the Slide options drawer, the distinct Slide design editors tablist offer
 
 Five separate preview tabs expose Title, Divider, Text boxes, Video, and Activity. These change the visible sample, not the editor or saved design. The selected preview tab has a blue underline and text; tablists support arrows, Home, End, Enter, and Space. Mobile Design / Preview tabs switch the visible region and retain separate scroll positions. The workspace is the single named, keyboard-focusable main landmark, with editor and preview sections inside it. The switch height is remeasured when text size or viewport changes. Stage changes move focus to the current panel. Dynamic choices, palettes, fonts, and preset controls have stable IDs so the rendering pass can restore focus after a same-stage change; open inline disclosures remain open. Design status and the mobile surface switch are contained in named landmarks.
 
-Send's **See every setting** lists all five effective slide designs. Each has resolved colors, fonts and texture labeled Shared or Custom, retained second-color wording when unused, arrangement and local detail, plus direct Preview and Edit actions. Shared typography is explicitly identified as defaults rather than every slide's effective typography. Rows use top borders and 20px vertical padding. Definition lists stack below 1200px and pair labels with values in two columns from 1200px upward; long values wrap. On phones, Preview actions open the Preview surface, while Edit returns to Design. Readability advice, notes, saving and recovery follow the summary.
+Send's **See every setting** lists all five effective slide designs. Each has resolved colors, fonts and background detail labeled Shared or Custom, retained second-color wording when unused, arrangement and local detail, plus direct Preview and Edit actions. Shared typography is explicitly identified as defaults rather than every slide's effective typography. Rows use top borders and 20px vertical padding. Definition lists stack below 1200px and pair labels with values in two columns from 1200px upward; long values wrap. On phones, Preview actions open the Preview surface, while Edit returns to Design. Readability advice, notes, saving and recovery follow the summary.
 
 ### Pick a look
 
@@ -316,11 +318,11 @@ Success messages, such as an applied look or a finished save, appear as a toast 
 
 ### Send
 
-Send has two columns. The left column holds the five slides on one sheet: the title slide large (two columns by two rows), then divider, text boxes, video and activity. Clicking one opens it in Make it yours, and the editing outline never shows here. The right column is a summary panel that stays in view on wide screens. It holds the label "Your suggestion", the heading "**<look>**, made yours" (or "Your design"), three plain rows (Look, Fonts, Your changes), the notes field "Anything Britt should know?", and **Save for the team** and **Send to Britt →** with their messages beside them. Under them sit one similarity line ("Shares 8 of 22 choices with the released lessons") with **See the comparison**, the small print "This is a suggestion. Britt and the program administrator choose the final design.", and a closed **See every setting** disclosure with the full review. The local preview keeps Send blocked.
+Send has two columns. The left column holds the five slides on one sheet: the title slide large (two columns by two rows), then divider, text boxes, video and activity. Clicking one opens it in Make it yours, and the editing outline never shows here. The right column is a summary panel that stays in view on wide screens. It holds the label "Your suggestion", the heading "**<look>**, made yours" (or "Your design"), three plain rows (Look, Fonts, Your changes), the notes field "Anything Britt should know?", and **Save for the team** and **Send to Britt →** with their messages beside them. Under them sit one similarity line ("Shares 8 of 22 choices with the released lessons") with **See the comparison**, the small print "Britt gives final approval to every design before it is used in a lesson.", and a closed **See every setting** disclosure with the full review. The local preview keeps Send blocked.
 
 ### Sent to Britt
 
-When the latest confirmed receipt matches the saved design and nothing has changed since, Send shows a confirmation instead. It has three of the team's slides fanned out, a green check, the heading "Sent to Britt", one sentence naming the lesson and the design, **Keep editing**, **Download a copy**, and a closed **Details** disclosure with the review request link. It shows again after a reload. A send from another stage confirms with the toast "Sent to Britt." while the view waits on Send. After the team edits, Send returns with the line "Sent to Britt on <date>. You have changed it since." A pending send reads "Sending to Britt…" in the panel.
+When the latest confirmed receipt matches the saved design and nothing has changed since, Send shows a confirmation instead. It has three of the team's slides fanned out, a green check, the heading "Sent to Britt", one sentence naming the lesson and the design, the line "It is waiting for Britt's approval.", **Keep editing**, **Download a copy**, and a closed **Details** disclosure with the review request link. It shows again after a reload. A send from another stage confirms with the toast "Sent to Britt." while the view waits on Send. After the team edits, Send returns with the line "Sent to Britt on <date>. You have changed it since." A pending send reads "Sending to Britt…" in the panel.
 
 Under the two buttons and above Details sits a follow-up note for teams that want to tell Britt one more thing. It has a labeled text area, **Add a note for Britt**, and the button **Send note to Britt**. The text area edits the same notes field as Send's "Anything Britt should know?", so it opens with the notes already sent. The button runs the ordinary Save for the team and then the ordinary Send to Britt, so lead-session, locked-lesson, conflict and pending handling are unchanged. A save that fails or conflicts stops before Send. The button is disabled while a save or send is in flight and while the note matches the notes on the latest receipt. The line under it reads "Sending to Britt…" while the request is pending, shows save and send errors as Send's panel does, and reads "Note sent." once the new receipt arrives. The view stays, because the design has not changed, and Details links to the new review request. View-only sessions never see the Sent view. The local test preview hides the note area, because it cannot send.
 
@@ -407,27 +409,36 @@ Reference comparison measures actual chapter heading and supporting-text colors
 separately from title text; mixed or translucent reference colors stay unknown.
 
 
-### Background-pattern feedback
+### Background detail feedback
 
-In This slide scope, the selected pattern is the effective texture of the previewed
-role. A choice changes its local pattern only, including an existing override.
-Shared default changes the global pattern followed by inheriting fields; explicit
-local textures remain independent. Texture layers sit above the
-chosen color, split panel, band or gradient; Plain removes only the texture. Dot grid
-uses 5px dots on 24px spacing, Diagonal uses 2px lines on 22px spacing, Crosshatch uses
-1.5px lines on a 32px grid, and Soft wash is a broad diagonal tint. Decorative ink is
-White or Royal, chosen for visible separation from the base, with the opposite tone
-used when needed to retain already-readable title/divider text. Stored base/text
-colors never change. Contrast sampling includes the actual opacity range and grid
-intersections; unresolved failures remain explicit warnings. Local pattern thumbnails
-reuse the exact model background recipe, including the current primary/secondary
-colors, gradient direction, split/Band arrangement and texture strength. Shared-default
-thumbnails are identified as shared colors at Standard strength. Changing preview
-tabs refreshes effective selections and thumbnails without editing the design.
-Plain keeps the saved Subtle, Standard or Stronger strength for a later pattern;
-there is no zero-strength setting. Font selections likewise read the effective local
-font in This slide scope; a hidden text field keeps its font without being revealed,
-with that state explained beside the selector.
+In This slide scope, the selected background detail is the effective one of the
+previewed role. A choice changes its local detail only, including an existing
+override. Shared default changes the global detail followed by inheriting fields;
+explicit local choices remain independent. The detail sits above the chosen color,
+split panel, band or gradient; Plain removes only the detail. Three structures
+replace the old textures. Color block is a square in the bottom-right corner, Edge
+rail is a stripe along the right edge, and Frame is four bars that trace the
+outer margin. Each is one hard-edged solid in a single palette color, drawn only
+inside the slide's outer margin (24px on title slides, 20px on dividers and
+content slides, on the 960 canvas), so it never covers a heading, card, logo or
+sidebar. Thin, Standard and Thick set the size. The ink is the Accent color when
+it stands apart from the surface; otherwise it is White or Royal, whichever
+reads better. Stored base and text colors never change. Local thumbnails reuse
+the exact model background recipe, including the current primary and secondary
+colors, gradient direction, split or Band arrangement and detail size.
+Shared-default thumbnails are identified as shared colors at Standard size.
+Changing preview tabs refreshes effective selections and thumbnails without
+editing the design. Plain keeps the saved Thin, Standard or Thick size for a later
+choice; there is no zero-size setting. Font selections likewise read the
+effective local font in This slide scope; a hidden text field keeps its font
+without being revealed, with that state explained beside the selector.
+
+The shared-scope help under a font default sorts each slide by its saved value.
+**Shared** slides use the default. **Follows the shared font** lists slides on the
+slot that default sets, so a change to the default moves them. **Follows the other
+lesson font** lists slides on the other slot; they follow the other lesson font and
+this default leaves them as is. **Custom, unchanged by this default** lists slides
+that hold a font id or any other fixed value.
 
 ### Preview editor interaction
 
@@ -495,3 +506,17 @@ scope use plain labels. Readability suggestions require an explicit preview and
 application and remain undoable. Both alternatives persist; delivery and actual
 review remain separate states. See `docs/bespoke/review-tools-2026-10-07.md` for
 the complete contract and local/hosted evidence boundary.
+
+## Open design standard: October 22, 2026
+
+BeSpoke follows the SPOKES open design standard (Britt, 2026-10-22; `docs/superpowers/specs/2026-10-22-bespoke-open-standard-premium-design.md`, Part 1). The controls stop offering a value; the schema, the service and `scripts/bespoke_design.py` keep accepting it, so sent proposals still confirm and approved designs not yet built can still be built.
+
+**Structures.** Dot grid, Diagonal, Crosshatch and Soft wash are retired (`bespoke/background-structures.mjs`, `RETIRED_IDS`). The background pickers offer Plain, Color block, Edge rail and Frame. See Background detail feedback above.
+
+**Two typefaces per lesson.** Per-slide and feature fonts are the `heading` and `body` slots described under Typography (`bespoke/font-slots.mjs`).
+
+**Conversion notice.** When a team opens a saved design, a shared design, a backup or a restored browser draft, `bespoke/standard-conversion.mjs` sets every retired texture to Plain and turns every font id into a slot. A font id that already matches a lesson font follows that slot silently, since nothing visible changes. Any other font id becomes the heading slot (headings and watermarks) or the body slot (running text, added text, navigation and buttons). The page then shows one strip: "Updated this design to the SPOKES design standard: <each change>. Review it before saving." Undo and redo steps and the other option of a two-option design convert too, so Undo never brings a retired value back. Converting does not save; the earlier revision stays in the shared History, so the original can be reopened.
+
+**Variety.** The 12 looks each share at most 5 of the compared choices with each released lesson, and any two looks share 16 or fewer of the 32 compared choices.
+
+**Approval.** Send says "Britt gives final approval to every design before it is used in a lesson." Sent to Britt says the design is waiting for Britt's approval. Readability stays advisory, with a person's review; the builder gates nothing. Two-color gradients stay on title and divider slides.

@@ -6,7 +6,7 @@ import { frameSizer } from './slide-frame.mjs';
 
 const DECK = [['title', 'Title slide'], ['divider', 'Chapter divider'], ['cards', 'Text boxes'], ['video', 'Video slide'], ['activity', 'Activity']];
 const MAX_CHANGES = 3;
-export const SMALL_PRINT = 'This is a suggestion. Britt and the program administrator choose the final design.';
+export const SMALL_PRINT = 'Britt gives final approval to every design before it is used in a lesson.';
 // Disclosure states outlive a redraw within this page.
 let comparisonOpen = false;
 let settingsOpen = false;
@@ -256,7 +256,7 @@ function buildSentText(host) {
   const look = host.look();
   const body = make('p', 'sent-body', `Your ${host.lessonTitle()} suggestion, `);
   body.append(make('b', '', look ? `${look.name}, made yours` : 'your design'),
-    ', is on its way. Britt and the program administrator will use it when they make the final design.');
+    ', is on its way. It is waiting for Britt\'s approval.');
   const actions = make('div', 'sent-actions');
   actions.append(button('btnKeepEditing', 'btn btn-secondary', 'Keep editing', () => host.keepEditing()),
     button('btnDownloadCopy', 'btn btn-secondary', 'Download a copy', () => host.downloadCopy()));

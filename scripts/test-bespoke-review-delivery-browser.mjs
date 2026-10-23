@@ -56,7 +56,7 @@ try{
  // The fanned slides fill their cards: no page white wedge under the top card, nothing cut off.
  await settle(page);const fan=await frameGaps(page,'#sentView .send-frame');assert.equal(fan.length,3,'three fanned slides');for(const {name,gaps} of fan)assert.ok(gaps&&gaps.every(gap=>Math.abs(gap)<=1),`${name} fills its card: gaps ${gaps}`);
  assert.equal(await page.evaluate(()=>document.activeElement?.id),'sentHeading','entering the confirmation focuses its heading');
- assert.match(await page.locator('#sentView p').filter({hasText:'is on its way'}).textContent(),/^Your Money Management suggestion, .+, is on its way\. Britt and the program administrator will use it when they make the final design\.$/);
+ assert.match(await page.locator('#sentView p').filter({hasText:'is on its way'}).textContent(),/^Your Money Management suggestion, .+, is on its way\. It is waiting for Britt's approval\.$/);
  assert.equal(await page.locator('#sentDetails a').getAttribute('href'),url);assert.equal(await page.locator('#sentDetails').evaluate(d=>d.open),false);
  // On the confirmation the receipt link lives only in Details: the page-wide receipt band steps aside.
  assert.equal(await page.locator('#lastReviewReceipt').isVisible(),false,'no receipt band over the confirmation');assert.equal(await page.locator('#teamSessionBar').isVisible(),false,'the strip holds nothing else, so it hides');

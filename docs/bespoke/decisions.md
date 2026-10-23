@@ -1,5 +1,19 @@
 # BeSpoke decisions
 
+## Open design standard: October 22, 2026
+
+Britt decided these on October 22, 2026 for Part 1 of `docs/superpowers/specs/2026-10-22-bespoke-open-standard-premium-design.md`.
+
+| Date | Decision |
+|---|---|
+| 2026-10-22 | BeSpoke follows the open design standard (`docs/superpowers/specs/2026-10-22-open-design-standard-design.md`). A conflicting option is replaced with a compliant one, not just removed. |
+| 2026-10-22 | Textures are replaced by structures. Dot grid, Diagonal, Crosshatch and Soft wash give way to Color block, Edge rail and Frame, with Plain kept. The controls stop offering the old values and a saved design converts to Plain on open, with a notice. The schema, the service and `scripts/bespoke_design.py` keep accepting the old values until Britt confirms no sent or approved design still uses one. |
+| 2026-10-22 | Each lesson uses two typefaces, a heading font and a body font. Per-slide and feature font controls offer only those two, saved as the `heading` and `body` slots, so changing a lesson font moves every part on that slot. A saved design with another font id converts to a slot on open. |
+| 2026-10-22 | Readability stays advisory, with a person's review. Pickers hide and lock nothing and the builder adds no readability gate. |
+| 2026-10-22 | Two-color gradients stay on title and divider slides. |
+| 2026-10-22 | The 12 ready-made looks stay. Each shares at most 5 compared choices with each released lesson and, where possible, no color combination. Any two looks share 16 or fewer of the 32 compared choices. |
+| 2026-10-22 | Every BeSpoke design needs Britt's final approval before it is used in a lesson. Send says so, and Sent to Britt says the design is waiting for Britt's approval. This supersedes the October 7 line "The final design comes from Britt and the administrator" only where that line conflicts. The program administrator no longer appears in the Send copy. |
+
 ## Showcase polish: October 19, 2026
 
 Britt approved the showcase polish spec (`docs/superpowers/specs/2026-10-19-bespoke-showcase-polish-design.md`).

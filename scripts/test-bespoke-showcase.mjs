@@ -595,7 +595,6 @@ try {
     assert.equal(await page.locator('#showcase .editor-selected').count(), 0, 'the editing outline never shows on Send');
     assert.match(await textOf(page, '#sendSimilarity'), /^Shares \d+ of \d+ choices with the released lessons/);
     assert.equal(await page.getByLabel('Anything Britt should know?').count(), 1, 'the notes field has the new label');
-    assert.ok((await textOf(page, '#sendPanel')).includes('This is a suggestion. Britt and the program administrator choose the final design.'));
     assert.equal(await page.locator('#allSettings').evaluate(el => el.tagName === 'DETAILS' && !el.open), true, 'See every setting starts closed');
     assert.equal(await textOf(page, '#allSettings > summary'), 'See every setting');
     assert.equal(await page.locator('#allSettings #effectiveDesignSummary').count(), 1, 'the full review sits inside See every setting');
@@ -610,6 +609,13 @@ try {
     assert.equal(await page.locator('#sendComparison li').count(), 6, 'the comparison lists the six released lessons');
     await context.close();
     pass('send shows the deck and a plain summary');
+  }
+  {
+    const {context, page} = await open(1280, 800);
+    await page.locator('#stage-review').click();
+    const panel = await textOf(page, '#sendPanel');
+    assert.ok(panel.includes('Britt gives final approval to every design before it is used in a lesson.') && !panel.includes('administrator'), 'Send says Britt approves every design');
+    await context.close(); pass('Send says Britt approves every design');
   }
   {
     const {context, page} = await open(1280, 800);

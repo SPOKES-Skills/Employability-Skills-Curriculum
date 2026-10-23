@@ -4,7 +4,7 @@ import { FONT_SLOTS } from './font-slots.mjs';
 import { backgroundEntry } from './builder-model.mjs';
 
 // Where a font id goes when it matches neither lesson font: headings and marks take the heading slot, running text the body slot.
-const ROLE_FONT_FIELDS = {
+const ROLE_FONT_FALLBACKS = {
   headingFont: { slot: 'heading', name: 'heading font' },
   bodyFont: { slot: 'body', name: 'body font' },
   extraFont: { slot: 'body', name: 'added text font' },
@@ -39,7 +39,7 @@ export function convertToStandard(catalog, design) {
       changes.push(`${slideLabel(kind)} background detail ${backgroundEntry(catalog, style.pattern).label} is now Plain.`);
       style.pattern = 'plain';
     }
-    for (const [field, { slot, name }] of Object.entries(ROLE_FONT_FIELDS)) {
+    for (const [field, { slot, name }] of Object.entries(ROLE_FONT_FALLBACKS)) {
       if (isFontId(style[field])) toSlot(style, field, slot, `${slideLabel(kind)} ${name}`);
     }
   }

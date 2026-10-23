@@ -478,7 +478,7 @@ try {
       await choose(page, '^Background$', 'plain');
       const original = await design(page), shots = new Map();
       for (const pattern of catalog.backgrounds) {
-        const button = page.getByRole('group', { name: 'Background', exact: true }).locator(`[data-choice="${pattern.id}"]`);
+        const button = page.getByRole('group', { name: 'Background detail', exact: true }).locator(`[data-choice="${pattern.id}"]`);
         await button.focus(); await page.keyboard.press('Enter');
         assert.equal(await button.evaluate(el => el === document.activeElement), true);
         assert.equal(await page.locator('#previewTabs [aria-selected="true"]').getAttribute('data-view'), 'divider');
@@ -663,7 +663,7 @@ try {
     assert.equal(await desktop.locator('#startingFrom').evaluate(el => el === document.activeElement), true, 'Make it ours moves focus to the Starting from line in Make it yours.');
     await desktop.locator('#selectedElement').focus(); await desktop.keyboard.press(tabKey);
     // Background mode is a segmented control on wide screens; its checked segment holds the tab stop.
-    assert.equal(await desktop.evaluate(() => document.activeElement.closest('[role=radiogroup]')?.getAttribute('aria-label')), 'Background', 'Tab continues into the contextual controls.');
+    assert.equal(await desktop.evaluate(() => document.activeElement.closest('[role=radiogroup]')?.getAttribute('aria-label')), 'Background detail', 'Tab continues into the contextual controls.');
     await go(desktop, 'Title slide');
     await desktop.getByRole('group', { name: /Arrangement/ }).locator('[data-choice="bottom"]').focus();
     await desktop.keyboard.press('Enter');

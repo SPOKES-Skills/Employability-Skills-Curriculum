@@ -83,7 +83,7 @@ async function shot(page, name) { if (output) { await page.screenshot({ path: pa
 
 async function previewPixels(page) { await page.locator('#modelStage').scrollIntoViewIfNeeded(); await page.evaluate(() => document.fonts.ready); return page.locator('#modelStage').screenshot(); }
 const patterns = ['plain', 'color-block', 'edge-rail', 'frame'];
-const group = page => page.getByRole('group', { name: 'Background', exact: true });
+const group = page => page.getByRole('group', { name: 'Background detail', exact: true });
 const patternButton = (page, id) => group(page).locator(`[data-choice="${id}"]`);
 async function background(locator) {
   return locator.evaluate(el => { const s = getComputedStyle(el); return Object.fromEntries(['backgroundColor', 'backgroundImage', 'backgroundSize', 'backgroundPosition', 'backgroundRepeat'].map(k => [k, s[k]])); });

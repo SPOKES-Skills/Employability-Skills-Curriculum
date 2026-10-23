@@ -1649,7 +1649,7 @@ function renderFonts(panel){
   const trial=Model.setRoleStyle(catalog,sample,kind,'pattern',option.id);
   return '<span class="pattern-mini" aria-hidden="true" style="'+Model.roleBackgroundCss(catalog,trial,kind)+'"></span>';
  };
- const patterns=choiceGroup('Background',catalog.backgrounds,local?effective.pattern:state.design.background,id=>edit('pattern',id,'Background detail: '+Model.backgroundEntry(catalog,id).label),{mini});patterns.setAttribute('aria-describedby','patternScopeHelp');panel.append(patterns);
+ const patterns=choiceGroup('Background detail',catalog.backgrounds,local?effective.pattern:state.design.background,id=>edit('pattern',id,'Background detail: '+Model.backgroundEntry(catalog,id).label),{mini});patterns.setAttribute('aria-describedby','patternScopeHelp');panel.append(patterns);
  const patternNote=document.createElement('p');patternNote.id='patternScopeHelp';patternNote.className='helper';patternNote.textContent=local?VIEW_NAMES[kind]+' background detail · '+(saved.pattern==='inherit'?'Shared':'Custom')+'. Thumbnails use this slide’s colors, gradient and '+({subtle:'Thin',normal:'Standard',bold:'Thick'}[effective.patternStrength])+' detail size. Plain removes the detail and keeps its size for next time.':'Thumbnails show shared colors at Standard detail size. Plain removes the shared detail; custom slide details stay independent.';panel.append(patternNote);
  if(!local)appendSharedScope(panel,'pattern');
 }

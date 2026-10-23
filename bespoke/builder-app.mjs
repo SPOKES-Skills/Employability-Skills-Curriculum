@@ -6,6 +6,7 @@ import { createPreviewEditor } from './preview-editor.mjs';
 import { watchCanvasFit } from './canvas-fit.mjs';
 import { fontControl, fontScopeGroup, scopeSentences } from './font-slots.mjs';
 import { convertToStandard, convertAlternatives, convertDraft, conversionNote } from './standard-conversion.mjs';
+import { CONVERTED_STATUS, CONVERTED_NOTE, convertedOnOpen } from './converted-open.mjs';
 import { syncStageChrome } from './canvas-shell.mjs';
 import { createGuide } from './guide/guide.mjs';
 import { showToast } from './toast.mjs';
@@ -128,6 +129,7 @@ const findOption=(family,slug)=>state.library?.families?.[family]?.options.find(
   function forgetTeamSession() {
     ui.teamSession = null;
     ui.cloudConflict = null;
+    ui.convertedUnsaved = false;
     state.editCode = "";
     try {
       localStorage.removeItem(TEAM_SESSION_KEY);
@@ -142,7 +144,8 @@ const findOption=(family,slug)=>state.library?.families?.[family]?.options.find(
       if (!findMeta(state.meta.lessons, saved.lessonId)) return null;
       if (typeof saved.editCode !== "string" || saved.editCode.length < EDIT_CODE_MIN) return null;
       ui.teamSession = saved;
-      if (ui.draftRebase && saved.baseSelectionKey === selectionKey(ui.draftRebase.from)) { saved.baseSelectionKey = selectionKey(ui.draftRebase.to); persistTeamSession(); }
+      if (ui.draftRebase && saved.baseSelectionKey === selectionKey(ui.draftRebase.from)) { saved.baseSelectionKey = selectionKey(ui.draftRebase.to); ui.convertedUnsaved = saved.baseSelectionKey !== selectionKey(ui.draftRebase.from); persistTeamSession(); }
+      ui.draftRebase = null;
       state.editCode = saved.editCode;
       return saved;
     } catch { return null; }
@@ -179,6 +182,11 @@ const findOption=(family,slug)=>state.library?.families?.[family]?.options.find(
     return Boolean(key && key !== (ui.teamSession.baseSelectionKey || ""));
   }
 
+  function noteConversion(stored) {
+    ui.convertedUnsaved = convertedOnOpen(stored, selectionKey, currentSelectionKey());
+    if (ui.convertedUnsaved && !ui.localPreview) setSaveStatus(CONVERTED_STATUS);
+  }
+
   function canAutosave() {
     return AUTOSAVE.enabled && autosaveReady && isLeadSession() && Boolean(ui.teamSession) &&
       Boolean(handoffApiBase) && !ui.cloudConflict && !ui.autosavePaused && !storageConflict;
@@ -205,7 +213,7 @@ const findOption=(family,slug)=>state.library?.families?.[family]?.options.find(
   function draftStatusText() {
     if (!ui.teamSession || !ui.teamSession.revision) return "Browser draft saved";
     if (ui.localPreview) return hasUnsavedTeamWork() ? "Browser draft saved · local test save pending" : "Local test design up to date";
-    if (!hasUnsavedTeamWork()) return "Shared design up to date";
+    if (!hasUnsavedTeamWork()) return ui.convertedUnsaved ? CONVERTED_STATUS : "Shared design up to date";
     if (ui.autosavePaused) return "Choose Save for the team to share";
     return canAutosave() ? "Sharing changes automatically" : "Browser draft saved";
   }
@@ -222,7 +230,7 @@ const findOption=(family,slug)=>state.library?.families?.[family]?.options.find(
     }
     const lesson = findMeta(state.meta?.lessons, session.lessonId);
     const saved = session.savedAt ? ` Shared version saved ${new Date(session.savedAt).toLocaleString()}.` : " No shared version has been saved yet.";
-    const dirty = hasUnsavedTeamWork() ? " This browser has changes that are not in the shared design." : " This browser matches the shared design.";
+    const dirty = hasUnsavedTeamWork() ? " This browser has changes that are not in the shared design." : (ui.convertedUnsaved ? CONVERTED_NOTE : " This browser matches the shared design.");
     status.textContent = ui.localPreview
       ? `${lesson?.title || session.lessonId} · Local test session. ${session.savedAt ? 'Saved '+new Date(session.savedAt).toLocaleString()+'.' : 'No test save yet.'} ${session.revision && hasUnsavedTeamWork() ? 'Browser changes are waiting to save.' : ''}`
       : `${lesson?.title || session.lessonId} team session.${saved}${dirty}`;
@@ -795,6 +803,7 @@ const findOption=(family,slug)=>state.library?.families?.[family]?.options.find(
       session.baseSelectionKey = result.selection?.schema === "bespoke-selection/v1" ? selectionKey(result.selection) : currentSelectionKey();
       ui.cloudConflict = null;
       ui.autosavePaused = ui.autosavePaused || Boolean(state.legacySelection);
+      noteConversion(result.selection);
       persistTeamSession();
       storageConflict = false;
       try {
@@ -881,6 +890,7 @@ const findOption=(family,slug)=>state.library?.families?.[family]?.options.find(
       session.baseSelectionKey = requestKey;
       session.pendingSave = null;
       ui.cloudConflict = null;
+      ui.convertedUnsaved = false;
       if (replacedDuringSave) {
         persistTeamSession();
         setSaveStatus(draftStatusText());
@@ -988,6 +998,8 @@ const findOption=(family,slug)=>state.library?.families?.[family]?.options.find(
       goStage('team');byId('spokespersonName')?.focus();actionNotice("Add the spokesperson's name on Lesson & team before sending.");
       return;
     }
+    // A converted design is not an edit, so nothing has saved it; pressing Send is the team's action, so it saves first.
+    if (ui.convertedUnsaved && session.revision && !ui.cloudConflict && !hasUnsavedTeamWork()) { await cloudSave(); if (ui.cloudConflict || ui.convertedUnsaved || hasUnsavedTeamWork()) return; }
     if (ui.cloudConflict || !session.revision || hasUnsavedTeamWork()) {
       actionNotice("Save the current shared design before sending it to Britt.");
       return;
@@ -1127,6 +1139,7 @@ const findOption=(family,slug)=>state.library?.families?.[family]?.options.find(
       ui.teamSession.savedAt = result.savedAt ?? null;
       ui.teamSession.pendingSave = null;
       ui.teamSession.baseSelectionKey = result.selection?.schema === "bespoke-selection/v1" ? selectionKey(result.selection) : currentSelectionKey();
+      noteConversion(result.selection);
       ui.autosavePaused = Boolean(state.legacySelection);
       ui.cloudConflict = null;
       persistTeamSession();

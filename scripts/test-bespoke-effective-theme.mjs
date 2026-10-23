@@ -2,7 +2,7 @@
 // Regression for changing the visible effective fonts and texture with a local
 // override. Isolated browsers + in-memory loopback services only; no user state.
 import assert from 'node:assert/strict';
-import {clickMenuItem, restoreDraft} from './bespoke-test-navigation.mjs';
+import {clickMenuItem} from './bespoke-test-navigation.mjs';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { browserName, browserType, tabKey } from './bespoke-test-browser.mjs';
@@ -31,7 +31,7 @@ function customFixture() {
   d.slides.title.layout = 'left'; d.slides.divider.layout = 'left';
   d.roleStyles = Object.fromEntries(kinds.map((kind, i) => [kind, {
     ...roleStyleDefaults(catalog, d, kind), backgroundMode: 'gradient', primary: 'primary', secondary: 'muted', direction: 'diagonal', pattern: 'edge-rail', patternStrength: ['subtle', 'bold', 'normal', 'bold', 'subtle'][i],
-    headingColor: 'muted-gold', bodyColor: 'royal', headingFont: 'bitter', bodyFont: 'raleway', bodyVisible: true,
+    headingColor: 'muted-gold', bodyColor: 'royal', headingFont: 'heading', bodyFont: 'body', bodyVisible: true,
     watermarkMode: 'text', watermarkText: 'SAMPLE ' + i, watermarkColor: 'muted-gold', watermarkPlacement: 'bottom-right', watermarkSize: 'small', watermarkOpacity: 'medium'
   }]));
   return d;
@@ -67,8 +67,8 @@ async function shared(page) {
 async function start(page) { await surface(page, 'design'); await page.locator('#stage-start').click(); await shared(page); }
 async function view(page, kind) {if(['team','start'].includes(await page.locator('#workspace').getAttribute('data-stage'))){await page.locator('#stage-slides').click();if(!await page.locator('#detailControls').isVisible())await page.locator('#btnMoreOptions').click();} await surface(page, 'preview'); await page.locator(`#previewTabs [data-view="${kind}"]`).click(); await page.evaluate(() => document.fonts.ready); }
 async function importDesign(page, d) {
-  // Opening a backup converts retired textures and third typefaces; these fixtures keep them on purpose, so restore them as a browser draft.
-  await restoreDraft(page, payload(d)); await ready(page);
+  await page.locator('#teamFileInput').setInputFiles({ name: 'synthetic-effective-theme.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(payload(d))) });
+  await page.locator('#fileStatus').filter({ hasText: 'Opened synthetic-effective-theme.json.' }).waitFor();
 }
 async function save(page) {
   const reply = page.waitForResponse(r => r.url().endsWith('/api/bespoke') && r.request().postDataJSON()?.action === 'save'); await page.locator('#btnSave').click(); assert.equal((await reply).status(), 200);
@@ -156,13 +156,11 @@ try {
     await page.locator('#btnRedo').click(); assert.deepEqual(await design(page), expected);
     await page.reload(); await ready(page); assert.deepEqual(await design(page), expected); await selectedTheme(page, 'divider');
     await save(page); const saved = (await openRemote(server)).selection; assert.deepEqual(saved.design, expected); noUiFields(saved);
-    // Opening the shared design applies the SPOKES standard: the fixture's third typefaces follow the lesson fonts.
-    const opened = structuredClone(expected); for (const style of Object.values(opened.roleStyles)) { if (style.headingFont === 'bitter') style.headingFont = 'heading'; if (style.bodyFont === 'raleway') style.bodyFont = 'body'; }
-    const fresh = await makePage(); assert.deepEqual(await design(fresh), opened); await clickMenuItem(fresh, '#btnOpen');
-    await fresh.locator('#toast').filter({ hasText: /Opened|latest|up to date/i }).waitFor(); assert.deepEqual(await design(fresh), opened);
-    const copied = await backup(fresh); assert.deepEqual(copied.design, opened); noUiFields(copied);
+    const fresh = await makePage(); assert.deepEqual(await design(fresh), expected); await clickMenuItem(fresh, '#btnOpen');
+    await fresh.locator('#toast').filter({ hasText: /Opened|latest|up to date/i }).waitFor(); assert.deepEqual(await design(fresh), expected);
+    const copied = await backup(fresh); assert.deepEqual(copied.design, expected); noUiFields(copied);
     await importDesign(fresh, before); await fresh.locator('#teamFileInput').setInputFiles({ name: 'synthetic-theme-backup.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(copied)) });
-    await fresh.locator('#fileStatus').filter({ hasText: 'Opened synthetic-theme-backup.json.' }).waitFor(); assert.deepEqual(await design(fresh), opened);
+    await fresh.locator('#fileStatus').filter({ hasText: 'Opened synthetic-theme-backup.json.' }).waitFor(); assert.deepEqual(await design(fresh), expected);
     evidence.push({ label: 'reported divider Plain', before: oldBackground, actual, delta, undoRedoReloadSaveOpenBackup: true });
   });
 
@@ -201,7 +199,7 @@ try {
     }
   });
 
-  await scenario('independent explicit shared scope preserves local fonts and textures', async ({ makePage }) => {
+  await scenario('independent explicit shared scope preserves local textures and lets font slots follow', async ({ makePage }) => {
     const page = await makePage(), fixture = customFixture(); await importDesign(page, fixture); await start(page); await view(page, 'divider'); await shared(page);
     await page.locator('#colorRole').selectOption('dividerBackground'); await page.locator('#colorScope').selectOption('shared');
     await selectedTheme(page, 'divider'); await page.locator('#themeScope').selectOption('shared');
@@ -211,8 +209,15 @@ try {
       const before = await design(page); if (field === 'pattern') await patternButton(page, value).click(); else await page.locator('#font-' + (field === 'headingFont' ? 'heading' : 'body')).selectOption(value);
       const expected = structuredClone(before); if (field === 'pattern') expected.background = value; else expected.fonts[field === 'headingFont' ? 'heading' : 'body'] = value;
       assert.deepEqual(await design(page), expected, `Shared ${field} preserves every local record`); await selectedTheme(page, 'divider', 'shared');
-      assert.deepEqual(await currentBackground(page), localBackground); assert.equal(await fontComputed(page, 'divider', 'heading'), localHeading); assert.equal(await fontComputed(page, 'divider', 'body'), localBody);
-      assert.match(await page.locator(`[data-shared-scope="${field}"]`).textContent(), /custom.*unchanged/i);
+      assert.deepEqual(await currentBackground(page), localBackground);
+      if (field === 'pattern') {
+        assert.equal(await fontComputed(page, 'divider', 'heading'), localHeading); assert.equal(await fontComputed(page, 'divider', 'body'), localBody);
+        assert.match(await page.locator(`[data-shared-scope="${field}"]`).textContent(), /custom.*unchanged/i);
+      } else {
+        // A slide on a font slot follows the lesson font, so a shared font change moves it; only the texture stays local.
+        const slot = field === 'headingFont' ? 'heading' : 'body', family = catalog.fonts.find(f => f.id === value).family;
+        assert((await fontComputed(page, 'divider', slot)).includes(family), `The ${slot} slot follows the shared ${slot} font`);
+      }
     }
     const chosen = await design(page); await page.reload(); await ready(page); assert.deepEqual(await design(page), chosen); await selectedTheme(page, 'divider', 'shared'); assert.equal(await page.locator('#colorScope').inputValue(), 'slide');
     const sharedMini = await background(patternButton(page, 'frame').locator('.pattern-mini'));
@@ -224,17 +229,17 @@ try {
     evidence.push({ label: 'explicit shared defaults', localOverridesPreserved: true, sharedMini, scopeReload: true, scopeIndependent: true });
   });
 
-  await scenario('a local Plain or retired texture clears the shared frame on content slides', async ({ makePage }) => {
+  await scenario('a local Plain or other structure clears the shared frame on content slides', async ({ makePage }) => {
     // The other fixtures set a structure on every kind, so only a shared structure with local exceptions can show a leak.
     const page = await makePage(), d = defaultDesign(catalog); d.startingPoint = 'custom'; d.background = 'frame';
-    d.roleStyles = { cards: { ...roleStyleDefaults(catalog, d, 'cards'), pattern: 'plain' }, video: { ...roleStyleDefaults(catalog, d, 'video'), pattern: 'dot-grid' } };
+    d.roleStyles = { cards: { ...roleStyleDefaults(catalog, d, 'cards'), pattern: 'plain' }, video: { ...roleStyleDefaults(catalog, d, 'video'), pattern: 'edge-rail' } };
     await importDesign(page, d); await start(page);
     const area = () => page.locator('#modelStage .bespoke-slide .slide-content').evaluate(el => getComputedStyle(el).backgroundImage);
     const root = () => page.locator('#modelStage .bespoke-slide').evaluate(el => getComputedStyle(el).backgroundImage);
     await view(page, 'cards'); assert.equal(await area(), 'none', 'Plain on Text boxes removes the shared frame from the content area'); assert.equal(await root(), 'none');
-    await view(page, 'video'); assert.equal(await area(), 'none', 'A retired texture on Video replaces the shared frame'); assert(/radial-gradient/.test(await root()), 'the retired dot grid still paints');
+    await view(page, 'video'); assert.equal(((await area()).match(/linear-gradient/g) || []).length, 1, 'A different structure on Video replaces the shared frame with its one rail'); assert.equal(await root(), 'none');
     await view(page, 'activity'); assert.equal(((await area()).match(/linear-gradient/g) || []).length, 4, 'A slide that inherits the shared frame still shows its four bars');
-    evidence.push({ label: 'local Plain and retired texture clear the shared frame', cards: 'none', video: 'none', activity: 4 });
+    evidence.push({ label: 'local Plain and other structure clear the shared frame', cards: 'none', video: 'none', activity: 4 });
   });
 
   await scenario('old-v2 navigation hidden body and phone keyboard accessibility', async ({ makePage }) => {

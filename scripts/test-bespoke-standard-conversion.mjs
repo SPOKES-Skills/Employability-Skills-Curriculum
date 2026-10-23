@@ -5,7 +5,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { convertAlternatives, convertToStandard, conversionNote } from '../bespoke/standard-conversion.mjs';
+import { convertAlternatives, convertDraft, convertToStandard, conversionNote } from '../bespoke/standard-conversion.mjs';
 import { applyPreset, setFeatureStyle, setRoleStyle, structuralErrors } from '../bespoke/builder-model.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -126,4 +126,35 @@ test('the other option is converted and named in the changes', () => {
   assert.deepEqual(alternatives, before);
   assert.deepEqual(convertAlternatives(catalog, null), { alternatives: null, changes: [] });
   assert.equal(convertAlternatives(catalog, { active: 'B', otherDesign: other }).changes[0].slice(0, 9), 'Option A:');
+});
+
+test('a restored draft converts its design, other option and undo history', () => {
+  const base = applyPreset(catalog, 'professional');
+  const third = catalog.fonts.find(font => ![base.fonts.heading, base.fonts.body].includes(font.id));
+  const retired = setRoleStyle(catalog, { ...base, background: 'dot-grid' }, 'cards', 'headingFont', third.id);
+  const older = { ...base, background: 'crosshatch' };
+  const draft = {
+    design: retired,
+    alternatives: { active: 'A', otherDesign: { ...base, background: 'diagonal' } },
+    changes: [{ label: 'Background', design: older, alternatives: null, look: null }],
+    redo: [{ label: 'Texture', design: retired, alternatives: { active: 'B', otherDesign: older } }]
+  };
+  const before = clone(draft);
+  const result = convertDraft(catalog, draft);
+  assert.deepEqual(draft, before, 'the draft is not mutated');
+  assert.equal(result.design.background, 'plain');
+  assert.equal(result.design.roleStyles.cards.headingFont, 'heading');
+  assert.equal(result.alternatives.otherDesign.background, 'plain');
+  assert.equal(result.changes[0].design.background, 'plain');
+  assert.equal(result.changes[0].alternatives, null);
+  assert.equal(result.changes[0].label, 'Background');
+  assert.equal(result.redo[0].design.roleStyles.cards.headingFont, 'heading');
+  assert.equal(result.redo[0].alternatives.otherDesign.background, 'plain');
+  assert.deepEqual(result.notes, [
+    'Background Dot grid is now Plain.',
+    `Text boxes heading font ${third.label} is now the lesson heading font.`,
+    'Option B: Background Diagonal is now Plain.'
+  ]);
+  const clean = { design: base, alternatives: null, changes: [], redo: [] };
+  assert.deepEqual(convertDraft(catalog, clean), { ...clean, notes: [] });
 });

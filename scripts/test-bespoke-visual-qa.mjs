@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // Synthetic responsive/editor checks, independent of the user's browser or preview service.
-import { builderDestination, EDITOR_DESTINATIONS, restoreDraft } from './bespoke-test-navigation.mjs';
+import { builderDestination, EDITOR_DESTINATIONS } from './bespoke-test-navigation.mjs';
 import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
 import path from 'node:path';
@@ -39,7 +39,7 @@ async function pageFor(view) {
 // Lesson & team, Pick a look and Send show no editing preview; it lives on Make it yours.
 async function surface(page,name) {if(name==='preview'&&['team','start','review'].includes(await page.locator('#workspace').getAttribute('data-stage')))await page.locator('#stage-slides').click();if(await page.locator('#surface-'+name).isVisible())await page.locator('#surface-'+name).click();}
 function longDesign() {
-  const d=defaultDesign(catalog);d.background='crosshatch';
+  const d=defaultDesign(catalog);d.background='edge-rail';
   d.samples.title='A useful next step '.repeat(12).slice(0,catalog.sampleLimits.title);d.samples.subtitle='Long sample copy remains available and readable. '.repeat(15).slice(0,catalog.sampleLimits.subtitle);
   d.samples.boxes=Array.from({length:4},(_,i)=>`${i+1}. `+'Make a practical plan. Reflect and adjust. '.repeat(40).slice(0,catalog.sampleLimits.box-3));
   d.slides.cards.count='4';d.slides.cards.treatment='numbered';d.slides.activity.labelStyle='pill';d.slides.video.frame='accent';return d;
@@ -110,7 +110,8 @@ try {
     const canvas=await page.locator('#modelStage').evaluate(el=>el.getBoundingClientRect().width&&el.offsetWidth);assert(canvas>0,'Measure a visible preview canvas, not the layout gallery');
     const samplePage=await page.context().newPage();
     const fixture=longDesign();await surface(page,'design');
-    await restoreDraft(page,{schema:'bespoke-selection/v2',date:'2026-09-24',submittedAt:'2026-09-24T16:30:00.000Z',lesson:legacy.lesson,team:legacy.team,design:fixture});
+    await page.locator('#teamFileInput').setInputFiles({name:'synthetic-visual.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify({schema:'bespoke-selection/v2',date:'2026-09-24',submittedAt:'2026-09-24T16:30:00.000Z',lesson:legacy.lesson,team:legacy.team,design:fixture}))});
+    await page.locator('#fileStatus').filter({hasText:'Opened synthetic-visual.json.'}).waitFor();
     await builderDestination(page, 'Text boxes');
     for(const layout of ['columns','grid','rows']) {
       await surface(page,'design');await page.getByRole('group',{name:/Arrangement/}).locator(`[data-choice="${layout}"]`).click();

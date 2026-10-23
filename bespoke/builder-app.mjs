@@ -5,7 +5,7 @@ import { compareDesign } from './similarity.mjs';
 import { createPreviewEditor } from './preview-editor.mjs';
 import { watchCanvasFit } from './canvas-fit.mjs';
 import { fontControl } from './font-slots.mjs';
-import { convertToStandard, convertAlternatives, conversionNote } from './standard-conversion.mjs';
+import { convertToStandard, convertAlternatives, convertDraft, conversionNote } from './standard-conversion.mjs';
 import { syncStageChrome } from './canvas-shell.mjs';
 import { createGuide } from './guide/guide.mjs';
 import { showToast } from './toast.mjs';
@@ -1371,6 +1371,7 @@ function loadDraft(){
    if(!Array.isArray(state.changes)||!Array.isArray(state.redo))throw new Error('Invalid history');
    // Undo snapshots are data boundaries too; reject corrupted history before it can reach preview.
    for(const entry of [...state.changes,...state.redo])if(!entry||typeof entry.label!=='string'||schemaErrors({...buildSelectionPayload(),design:entry.design,...(entry.alternatives?{alternatives:entry.alternatives}:{})},selectionSchema).length||Model.validateDesign(catalog,entry.design).length||(entry.alternatives&&Model.validateDesign(catalog,entry.alternatives.otherDesign).length))throw new Error('Invalid history');
+   const standard=convertDraft(catalog,state);Object.assign(state,{design:standard.design,alternatives:standard.alternatives,changes:standard.changes,redo:standard.redo});ui.restoreNote=conversionNote(standard.notes)||ui.restoreNote;
    draftGeneration++;restoreStep(saved);ui.autosavePaused=saved.autosavePaused===true;lastSavedRaw=raw;
   }catch(e){Object.assign(state,before);throw e;}
  }catch{storageConflict=true;ui.restoreNote='This browser draft needs recovery. It has not been replaced. Download a backup from the other tab, or open a known backup here.';}

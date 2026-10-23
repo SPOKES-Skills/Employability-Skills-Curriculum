@@ -677,10 +677,31 @@ try {
     evidence.push({ label: 'standard conversion on open', changes: notice });
   });
 
+  await scenario('standard conversion of a restored draft', async ({ makePage }) => {
+    // A browser draft saved before the standard: Dot grid, a third typeface, and an older step in undo that also holds Crosshatch.
+    const base = defaultDesign(catalog);
+    const third = catalog.fonts.find(f => ![base.fonts.heading, base.fonts.body].includes(f.id));
+    const retired = { ...base, background: 'dot-grid', roleStyles: { cards: { ...roleStyleDefaults(catalog, base, 'cards'), headingFont: third.id } } };
+    const expected = { ...base, background: 'plain', roleStyles: { cards: { ...roleStyleDefaults(catalog, base, 'cards'), headingFont: 'heading' } } };
+    const css = value => cssForDesign(catalog, value, { scope: '.bespoke-slide', fontBase: '../fonts', canonical: false });
+    const dotGrid = 'radial-gradient(circle, rgba(255, 255, 255, 0.2) 2.5px';
+    const stored = { step: 0, stepId: 'start', lessonId: legacy.lesson.id, teamName: 'Synthetic previous draft', spokespersonName: 'Sample Instructor', spokespersonEmail: 'sample@example.org', unspoken: '', design: retired, changes: [{ label: 'Texture', design: { ...base, background: 'crosshatch' }, alternatives: null, look: null }], redo: [], meaningfulDesign: true, autosavePaused: true };
+    const page = await makePage({ storedDraft: stored });
+    const notice = `Updated this design to the SPOKES design standard: Background Dot grid is now Plain. Text boxes heading font ${third.label} is now the lesson heading font. Review it before saving.`;
+    assert.equal((await page.locator('#restoreNotice').innerText()).trim(), notice, 'the draft restores with the same notice as other opens');
+    const text = await page.locator('#designStyle').textContent();
+    assert.equal(text, css(expected), 'the preview renders the converted draft');
+    assert(!text.includes(dotGrid));
+    // Undo returns to the older step, which was converted too.
+    await page.locator('#btnUndo').click();
+    assert.equal((await design(page)).background, 'plain', 'undo never brings a retired texture back');
+    assert(!JSON.stringify(await draft(page)).includes('crosshatch'), 'the saved draft holds no retired texture after undo');
+  });
+
   await scenario('legacy UI steps and selection recovery', async ({ makePage }) => {
     const oldIds = ['welcome', 'team', 'colors', 'fonts', ...kinds, 'review'];
     const storedDesign = defaultDesign(catalog);
-    storedDesign.roleStyles = { title: { ...roleStyleDefaults(catalog, storedDesign, 'title'), headingFont: 'bitter', primary: 'gold' } };
+    storedDesign.roleStyles = { title: { ...roleStyleDefaults(catalog, storedDesign, 'title'), headingFont: 'body', primary: 'gold' } };
     for (const [index, oldId] of oldIds.entries()) {
       const saved = { step: index, stepId: oldId, previewView: 'activity', activeRole: 'sidebar', lessonId: 'money-management', teamName: 'Synthetic previous workflow', spokespersonName: 'Sample Instructor', spokespersonEmail: 'sample@example.org', unspoken: '', design: storedDesign, changes: [], redo: [] };
       const page = await makePage({ storedDraft: saved });
@@ -701,9 +722,11 @@ try {
     await upload(page, payload(oldV2)); assert.deepEqual(await design(page), oldV2);
     assert(!Object.hasOwn(await design(page), 'roleStyles'), 'Old v2 does not eagerly acquire local styles');
     const oldBackup = await backup(page); assert.deepEqual(oldBackup.design, oldV2);
-    // A third typeface in a backup follows the lesson's heading font once the backup is opened; the browser drafts above keep what was stored.
+    await upload(page, payload(storedDesign)); assert.deepEqual(await design(page), storedDesign);
+    // A third typeface in a backup follows the lesson's heading font once the backup is opened.
+    const third = { ...storedDesign, roleStyles: { title: { ...storedDesign.roleStyles.title, headingFont: 'bitter' } } };
     const standard = { ...storedDesign, roleStyles: { title: { ...storedDesign.roleStyles.title, headingFont: 'heading' } } };
-    await upload(page, payload(storedDesign)); assert.deepEqual(await design(page), standard);
+    await upload(page, payload(third)); assert.deepEqual(await design(page), standard);
     assert.match(await page.locator('#restoreNotice').textContent(), /Title slide heading font Bitter is now the lesson heading font/);
     await upload(page, legacy, 'synthetic-v1.json');
     assert.match(await page.locator('#restoreNotice').textContent(), /older|convert/i);

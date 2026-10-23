@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // Actual editor geometry plus generated/canonical title layouts. Synthetic state only.
-import { builderDestination, restoreDraft, switchSurface } from './bespoke-test-navigation.mjs';
+import { builderDestination, switchSurface } from './bespoke-test-navigation.mjs';
 import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
 import path from 'node:path';
@@ -19,7 +19,7 @@ const templateCss = [...template.matchAll(/<style[^>]*>([\s\S]*?)<\/style>/g)].m
 const templateTitle = template.match(/<section class="slide slide-title active"[\s\S]*?<\/section>/)[0];
 const initial = defaultDesign(catalog);
 Object.assign(initial.roles, { titleBackground:'gold', titleBackgroundEnd:'accent', titleText:'light', subtitle:'light' });
-initial.fonts = { heading:'raleway', body:'source-sans-3' }; initial.background = 'crosshatch';
+initial.fonts = { heading:'raleway', body:'source-sans-3' }; initial.background = 'edge-rail';
 initial.samples.title = 'Make room for your next step'; initial.samples.subtitle = 'A sample lesson for a confident start';
 initial.slides.title.colors = 'gradient';
 const payload = design => ({ schema:'bespoke-selection/v2', date:'2026-09-24', submittedAt:'2026-09-24T16:30:00.000Z', lesson:legacy.lesson, team:legacy.team, design });
@@ -102,7 +102,8 @@ async function seam(page, locator) {
 try {
   for(const width of [1920,1100,390]) {
     const page=await editor(width);
-    await restoreDraft(page,payload(initial));
+    await page.locator('#teamFileInput').setInputFiles({name:'synthetic-title.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(payload(initial)))});
+    await page.locator('#fileStatus').filter({hasText:'Opened synthetic-title.json.'}).waitFor();
     await go(page,'Title slide');
     let canvasWidth;
     for(const logo of logos) {
@@ -117,7 +118,7 @@ try {
         contained(m, `editor ${width}/${logo}/${layout}`);values[layout]=m;
         assert.equal(m.title.color,'rgb(255, 255, 255)');assert.equal(m.subtitle.color,'rgb(255, 255, 255)');
         assert(await page.locator('#modelStage .slide-title-text').evaluate(el=>getComputedStyle(el).fontFamily.includes('Raleway')));
-        assert((m.background.match(/linear-gradient/g)||[]).length>=3, 'Both pattern axes stay over the gradient');
+        assert((m.background.match(/linear-gradient/g)||[]).length>=2, 'The edge rail stays over the gradient');
         assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1), 'Editor stays inside viewport');
         if(logo==='corner')assert(m.logo.y<30, 'Corner logo stays at the top independently of text arrangement');
         else assert(m.logo.y+m.logo.h<m.title.y, 'Above-title logo stays in its own row');
@@ -136,8 +137,7 @@ try {
     await page.locator('#btnSave').click();assert.equal((await response).status(),200);
     await page.locator('#toast').filter({hasText:/Local test design saved|already up to date/}).waitFor();
     await page.reload();await page.locator('#localPreviewNotice').waitFor();assert.deepEqual(await saved(page),final);
-    // A fresh editor opens the shared design, which applies the standard: the retired Crosshatch becomes Plain.
-    const reopen=await editor(width);await go(reopen,'Title slide');assert.deepEqual(await saved(reopen),{...final,background:'plain'});
+    const reopen=await editor(width);await go(reopen,'Title slide');assert.deepEqual(await saved(reopen),final);
 
     // Same semantics in generated sample markup and the actual canonical title markup/base CSS.
     const generatedPage=await page.context().newPage();

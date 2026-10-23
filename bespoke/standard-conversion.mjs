@@ -58,3 +58,13 @@ export function convertAlternatives(catalog, alternatives) {
   const { design, changes } = convertToStandard(catalog, alternatives.otherDesign), letter = alternatives.active === 'A' ? 'B' : 'A';
   return { alternatives: { ...clone(alternatives), otherDesign: design }, changes: changes.map(change => `Option ${letter}: ${change}`) };
 }
+
+/**
+ * A restored browser draft: the open design, its other option and every undo and redo snapshot are converted, so Undo
+ * never brings a retired value back. notes lists the open design and other option only; older steps convert silently.
+ */
+export function convertDraft(catalog, { design, alternatives, changes, redo }) {
+  const main = convertToStandard(catalog, design), other = convertAlternatives(catalog, alternatives);
+  const history = steps => steps.map(step => ({ ...step, design: convertToStandard(catalog, step.design).design, ...(step.alternatives ? { alternatives: convertAlternatives(catalog, step.alternatives).alternatives } : {}) }));
+  return { design: main.design, alternatives: other.alternatives, changes: history(changes), redo: history(redo), notes: [...main.changes, ...other.changes] };
+}

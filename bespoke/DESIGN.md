@@ -274,9 +274,9 @@ The color-role selector and Apply color to selector precede the 11-color palette
 
 Each slide-type editor groups its existing Arrangement controls with Background, Background detail, Text and Watermark disclosures. Arrangement and Background start open; disclosure choices stay in UI memory, never in a design payload. Stable native controls retain focus after redraw. Local edits show the affected preview while preserving every other role's choices. Shared theme groups shared colors, fonts and background detail in one optional disclosure, available in every stage; its open state persists through stage changes.
 
-Shared theme's summary has a 48px minimum height. Paint colors names the selected slide and field; Shared default scope names affected Shared slide types and Custom exceptions, with links to the relevant local field. Fonts & texture has a separate Apply fonts & texture to selector, defaulting to This slide. It reads effective fonts and texture and changes only the selected local field. Its explicit Shared default option keeps global edits and custom exceptions separate. Both scope preferences persist only in the browser UI draft. Sidebar, Accent and Buttons have no misleading local-color shortcut: those colors remain shared. Navigation and button typography always use the shared body font; the canvas and Band divider exterior retain shared Content background. The seven inheritable local fields (primary/secondary background, heading/body color, heading/body font and texture) show Shared or Custom beside the control. Use shared theme in a field or its named reset button restores only that field on that slide, retaining other choices.
+Shared theme's summary has a 48px minimum height. Paint colors names the selected slide and field; Shared default scope names affected Shared slide types and Custom exceptions, with links to the relevant local field. Fonts & background detail has a separate Apply fonts & background detail to selector, defaulting to This slide. It reads effective fonts and background detail and changes only the selected local field. Its explicit Shared default option keeps global edits and custom exceptions separate. Both scope preferences persist only in the browser UI draft. Sidebar, Accent and Buttons have no misleading local-color shortcut: those colors remain shared. Navigation and button typography always use the shared body font; the canvas and Band divider exterior retain shared Content background. The seven inheritable local fields (primary/secondary background, heading/body color, heading/body font and background detail) show Shared or Custom beside the control. Use shared theme in a field or its named reset button restores only that field on that slide, retaining other choices.
 
-Background supports an inherited finish, Solid or a two-color gradient, local primary/secondary colors and three gradient directions. The second color stays saved when hidden. Split title panels use the second color in the right panel and omit the inapplicable direction control; Solid colors both panels uniformly. Divider Band retains its colored middle panel and the shared lesson surface above and below it. Texture offers the existing five recipes and three strengths, independently per role. Plain hides the strength control without clearing it.
+Background supports an inherited finish, Solid or a two-color gradient, local primary/secondary colors and three gradient directions. The second color stays saved when hidden. Split title panels use the second color in the right panel and omit the inapplicable direction control; Solid colors both panels uniformly. Divider Band retains its colored middle panel and the shared lesson surface above and below it. Background detail offers Plain, Color block, Edge rail and Frame at Thin, Standard or Thick, independently per role. Plain hides the size control without clearing it.
 
 Text offers local heading/body colors, the lesson's heading or body font, size, alignment, visibility and editable sample words. The Default choice keeps inherited sizing/alignment; explicit choices override them. Chapter and activity labels can be edited and hidden independently. Text boxes retain their four sample strings and existing treatment/count/title-bar controls. The video supporting paragraph starts hidden to preserve the old look. Hiding text retains its words and style. Watermarks offer None or custom text/number, eleven colors, three sizes, four corners and three strengths. Decorative custom marks occupy reserved space apart from reading text and never modify the required title logo. Presets reset visual settings but preserve all sample words.
 
@@ -334,7 +334,7 @@ rows can grow beyond it; fixed-height cropping is avoided. Centered and Left ali
 share vertical centering with distinct horizontal alignment. Bottom left allocates
 remaining space above the text. Split panels places the title/subtitle in the right
 column, after a hard 38% background boundary; the right panel retains the chosen
-gradient when enabled. Pattern layers remain above both panels. Narrow canvases keep
+gradient when enabled. Background detail stays above both panels. Narrow canvases keep
 these placement differences with smaller type and natural vertical growth.
 
 The corner logo occupies a reserved top area independently of title alignment.
@@ -355,7 +355,7 @@ share the treatment; the canonical side arrangement also stacks below 600px.
 
 The preview is a rendered reusable slide design with explicitly labeled sample content. It takes colors, fonts, arrangements, text, and backgrounds from the same model used by the reusable artifact and template override. It supports the five slide types, including one to four text boxes with paragraph, bullet, or numbered treatment. Hidden box samples remain in the draft.
 
-Readability notes name the problematic text/background pair and provide a path back to colors. The model checks title/heading pairs at 3:1 and subtitle/body pairs at 4.5:1, including sampled gradient surfaces and composited pattern ink; this is a modeled check, not a claim of whole-page accessibility certification.
+Readability notes name the problematic text/background pair and provide a path back to colors. The model checks title/heading pairs at 3:1 and subtitle/body pairs at 4.5:1, including sampled gradient surfaces; this is a modeled check, not a claim of whole-page accessibility certification.
 
 Comparison is advisory: it shows exact matching comparable choices against six released references, with matches, differences, and unknowns disclosed. It is not a perceptual percentage, a passing score, or a reservation of private team designs. Save/recovery and preview updates use status/live regions, including an explicit local-test label when that mode is active.
 
@@ -396,7 +396,7 @@ color. This slide paints the current effective local field immediately; Shared
 default changes only its separate inherited default. The Chapter divider editor
 can also edit or reset its local fields; shared-scope links open the matching field.
 Selecting text/second-color elements retains an already selected divider preview.
-Painting one gradient stop preserves the second stop, direction, texture and all
+Painting one gradient stop preserves the second stop, direction, background detail and all
 other choices. A hidden text color or unused second stop stays saved; the helper
 explains when it appears without changing visibility or background finish.
 Content heading/body choices remain

@@ -5,7 +5,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { FONT_SLOTS, ROLE_FONT_FIELDS, resolveFont, fontSlotChoices, fontControl } from '../bespoke/font-slots.mjs';
+import { FONT_SLOTS, ROLE_FONT_FIELDS, resolveFont, fontSlotChoices, fontControl, fontScopeGroup, scopeSentences } from '../bespoke/font-slots.mjs';
 import { ROLE_STYLE_KINDS, applyPreset, cssForDesign, effectiveFeatureStyle, effectiveRoleStyle, setFeatureStyle, setRoleStyle, structuralErrors, usedFontIds } from '../bespoke/builder-model.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -116,4 +116,30 @@ test('an unknown font value is still rejected', () => {
   const design = applyPreset(catalog, 'professional');
   assert.throws(() => setRoleStyle(catalog, design, 'cards', 'headingFont', 'comic-sans'), /invalid headingFont/);
   assert.throws(() => setFeatureStyle(catalog, design, 'sidebar', 'font', 'both'), /invalid font/);
+});
+
+test('scope help sorts a saved value by how it relates to a shared font default', () => {
+  assert.equal(fontScopeGroup('headingFont', 'inherit'), 'shared');
+  assert.equal(fontScopeGroup('headingFont', 'heading'), 'follows');
+  assert.equal(fontScopeGroup('bodyFont', 'body'), 'follows');
+  assert.equal(fontScopeGroup('headingFont', 'body'), 'followsOther');
+  assert.equal(fontScopeGroup('bodyFont', 'heading'), 'followsOther');
+  assert.equal(fontScopeGroup('headingFont', 'inter'), 'custom');
+  assert.equal(fontScopeGroup('primary', 'inherit'), 'shared');
+  assert.equal(fontScopeGroup('primary', 'gold'), 'custom');
+  assert.equal(fontScopeGroup('primary', 'heading'), 'custom', 'a slot name means nothing outside a font field');
+});
+
+test('scope sentences name each group in order and skip empty ones', () => {
+  const bindings = [['title', 'headingFont'], ['divider', 'headingFont'], ['cards', 'headingFont'], ['video', 'headingFont']];
+  const saved = { title: 'inherit', divider: 'heading', cards: 'body', video: 'inter' };
+  const sentences = scopeSentences(bindings, ([kind, field]) => fontScopeGroup(field, saved[kind]), ([kind]) => kind.toUpperCase());
+  assert.deepEqual(sentences, [
+    'Shared: TITLE.',
+    'Follows the shared font: DIVIDER.',
+    'Follows the other lesson font, unchanged by this default: CARDS.',
+    'Custom, unchanged by this default: VIDEO.'
+  ]);
+  assert.deepEqual(scopeSentences([['title', 'primary']], () => 'shared', ([kind]) => kind), ['Shared: title.']);
+  assert.deepEqual(scopeSentences([], () => 'shared', () => ''), []);
 });

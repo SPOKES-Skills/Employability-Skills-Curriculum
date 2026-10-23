@@ -4,7 +4,7 @@ import { readabilitySuggestions } from './readability.mjs';
 import { compareDesign } from './similarity.mjs';
 import { createPreviewEditor } from './preview-editor.mjs';
 import { watchCanvasFit } from './canvas-fit.mjs';
-import { fontControl } from './font-slots.mjs';
+import { fontControl, fontScopeGroup, scopeSentences } from './font-slots.mjs';
 import { convertToStandard, convertAlternatives, convertDraft, conversionNote } from './standard-conversion.mjs';
 import { syncStageChrome } from './canvas-shell.mjs';
 import { createGuide } from './guide/guide.mjs';
@@ -1530,8 +1530,8 @@ function resetSharedField(kind,field){
 }
 function appendSharedScope(host,key){
  const scope=document.createElement('div');scope.className='shared-scope';scope.dataset.sharedScope=key;
- const bindings=sharedBindings(key),shared=bindings.filter(([kind,field])=>savedRoleStyle(kind)[field]==='inherit'),custom=bindings.filter(([kind,field])=>savedRoleStyle(kind)[field]!=='inherit');
- const p=document.createElement('p');p.className='helper';p.textContent=[shared.length?'Shared: '+shared.map(([kind])=>VIEW_NAMES[kind]).join(', ')+'.':'',custom.length?'Custom, unchanged by this default: '+custom.map(([kind])=>VIEW_NAMES[kind]).join(', ')+'.':'',sharedExtraScope(key)].filter(Boolean).join(' ');scope.append(p);
+ const bindings=sharedBindings(key);
+ const p=document.createElement('p');p.className='helper';p.textContent=[...scopeSentences(bindings,([kind,field])=>fontScopeGroup(field,savedRoleStyle(kind)[field]),([kind])=>VIEW_NAMES[kind]),sharedExtraScope(key)].filter(Boolean).join(' ');scope.append(p);
  if(bindings.length){const links=document.createElement('div');links.className='scope-links';for(const [kind,field] of bindings){const b=document.createElement('button');b.type='button';b.className='text-link';b.dataset.scopeRole=kind;b.dataset.scopeField=field;b.textContent='Edit '+VIEW_NAMES[kind]+' · '+FIELD_LABELS[field].toLowerCase();b.onclick=()=>showRoleEditor(kind,fieldSection(field),field);links.append(b);}scope.append(links);}
  host.append(scope);
 }

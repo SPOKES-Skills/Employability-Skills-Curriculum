@@ -538,7 +538,7 @@ try {
     assert.equal(await page.locator('#modelStage .bespoke-slide').evaluate(el => getComputedStyle(el).backgroundColor), rgb('gold'));
     await page.locator('#themeScope').selectOption('shared');
     await page.locator('#font-heading').selectOption('inter');
-    assert.match(await page.locator('[data-shared-scope=headingFont]').textContent(), /Custom, unchanged.*Title slide/);
+    assert.match(await page.locator('[data-shared-scope=headingFont]').textContent(), /Follows the other lesson font, unchanged by this default: Title slide/);
     assert((await page.locator('#modelStage .slide-title-text').evaluate(el => getComputedStyle(el).fontFamily)).includes('Outfit'));
     await shared(page, false);
     await field(page, 'title', 'primary');
@@ -579,7 +579,7 @@ try {
     }
     await editor(page, 'title'); await setField(page, 'title', 'bodyFont', 'heading');
     await shared(page); await page.locator('#themeScope').selectOption('shared'); await page.locator('#font-body').selectOption('raleway');
-    assert.match(await page.locator('[data-shared-scope=bodyFont]').textContent(), /Custom, unchanged.*Title slide/);
+    assert.match(await page.locator('[data-shared-scope=bodyFont]').textContent(), /Follows the other lesson font, unchanged by this default: Title slide/);
     await preview(page, 'title');
     assert((await page.locator('#modelStage .slide-subtitle').evaluate(el => getComputedStyle(el).fontFamily)).includes('Inter'), 'The heading slot follows the shared heading font chosen earlier');
     await preview(page, 'video');

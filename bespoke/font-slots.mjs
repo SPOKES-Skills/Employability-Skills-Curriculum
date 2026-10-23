@@ -27,3 +27,24 @@ export function fontControl(catalog, design, { saved, slot, effective, inherit =
   const value = saved === 'inherit' ? (inherit ? 'inherit' : rendered) : saved;
   return { options: [...shared, ...choices, ...kept], value };
 }
+
+// Shared font defaults are headingFont and bodyFont; a slot equal to the default's own slot moves with it.
+const OWN_SLOT = { headingFont: 'heading', bodyFont: 'body' };
+
+/**
+ * How one saved field value relates to a shared default for that field:
+ * shared (inherit), follows (a font slot that tracks this default's lesson font), followsOther (the other lesson font,
+ * so this default leaves it as is), or custom (a font id or any other fixed value).
+ */
+export function fontScopeGroup(field, value) {
+  if (value === 'inherit') return 'shared';
+  if (!ROLE_FONT_FIELDS.includes(field) || !FONT_SLOTS.includes(value)) return 'custom';
+  return value === OWN_SLOT[field] ? 'follows' : 'followsOther';
+}
+
+const SCOPE_LEADS = [['shared', 'Shared'], ['follows', 'Follows the shared font'], ['followsOther', 'Follows the other lesson font, unchanged by this default'], ['custom', 'Custom, unchanged by this default']];
+
+/** One sentence per non-empty group of bindings ([kind, field] pairs), naming the slides in it. */
+export const scopeSentences = (bindings, groupOf, nameOf) => SCOPE_LEADS
+  .map(([group, lead]) => { const names = bindings.filter(binding => groupOf(binding) === group).map(nameOf); return names.length ? `${lead}: ${names.join(', ')}.` : ''; })
+  .filter(Boolean);

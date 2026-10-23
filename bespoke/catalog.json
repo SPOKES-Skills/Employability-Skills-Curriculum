@@ -6,7 +6,7 @@
   "libraryPreview": "../SPOKES Builder/library-preview.html",
   "lessons": [
     { "id": "goal-setting", "title": "Goal Setting", "round": 2 },
-    { "id": "money-management", "title": "Money Management", "round": 2, "note": "Dogfood team" },
+    { "id": "money-management", "title": "Money Management", "round": 2 },
     { "id": "professionalism-and-diversity", "title": "Professionalism and Diversity", "round": 2 },
     { "id": "knowing-your-rights", "title": "Knowing Your Rights in the Workplace", "round": 2 },
     { "id": "communicating-assertively", "title": "Communicating Assertively", "round": 2 },

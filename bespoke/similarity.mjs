@@ -17,7 +17,7 @@ export const CHARACTERISTICS = Object.freeze([
   ['dividerText.supporting', 'Divider supporting text color'],
   ['fonts.heading', 'Title font'],
   ['fonts.body', 'Body font'],
-  ['background', 'Content background pattern'],
+  ['background', 'Content background detail'],
   ['slides.title.layout', 'Title arrangement'],
   ['slides.title.logo', 'Title logo position'],
   ['slides.title.colors', 'Title background finish'],

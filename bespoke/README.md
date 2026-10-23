@@ -53,7 +53,7 @@ sample text. There is no confirmation dialog: the apply is one Undo step, and th
 
 **Shared theme** is an optional disclosure in the Slide options drawer and in Send's
 **See every setting**. It contains
-the shared colors, heading/body fonts and texture, including Sidebar, Accent and
+the shared colors, heading/body fonts and background detail, including Sidebar, Accent and
 Buttons colors. These three colors have no local slide replacement; shared body
 typography also supplies navigation and buttons. Shared content background still
 supplies the lesson canvas and the exterior of a Band divider.
@@ -99,14 +99,17 @@ families; presets can initialize combinations, but do not lock a pairing. Frankl
 Gothic Book is omitted because no existing licensed webfont package was found. Its
 absence does not block the builder, and no substitute is labeled as that font.
 
-**Background pattern:** Plain, Dot grid, Diagonal, Crosshatch and Soft wash supply
-the shared texture for all five slide types. A custom slide texture stays independent.
-Each shared control shows a miniature on the current preview's base color. Pattern ink adapts between
-White and Royal for visibility and readability without changing saved color roles.
-Text boxes keep their chosen opaque reading surface. Title/divider readability checks
-include the pattern and gradient layers. Plain removes texture while keeping the
+**Background detail:** Plain, Color block, Edge rail and Frame supply the shared
+detail for all five slide types. A custom slide detail stays independent.
+Each shared control shows a miniature on the current preview's base color. Color block,
+Edge rail and Frame are solid shapes in a single color that stay inside the slide's outer
+margin, so they never sit under text. The color is the accent when it stands apart from the
+slide's base colors, otherwise White or Royal, chosen for visibility without changing saved
+color roles. Text boxes keep their chosen opaque reading surface. Title/divider readability
+checks include the detail and gradient layers. Plain removes the detail while keeping the
 selected base color, gradient or band layout. Preview and generated output share the
-same treatment.
+same treatment. Designs saved with Dot grid, Diagonal, Crosshatch or Soft wash open as
+Plain; the schema and the service still accept those ids.
 
 **Components:** title and divider designs have separate optional arrangement and
 appearance choices. Text boxes support one to four boxes, one optional shared
@@ -119,7 +122,7 @@ accumulated design used by backups, shared saves and generated artifacts.
 and grows for long sample copy. Centered centers the text; Left aligned keeps the
 same vertical grouping at the left; Bottom left moves the group down. Split panels
 places the text in a separate right column with a visible panel boundary, retaining
-the selected solid/gradient finish and pattern. Above the title keeps the logo with
+the selected solid/gradient finish and background detail. Above the title keeps the logo with
 the text group; Top corner anchors it independently. Type scales with the canvas
 width rather than the browser window. These semantics also apply to generated
 samples and canonical title CSS. The existing title controls stay in place.
@@ -146,7 +149,7 @@ guarantee.
 ## Guide me
 
 On Pick a look, **Guide me** sits at the end of the mood row. The guide asks one question per
-screen, slide by slide: a starting look, a shared look (fonts, pattern, sidebar, accent and
+screen, slide by slide: a starting look, a shared look (fonts, background detail, sidebar, accent and
 button colors), then the title slide, chapter divider, text boxes, video slide and activity.
 Each question shows its choices as small pictures drawn from the real slide styles, and
 pointing at one previews it without choosing it. Color questions suggest the four most
@@ -230,6 +233,10 @@ Local testing does not establish online multi-device or hosted delivery acceptan
 | `bespoke/builder-catalog.json` | Eleven brand colors, twelve font families, editable presets, role choices and sample limits |
 | `bespoke/builder-model.mjs` | Model validation, readability, v1 conversion, shared CSS and escaped component markup |
 | `bespoke/builder-app.mjs` | Guided controls, cumulative draft, preview, undo and connected-save UI |
+| `bespoke/background-structures.mjs` | Color block, Edge rail and Frame layers kept inside the slide margin, and the retired texture ids |
+| `bespoke/font-slots.mjs` | Heading and body font slots, and how a slot resolves to the lesson fonts |
+| `bespoke/standard-conversion.mjs` | Brings a saved design or draft to the design standard on open, never mutating the input |
+| `bespoke/converted-open.mjs` | Status wording and the check for a converted design that is not saved yet |
 | `bespoke/selection-v2.schema.json` | Closed generated schema for the complete v2 selection |
 | `bespoke/lesson-fingerprints.json` | Measurements and evidence from six actual reference lessons |
 | `bespoke/similarity.mjs` | Advisory exact-choice comparison with explicit unknowns |

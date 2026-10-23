@@ -183,7 +183,7 @@ const findOption=(family,slug)=>state.library?.families?.[family]?.options.find(
   }
 
   function noteConversion(stored) {
-    ui.convertedUnsaved = convertedOnOpen(stored, selectionKey, currentSelectionKey());
+    ui.convertedUnsaved = convertedOnOpen(catalog, stored, selectionKey, currentSelectionKey());
     if (ui.convertedUnsaved && !ui.localPreview) setSaveStatus(CONVERTED_STATUS);
   }
 

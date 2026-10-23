@@ -6,6 +6,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { convertAlternatives, convertDraft, convertToStandard, conversionNote } from '../bespoke/standard-conversion.mjs';
+import { convertedOnOpen } from '../bespoke/converted-open.mjs';
 import { applyPreset, setFeatureStyle, setRoleStyle, structuralErrors } from '../bespoke/builder-model.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -157,4 +158,16 @@ test('a restored draft converts its design, other option and undo history', () =
   ]);
   const clean = { design: base, alternatives: null, changes: [], redo: [] };
   assert.deepEqual(convertDraft(catalog, clean), { ...clean, notes: [] });
+});
+
+test('only a stored v2 design that changed in conversion counts as converted on open', () => {
+  const base = applyPreset(catalog, 'professional');
+  const keyOf = payload => JSON.stringify(payload);
+  const stored = design => ({ schema: 'bespoke-selection/v2', design, alternatives: null });
+  assert.equal(convertedOnOpen(catalog, stored({ ...base, background: 'dot-grid' }), keyOf, 'other'), true);
+  assert.equal(convertedOnOpen(catalog, { ...stored(base), alternatives: { active: 'A', otherDesign: { ...base, background: 'diagonal' } } }, keyOf, 'other'), true);
+  assert.equal(convertedOnOpen(catalog, stored(base), keyOf, 'other'), false, 'a design with nothing retired is not converted, even when its saved shape differs from the page');
+  assert.equal(convertedOnOpen(catalog, stored({ ...base, background: 'dot-grid' }), keyOf, keyOf(stored({ ...base, background: 'dot-grid' }))), false, 'the same design as the page is not converted');
+  assert.equal(convertedOnOpen(catalog, { ...stored({ ...base, background: 'dot-grid' }), schema: 'bespoke-selection/v1' }, keyOf, 'other'), false, 'a v1 design is already unsaved by its own key');
+  assert.equal(convertedOnOpen(catalog, null, keyOf, 'other'), false);
 });

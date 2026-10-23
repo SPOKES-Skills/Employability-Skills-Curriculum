@@ -44,9 +44,10 @@ PROHIBITED_COLORS: list[str] = [
 # The official logo (LOGO-01, LOGO-02). Lessons may resize it but never swap, recolor or crop it.
 OFFICIAL_LOGO_PATH: Path = Path(__file__).resolve().parent.parent / "SPOKES-Logo.png"
 LOGO_FILE_RE = re.compile(r"spokes-logo", re.IGNORECASE)
-# The logo's own alt text. An alt that only mentions SPOKES (a game thumbnail) is not the logo.
+# The logo's own alt text, such as "SPOKES", "SPOKES logo." or "SPOKES program logo".
+# An alt that only mentions SPOKES (a game thumbnail) is not the logo.
 LOGO_ALT_RE = re.compile(
-    r"^\s*spokes(\s+logo)?\s*$|^\s*spokes\s*(?:—|&mdash;|–|-)\s*strategic planning",
+    r"^\s*spokes\s*$|^\s*spokes\b.*\blogo\b|^\s*spokes\s*(?:—|&mdash;|–|-)\s*strategic planning",
     re.IGNORECASE,
 )
 CSS_URL_RE = re.compile(r"""url\(\s*['"]?([^'")]+)['"]?\s*\)""", re.IGNORECASE)
@@ -476,7 +477,36 @@ def _logo_style_problems(declarations: str) -> list[str]:
 
 
 def _is_marked_logo(elem: Element) -> bool:
-    return _class_contains(elem, "logo") or bool(LOGO_ALT_RE.search(elem.attrs.get("alt") or ""))
+    """Marked by a logo class, the logo's own alt text, or an empty alt that marks it decorative."""
+    alt = elem.attrs.get("alt")
+    decorative = "alt" in elem.attrs and not (alt or "").strip()
+    return _class_contains(elem, "logo") or bool(LOGO_ALT_RE.search(alt or "")) or decorative
+
+
+def _wrapper_recolor(declarations: str) -> list[str]:
+    """Declarations on an element around the logo that recolor it too; a drop-shadow only adds a shadow."""
+    problems = ["mix-blend-mode"] if _css_value(declarations, "mix-blend-mode") not in (None, "normal") else []
+    for prop in ("filter", "-webkit-filter"):
+        value = _css_value(declarations, prop)
+        if value not in (None, "none") and re.sub(r"drop-shadow\((?:[^()]|\([^()]*\))*\)", "", value).strip():
+            problems.append(prop)
+    return problems
+
+
+def _wrapper_recolor_result(doc: Document, logos: list[Element], dynamic: set[str]) -> Result | None:
+    """LOGO-02 for the elements around the logo: a filter or blend mode there recolors the logo with them."""
+    wrappers = list(dict.fromkeys(anc for elem in logos for anc in elem.ancestors))
+    for elem in wrappers:
+        problems = _wrapper_recolor(elem.attrs.get("style") or "")
+        if problems:
+            return Result("LOGO-02", "FAIL", f"Logo recolored by inline style on <{elem.tag}> around it "
+                          f"({', '.join(problems)})", elem.line)
+    for selector, block in _css_rules(doc):
+        problems = _wrapper_recolor(block)
+        if problems and any(selector_matches(selector, elem, elem.ancestors, dynamic) for elem in wrappers):
+            return Result("LOGO-02", "FAIL", f"Logo recolored by CSS on an element around it "
+                          f"({', '.join(problems)}): {selector}", _find_css_line(doc, re.escape(selector)))
+    return None
 
 
 def _painted_logo_problems(declarations: str) -> list[str]:
@@ -498,7 +528,8 @@ def _check_logo_display(doc: Document) -> Result:
     for elem in doc.elements:
         shows_logo_file = any(LOGO_FILE_RE.search(elem.attrs.get(attr) or "") for attr in ("src", "poster"))
         if shows_logo_file and not _is_marked_logo(elem):
-            return Result("LOGO-02", "FAIL", f"Official logo used as stand-in art on <{elem.tag}>", elem.line)
+            return Result("LOGO-02", "FAIL", f'Official logo used as stand-in art on <{elem.tag}>: if it is the logo, '
+                          f'add "logo" to its class or set alt="SPOKES logo"', elem.line)
     logos = _logo_elements(doc)
     for elem in doc.elements:
         style = elem.attrs.get("style") or ""
@@ -518,7 +549,7 @@ def _check_logo_display(doc: Document) -> Result:
         if problems:
             return Result("LOGO-02", "FAIL", f"Logo altered by CSS ({', '.join(dict.fromkeys(problems))}): {selector}",
                           _find_css_line(doc, re.escape(selector)))
-    return Result("LOGO-02", "PASS", "Logo shown unaltered", 0)
+    return _wrapper_recolor_result(doc, logos, dynamic) or Result("LOGO-02", "PASS", "Logo shown unaltered", 0)
 
 
 def check_logo(doc: Document) -> list[Result]:

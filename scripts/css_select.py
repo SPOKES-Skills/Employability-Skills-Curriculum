@@ -6,6 +6,8 @@ id and attribute selectors, :not(), :is() and :where() are matched; other pseudo
 element itself. Sibling combinators (+, ~) are assumed to match, because the parser does
 not record siblings. Classes the lesson's script adds at runtime count as present.
 """
+from __future__ import annotations
+
 import re
 from collections.abc import Sequence
 from typing import Protocol

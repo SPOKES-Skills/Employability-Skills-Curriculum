@@ -1,4 +1,5 @@
 """Tests for the logo rules (LOGO-01, LOGO-02) in validate-lesson.py."""
+import ast
 import base64
 import subprocess
 import sys
@@ -103,6 +104,26 @@ class TestLogoRules(unittest.TestCase):
                                          files={"SPOKES-Logo.png": OFFICIAL_LOGO})
         self.assertIn("[FAIL] LOGO-02", out)
 
+    def test_logo02_accepts_common_logo_alt_text(self):
+        for alt in ("SPOKES logo.", "SPOKES program logo"):
+            with self.subTest(alt=alt):
+                code, out = run_validator_on_lesson(f'<img src="SPOKES-Logo.png" alt="{alt}" class="corner-brand" />',
+                                                    files={"SPOKES-Logo.png": OFFICIAL_LOGO})
+                self.assertIn("[PASS] LOGO-02", out)
+                self.assertEqual(code, 0, out)
+
+    def test_logo02_accepts_decorative_logo(self):
+        code, out = run_validator_on_lesson(
+            '<img src="SPOKES-Logo.png" alt="" aria-hidden="true" class="corner-brand" />',
+            files={"SPOKES-Logo.png": OFFICIAL_LOGO})
+        self.assertIn("[PASS] LOGO-02", out)
+        self.assertEqual(code, 0, out)
+
+    def test_logo02_stand_in_message_says_how_to_mark_the_logo(self):
+        _, out = run_validator_on_lesson('<img src="SPOKES-Logo.png" alt="Photo of a job interview" />',
+                                         files={"SPOKES-Logo.png": OFFICIAL_LOGO})
+        self.assertRegex(out, r'\[FAIL\] LOGO-02 .*stand-in art.*class.*alt="SPOKES logo"')
+
     # LOGO-02 follows the logo element and its ancestors, not selector text.
     def _wrapped(self, body, css, extra_files=None):
         return run_validator_on_lesson(body, css_extra=css,
@@ -167,6 +188,38 @@ class TestLogoRules(unittest.TestCase):
     def test_logo02_fails_on_prefixed_filter(self):
         self.assertIn("[FAIL] LOGO-02", self._styled(".logo { -webkit-filter: invert(1); }")[1])
 
+    # A filter or blend mode on an element around the logo recolors the logo with it.
+    def test_logo02_fails_on_wrapper_filter(self):
+        out = self._wrapped(f'<div class="logo-wrap">{self.LOGO_IMG}</div>',
+                            ".logo-wrap { filter: brightness(0) invert(1); }")[1]
+        self.assertIn("[FAIL] LOGO-02", out)
+
+    def test_logo02_fails_on_wrapper_blend_mode(self):
+        out = self._wrapped(f'<header class="title-bar">{self.LOGO_IMG}</header>',
+                            ".title-bar { mix-blend-mode: screen; }")[1]
+        self.assertIn("[FAIL] LOGO-02", out)
+
+    def test_logo02_fails_on_wrapper_filter_the_script_turns_on(self):
+        body = (f'<section class="slide">{self.LOGO_IMG}</section>'
+                '<script>document.body.classList.toggle("dark");</script>')
+        self.assertIn("[FAIL] LOGO-02", self._wrapped(body, "body.dark { filter: invert(1); }")[1])
+
+    def test_logo02_fails_on_wrapper_inline_filter(self):
+        out = self._wrapped(f'<div style="filter: grayscale(1)">{self.LOGO_IMG}</div>', "")[1]
+        self.assertIn("[FAIL] LOGO-02", out)
+
+    def test_logo02_allows_drop_shadow_on_wrapper(self):
+        code, out = self._wrapped(f'<div class="title-card">{self.LOGO_IMG}</div>',
+                                  ".title-card { filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.3)); }")
+        self.assertIn("[PASS] LOGO-02", out)
+        self.assertEqual(code, 0, out)
+
+    def test_logo02_ignores_filter_on_containers_without_the_logo(self):
+        code, out = self._wrapped(f'<div class="photo-panel"><img src="photo.png" alt="A photo" /></div>{self.LOGO_IMG}',
+                                  ".photo-panel { filter: grayscale(1); }", {"photo.png": OTHER_IMAGE})
+        self.assertIn("[PASS] LOGO-02", out)
+        self.assertEqual(code, 0, out)
+
     # LOGO-01 follows every way an element can show an image as the logo.
     def test_logo01_checks_srcset_candidates(self):
         out = self._wrapped('<img src="SPOKES-Logo.png" srcset="badge.png 2x" alt="SPOKES" class="logo" />', "",
@@ -206,11 +259,16 @@ class TestLogoRules(unittest.TestCase):
         self.assertIn("[FAIL] LOGO-01", out)
 
 
+RELEASED_LESSONS = ("lesson-communicating-with-the-public", "lesson-controlling-anger",
+                    "lesson-employee-accountability", "lesson-interview-skills",
+                    "lesson-problem-solving-and-decision-making", "lesson-time-management")
+
+
 class TestReleasedLessonsLogo(unittest.TestCase):
     def test_released_lessons_pass_logo_rules(self):
-        lessons = sorted((Path(__file__).resolve().parent.parent).glob("lesson-*/index.html"))
-        self.assertEqual(len(lessons), 6)
-        for lesson in lessons:
+        root = Path(__file__).resolve().parent.parent
+        for lesson in (root / name / "index.html" for name in RELEASED_LESSONS):
+            self.assertTrue(lesson.is_file(), lesson.parent.name)
             out = subprocess.run([sys.executable, str(VALIDATOR), str(lesson)],
                                  capture_output=True, text=True).stdout
             self.assertIn("[PASS] LOGO-01", out, lesson.parent.name)
@@ -223,6 +281,15 @@ class TestReleasedLessonsLogo(unittest.TestCase):
         self.assertIn("[PASS] LOGO-01", out)
         self.assertIn("[PASS] LOGO-02", out)
         self.assertNotIn("[FAIL]", out)
+
+
+class TestCssSelectModule(unittest.TestCase):
+    def test_css_select_defers_annotations(self):
+        """macOS's built-in Python 3.9 cannot evaluate `str | None`, so the validator must not evaluate it on import."""
+        tree = ast.parse((Path(__file__).parent / "css_select.py").read_text(encoding="utf-8"))
+        futures = {alias.name for node in tree.body
+                   if isinstance(node, ast.ImportFrom) and node.module == "__future__" for alias in node.names}
+        self.assertIn("annotations", futures)
 
 
 if __name__ == "__main__":

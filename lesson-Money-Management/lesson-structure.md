@@ -17,6 +17,7 @@ Britt decided these on October 27, 2026.
 
 - Jess opens each segment, and the teams keep their own examples. Jess is the fictional SNAP mom of two from Part 2, and she already has a captioned video. Each segment starts with one Jess moment, such as a payday, a bill, or a suspicious text. Activities keep their current characters, for example the five people in Part 6.
 - Britt will propose a full unification to the teams, with every activity rebuilt around Jess. Until they agree, do not rewrite team examples around Jess.
+- The chapter map below is the working placeholder the team will discuss. The topic map's original single-lesson skeleton is not presented to the team. `lesson-flow.html` is the shareable two-page view of this flow, with the fonts and logo embedded so it opens anywhere. `lesson-flow.pdf` is its print copy for the team.
 
 ### Proposed, not yet approved
 

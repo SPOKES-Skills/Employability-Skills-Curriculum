@@ -30,3 +30,8 @@ dist/
 # Original module files (pptx, pdf, docx) kept on disk for reference; too large for git
 /Employability Modules/
 /lesson-*/Old */
+
+# Round 2 team source folders stay local until licenses and drafts are reviewed (docs/phase-2/round-2-lesson-structure.md).
+# Add a ! line to track a part once it is approved.
+/lesson-*/Part-*/
+!/lesson-Money-Management/Part-2-Save-Money-Before-You-Spend-It-Britt/

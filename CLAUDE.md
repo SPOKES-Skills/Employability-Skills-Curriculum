@@ -31,6 +31,7 @@ The design rules referenced there are defined in `SPOKES-STANDARD.md`.
 Read these before changing Round 2 modules or the Builder intake. Do not ship product from them without Britt go.
 
 - `docs/phase-2/money-management-tanf-snap-topics-2026-09-17.md` — Money Management — Budget topic map (Britt's team)
+- `docs/phase-2/round-2-lesson-structure.md` — how team-built parts become one WIPPEA lesson (2-hour core, 3 with extensions) for every Round 2 lesson. Each lesson applies it in `lesson-<Topic>/lesson-structure.md`; Money Management is the first.
 - `docs/briefs/instructor-to-html-intake-2026-09-17.md` — KEEP VERBATIM intake rules on top of `SPOKES Builder/content-intake-template.md`
 - `docs/briefs/instructor-lesson-studio-concept-2026-09-17.md` — historical Bespoke concept. The prototype was subsequently greenlit; current locks are in `docs/bespoke/decisions.md`.
 

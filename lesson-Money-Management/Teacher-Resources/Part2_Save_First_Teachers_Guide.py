@@ -1,6 +1,6 @@
 """
 SPOKES Money Management -- Part 2: Save Money Before You Spend It
-Teacher's Guide for The Cushion Challenge (lesson-Money-Management/cushion-challenge.html)
+Teacher's Guide for The Cushion Challenge (lesson-Money-Management/Part-2-Save-Money-Before-You-Spend-It-Britt/cushion-challenge.html)
 
 Built from SPOKES Builder/Teachers_Guide_Template.py and the TeachersGuidePDF class
 in generate_teachers_guides.py.
@@ -293,7 +293,7 @@ def build_guide():
     )
 
     pdf.checklist([
-        ("The Cushion Challenge (HTML)", "lesson-Money-Management/cushion-challenge.html"),
+        ("The Cushion Challenge (HTML)", "lesson-Money-Management/Part-2-Save-Money-Before-You-Spend-It-Britt/cushion-challenge.html"),
         ("Projector, smart board, or shared screen", "Open the game, press Start over, check Class mode is On"),
         ("Speakers for the Meet Jess video", "Video and captions play inside the game"),
         ("My First Step cards", "Part2_My_First_Step_Cards.pdf, 4 per page, cut apart"),

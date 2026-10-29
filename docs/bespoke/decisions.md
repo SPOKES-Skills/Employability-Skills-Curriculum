@@ -19,6 +19,7 @@ Britt decided these on October 22, 2026 for Part 1 of `docs/superpowers/specs/20
 | Date | Decision |
 |---|---|
 | 2026-10-29 | Teams are told their design is a suggestion: "Final design choices are made in collaboration with the SPOKES Coordinator. Some parts of your design may not appear in the final lesson." The note sits on Send above the notes field and at the top of the team guide. The team ticks "We have read and understand this note." before sending. **Send to Britt →** stays off until the box is ticked, and the More menu's Send asks for the tick too. The tick lasts for the browser session and is not saved with the design. Britt's final approval (October 22) still stands. |
+| 2026-10-29 | The same note also shows on Pick a look, in the side column above **Make it ours →**, so teams see it before design work starts. The checkbox stays on Send only. Both places read the wording from `bespoke/coordinator-note.mjs`. |
 
 ## Showcase polish: October 19, 2026
 

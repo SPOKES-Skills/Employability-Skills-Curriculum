@@ -3,12 +3,11 @@
  * Talks to the builder only through its SendHost. Designs from the host are never changed here.
  */
 import { frameSizer } from './slide-frame.mjs';
+import { COORDINATOR_NOTE, COORDINATOR_AGREE } from './coordinator-note.mjs';
 
 const DECK = [['title', 'Title slide'], ['divider', 'Chapter divider'], ['cards', 'Text boxes'], ['video', 'Video slide'], ['activity', 'Activity']];
 const MAX_CHANGES = 3;
 export const SMALL_PRINT = 'Britt gives final approval to every design before it is used in a lesson.';
-export const COORDINATOR_NOTE = 'Final design choices are made in collaboration with the SPOKES Coordinator. Some parts of your design may not appear in the final lesson.';
-export const COORDINATOR_AGREE = 'We have read and understand this note.';
 // Disclosure states outlive a redraw within this page.
 let comparisonOpen = false;
 let settingsOpen = false;

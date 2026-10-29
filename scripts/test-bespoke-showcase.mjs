@@ -5,9 +5,7 @@ import {readFileSync} from 'node:fs';
 import {createDevServer, LOCAL_PREVIEW_VIEW_CODE} from './bespoke-dev-server.mjs';
 import {defaultDesign} from '../bespoke/builder-model.mjs';
 import catalog from '../bespoke/builder-catalog.json' with {type: 'json'};
-// send-stage.mjs needs a browser, so the coordinator copy is spelled out here.
-const COORDINATOR_NOTE = 'Final design choices are made in collaboration with the SPOKES Coordinator. Some parts of your design may not appear in the final lesson.';
-const COORDINATOR_AGREE = 'We have read and understand this note.';
+import {COORDINATOR_NOTE, COORDINATOR_AGREE} from '../bespoke/coordinator-note.mjs';
 import {browserType} from './bespoke-test-browser.mjs';
 import {clickMenuItem} from './bespoke-test-navigation.mjs';
 import {chromeControls, chromeFontSizes, recordMotion, motionSeen, motionTour} from './bespoke-test-chrome.mjs';
@@ -634,6 +632,20 @@ try {
     const box = await rect(page, '#sendCoordinator .send-agree');
     assert.ok(box.height >= 44, 'the tick target is at least 44px tall');
     await context.close(); pass('Send says the SPOKES Coordinator shapes the final design and asks the team to tick it');
+  }
+  for (const width of [1280, 375]) {
+    const {context, page} = await open(width, 800);
+    await page.locator('#stage-start').click();
+    const note = page.locator('#lookSide #lookCoordinator');
+    await note.waitFor();
+    assert.equal(await note.textContent(), COORDINATOR_NOTE, `Pick a look shows the coordinator note at ${width}px`);
+    assert.ok(await page.evaluate(() => Boolean(document.querySelector('#lookCoordinator')
+      .compareDocumentPosition(document.querySelector('#btnMakeItOurs')) & Node.DOCUMENT_POSITION_FOLLOWING)),
+      'the note sits above Make it ours');
+    assert.equal(await page.locator('#lookSide input[type=checkbox]').count(), 0, 'the tick stays on Send');
+    const r = await rect(page, '#lookCoordinator');
+    assert.ok(r.left >= 0 && r.right <= width, `the note fits the ${width}px viewport`);
+    await context.close(); pass(`Pick a look shows the coordinator note at ${width}px`);
   }
   {
     const {context, page} = await openHosted(1024, 768);

@@ -66,6 +66,7 @@ try {
   assert.equal(shared.selection.design.background, 'dot-grid', 'the shared copy still holds the older design');
 
   await page.locator('#stage-review').click();
+  await page.locator('#coordinatorAgree').check();
   await page.locator('#btnSendToBritt').click();
   await page.locator('#sentView, #sendFeedback').first().waitFor();
   await page.waitForFunction(() => document.querySelector('#sentView') || /Sending to Britt/.test(document.querySelector('#sendFeedback')?.textContent || ''));

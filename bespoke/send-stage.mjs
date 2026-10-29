@@ -7,6 +7,8 @@ import { frameSizer } from './slide-frame.mjs';
 const DECK = [['title', 'Title slide'], ['divider', 'Chapter divider'], ['cards', 'Text boxes'], ['video', 'Video slide'], ['activity', 'Activity']];
 const MAX_CHANGES = 3;
 export const SMALL_PRINT = 'Britt gives final approval to every design before it is used in a lesson.';
+export const COORDINATOR_NOTE = 'Final design choices are made in collaboration with the SPOKES Coordinator. Some parts of your design may not appear in the final lesson.';
+export const COORDINATOR_AGREE = 'We have read and understand this note.';
 // Disclosure states outlive a redraw within this page.
 let comparisonOpen = false;
 let settingsOpen = false;
@@ -94,6 +96,28 @@ function summaryRows(host, look) {
   return list;
 }
 
+// Send stays off until the team ticks that it read the coordinator note.
+function buildCoordinator(host, send) {
+  const block = make('div', 'send-coordinator');
+  block.id = 'sendCoordinator';
+  const note = make('p', '', COORDINATOR_NOTE);
+  note.id = 'sendCoordinatorNote';
+  const label = make('label', 'send-agree');
+  const box = make('input');
+  box.type = 'checkbox';
+  box.id = 'coordinatorAgree';
+  box.checked = host.agreed();
+  box.disabled = !host.editable();
+  box.setAttribute('aria-describedby', note.id);
+  box.onchange = () => {
+    host.agree(box.checked);
+    send.disabled = !host.editable() || !box.checked;
+  };
+  label.append(box, ' ', COORDINATOR_AGREE);
+  block.append(note, label);
+  return block;
+}
+
 function buildNotes(host) {
   const label = make('label', 'send-notes', 'Anything Britt should know?');
   label.append(host.notesField());
@@ -105,7 +129,8 @@ function buildActions(host) {
   const save = button('btnSendSave', 'btn btn-secondary', host.localPreview ? 'Save test design' : 'Save for the team', () => host.save());
   const send = button('btnSendToBritt', 'btn btn-primary', 'Send to Britt →', () => host.send());
   send.hidden = host.localPreview;
-  for (const action of [save, send]) action.disabled = !host.editable();
+  save.disabled = !host.editable();
+  send.disabled = !host.editable() || !host.agreed();
   actions.append(save, send);
   const feedback = make('p', 'send-feedback', host.feedback());
   feedback.id = 'sendFeedback';
@@ -155,8 +180,10 @@ function buildPanel(host) {
   const look = host.look();
   const note = host.sentNote();
   if (note) panel.append(sentNote(note));
-  panel.append(make('p', 'send-kicker', 'Your suggestion'), buildHeading(look), summaryRows(host, look), buildNotes(host),
-    ...buildActions(host), ...buildSimilarity(host), make('p', 'send-fine', SMALL_PRINT), buildAllSettings(host));
+  const [actions, feedback] = buildActions(host);
+  const coordinator = buildCoordinator(host, actions.querySelector('#btnSendToBritt'));
+  panel.append(make('p', 'send-kicker', 'Your suggestion'), buildHeading(look), summaryRows(host, look), coordinator, buildNotes(host),
+    actions, feedback, ...buildSimilarity(host), make('p', 'send-fine', SMALL_PRINT), buildAllSettings(host));
   return panel;
 }
 

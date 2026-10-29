@@ -41,6 +41,8 @@ try{
   return route.fulfill({response:await route.fetch({url:server.baseUrl+u.pathname+u.search,headers:{...route.request().headers(),origin:server.baseUrl}})});
  });
  const page=await context.newPage();page.on('console',m=>{if(m.type()==='error')console.error(m.text());});page.on('requestfailed',r=>console.error(r.url(),r.failure()));page.on('pageerror',e=>errors.push(e.message));page.setDefaultTimeout(10000);await page.goto('https://bespoke.test/bespoke/');await page.waitForFunction(()=>JSON.parse(localStorage.getItem('bespoke-draft-v2')||'null')?.alternatives?.active==='B').catch(async e=>{console.error(await page.locator('body').innerText(),errors);throw e;});
+ // The team ticks the coordinator note on Send before any send can start.
+ await page.locator('#stage-review').click();await page.locator('#coordinatorAgree').check();await page.locator('#stage-slides').click();
  await clickMenuItem(page, '#btnSend');await page.locator('#fileStatus').filter({hasText:'not a receipt yet'}).waitFor();assert.equal(await page.locator('#lastReviewReceipt').isVisible(),false);
  // A pending send says so in the Send panel; a receipt confirmed on another stage is a toast, and the confirmation waits on Send.
  await page.locator('#stage-review').click();assert.equal(await page.locator('#sendFeedback').textContent(),'Sending to Britt…');assert.equal(await page.locator('#sentView').count(),0);

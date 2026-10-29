@@ -5,6 +5,7 @@
  */
 import { MOODS, MOOD_ORDER, MOOD_LABELS, lookDetail } from './showcase-model.mjs';
 import { CANVAS, frameSizer } from './slide-frame.mjs';
+import { COORDINATOR_NOTE } from './coordinator-note.mjs';
 
 const DECK = { divider: 'Divider', cards: 'Text boxes', video: 'Video', activity: 'Activity' };
 const NEXT_KEYS = { ArrowRight: 1, ArrowDown: 1, ArrowLeft: -1, ArrowUp: -1 };
@@ -157,7 +158,10 @@ function buildSide(host) {
   actions.append(button('btnMakeItOurs', 'btn btn-primary look-go', 'Make it ours →', () => host.makeItOurs(), host.editable()), undo);
   const live = make('p', 'sr-only');
   live.setAttribute('aria-live', 'polite');
-  side.append(heading, name, detail, colors, deck, actions, live);
+  // Sets the expectation before design work starts; the team ticks it on Send.
+  const note = make('p', 'coordinator-note look-coordinator', COORDINATOR_NOTE);
+  note.id = 'lookCoordinator';
+  side.append(heading, name, detail, note, colors, deck, actions, live);
   return { side, heading, name, detail, colors, deck, live };
 }
 

@@ -148,7 +148,9 @@
 .send-comparison{font-size:var(--fs-xs);line-height:1.5}
 .send-comparison h3{margin:12px 0 4px;font-size:var(--fs-xs)}
 .send-fine{margin:0;font-size:var(--fs-2xs);color:var(--muted)}
-.send-coordinator{display:flex;flex-direction:column;gap:6px;padding:10px 12px;border:1px solid #d3b257;border-radius:var(--radius-control);background:#fff5d7;font-size:var(--fs-sm);line-height:1.45}
+.send-coordinator{display:flex;flex-direction:column;gap:6px}
+.send-coordinator,.coordinator-note{padding:10px 12px;border:1px solid #d3b257;border-radius:var(--radius-control);background:#fff5d7;font-size:var(--fs-sm);line-height:1.45}
+.look-coordinator{margin:0 0 14px}
 .send-coordinator p{margin:0}
 .send-agree{display:flex;align-items:center;gap:8px;min-height:44px;font-weight:500}
 .send-agree input{width:22px;height:22px;flex:none}

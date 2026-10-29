@@ -32,6 +32,7 @@ const HANDOFF_TIMEOUT_MS = 20000;
 const HANDOFF_CONFIG_URL = './handoff-config.json';
 const SAVING_NOTICE = 'Saving the shared design…';
 const SENDING_NOTICE = 'Sending to Britt…';
+const COORDINATOR_REQUIRED = 'Read the note about the SPOKES Coordinator on Send and tick the box before sending.';
 const VIEW_NAMES = {title:'Title slide',divider:'Chapter divider',cards:'Text boxes',video:'Video slide',activity:'Activity'};
 const STEPS = [
  {id:'team',label:'Lesson & team',view:'title'},
@@ -43,7 +44,7 @@ const LEGACY_STEPS = ['welcome','team','colors','fonts','title','divider','cards
 const onStage = id => STEPS[state.step].id === id;
 const teamIdentified = () => Boolean(state.teamName.trim() && state.spokespersonName.trim());
 const state = {step:0,stepId:'start',meta:null,library:null,lessonId:'money-management',teamName:'',spokespersonName:'',spokespersonEmail:'',builderName:'',lessonTitle:'',lessonSubtitle:'',unspoken:'',editCode:'',previewView:'title',design:null,legacySelection:null,alternatives:null,changes:[],redo:[]};
-const ui = {onlySlide:false,mode:'view',renderedStep:null,previewPinned:false,teamSession:null,cloudConflict:null,cloudBusy:false,autosavePaused:false,allowUnload:false,skipNextLocalSave:false,restoreNote:'',restoredFromLink:false,editCodeHash:'',activeRole:'sidebar',paintScope:'slide',themeScope:'slide',localPreview:false,editorRole:'title',sharedThemeOpen:false,meaningfulDesign:false,appliedLook:null,lookSnapshot:null,lookUndoAt:null,onStart:false};
+const ui = {onlySlide:false,mode:'view',renderedStep:null,previewPinned:false,teamSession:null,cloudConflict:null,cloudBusy:false,autosavePaused:false,allowUnload:false,skipNextLocalSave:false,restoreNote:'',restoredFromLink:false,editCodeHash:'',activeRole:'sidebar',paintScope:'slide',themeScope:'slide',localPreview:false,editorRole:'title',sharedThemeOpen:false,meaningfulDesign:false,appliedLook:null,lookSnapshot:null,lookUndoAt:null,onStart:false,coordinatorAgreed:false};
 ui.guide = null;
 let guide = null;
 let previewEditor = null;
@@ -989,13 +990,18 @@ const findOption=(family,slug)=>state.library?.families?.[family]?.options.find(
     actionNotice(result.message || "The review request failed. Your saved design is unchanged; try Send to Britt again.");
   }
 
-  async function cloudSend() {
+  // A follow-up note resends a design the team already sent, so it skips the coordinator tick.
+  async function cloudSend({ followUp = false } = {}) {
     if (!isLeadSession() || handoffBusy) return;
     if (ui.localPreview) { actionNotice("This local preview does not send review requests. Your test design and backups remain available."); return; }
     const session = requireTeamSession();
     if (!session) return;
     if (!state.spokespersonName.trim()) {
       goStage('team');byId('spokespersonName')?.focus();actionNotice("Add the spokesperson's name on Lesson & team before sending.");
+      return;
+    }
+    if (!followUp && !ui.coordinatorAgreed) {
+      goStage('review');byId('coordinatorAgree')?.focus();actionNotice(COORDINATOR_REQUIRED);
       return;
     }
     // A converted design is not an edit, so nothing has saved it; pressing Send is the team's action, so it saves first.
@@ -1821,7 +1827,7 @@ function sendHost(){
   similarity:()=>{const n=near();return n?{shared:n.shared,total:n.total}:null;},
   fillSimilarityDetails:el=>{el.innerHTML=similarityDetails(compareDesign(fingerprints,state.design,catalog));},
   fillAllSettings:el=>{renderReview(el);renderSharedTheme(el);},
-  notesField:reviewNotesField,save:()=>cloudSave(),send:()=>cloudSend(),feedback:()=>ui.sendFeedback||(pendingSubmission()?.stage==='receipt'?SENDING_NOTICE:''),
+  notesField:reviewNotesField,save:()=>cloudSave(),send:()=>cloudSend(),agreed:()=>ui.coordinatorAgreed,agree:value=>{ui.coordinatorAgreed=value;},feedback:()=>ui.sendFeedback||(pendingSubmission()?.stage==='receipt'?SENDING_NOTICE:''),
   openKind:kind=>{ui.editorRole=kind;ui.moreOptions=false;goStage('slides');},
   receipt:()=>ui.teamSession?.lastReceipt||null,lessonTitle:()=>findMeta(state.meta?.lessons,state.lessonId)?.title||'',
   sentNote:()=>sendView()==='changed'?ui.teamSession.lastReceipt.receivedAt:'',
@@ -1838,7 +1844,7 @@ async function sendNote(){
  ui.noteFrom=ui.teamSession?.lastReceipt?.submissionId;
  await cloudSave();
  if(ui.cloudConflict||hasUnsavedTeamWork()){ui.noteFrom=undefined;return;}
- await cloudSend();
+ await cloudSend({followUp:true});
 }
 // Only the lead sees the confirmation. Receipts kept before sends carried a design key cannot be compared.
 function sendView(){const receipt=ui.teamSession?.lastReceipt;return isLeadSession()&&receipt?.designKey?sentState(receipt,designKey(state.design)):'none';}

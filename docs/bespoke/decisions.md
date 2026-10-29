@@ -14,6 +14,12 @@ Britt decided these on October 22, 2026 for Part 1 of `docs/superpowers/specs/20
 | 2026-10-22 | The 12 ready-made looks stay. Each shares at most 5 compared choices with each released lesson and, where possible, no color combination. Any two looks share 16 or fewer of the 32 compared choices. |
 | 2026-10-22 | Every BeSpoke design needs Britt's final approval before it is used in a lesson. Send says so, and Sent to Britt says the design is waiting for Britt's approval. This supersedes the October 7 line "The final design comes from Britt and the administrator" only where that line conflicts. The program administrator no longer appears in the Send copy. |
 
+## Coordinator note: October 29, 2026
+
+| Date | Decision |
+|---|---|
+| 2026-10-29 | Teams are told their design is a suggestion: "Final design choices are made in collaboration with the SPOKES Coordinator. Some parts of your design may not appear in the final lesson." The note sits on Send above the notes field and at the top of the team guide. The team ticks "We have read and understand this note." before sending. **Send to Britt →** stays off until the box is ticked, and the More menu's Send asks for the tick too. The tick lasts for the browser session and is not saved with the design. Britt's final approval (October 22) still stands. |
+
 ## Showcase polish: October 19, 2026
 
 Britt approved the showcase polish spec (`docs/superpowers/specs/2026-10-19-bespoke-showcase-polish-design.md`).

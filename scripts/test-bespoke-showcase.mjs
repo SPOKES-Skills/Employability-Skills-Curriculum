@@ -5,6 +5,9 @@ import {readFileSync} from 'node:fs';
 import {createDevServer, LOCAL_PREVIEW_VIEW_CODE} from './bespoke-dev-server.mjs';
 import {defaultDesign} from '../bespoke/builder-model.mjs';
 import catalog from '../bespoke/builder-catalog.json' with {type: 'json'};
+// send-stage.mjs needs a browser, so the coordinator copy is spelled out here.
+const COORDINATOR_NOTE = 'Final design choices are made in collaboration with the SPOKES Coordinator. Some parts of your design may not appear in the final lesson.';
+const COORDINATOR_AGREE = 'We have read and understand this note.';
 import {browserType} from './bespoke-test-browser.mjs';
 import {clickMenuItem} from './bespoke-test-navigation.mjs';
 import {chromeControls, chromeFontSizes, recordMotion, motionSeen, motionTour} from './bespoke-test-chrome.mjs';
@@ -620,6 +623,37 @@ try {
   {
     const {context, page} = await open(1280, 800);
     await page.locator('#stage-review').click();
+    assert.ok(await page.locator('#sendCoordinator').isVisible(), 'the coordinator note shows on Send');
+    assert.equal(await page.locator('#sendCoordinatorNote').textContent(), COORDINATOR_NOTE);
+    assert.ok(await page.evaluate(() => {
+      const note = document.querySelector('#sendCoordinator');
+      return Boolean(note.compareDocumentPosition(document.querySelector('.send-notes')) & Node.DOCUMENT_POSITION_FOLLOWING);
+    }), 'the coordinator note sits above the notes field');
+    const agree = page.getByRole('checkbox', {name: COORDINATOR_AGREE});
+    assert.equal(await agree.isChecked(), false, 'the box starts unticked');
+    const box = await rect(page, '#sendCoordinator .send-agree');
+    assert.ok(box.height >= 44, 'the tick target is at least 44px tall');
+    await context.close(); pass('Send says the SPOKES Coordinator shapes the final design and asks the team to tick it');
+  }
+  {
+    const {context, page} = await openHosted(1024, 768);
+    await page.locator('#stage-review').click();
+    assert.equal(await page.locator('#btnSendToBritt').isDisabled(), true, 'Send to Britt waits for the tick');
+    await page.locator('#coordinatorAgree').check();
+    assert.equal(await page.locator('#btnSendToBritt').isDisabled(), false, 'ticking the box turns Send to Britt on');
+    await page.locator('#stage-start').click();
+    await page.locator('#stage-review').click();
+    assert.equal(await page.locator('#coordinatorAgree').isChecked(), true, 'the tick survives leaving Send and coming back');
+    await page.locator('#coordinatorAgree').uncheck();
+    await page.locator('#stage-start').click();
+    await clickMenuItem(page, '#btnSend');
+    await page.locator('#fileStatus').filter({hasText: 'tick the box before sending'}).waitFor();
+    assert.equal(await page.locator('#sendCoordinator').isVisible(), true, 'the menu Send opens Send to show the note');
+    await context.close(); pass('Send to Britt stays off until the team ticks the coordinator note');
+  }
+  {
+    const {context, page} = await open(1280, 800);
+    await page.locator('#stage-review').click();
     const box = await rect(page, '#btnSendSave');
     assert.equal(await page.evaluate(() => scrollY), 0, 'Send opens at the top');
     assert.ok(box.top >= 0 && box.bottom <= 800, `Save sits in the window without scrolling, top ${box.top}, bottom ${box.bottom}`);
@@ -672,7 +706,7 @@ try {
     await page.goto(`${server.baseUrl}/bespoke/#view=money-management.${LOCAL_PREVIEW_VIEW_CODE}`);
     await page.locator('body[data-access=view]').waitFor();
     await page.locator('#stage-review').click();
-    for (const id of ['#btnSendSave', '#btnSendToBritt', '#reviewNotes'])
+    for (const id of ['#btnSendSave', '#btnSendToBritt', '#reviewNotes', '#coordinatorAgree'])
       assert.equal(await page.locator(id).isDisabled(), true, `${id} is locked in a view-only session`);
     assert.equal(await page.locator('#sendDeck .send-open').first().isDisabled(), false, 'viewers can still open a slide');
     await context.close();
@@ -684,6 +718,7 @@ try {
     await page.locator('#stage-start').click();
     await page.locator('#preset-fun').click();
     await page.locator('#stage-review').click();
+    await page.locator('#coordinatorAgree').check();
     await page.locator('#btnSendToBritt').click();
     const unsaved = 'Save the current shared design before sending it to Britt.';
     assert.equal(await textOf(page, '#sendFeedback'), unsaved, 'a send that cannot start says why beside the buttons');
